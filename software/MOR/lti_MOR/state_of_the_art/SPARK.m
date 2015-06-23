@@ -300,6 +300,61 @@ warning('off','MATLAB:nearlySingularMatrix')
         % replace negative values by 0
         p0(p0<=0) = opts.zeroThres;
     end
+    function varargout = s2p(varargin)
+        % s2p: Shifts to optimization parameters for SPARK
+        % ------------------------------------------------------------------
+        % USAGE:  This function computes the two paramters a,b that are used within
+        % the optimization in SPARK. 
+        %
+        % p = s2p(s)
+        % [a,b] = s2p(s1,s2)
+        % 
+        % Computations:
+        % a = (s1+s2)/2
+        % b = s1*s2
+        %
+        % s1 = a + sqrt(a^2-b)
+        % s2 = a - sqrt(a^2-b)
+        %
+        % See also CURE, SPARK.
+        %
+        % ------------------------------------------------------------------
+        % REFERENCES:
+        % [1] Panzer (2014), Model Order Reduction by Krylov Subspace Methods
+        %     with Global Error Bounds and Automatic Choice of Parameters
+        % ------------------------------------------------------------------
+        % This file is part of MORLab, a Sparse State Space, Model Order
+        % Reduction and System Analysis Toolbox developed at the Institute 
+        % of Automatic Control, Technische Universitaet Muenchen.
+        % For updates and further information please visit www.rt.mw.tum.de
+        % For any suggestions, submission and/or bug reports, mail us at
+        %                      -> MORLab@tum.de <-
+        % ------------------------------------------------------------------
+        % Authors:      Alessandro Castagnotto
+        % Last Change:  27 April 2015
+        % ------------------------------------------------------------------
+
+        % parse input
+        if nargin==1
+            s1 = varargin{1}(1);
+            s2 = varargin{1}(2);
+        else
+            s1 = varargin{1};
+            s2 = varargin{2};
+        end
+
+        % compute
+        a = (s1+s2)/2;
+        b = s1*s2;
+
+        % generate output
+        if nargout<=1
+            varargout{1} = [a,b];
+        else
+            varargout{1} = a;
+            varargout{2} = b;
+        end
+    end
     % c) ANALYSIS
     function stop = OuputFcn(x,optimValues,state)
     
