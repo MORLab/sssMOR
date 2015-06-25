@@ -275,16 +275,22 @@ warning('off','MATLAB:nearlySingularMatrix')
         % make sure they are sorted in ascending magnitude of real part
         [~,idx] = sort(abs(real(l)),'ascend');
         l = l(idx)';
+        % make sure there are at least two valid eigenvalues
+        if length(l)>1
+            l_ritz = l(1:2);
+        else
+            l_ritz = zeros(2,1);
+        end
         
         if opts.test
             bla=nicefigure('Ritz Values for Initialization');plot(real(l),imag(l),'b*');hold on
-            plot(real(l(1:2)),imag(l(1:2)),'ro');
+            plot(real(l_ritz),imag(l_ritz),'ro');
             legend('Ritz Values','initialization')
         end
         % redefine the optimization starting values according to the
         % Ritz values.
         % Take the mirror images to get positive real parts
-        s0ritz = l(1:2)-2*real(l(1:2));
+        s0ritz = l_ritz-2*real(l_ritz);
         p0 = s2p(s0ritz); 
         if opts.verbose,fprintf('Initialization according to Ritz values: p0=[%e,%e]',p0(1),p0(2));end
         if opts.test,pause,close(bla);end
