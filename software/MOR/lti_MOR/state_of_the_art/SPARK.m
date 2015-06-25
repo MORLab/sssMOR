@@ -36,7 +36,7 @@ function [V,S_V,Crt,k] = SPARK(A,B,C,E,s0,opts)
 % ------------------------------------------------------------------
 % Authors:      Heiko K.F. Panzer, Alessandro Castagnotto 
 %               (a.castagnotto@tum.de)
-% Last Change:  28 April 2015
+% Last Change:  25 Jun 2015
 % ------------------------------------------------------------------
 
 %----------------  OPTIMIZATION PARAMETERS -----------------------
@@ -278,6 +278,10 @@ warning('off','MATLAB:nearlySingularMatrix')
         % make sure there are at least two valid eigenvalues
         if length(l)>1
             l_ritz = l(1:2);
+            % make sure they are complex conjugate
+            if ~sum(imag(l_ritz))
+                l_ritz(2) = conj(l_ritz(1));
+            end
         else
             l_ritz = -ones(2,1);
         end
