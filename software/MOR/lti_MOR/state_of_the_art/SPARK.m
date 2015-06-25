@@ -279,7 +279,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         if length(l)>1
             l_ritz = l(1:2);
             % make sure they are complex conjugate
-            if ~sum(imag(l_ritz))
+            if sum(imag(l_ritz))
                 l_ritz(2) = conj(l_ritz(1));
             end
         else
