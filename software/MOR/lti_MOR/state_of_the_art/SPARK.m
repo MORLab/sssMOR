@@ -279,7 +279,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         if length(l)>1
             l_ritz = l(1:2);
         else
-            l_ritz = zeros(2,1);
+            l_ritz = -ones(2,1);
         end
         
         if opts.test
