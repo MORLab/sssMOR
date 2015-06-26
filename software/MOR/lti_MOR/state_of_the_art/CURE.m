@@ -38,7 +38,8 @@ function sysr = CURE(sys,opts)
 % ------------------------------------------------------------------
 % Authors:      Heiko K.F. Panzer, Alessandro Castagnotto, 
 %               Maria Cruz Varona
-% Last Change:  08 April 2015
+% Last Change:  26 April 2015
+% Copyright 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
 % Parse input and load default parameters
@@ -76,7 +77,10 @@ Er_tot = []; Ar_tot = []; Br_tot = []; Cr_tot = []; B_ = sys.b; C_ = sys.c;
 BrL_tot = zeros(0,p); CrL_tot = zeros(p,0); 
 BrR_tot = zeros(0,m); CrR_tot = zeros(m,0);
 
-sysr = sss(Ar_tot,Br_tot,Cr_tot,sys.d,Er_tot);
+sysr = sss(Ar_tot,Br_tot,Cr_tot,zeros(p,m),Er_tot);
+
+%   We reduce only the strictly proper part and add the feedthrough at the end   
+Dr_tot = sys.d;
 
 %   Start cumulative reduction
 if opts.verbose, fprintf('\nBeginning CURE iteration...\n'); end
