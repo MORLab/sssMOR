@@ -63,3 +63,44 @@ Segment.length, Options.MAX_ITERATIONS, GeneralOptions.fieldName
 mean, moment, maxError
 
 
+%%  #) Testing
+
+%   Tests are to be created using the Matlab Unit Test Framework
+
+%   Introductory video available at
+url = 'http://de.mathworks.com/support/2015a/matlab/8.5/demos/matlab-unit-test-framework-in-release-2013a.html';
+web(url,'-browser')
+
+%   Tests are defined as classes. This is an example
+
+% classdef Test1 < matlab.unittest.TestCase
+%     properties
+%           OriginalPath %keeps the original path
+%     end
+%     
+%     methods(TestMethodSetup) %stuff that is run when starting the test#
+%           function addSolverToPath(testCase)
+%               testCase.OriginalPath = path;
+%               addpath(fullfile(pwd,'code_to_test'));
+%           end
+%     end
+%     methods (Test)
+%         function testThisScenario(testCase)
+%             actSolution = functionToBeTestet(input);
+%             expSolution = theCorrectSolution;
+%             
+%             testCase.verifyEqual(actSolution,expSolution,'AbsTol',yourTolerance);
+%         end
+%     end
+% end
+
+%   All availabe test methods can be found with
+methods(matlab.unittest.TestCase)
+
+%   Run all the test using
+testCase1 = Test1;
+result1 = run(testCase1);
+disp(result1)
+
+%   Run only a particular test
+run(testCase1,'<method name>');
