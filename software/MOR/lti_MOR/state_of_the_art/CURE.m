@@ -42,7 +42,7 @@ function sysr = CURE(sys,Opts)
 % Copyright 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
-% Parse input and load default parameters
+%% Parse input and load default parameters
     % default values
     Def.test = 0; %execute analysis code?
     Def.warn = 0; %show warnings?
@@ -63,15 +63,15 @@ function sysr = CURE(sys,Opts)
                 
     Opts = parseOpts(Opts,Def);
          
-
+%%  Plot for testing
 if Opts.test
-    fh = nicefigure('Reduction with CURE');
-    if ~isfield(Opts,'w'), Opts.w = []; end
+    fhOriginalSystem = nicefigure('CURE - Reduction of the original model');
+    fhSystemBeingReduced = fhOriginalSystem; %the two coincide for the moment
     [mag,phase,w] = bode(sys,Opts.w); bodeOpts = {'Color',TUM_Blau,'LineWidth',2};
     redo_bodeplot(mag,phase,w,bodeOpts), hold on    
 end
 
-%   Initialize some variables
+%%   Initialize some variables
 [~,m] = size(sys.b);  p = size(sys.c,1);
 Er_tot = []; Ar_tot = []; Br_tot = []; Cr_tot = []; B_ = sys.b; C_ = sys.c;
 BrL_tot = zeros(0,p); CrL_tot = zeros(p,0); 
@@ -79,30 +79,39 @@ BrR_tot = zeros(0,m); CrR_tot = zeros(m,0);
 
 sysr = sss(Ar_tot,Br_tot,Cr_tot,zeros(p,m),Er_tot);
 
-%   We reduce only the strictly proper part and add the feedthrough at the end   
-Dr_tot = sys.d;
-
 %   Computation for semiexplicit index 1 DAEs (SE DAEs)
 if Opts.CURE.SE_DAE
     DrImp = implicitFeedthrough(sys,Opts.CURE.SE_DAE);
     
-    % if we inted to used SPARK, the DAE has to be modified
-    if strcmp(Opts.CURE.red,'SPARK')
-        [] = adaptDaeForSpark(sys,Opts.CURE.SE_DAE);
+    % if we inted to used SPARK, the DAE has to be modified if DrImp~=0
+    if DrImp && strcmp(Opts.CURE.red,'SPARK')
+        B_ = adaptDaeForSpark(sys,Opts.CURE.SE_DAE);
+        
+        % if Opts.test, add a new plot for the modified system
+        if Opts.test
+            %switch the plot to be updated in the loop
+            fhSystemBeingReduced = nicefigure('CURE - modified DAE (strictly proper)');
+            sys = sss(sys.a,B_,C_,0,sys.e);
+            [mag,phase,w] = bode(sys,Opts.w); bodeOpts = {'Color',TUM_Blau,'LineWidth',2};
+            redo_bodeplot(mag,phase,w,bodeOpts), hold on    
+        end 
     end
 else
     DrImp = zeros(size(sys.d));
 end 
 
-%   Start cumulative reduction
+%   We reduce only the strictly proper part and add the feedthrough at the end   
+Dr_tot = sys.d - DrImp;
+
+%%   Start cumulative reduction
 if Opts.verbose, fprintf('\nBeginning CURE iteration...\n'); end
-while ~stopcrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
+while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
     
     %   Redefine the G_ system at each iteration
     sys = sss(sys.a,B_,C_,0,sys.e);
     
     %   Initializations
-    s0 = initialize_shifts(sys,Opts);
+    s0 = initializeShifts(sys,Opts);
         
 	% 1) Reduction
     switch Opts.CURE.fact
@@ -184,17 +193,21 @@ while ~stopcrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
     
     if Opts.test
         sysr_bode = sysr; %sysr_bode = sss(sysr);
-        figure(fh);
+        figure(fhSystemBeingReduced);
         bode(sysr_bode,w,'--','Color',TUM_Orange);
         subplot(2,1,1)
         title(sprintf('n_{red} = %i',size(sysr.a,1)));
     end
 end
 
+%   Add the feedthrough term before returning the reduced system
+sysr.D = Dr_tot;
+
+%%  Finishing execution
 if Opts.verbose,fprintf('Stopping criterion satisfied. Exiting CURE...\n\n');end
 if Opts.test
         sysr_bode = sysr;
-        figure(fh);
+        figure(fhOriginalSystem);
         bode(sysr_bode,w,'-','Color',TUM_Gruen,'LineWidth',2);
         subplot(2,1,1)
         title(sprintf('n_{red} = %i',size(sysr.a,1)));
@@ -209,7 +222,7 @@ end
 % sysrR   = dss(Ar_tot(i,i), BrR_tot(i,:), CrR_tot(:,i), eye(m), Er_tot(i,i));
 
 %--------------------------AUXILIARY FUNCTIONS---------------------------
-function stop = stopcrit(sys,sysr,opts)
+function stop = stopCrit(sys,sysr,opts)
 %   computes the stopping criterion for CURE iteration
 switch opts.CURE.stop
     case 'H2-error'
@@ -222,7 +235,7 @@ switch opts.CURE.stop
     otherwise
         error('The stopping criterion chosen does not exist or is not yet implemented');
 end
-function s0 = initialize_shifts(sys,opts)
+function s0 = initializeShifts(sys,opts)
  if ~isscalar(opts.CURE.init)
      s0 = opts.CURE.init;
  else
@@ -333,16 +346,16 @@ function DrImp = implicitFeedthrough(sys,dynamicOrder)
     else
         DrImp = zeros(p,m);
     end
-
 function Bnew = adaptDaeForSpark(sys,dynamicOrder)
 % adapt B if the system is SE-DAE with Dr,imp ~=0
 
     [~,A12,~,A22] = partition(sys.a,dynamicOrder);
-    B11 = sys.b(1:opts.CURE.SE_DAE);
-    B22 = sys.b(opts.CURE.SE_DAE+1:end);
+    B11 = sys.b(1:dynamicOrder);
+    B22 = sys.b(dynamicOrder+1:end);
     
     Bnew = [ B11 - A12*(A22\B22);
           zeros(size(B22))];
+      
 %         Alternatively, the same can be done with C
 %         C11 = sys.c(1:opts.CURE.SE_DAE);
 %         C22 = sys.c(opts.CURE.SE_DAE+1:end);
