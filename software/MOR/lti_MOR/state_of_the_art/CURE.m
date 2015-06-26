@@ -1,4 +1,4 @@
-function sysr = CURE(sys,opts)
+function sysr = CURE(sys,Opts)
 %CURE - CUmulative REduction framework
 % ------------------------------------------------------------------
 % sysr = CURE(sys, opts)
@@ -44,30 +44,30 @@ function sysr = CURE(sys,opts)
 
 % Parse input and load default parameters
     % default values
-    def.test = 0; %execute analysis code?
-    def.warn = 0; %show warnings?
-    def.verbose = 0; %show progress text?
-    def.w = []; %frequencies for bode plot
+    Def.test = 0; %execute analysis code?
+    Def.warn = 0; %show warnings?
+    Def.verbose = 0; %show progress text?
+    Def.w = []; %frequencies for bode plot
     
-    def.zeroThres = 1e-4; % define the threshold to replace "0" by
-        def.CURE.red = 'SPARK'; %reduction algorithm
-        def.CURE.nk = 2; % reduced order at each step
-        def.CURE.stop = 'nmax'; %type of stopping criterion
-        def.CURE.init = 0; %shift initialization type
-        def.CURE.fact = 'V'; %error factorization
-        def.CURE.SE_DAE = 0; %SE-DAE reduction
-                def.SPARK.type = 'model'; %SPARK type
-                def.MESPARK.ritz = 1;
-                def.MESPARK.pertIter = 5; % # iteration at which perturbation begins
-                def.MESPARK.maxIter = 20; %maximum number of model function updates
+    Def.zeroThres = 1e-4; % define the threshold to replace "0" by
+        Def.CURE.red = 'SPARK'; %reduction algorithm
+        Def.CURE.nk = 2; % reduced order at each step
+        Def.CURE.stop = 'nmax'; %type of stopping criterion
+        Def.CURE.init = 0; %shift initialization type
+        Def.CURE.fact = 'V'; %error factorization
+        Def.CURE.SE_DAE = 0; %SE-DAE reduction
+                Def.SPARK.type = 'model'; %SPARK type
+                Def.MESPARK.ritz = 1;
+                Def.MESPARK.pertIter = 5; % # iteration at which perturbation begins
+                Def.MESPARK.maxIter = 20; %maximum number of model function updates
                 
-    opts = parseOpts(opts,def);
+    Opts = parseOpts(Opts,Def);
          
 
-if opts.test
+if Opts.test
     fh = nicefigure('Reduction with CURE');
-    if ~isfield(opts,'w'), opts.w = []; end
-    [mag,phase,w] = bode(sys,opts.w); bodeOpts = {'Color',TUM_Blau,'LineWidth',2};
+    if ~isfield(Opts,'w'), Opts.w = []; end
+    [mag,phase,w] = bode(sys,Opts.w); bodeOpts = {'Color',TUM_Blau,'LineWidth',2};
     redo_bodeplot(mag,phase,w,bodeOpts), hold on    
 end
 
@@ -82,26 +82,37 @@ sysr = sss(Ar_tot,Br_tot,Cr_tot,zeros(p,m),Er_tot);
 %   We reduce only the strictly proper part and add the feedthrough at the end   
 Dr_tot = sys.d;
 
+%   Computation for semiexplicit index 1 DAEs (SE DAEs)
+if Opts.CURE.SE_DAE
+    DrImp = implicitFeedthrough(sys,Opts.CURE.SE_DAE);
+    
+    % if we inted to used SPARK, the DAE has to be modified
+    if strcmp(Opts.CURE.red,'SPARK')
+        [] = adaptDaeForSpark(sys,Opts.CURE.SE_DAE);
+    end
+else
+    DrImp = zeros(size(sys.d));
+end 
+
 %   Start cumulative reduction
-if opts.verbose, fprintf('\nBeginning CURE iteration...\n'); end
-while ~stopcrit(sys,sysr,opts) && size(sysr.a,1)<=size(sys.a,1)
+if Opts.verbose, fprintf('\nBeginning CURE iteration...\n'); end
+while ~stopcrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
     
     %   Redefine the G_ system at each iteration
     sys = sss(sys.a,B_,C_,0,sys.e);
     
     %   Initializations
-    s0 = initialize_shifts(sys,opts);
+    s0 = initialize_shifts(sys,Opts);
         
 	% 1) Reduction
-    switch opts.CURE.fact
+    switch Opts.CURE.fact
         case 'V'
             % V-based decomposition, if A*V - E*V*S - B*Crt = 0
-            switch opts.CURE.red
+            switch Opts.CURE.red
                 case 'SPARK'               
-                    [V,S_V,Crt] = SPARK(sys.a,sys.b,sys.c,sys.e,s0,opts); 
+                    [V,S_V,Crt] = SPARK(sys.a,sys.b,sys.c,sys.e,s0,Opts); 
                     
-                    [Ar,Br,Cr,Er] = PORK_V(V,S_V,Crt,C_);
-                    
+                    [Ar,Br,Cr,Er] = PORK_V(V,S_V,Crt,C_);                   
                 case 'IRKA'
                     [sysr_temp,V,W] = IRKA(sys,s0);
                     
@@ -111,17 +122,44 @@ while ~stopcrit(sys,sysr,opts) && size(sysr.a,1)<=size(sys.a,1)
                     Er = sysr_temp.e;
                     
                     Crt = [eye(m), zeros(m)]; 
+                case 'RK+PORK'
+                    [sysRedRK, V, ~, ~, Crt] = RK(sys,s0); 
+                    S_V = sysRedRK.E\(sysRedRK.A-sysRedRK.B*Crt);
+                    
+                    [Ar,Br,Cr,Er] = PORK_V(V,S_V,Crt,C_);
+                    
+                    %   Adapt Cr for SE DAEs
+                    Cr = Cr - DrImp*Crt;
+                    %   Adapt Cr_tot for SE DAEs
+                    if ~isempty(Cr_tot)
+                        Cr_tot(:,end-n+1:end) = Cr_tot(:,end-n+1:end) + ...
+                            DrImp*CrR_tot(:,end-n+1:end);
+                    end
             end
             n = size(V,2);
         case 'W'
         % W-based decomposition, if A'*W - E'*W*SW' - C'*Brt' = 0
-            switch opts.CURE.red
+            switch Opts.CURE.red
                 case 'SPARK'               
-                    [W,S_W,Brt] = SPARK(sys.a',sys.c',sys.b',sys.e',s0,opts);
+                    [W,S_W,Brt] = SPARK(sys.a',sys.c',sys.b',sys.e',s0,Opts);
                     Brt = Brt';
                     S_W = S_W';
                     
                     [Ar,Br,Cr,Er] = PORK_W(W,S_W,Brt,B_);
+                case 'RK+PORK'
+                    [sysRedRK, ~, W, ~, ~, ~, Brt] = RK(sys,[],s0);
+                    S_W = sysRedRK.E'\(sysRedRK.A'-Brt*sysRedRK.C);
+                    
+                    [Ar,Br,Cr,Er] = PORK_W(W,S_W,Brt,B_);  
+                    
+                    %   Adapt Br for SE-DAEs
+                    Br = Br - Brt*DrImp;
+                    %   Adapt Cr_tot for SE DAEs
+                    if ~isempty(Br_tot)
+                        Br_tot(end-n+1:end,:) = Br_tot(end-n+1:end,:) + ...
+                            BrR_tot(end-n+1:end,:)*DrImp;
+                    end
+                    
             end
             n = size(W,2);
     end
@@ -130,12 +168,13 @@ while ~stopcrit(sys,sysr,opts) && size(sysr.a,1)<=size(sys.a,1)
 	%Er = W.'*E*V;  Ar = W.'*A*V;  Br = W.'*B_;  Cr = C_*V;
     Er_tot = blkdiag(Er_tot, Er);
     Ar_tot = [Ar_tot, BrL_tot*Cr; Br*CrR_tot, Ar]; %#ok<*AGROW>
-    Br_tot = [Br_tot; Br];  Cr_tot = [Cr_tot, Cr];
-    if opts.CURE.fact=='V'
+    Br_tot = [Br_tot; Br]; Cr_tot = [Cr_tot, Cr];
+    
+    if Opts.CURE.fact=='V'
         B_ = B_ - sys.e*(V*(Er\Br));    % B_bot
         BrL_tot = [BrL_tot; zeros(n,p)];    BrR_tot = [BrR_tot; Br];
         CrL_tot = [CrL_tot, zeros(p,n)];    CrR_tot = [CrR_tot, Crt];
-    elseif opts.CURE.fact=='W'
+    elseif Opts.CURE.fact=='W'
         C_ = C_ - Cr/Er*W.'*sys.e;		% C_bot
         BrL_tot = [BrL_tot; Brt];   BrR_tot = [BrR_tot; zeros(n,m)];
         CrL_tot = [CrL_tot, Cr];    CrR_tot = [CrR_tot, zeros(m,n)];
@@ -143,7 +182,7 @@ while ~stopcrit(sys,sysr,opts) && size(sysr.a,1)<=size(sys.a,1)
 
     sysr    = sss(Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot);
     
-    if opts.test
+    if Opts.test
         sysr_bode = sysr; %sysr_bode = sss(sysr);
         figure(fh);
         bode(sysr_bode,w,'--','Color',TUM_Orange);
@@ -152,8 +191,8 @@ while ~stopcrit(sys,sysr,opts) && size(sysr.a,1)<=size(sys.a,1)
     end
 end
 
-if opts.verbose,fprintf('Stopping criterion satisfied. Exiting CURE...\n\n');end
-if opts.test
+if Opts.verbose,fprintf('Stopping criterion satisfied. Exiting CURE...\n\n');end
+if Opts.test
         sysr_bode = sysr;
         figure(fh);
         bode(sysr_bode,w,'-','Color',TUM_Gruen,'LineWidth',2);
@@ -283,4 +322,32 @@ function s0 = initialize_shifts(sys,opts)
     %   (sometimes the optimizer complaints about cost function @0)
     s0(s0==0)=opts.zeroThres;
  end
+function DrImp = implicitFeedthrough(sys,dynamicOrder)
+%   compute the implicit feedthrough of a SE DAE
+
+    B22 = sys.b(dynamicOrder+1:end);
+    C22 = sys.c(dynamicOrder+1:end);
+    if norm(B22)>0 && norm(C22)>0
+        %this is not suffiecient for Dr~=0, but it is necessary
+        DrImp = C22*(sys.a(dynamicOrder+1:end,dynamicOrder+1:end)\B22);
+    else
+        DrImp = zeros(p,m);
+    end
+
+function Bnew = adaptDaeForSpark(sys,dynamicOrder)
+% adapt B if the system is SE-DAE with Dr,imp ~=0
+
+    [~,A12,~,A22] = partition(sys.a,dynamicOrder);
+    B11 = sys.b(1:opts.CURE.SE_DAE);
+    B22 = sys.b(opts.CURE.SE_DAE+1:end);
+    
+    Bnew = [ B11 - A12*(A22\B22);
+          zeros(size(B22))];
+%         Alternatively, the same can be done with C
+%         C11 = sys.c(1:opts.CURE.SE_DAE);
+%         C22 = sys.c(opts.CURE.SE_DAE+1:end);
+%         %   OVERWRITE
+%         sysCURE.C = [ C11- C22*(A22\A21),zeros(size(C22))];
+%         clear C11 C22
+
                     
