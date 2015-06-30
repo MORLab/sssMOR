@@ -1,7 +1,7 @@
-function header_template
-% HEADER_TEMPLATE - MORLab toolbox header template
+function headerTemplate
+% HEADERTEMPLATE - MORLab toolbox header template
 % ------------------------------------------------------------------
-% [outputs] = HEADER_TEMPLATE(inputs)
+% [outputs] = HEADERTEMPLATE(inputs)
 % Inputs:       * in1: description
 %               * in2: description
 % Outputs:      * out1: description
@@ -28,6 +28,6 @@ function header_template
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto, Maria Cruz Varona
 %               HiWi
-% Last Change:  01 Januar 2015
-% Copyright 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  30 Jun 2015
+% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
