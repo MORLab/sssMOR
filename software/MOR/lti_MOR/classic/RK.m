@@ -26,8 +26,9 @@ function [sysr, V, W, Bb, Ct, Cb, Bt] = RK(sys, s0_inp, s0_out, IP)
 % Institute of Automatic Control, Technische Universitaet Muenchen
 % For updates and further information please visit www.rt.mw.tum.de
 % ------------------------------------------------------------------
-% Authors:      Heiko Panzer (heiko@mytum.de)
-% Last Change:  23 Jan 2012
+% Authors:      Heiko Panzer, Alessandro Castagnotto 
+%               (a.castagnotto@tum.de)
+% Last Change:  01 Jul 2015
 % ------------------------------------------------------------------
 
 if ~exist('IP', 'var'), IP=@(x,y) (x'*sys.E*y); end
