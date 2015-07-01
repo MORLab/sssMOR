@@ -31,7 +31,6 @@ function [sysr, V, W, Bb, Ct, Cb, Bt] = RK(sys, s0_inp, s0_out, IP)
 % Last Change:  01 Jul 2015
 % ------------------------------------------------------------------
 
-%this is a new branch 
 if ~exist('IP', 'var'), IP=@(x,y) (x'*sys.E*y); end
 
 if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
