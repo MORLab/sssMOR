@@ -101,7 +101,7 @@ else
 end 
 
 %   We reduce only the strictly proper part and add the feedthrough at the end   
-Dr_tot = sys.d - DrImp;
+Dr_tot = sys.d + DrImp;
 
 %%   Start cumulative reduction
 if Opts.verbose, fprintf('\nBeginning CURE iteration...\n'); end
@@ -342,7 +342,7 @@ function DrImp = implicitFeedthrough(sys,dynamicOrder)
     C22 = sys.c(dynamicOrder+1:end);
     if norm(B22)>0 && norm(C22)>0
         %this is not suffiecient for Dr~=0, but it is necessary
-        DrImp = C22*(sys.a(dynamicOrder+1:end,dynamicOrder+1:end)\B22);
+        DrImp = -C22*(sys.a(dynamicOrder+1:end,dynamicOrder+1:end)\B22);
     else
         DrImp = zeros(p,m);
     end
