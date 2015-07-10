@@ -28,6 +28,6 @@ function headerTemplate
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto, Maria Cruz Varona
 %               HiWi
-% Last Change:  30 Jun 2015
+% Last Change:  10 Jul 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
