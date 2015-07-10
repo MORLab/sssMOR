@@ -81,11 +81,11 @@ sysr = sss(Ar_tot,Br_tot,Cr_tot,zeros(p,m),Er_tot);
 
 %   Computation for semiexplicit index 1 DAEs (SE DAEs)
 if Opts.CURE.SE_DAE
-    DrImp = implicitFeedthrough(sys,Opts.CURE.SE_DAE);
+    [DrImp,A22InvB22] = implicitFeedthrough(sys,Opts.CURE.SE_DAE);
     
     % if we inted to used SPARK, the DAE has to be modified if DrImp~=0
     if DrImp && strcmp(Opts.CURE.red,'SPARK')
-        B_ = adaptDaeForSpark(sys,Opts.CURE.SE_DAE);
+        B_ = adaptDaeForSpark(sys,Opts.CURE.SE_DAE,A22InvB22);
         
         % if Opts.test, add a new plot for the modified system
         if Opts.test
@@ -335,32 +335,37 @@ function s0 = initializeShifts(sys,opts)
     %   (sometimes the optimizer complaints about cost function @0)
     s0(s0==0)=opts.zeroThres;
  end
-function DrImp = implicitFeedthrough(sys,dynamicOrder)
+function [DrImp,A22InvB22] = implicitFeedthrough(sys,dynamicOrder)
 %   compute the implicit feedthrough of a SE DAE
 
     B22 = sys.b(dynamicOrder+1:end);
     C22 = sys.c(dynamicOrder+1:end);
     if norm(B22)>0 && norm(C22)>0
         %this is not suffiecient for Dr~=0, but it is necessary
-        DrImp = -C22*(sys.a(dynamicOrder+1:end,dynamicOrder+1:end)\B22);
+        
+        %   Computing A22\B22 since it can be reused before SPARK
+        A22InvB22 = sys.a(dynamicOrder+1:end,dynamicOrder+1:end)\B22;
+        if norm(A22InvB22)>0
+            DrImp = -C22*A22InvB22;
+        else
+            DrImp = zeros(p,m);
+        end
     else
+        A22InvB22 = zeros(size(B22));
         DrImp = zeros(p,m);
     end
-function Bnew = adaptDaeForSpark(sys,dynamicOrder)
+function Bnew = adaptDaeForSpark(sys,dynamicOrder,A22InvB22)
 % adapt B if the system is SE-DAE with Dr,imp ~=0
 
-    [~,A12,~,A22] = partition(sys.a,dynamicOrder);
+    [~,A12] = partition(sys.a,dynamicOrder);
     B11 = sys.b(1:dynamicOrder);
-    B22 = sys.b(dynamicOrder+1:end);
     
-    Bnew = [ B11 - A12*(A22\B22);
-          zeros(size(B22))];
+    Bnew = [ B11 - A12*A22InvB22;
+          zeros(size(sys.a,1)-dynamicOrder,size(B11,2))];
       
 %         Alternatively, the same can be done with C
 %         C11 = sys.c(1:opts.CURE.SE_DAE);
 %         C22 = sys.c(opts.CURE.SE_DAE+1:end);
-%         %   OVERWRITE
 %         sysCURE.C = [ C11- C22*(A22\A21),zeros(size(C22))];
-%         clear C11 C22
 
                     
