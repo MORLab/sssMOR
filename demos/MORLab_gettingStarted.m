@@ -64,14 +64,147 @@ customPause
 
 fprintf('MORLab includes the definition of sparse state space (sss) objects\n');
 fprintf('and the sparsity and large-scale-optimized implementation of some \n');
-fprintf('of the most common function for dynamic systems objects.\n\n');
+fprintf('of the most common function for dynamic systems objects.\n');
 customPause
 
-fprintf('Let us begin with an example that illustrates the capabilities \n');
+
+fprintf('\nLet us begin with an example that illustrates the capabilities \n');
 fprintf('of the MORLab toolbox and in particular sss-objects.\n');
 
 %   *Selection of a benchmark model
-result = input(prompt)
+fprintf(['Choose one of the following benchmark models by pressing...\n',...
+                '\t "1" \t ..for the Los Angeles Hospital model (N=48)\n',...
+                '\t "2" \t ..for a 1D linear beam model (N=348)\n']);
+modelChosen = input('Model choice: ');
+
+if isempty(modelChosen),modelChosen = 0;end
+isValid = 0;
+while ~isValid
+    switch modelChosen
+        case 1 %build
+            sysName = 'build';
+            load ../benchmarks/build.mat
+            E = speye(size(A));
+            D = 0;
+            isValid = 1;
+        case 2 %beam
+            sysName = 'beam';
+            load ../benchmarks/beam.mat
+            E = speye(size(A));
+            D = 0;
+            isValid = 0;
+        otherwise    
+            warning('Your input was not valid')
+            fprintf(['\nChoose one of the following benchmark models by pressing...\n',...
+                '\t "1" \t ..for the Los Angeles Hospital model (N=48)\n',...
+                '\t "2" \t ..for a 1D-beam model (N=348)\n']);
+            modelChosen = input('Model choice: ');
+    end
+end
+
+%   *Display some information on the model
+fprintf('\nYou chose the "%s" model. \n',sysName);
+fprintf('The order of the model is %i. \n',size(A,1));
+fprintf('The model has %i input(s) and %i output(s). \n',size(B,2), size(C,1));
+customPause
+
+
+%   *Create an sss-object sys
+fprintf('\nThe dynamics of the system are described by the implicit\n');
+fprintf('state space realization with sparse matrices:\n');
+fprintf('\tE * d/dt(x) = A x + B u\n');
+fprintf('\t         y  = C x + D u\n');
+customPause
+
+fprintf('Using MORLab, the dynamic system can be stored as sss-object calling:\n');
+fprintf('>> sys = sss(A,B,C,D,E)\n');
+sys = sss(A,B,C,D,E);
+sysDss = dss(full(A),full(B),full(C),full(D),full(E));
+
+W = whos('sys','sysDss');
+storagePerc = W(1).bytes/W(2).bytes*100;
+fprintf('(Note that the storage required for the sss-object is %03.2f%% \n',storagePerc);
+fprintf('of the one needed for the respective ss-object.)\n');
+customPause
+
+fprintf('The sparsity pattern of E and A can be plotted by calling\n');
+fprintf('>> spysys(sys)\n');
+fprintf('\t\tor\n');
+fprintf('>> spysys(sys.E, sys.A)\n');
+spysys(sys);
+customPause
+
+%*  Bode plot
+fprintf('Another function that can be useful to analyze the dynamic\n');
+fprintf('of the given system is the "bode" function, called using:\n');
+fprintf('>> bode(sys)\n');
+figure; tic;bode(sys);tBodeSss = toc;
+
+% fh = figure; tic, bode(sysDss); tBodeSs = toc;close(fh)
+% tBodePerc = tBodeSss/tBodeSs*100;
+% fprintf('(Note that the time required to plot the sss-object is %03.2f%% \n',tBodePerc);
+% fprintf('of the one needed for the respective ss-object.)\n');
+customPause
+
+%*  System norms
+%H2
+fprintf('System norms can also be computed using the "norm" function.\n');
+fprintf('H2-norm:\n');
+fprintf('>> norm(sys)\n');
+fprintf('\tor\n');
+fprintf('>> norm(sys,2)\n');
+
+    tic;H2norm = norm(sys);tNorm2Sss = toc;
+fprintf('The H2-norm of the chosen system is: %e\n',H2norm);
+
+    tic, norm(sysDss); tNorm2Ss = toc;
+tH2Perc = tNorm2Sss/tNorm2Ss*100;
+fprintf('(Note that the time required to compute the norm of the');
+fprintf('sss-object is %03.2f%% of the one needed for the\n',tH2Perc);
+fprintf('respective ss-object.)\n');
+
+%Hinf
+fprintf('System norms can also be computed using the "norm" function.\n');
+fprintf('H2-norm:\n');
+fprintf('>> norm(sys)\n');
+fprintf('\tor\n');
+fprintf('>> norm(sys,2)\n');
+
+    tic;H2norm = norm(sys);tNorm2Sss = toc;
+fprintf('The H2-norm of the chosen system is: %e\n',H2norm);
+
+    tic, norm(sysDss); tNorm2Ss = toc;
+tH2Perc = tNorm2Sss/tNorm2Ss*100;
+fprintf('(Note that the time required to compute the norm of the');
+fprintf('sss-object is %03.2f%% of the one needed for the\n',tH2Perc);
+fprintf('respective ss-object.)\n');
+
+
+customPause
+
+%*  Time domain analysis.
+fprintf('System norms can also be computed using the "norm" function.\n');
+fprintf('H2-norm:\n');
+fprintf('>> norm(sys)\n');
+fprintf('\tor\n');
+fprintf('>> norm(sys,2)\n');
+
+    tic;H2norm = norm(sys);tNorm2Sss = toc;
+fprintf('The H2-norm of the chosen system is: %e\n',H2norm);
+
+    tic, norm(sysDss); tNorm2Ss = toc;
+tH2Perc = tNorm2Sss/tNorm2Ss*100;
+fprintf('(Note that the time required to compute the norm of the');
+fprintf('sss-object is %03.2f%% of the one needed for the\n',tH2Perc);
+fprintf('respective ss-object.)\n');
+customPause
+
+
+
+
+
+
+
 
 function rule
 fprintf('--------------------------------------------------------------\n');
