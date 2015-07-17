@@ -44,7 +44,6 @@ function sysr = CURE(sys,Opts)
 
 %% Parse input and load default parameters
     % default values
-    Def.test = 0; %execute analysis code?
     Def.warn = 0; %show warnings?
     Def.verbose = 0; %show progress text?
     Def.w = []; %frequencies for bode plot
@@ -56,7 +55,10 @@ function sysr = CURE(sys,Opts)
         Def.CURE.init = 0; %shift initialization type
         Def.CURE.fact = 'V'; %error factorization
         Def.CURE.SE_DAE = 0; %SE-DAE reduction
-                Def.SPARK.type = 'model'; %SPARK type
+        Def.CURE.test = 0; %execute analysis code?
+        Def.CURE.gif = 0; %produce a .gif of the CURE iteration
+                Def.SPARK.type = 'model'; %SPARK type, 'model' or 'standard'
+                Def.SPARK.test = 0; %execute analysis code?
                 Def.MESPARK.ritz = 1;
                 Def.MESPARK.pertIter = 5; % # iteration at which perturbation begins
                 Def.MESPARK.maxIter = 20; %maximum number of model function updates
@@ -64,11 +66,14 @@ function sysr = CURE(sys,Opts)
     Opts = parseOpts(Opts,Def);
          
 %%  Plot for testing
-if Opts.test
+if Opts.CURE.test
     fhOriginalSystem = nicefigure('CURE - Reduction of the original model');
     fhSystemBeingReduced = fhOriginalSystem; %the two coincide for the moment
     [mag,phase,w] = bode(sys,Opts.w); bodeOpts = {'Color',TUM_Blau,'LineWidth',2};
-    redo_bodeplot(mag,phase,w,bodeOpts), hold on    
+    redo_bodeplot(mag,phase,w,bodeOpts), hold on
+    magHandle = subplot(2,1,1); magLim = ylim;
+    phHandle  = subplot(2,1,2); phLim  = ylim;
+    if Opts.CURE.gif, writeGif('create'); end
 end
 
 %%   Initialize some variables
@@ -87,13 +92,16 @@ if Opts.CURE.SE_DAE
     if DrImp && strcmp(Opts.CURE.red,'SPARK')
         B_ = adaptDaeForSpark(sys,Opts.CURE.SE_DAE,A22InvB22);
         
-        % if Opts.test, add a new plot for the modified system
-        if Opts.test
+        % if Opts.CURE.test, add a new plot for the modified system
+        if Opts.CURE.test
             %switch the plot to be updated in the loop
             fhSystemBeingReduced = nicefigure('CURE - modified DAE (strictly proper)');
             sys = sss(sys.a,B_,C_,0,sys.e);
             [mag,phase,w] = bode(sys,Opts.w); bodeOpts = {'Color',TUM_Blau,'LineWidth',2};
-            redo_bodeplot(mag,phase,w,bodeOpts), hold on    
+            redo_bodeplot(mag,phase,w,bodeOpts)  
+            magHandle = subplot(2,1,1); magLim = ylim;
+            phHandle  = subplot(2,1,2); phLim  = ylim;
+            if Opts.CURE.gif, writeGif('create'); end
         end 
     end
 else
@@ -191,12 +199,14 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
 
     sysr    = sss(Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot);
     
-    if Opts.test
+    if Opts.CURE.test
         sysr_bode = sysr; %sysr_bode = sss(sysr);
         figure(fhSystemBeingReduced);
         bode(sysr_bode,w,'--','Color',TUM_Orange);
         subplot(2,1,1)
         title(sprintf('n_{red} = %i',size(sysr.a,1)));
+        set(magHandle,'YLim', magLim); set(phHandle,'YLim', phLim);
+        if Opts.CURE.gif, writeGif('append'); end
     end
 end
 
@@ -205,21 +215,15 @@ sysr.D = Dr_tot;
 
 %%  Finishing execution
 if Opts.verbose,fprintf('Stopping criterion satisfied. Exiting CURE...\n\n');end
-if Opts.test
+if Opts.CURE.test
         sysr_bode = sysr;
         figure(fhOriginalSystem);
         bode(sysr_bode,w,'-','Color',TUM_Gruen,'LineWidth',2);
         subplot(2,1,1)
         title(sprintf('n_{red} = %i',size(sysr.a,1)));
+        
+        if Opts.CURE.gif, writeGif('append'), end
 end
-
-% sysbot	= dss(A, B_, C_, zeros(p,m), E);	% caution: large-scale!
-% 
-% % truncate non controllable/observable states in sysrL, sysrR
-% i = find(any(Ar_tot(any(BrL_tot~=0,2),:),1));
-% sysrL   = dss(Ar_tot(i,i), BrL_tot(i,:), CrL_tot(:,i), eye(p), Er_tot(i,i));
-% i = find(any(Ar_tot(:,any(CrR_tot~=0,1)),2));
-% sysrR   = dss(Ar_tot(i,i), BrR_tot(i,:), CrR_tot(:,i), eye(m), Er_tot(i,i));
 
 %--------------------------AUXILIARY FUNCTIONS---------------------------
 function stop = stopCrit(sys,sysr,opts)
@@ -368,4 +372,17 @@ function Bnew = adaptDaeForSpark(sys,dynamicOrder,A22InvB22)
 %         C22 = sys.c(opts.CURE.SE_DAE+1:end);
 %         sysCURE.C = [ C11- C22*(A22\A21),zeros(size(C22))];
 
-                    
+function writeGif(gifMode)
+    filename = 'CURE.gif';
+    dt = 1.5;
+    frame = getframe(1);
+    im = frame2im(frame);
+    [imind,cm] = rgb2ind(im,256);
+    switch gifMode
+        case 'create'
+            imwrite(imind,cm,filename,'gif','Loopcount',inf,'DelayTime',dt);
+        case 'append'
+            imwrite(imind,cm,filename,'gif','WriteMode','append','DelayTime',dt);
+        otherwise
+            error('Invalid gifMode')
+    end

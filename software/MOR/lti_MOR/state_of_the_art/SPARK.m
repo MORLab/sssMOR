@@ -67,7 +67,7 @@ warning('off','MATLAB:nearlySingularMatrix')
     Opts.fmincon=optimset('TolFun',fTol,'TolX',xTol, ...
         'Display','none', 'Algorithm','trust-region-reflective', ...
         'GradObj','on','Hessian','on','MaxFunEvals',mfe,'MaxIter',mi);
-    if Opts.test
+    if Opts.SPARK.test
         Opts.fmincon = optimset(Opts.fmincon,...
         'OutputFcn', @OuputFcn,...
         'PlotFcns',{@optimplotx, @optimplotfval, @optimplotfirstorderopt});
@@ -99,7 +99,7 @@ warning('off','MATLAB:nearlySingularMatrix')
     % a) PRIMARY
     function p_opt = ESPARK(p0)
         
-        if Opts.test, fh = plotCost(p0); end
+        if Opts.SPARK.test, fh = plotCost(p0); end
         [~,~,H] = CostFunction(p0); precond = diag(1./abs(diag(H).^0.25));
         
         % run trust region algorithm to find minimum of model function
@@ -109,7 +109,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         end
         p_opt = p_opt*precond; precond = eye(2);
 
-        if Opts.test
+        if Opts.SPARK.test
             figure(fh);
             plot(p_opt(1),p_opt(2),'p','LineWidth',2,'MarkerSize',10,...
                 'MarkerFaceColor',TUM_Gruen,'MarkerEdgeColor','k');
@@ -286,7 +286,7 @@ warning('off','MATLAB:nearlySingularMatrix')
             l_ritz = -ones(2,1);
         end
         
-        if Opts.test
+        if Opts.SPARK.test
             bla=nicefigure('Ritz Values for Initialization');plot(real(l),imag(l),'b*');hold on
             plot(real(l_ritz),imag(l_ritz),'ro');
             legend('Ritz Values','initialization')
@@ -297,7 +297,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         s0ritz = l_ritz-2*real(l_ritz);
         p0 = s2p(s0ritz); 
         if Opts.verbose,fprintf('Initialization according to Ritz values: p0=[%e,%e]',p0(1),p0(2));end
-        if Opts.test,pause,close(bla);end
+        if Opts.SPARK.test,pause,close(bla);end
     end
     function p0 = perturb(p0,count)
         % function used to perturb p0 in case of long-term stagnation
