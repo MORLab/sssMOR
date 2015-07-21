@@ -1,0 +1,15 @@
+      % initial values for IRKA
+    s0 = -eigs(A+param(j)*Ap,E,r,0, struct('tol',1e-6,'v0',sum(B,2)));
+    try
+        s0 = cplxpair(s0);
+    catch e
+        s0(imag(s0)~=0) = 0;
+    end
+    
+    % initial values for IRKA
+    s0 = -eigs(A+param(j)*Ap,E,r,0, struct('tol',1e-6,'v0',sum(B,2)));
+    if mod(nnz(imag(s0)),2)~=0  % complex conjugate
+        % find the s0 which has no compl.conj. partner
+        s0(imag(s0) == imag(sum(s0))) = 0;
+    end
+    s0= cplxpair(s0);
