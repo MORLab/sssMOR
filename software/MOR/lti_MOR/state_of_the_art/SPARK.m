@@ -39,12 +39,31 @@ function [V,S_V,Crt,k] = SPARK(A,B,C,E,s0,Opts)
 % Last Change:  25 Jun 2015
 % ------------------------------------------------------------------
 
-%----------------  OPTIMIZATION PARAMETERS -----------------------
-    mfe = 5e3;
-    mi = 1.5e2; %5e3
-    xTol = 1e-20;
-    fTol = 1e-20;
-    modelTol = 1e-5;
+%% Parse input and load default parameters
+    % default values
+    Def.SPARK.type = 'model'; %SPARK type, 'model' or 'standard'
+    Def.SPARK.test = 0; %execute analysis code
+    Def.SPARK.mfe = 5e3;
+    Def.SPARK.mi = 1.5e2; %5e3
+    Def.SPARK.xTol = 1e-20;
+    Def.SPARK.fTol = 1e-20;
+    Def.SPARK.modelTol = 1e-5;
+        Def.MESPARK.ritz = 1;
+        Def.MESPARK.pertIter = 5; % # iteration at which perturbation begins
+        Def.MESPARK.maxIter = 20; %maximum number of model function updates
+    
+    % create the options structure
+    if ~isfield(Opts,'SPARK') || isempty(Opts.SPARK)
+        Opts.SPARK = Def.SPARK;
+    else
+        Opts.SPARK = parseOpts(Opts.SPARK,Def.SPARK);
+    end  
+    if ~isfield(Opts,'MESPARK') || isempty(Opts.MESPARK)
+        Opts.MESPARK = Def.MESPARK;
+    else
+        Opts.MESPARK = parseOpts(Opts.MESPARK,Def.MESPARK);
+    end  
+    
 %------------------------- PARSE INPUT ---------------------------
 if size(B,2)>1 || size(C,1)>1, error('System must be SISO.'), end
 
@@ -64,9 +83,10 @@ warning('off','MATLAB:nearlySingularMatrix')
     p0 = [(s0(1)+s0(2))/2, s0(1)*s0(2)];   
     t = tic; precond = eye(2); 
     
-    Opts.fmincon=optimset('TolFun',fTol,'TolX',xTol, ...
+    Opts.fmincon=optimset('TolFun',Opts.SPARK.fTol,'TolX',Opts.SPARK.xTol, ...
         'Display','none', 'Algorithm','trust-region-reflective', ...
-        'GradObj','on','Hessian','on','MaxFunEvals',mfe,'MaxIter',mi);
+        'GradObj','on','Hessian','on','MaxFunEvals',Opts.SPARK.mfe,'MaxIter',...
+        Opts.SPARK.mi);
     if Opts.SPARK.test
         Opts.fmincon = optimset(Opts.fmincon,...
         'OutputFcn', @OuputFcn,...
@@ -150,7 +170,8 @@ warning('off','MATLAB:nearlySingularMatrix')
 %             disp(['  absolute J = ' num2str(J, '%1.12e')]);
 
             % decide how to proceed
-            if abs((J-J_old)/J) < modelTol || norm((p0-p_opt)./p0) < modelTol %|| size(Am,1)>=20
+            if abs((J-J_old)/J) < Opts.SPARK.modelTol || ...
+                    norm((p0-p_opt)./p0) < Opts.SPARK.modelTol %|| size(Am,1)>=20
                 if Opts.verbose,fprintf('Tolerance reached! Quitting MESPARK...\n'),end
                 break;                      % convergence in J or in p  => stop
             elseif J<J_old

@@ -43,6 +43,7 @@ function sysr = CURE(sys,Opts)
 % ------------------------------------------------------------------
 
 %% Parse input and load default parameters
+
     % default values
     Def.warn = 0; %show warnings?
     Def.verbose = 0; %show progress text?
@@ -52,18 +53,21 @@ function sysr = CURE(sys,Opts)
         Def.CURE.red = 'SPARK'; %reduction algorithm
         Def.CURE.nk = 2; % reduced order at each step
         Def.CURE.stop = 'nmax'; %type of stopping criterion
+        Def.CURE.stopval = round(sqrt(size(sys.a,1))); %default reduced order
         Def.CURE.init = 0; %shift initialization type
         Def.CURE.fact = 'V'; %error factorization
         Def.CURE.SE_DAE = 0; %SE-DAE reduction
         Def.CURE.test = 0; %execute analysis code?
         Def.CURE.gif = 0; %produce a .gif of the CURE iteration
-                Def.SPARK.type = 'model'; %SPARK type, 'model' or 'standard'
-                Def.SPARK.test = 0; %execute analysis code?
-                Def.MESPARK.ritz = 1;
-                Def.MESPARK.pertIter = 5; % # iteration at which perturbation begins
-                Def.MESPARK.maxIter = 20; %maximum number of model function updates
-                
-    Opts = parseOpts(Opts,Def);
+        
+    % create the options structure
+    if ~exist('Opts','var') || isempty(Opts)
+        Opts = Def;
+    else
+        Opts = parseOpts(Opts,Def);
+    end
+        
+    
          
 %%  Plot for testing
 if Opts.CURE.test
