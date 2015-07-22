@@ -54,7 +54,8 @@ function sysr = CURE(sys,Opts)
         Def.CURE.nk = 2; % reduced order at each step
         Def.CURE.stop = 'nmax'; %type of stopping criterion
         Def.CURE.stopval = round(sqrt(size(sys.a,1))); %default reduced order
-        Def.CURE.init = 1; %shift initialization type
+            if ~isEven(Def.CURE.stopval), Def.CURE.stopval = Def.CURE.stopval +1;end
+        Def.CURE.init = 'sm'; %shift initialization type
         Def.CURE.fact = 'V'; %error factorization
         Def.CURE.SE_DAE = 0; %SE-DAE reduction
         Def.CURE.test = 0; %execute analysis code?
@@ -115,13 +116,15 @@ Dr_tot = sys.d + DrImp;
 
 %%   Start cumulative reduction
 if Opts.verbose, fprintf('\nBeginning CURE iteration...\n'); end
+
+iCure = 0; %iteration counter
 while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
-    
+    iCure = iCure + 1;
     %   Redefine the G_ system at each iteration
     sys = sss(sys.a,B_,C_,0,sys.e);
     
     %   Initializations
-    s0 = initializeShifts(sys,Opts);
+    [s0,Opts] = initializeShifts(sys,Opts,iCure);
         
 	% 1) Reduction
     switch Opts.CURE.fact
@@ -154,6 +157,8 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
                         Cr_tot(:,end-n+1:end) = Cr_tot(:,end-n+1:end) + ...
                             DrImp*CrR_tot(:,end-n+1:end);
                     end
+                otherwise 
+                    error('The selected reduction scheme (Opts.CURE.red) is not availabe in CURE');
             end
             n = size(V,2);
         case 'W'
@@ -241,83 +246,80 @@ switch opts.CURE.stop
     otherwise
         error('The stopping criterion chosen does not exist or is not yet implemented');
 end
-function s0 = initializeShifts(sys,Opts)
-%   initialization of the shifts
- if ~isscalar(Opts.CURE.init) %if a vector of initial values was passed
-     s0 = Opts.CURE.init;
- else %choose initialization option
-     switch Opts.CURE.init
-         case 0 %zero initialization
-             s0 = Opts.zeroThres*ones(1,Opts.CURE.nk);
-         case 1 %(def.) nk/2 smallest and nk/2 largest eigs
-             %  decide how many 'lm' and 'sm' eigs to compute
-             
-             if Opts.CURE.nk == 1
-                 nSm = 0; nLm = 0;
-                 s0 = 0;
-             elseif Opts.CURE.nk == 2
-                 nSm = 2; nLm = 0;
-                 s0 = [];
-             elseif Opts.CURE.nk == 3
-                 nSm = 2; nLm = 0;
-                 s0 = 0;
-             else %Opts.CURE.nk >= 4
-                isEvenNk = ~(round(Opts.CURE.nk/2)-Opts.CURE.nk/2);
-                if isEvenNk
-                    nSm = Opts.CURE.nk/2; nLm = nSm;
-                    s0 = [];
-                else
-                    nSm = (Opts.CURE.nk-1)/2; nLm = nSm;
-                    s0 = 0; %initialize the first shift at 0
-                end
-                isEvenNSm = ~(round(nSm/2)-nSm/2);
-                if ~isEvenNSm
-                    nSm = nSm +1; nLm = nLm -1;
-                end
-             end
-             
-             s0 = [ s0;...
-                    -eigs(sys.a,sys.e,nSm,'sm', ...
-                        struct('tol',1e-6,'v0',sum(sys.b,2)));...
-                    -eigs(sys.a,sys.e,nLm,'lm', ...
-                        struct('tol',1e-6,'v0',sum(sys.b,2)))]';
-             cplxpair(s0); %just for debugging                 
-         case 2 %smallest magnitude eigenvalues
-             s0 = -eigs(sys.a,sys.e,Opts.CURE.nk,0, ...
-                    struct('tol',1e-6,'v0',sum(sys.b,2)));
-         case 3 %largest magnitude eigenvalues
-             s0 = -eigs(sys.a,sys.e,Opts.CURE.nk,'lm', ...
-                    struct('tol',1e-6,'v0',sum(sys.b,2)));
-         case 4 %convex combination of largest and smallest imaginary part
-             
-             try
-                s1 = -eigs(sys.a,sys.e,Opts.CURE.nk,'li')';
-             catch 
-                warning('Largest imaginary eigs not found! Using rand*1e2 +-rand*1e2i instead.')
-                s1 = rand*1e2*ones(1,2)+1e2*1i*rand*[1,-1];
-             end
-             try
-                s2 = -eigs(sys.a,sys.e,Opts.CURE.nk,'si')';
-             catch 
-                 warning('Smallest imaginary eigs not found! Using 0 instead.')
-                 s2 = 0;
-             end
+function [s0,Opts] = initializeShifts(sys,Opts,iCure)
 
-             if all(real(s1)>= real(s2))
-                s0 = (real(s1)+rand*(real(s2)-real(s1))) +...
-                    1i*(imag(s2)+.5*rand*(imag(s1)-imag(s2)));
-             else
-                 s0 = (real(s2)+rand*(real(s1)-real(s2))) +...
-                    1i*(imag(s2)+.5*rand*(imag(s1)-imag(s2)));
-             end
-
-             s0 = s0';
+         %   initialization of the shifts
+ if ~ischar(Opts.CURE.init) %numeric values were passed
+     if length(Opts.CURE.init) == Opts.CURE.nk %correct amount for iteration
+         s0 = Opts.CURE.init;
+     elseif length(Opts.CURE.init)> Opts.CURE.nk
+         firstIndex = (iCure-1)*Opts.CURE.nk+1;
+            if firstIndex + Opts.CURE.nk -1 > length(Opts.CURE.init)
+                % overlap with the previous set of shifst
+                Opts.CURE.init = [Opts.CURE.init, Opts.CURE.init];
+            end
+            % new set of shifts
+            s0 = Opts.CURE.init(firstIndex:firstIndex+Opts.CURE.nk-1);
+     else
+         error('The initial vector of shifts s0 passed to CURE is invalid');
      end
      
+ else %choose initialization option
+     
+     %  choose the number of shifts to compute
+     if strcmp(Opts.CURE.stop,'nmax')
+         ns0 = Opts.CURE.stopval; %just as many as needed
+     else %another stopping criterion was chosen
+         ns0 = min([20,round(size(sys.A,1)/4)]);
+         if ~isEven(ns0), ns0 = ns0+1; end
+     end
+     
+     %  compute the shifts
+     switch Opts.CURE.init
+         case 'zero' %zero initialization
+             Opts.CURE.init = Opts.zeroThres*ones(1,ns0);
+         case 'sm' %smallest magnitude eigenvalues
+             Opts.CURE.init = -eigs(sys.a,sys.e,ns0,0, ...
+                    struct('tol',1e-6,'v0',sum(sys.b,2)));
+         case 'lm' %largest magnitude eigenvalues
+             Opts.CURE.init = -eigs(sys.a,sys.e,ns0,'lm', ...
+                    struct('tol',1e-6,'v0',sum(sys.b,2)));
+         case 'slm' %(def.) smallest and largest eigs
+             %  decide how many 'lm' and 'sm' eigs to compute
+             if ns0 <=4
+                 nSm = 2; nLm = 2;
+             else %ns0 > 4
+                if isEven(ns0)
+                    nSm = ns0/2; nLm = nSm;
+                    s0 = [];
+                else
+                    nSm = (ns0-1)/2; nLm = nSm;
+                    s0 = 0; %initialize the first shift at 0
+                end
+                if ~isEven(nSm), nSm = nSm +1; nLm = nLm -1;end
+             end
+             Opts.CURE.init = [ -eigs(sys.a,sys.e,nSm,'sm', ...
+                                  struct('tol',1e-6,'v0',sum(sys.b,2)));...
+                                -eigs(sys.a,sys.e,nLm,'lm', ...
+                                  struct('tol',1e-6,'v0',sum(sys.b,2)))]';
+     end
+     s0 = Opts.CURE.init(1:Opts.CURE.nk);
+ end
+ 
+    %   make sure the initial values for the shifts are complex conjugated
+    if mod(nnz(imag(s0)),2)~=0 %if there are complex valued shifts...
+        % find the s0 which has no compl.conj. partner
+        % (assumes that only one shifts has no partner)
+        s0(imag(s0) == imag(sum(s0))) = 0;
+    end
+    cplxpair(s0); %for debugging
+    
     %   replace 0 with thresh, where threshold is a small number
     %   (sometimes the optimizer complaints about cost function @0)
     s0(s0==0)=Opts.zeroThres;
- end
+    
+    
+    
 function [DrImp,A22InvB22] = implicitFeedthrough(sys,dynamicOrder)
 %   compute the implicit feedthrough of a SE DAE
 
@@ -364,3 +366,8 @@ function writeGif(gifMode)
         otherwise
             error('Invalid gifMode')
     end
+    
+function isEven = isEven(a)
+    isEven = round(a/2)== a/2;
+    
+        
