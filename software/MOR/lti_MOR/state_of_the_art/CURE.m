@@ -54,7 +54,7 @@ function sysr = CURE(sys,Opts)
         Def.CURE.nk = 2; % reduced order at each step
         Def.CURE.stop = 'nmax'; %type of stopping criterion
         Def.CURE.stopval = round(sqrt(size(sys.a,1))); %default reduced order
-        Def.CURE.init = 0; %shift initialization type
+        Def.CURE.init = 1; %shift initialization type
         Def.CURE.fact = 'V'; %error factorization
         Def.CURE.SE_DAE = 0; %SE-DAE reduction
         Def.CURE.test = 0; %execute analysis code?
@@ -66,9 +66,7 @@ function sysr = CURE(sys,Opts)
     else
         Opts = parseOpts(Opts,Def);
     end
-        
-    
-         
+              
 %%  Plot for testing
 if Opts.CURE.test
     fhOriginalSystem = nicefigure('CURE - Reduction of the original model');
@@ -243,35 +241,68 @@ switch opts.CURE.stop
     otherwise
         error('The stopping criterion chosen does not exist or is not yet implemented');
 end
-function s0 = initializeShifts(sys,opts)
- if ~isscalar(opts.CURE.init)
-     s0 = opts.CURE.init;
- else
-     switch opts.CURE.init
-         case 0
-             %zero
-             s0 = opts.zeroThres*ones(1,opts.CURE.nk);
-         case 1
-             %random
-             s0 = (.5+rand)*[1,1] + 100i*[1, -1]*rand;
-         case 2
-             % Convex combination of largest and smallest imaginary part eigs
+function s0 = initializeShifts(sys,Opts)
+%   initialization of the shifts
+ if ~isscalar(Opts.CURE.init) %if a vector of initial values was passed
+     s0 = Opts.CURE.init;
+ else %choose initialization option
+     switch Opts.CURE.init
+         case 0 %zero initialization
+             s0 = Opts.zeroThres*ones(1,Opts.CURE.nk);
+         case 1 %(def.) nk/2 smallest and nk/2 largest eigs
+             %  decide how many 'lm' and 'sm' eigs to compute
+             
+             if Opts.CURE.nk == 1
+                 nSm = 0; nLm = 0;
+                 s0 = 0;
+             elseif Opts.CURE.nk == 2
+                 nSm = 2; nLm = 0;
+                 s0 = [];
+             elseif Opts.CURE.nk == 3
+                 nSm = 2; nLm = 0;
+                 s0 = 0;
+             else %Opts.CURE.nk >= 4
+                isEvenNk = ~(round(Opts.CURE.nk/2)-Opts.CURE.nk/2);
+                if isEvenNk
+                    nSm = Opts.CURE.nk/2; nLm = nSm;
+                    s0 = [];
+                else
+                    nSm = (Opts.CURE.nk-1)/2; nLm = nSm;
+                    s0 = 0; %initialize the first shift at 0
+                end
+                isEvenNSm = ~(round(nSm/2)-nSm/2);
+                if ~isEvenNSm
+                    nSm = nSm +1; nLm = nLm -1;
+                end
+             end
+             
+             s0 = [ s0;...
+                    -eigs(sys.a,sys.e,nSm,'sm', ...
+                        struct('tol',1e-6,'v0',sum(sys.b,2)));...
+                    -eigs(sys.a,sys.e,nLm,'lm', ...
+                        struct('tol',1e-6,'v0',sum(sys.b,2)))]';
+             cplxpair(s0); %just for debugging                 
+         case 2 %smallest magnitude eigenvalues
+             s0 = -eigs(sys.a,sys.e,Opts.CURE.nk,0, ...
+                    struct('tol',1e-6,'v0',sum(sys.b,2)));
+         case 3 %largest magnitude eigenvalues
+             s0 = -eigs(sys.a,sys.e,Opts.CURE.nk,'lm', ...
+                    struct('tol',1e-6,'v0',sum(sys.b,2)));
+         case 4 %convex combination of largest and smallest imaginary part
+             
              try
-                s1 = -eigs(sys.a,sys.e,opts.CURE.nk,'li')';
+                s1 = -eigs(sys.a,sys.e,Opts.CURE.nk,'li')';
              catch 
                 warning('Largest imaginary eigs not found! Using rand*1e2 +-rand*1e2i instead.')
                 s1 = rand*1e2*ones(1,2)+1e2*1i*rand*[1,-1];
              end
              try
-                s2 = -eigs(sys.a,sys.e,opts.CURE.nk,'si')';
+                s2 = -eigs(sys.a,sys.e,Opts.CURE.nk,'si')';
              catch 
                  warning('Smallest imaginary eigs not found! Using 0 instead.')
                  s2 = 0;
              end
-    %          % test convex combination
-    %          fh = figure;
-    %          plot(-real(eig(sys)),imag(eig(sys)),'o');hold on;
-    %          for ii = 1:100
+
              if all(real(s1)>= real(s2))
                 s0 = (real(s1)+rand*(real(s2)-real(s1))) +...
                     1i*(imag(s2)+.5*rand*(imag(s1)-imag(s2)));
@@ -279,69 +310,13 @@ function s0 = initializeShifts(sys,opts)
                  s0 = (real(s2)+rand*(real(s1)-real(s2))) +...
                     1i*(imag(s2)+.5*rand*(imag(s1)-imag(s2)));
              end
-    %          plot(real(s0),imag(s0),'xr');
-    %          end
-    %          pause;
-    %          close(fh);
 
              s0 = s0';
-         case 3
-             % On a line between smallest imaginary and largest imaginary 
-             s1 = -eigs(sys.a,sys.e,opts.CURE.nk,'li');
-             try
-                s2 = -eigs(sys.a,sys.e,opts.CURE.nk,'si');
-             catch err
-                 warning('Smallest imaginary eigs not found! Using 0 instead.')
-                 s2 = zeros(2,1);
-             end
-             % test convex combination
-             fh = figure;
-             plot(-real(eig(sys)),imag(eig(sys)),'o');hold on;
-             for ii = 1:100
-                 s0 = s2 + (s1-s2)*rand;
-                 plot(real(s0),imag(s0),'xr');
-             end
-             pause;
-             close(fh);
-
-             s0 = s0';
-         case 4
-             % As case 3, but projected onto real axis
-             s1 = -eigs(sys.a,sys.e,opts.CURE.nk,'li');
-             try
-                s2 = -eigs(sys.a,sys.e,opts.CURE.nk,'si');
-             catch err
-                 warning('Smallest imaginary eigs not found! Using 0 instead.')
-                 s2 = zeros(2,1);
-             end
-    %          % test convex combination
-    %          fh = figure;
-    %          plot(-real(eig(sys)),imag(eig(sys)),'o');hold on;
-    %          for ii = 1:100
-                 s0 = real(s2 + (s1-s2)*rand);
-    %              plot(real(s0),imag(s0),'xr');
-    %          end
-    %          pause;
-    %          close(fh);
-
-             s0 = s0';
-         case 5
-             % random real shifts
-             s0 = [rand,5*rand];
-
-         case 6 %used for transmission line
-    %          p = [6e7,1e20];
-    %          s_opt = p(1)+[1 -1]*sqrt(p(1)^2-p(2))
-
-             s1 = 6e4*ones(1,2)+5e7*1i*[1,-1];
-             s2 = 1e4*ones(1,2)+5e5*1i*[1,-1];
-
-             s0 = ((real(s1)+rand*(real(s2)-real(s1))) +...
-                    1i*(imag(s2)+rand*(imag(s1)-imag(s2))));
      end
+     
     %   replace 0 with thresh, where threshold is a small number
     %   (sometimes the optimizer complaints about cost function @0)
-    s0(s0==0)=opts.zeroThres;
+    s0(s0==0)=Opts.zeroThres;
  end
 function [DrImp,A22InvB22] = implicitFeedthrough(sys,dynamicOrder)
 %   compute the implicit feedthrough of a SE DAE
@@ -370,7 +345,6 @@ function Bnew = adaptDaeForSpark(sys,dynamicOrder,A22InvB22)
     
     Bnew = [ B11 - A12*A22InvB22;
           zeros(size(sys.a,1)-dynamicOrder,size(B11,2))];
-      
 %         Alternatively, the same can be done with C
 %         C11 = sys.c(1:opts.CURE.SE_DAE);
 %         C22 = sys.c(opts.CURE.SE_DAE+1:end);
