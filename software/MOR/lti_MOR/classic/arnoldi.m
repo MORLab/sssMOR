@@ -1,30 +1,91 @@
-function [V,AV,EV,Ct] = arnoldi(E,A,b,s0,IP)
-% Arnoldi Algorithm for order reduction of LTI SISO systems using
-% multiple expansion points
+function [V,Ct,W,Bt] = arnoldi(E,A,b,varargin)
+% ARNOLDI - Arnoldi algorithm using multiple expansion points
 % ------------------------------------------------------------------
-% V = arnoldi(E,A,b,s0)
-% Inputs:       * E,A,b: System matrices
+% [V,Ct]        = ARNOLDI(E,A,b,s0,IP)
+% [V,Ct,W,Bt]   = ARNOLDI(E,A,b,c,s0,IP)
+% Inputs:       * E,A,b,c: System matrices
 %               * s0:    Vector of expansion points
-% Outputs:      * V: Orthogonal matrix spanning the Krylov subspace
+%               * IP:    (opt.) function handle for inner product
+% Outputs:      * V:    Orthonormal basis spanning the input Krylov subsp.
+%               * Ct:   Right tangential directions of Sylvester Eq.
+%               * W:    Orthonormal basis spanning the output Krylov subsp.
+%               * Bt:   Left tangential directions of Sylvester Eq.
 % ------------------------------------------------------------------
-% This file is part of the MORLAB_GUI, a Model Order Reduction and
-% System Analysis Toolbox developed at the
-% Institute of Automatic Control, Technische Universitaet Muenchen
+% USAGE:  This function is used to compute the matrix V spanning the 
+% input Krylov subspace corresponding to E, A, b and s0 [1,2].
+%
+% The columns of V build an orthonormal basis of the input Krylov 
+% subspace. The orthogonalization is conducted using a reorthogonalized
+% modified Gram-Schmidt procedure [3] with respect to the inner product
+% defined in IP (optional). If no inner product is specified, then the
+% elliptic product corresponding to E is chosen by default:
+%                       IP=@(x,y) (x'*E*y)
+% which requires E to be a positive definite matrix.
+%
+% See also RK.
+%
+% ------------------------------------------------------------------
+% REFERENCES:
+% [1] Grimme (1997), Krylov projection methods for model reduction
+% [2] Antoulas (2005), Approximation of large-scale dynamical systems
+%TODO: Reference for the duality between Krylov and Sylvester 
+% [3] Giraud (2005), The loss of orthogonality in the Gram-Schmidt...
+% ------------------------------------------------------------------
+% This file is part of MORLab, a Sparse State Space, Model Order
+% Reduction and System Analysis Toolbox developed at the Institute 
+% of Automatic Control, Technische Universitaet Muenchen.
 % For updates and further information please visit www.rt.mw.tum.de
+% For any suggestions, submission and/or bug reports, mail us at
+%                  -> MORLab@rt.mw.tum.de <-
 % ------------------------------------------------------------------
-% Authors:      Heiko Panzer (heiko@mytum.de)
-% Last Change:  12 Oct 2012
+% Authors:      Heiko Panzer, Alessandro Castagnotto 
+%               (a.castagnotto@tum.de)
+% Last Change:  22 Jul 2015
+% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
-%fprintf('Multipoint Arnoldi algorithm by RT-TUM (www.rt.mw.tum.de) panzer@tum.de\n');
+%%  Parse input
+hermite = 0; % same shifts for input and output Krylov?
+if nargin == 4
+    % usage: ARNOLDI(E,A,b,s0)
+    s0 = varargin{1};
+elseif nargin == 5
+    if size(varargin{1},2) == size(A,1)
+        % usage: ARNOLDI(E,A,b,c,s0)
+        c = varargin{1};
+        s0 = varargin{2};
+        hermite = 1;
+    else
+        % usage: ARNOLDI(E,A,b,s0,IP)
+        s0 = varargin{1};
+        IP = varargin{2};
+    end
+elseif nargin == 6
+    % usage: ARNOLDI(E,A,b,c,s0,IP)
+    c = varargin{1};
+    s0 = varargin{2};
+    IP = varargin{3};
+    hermite = 1;
+else
+    error('Wrong number of inputs')
+end
+    
 
-if ~exist('IP', 'var'), IP=@(x,y) (x'*E*y); end
+if ~exist('IP', 'var') 
+    if abs(condest(E))<Inf % 
+        IP=@(x,y) (x'*E*y); 
+    else
+        IP=@(x,y) (x'*y); 
+    end
+end
 
 if size(s0,1)>1
     error('s0 must be a vector containing the expansion points.')
 end
+
 q=length(s0); % order of the reduced model
 
+%%  Compute the Krylov subspaces
 % remove one element of complex pairs
 k=find(imag(s0));
 if ~isempty(k)
@@ -35,30 +96,27 @@ end
 
 % preallocate memory
 V=zeros(length(b),q);
-
-EV=zeros(length(b),q);
-AV=zeros(length(b),q);
 Ct=eye(1,q); %**
+if hermite, W = V; Bt = Ct'; end
 
-
-for j=1:length(s0)
-%     fprintf([repmat(8,1,4) '%3.0f%%'], 100*(j-1)/q);
-
+for jCol=1:length(s0)
     % new basis vector
-    temp=b; newlu=1; 
-    Ct(j)=1; %**
-    if j>1
-        if s0(j)==s0(j-1)
-            temp=V(:,j-1);
+    tempV=b; newlu=1; 
+    Ct(jCol)=1; %**
+    if hermite, tempW = c'; Bt(jCol) = 1; end
+    if jCol>1
+        if s0(jCol)==s0(jCol-1)
+            tempV=V(:,jCol-1);
             newlu=0;
-            Ct(j)=0; %**
+            Ct(jCol)=0; %**
+            if hermite, tempW = W(:,jCol-1); Bt(jCol)=0; end
         end
     end
     
-    if isinf(s0(j))
+    if isinf(s0(jCol))
         % s0=inf, match Markov parameter instead of moment
         if newlu==0
-            temp=A*temp;
+            tempV=A*tempV;
         end
         if newlu==1
             try
@@ -76,97 +134,102 @@ for j=1:length(s0)
             end
         end
         if exist('U', 'var')
-            temp = invsolve(temp,L,U,p,o,S);
+            tempV = invsolve(tempV,L,U,p,o,S);
         else
-            temp = S*(R\(R'\(S'*temp)));
+            tempV = S*(R\(R'\(S'*tempV)));
         end
     else
         if newlu==0
-            temp=E*temp;
+            tempV=E*tempV;
+            if hermite, tempW = E'*tempW; end
         end
         if newlu==1
             % vector LU for sparse matrices
-            [L,U,p,o,S]=lu(sparse(A-s0(j)*E),'vector');
+            [L,U,p,o,S]=lu(sparse(A-s0(jCol)*E),'vector');
         end
-        temp = invsolve(temp,L,U,p,o,S);
-    end
-    
-    temp_EV = E*temp;
-    temp_AV = A*temp;
+        % Solve the linear system of equations
+        tempV(o,:) = U\(L\(S(:,p)\tempV)); %LU x(o,:) = S(:,p)\b 
+        if hermite, tempW = (S(:,p))'\(L'\(U'\tempW(o,:))); end %U'L'S(:,p) x = c'(o,:) 
+    end 
 
     % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
-    if ~isreal(s0(j))
-        V(:,j+length(s0c)/2)=imag(temp);
-        temp=real(temp);
-
-        EV(:,j+length(s0c)/2)=imag(temp_EV);
-        temp_EV=real(temp_EV);
-
-        AV(:,j+length(s0c)/2)=imag(temp_AV);
-        temp_AV=real(temp_AV);
+    if ~isreal(s0(jCol))
+        V(:,jCol+length(s0c)/2)=imag(tempV); 
+        tempV=real(tempV);
+        if hermite, W(:,jCol+length(s0c)/2)=imag(tempW);tempW=real(tempW); end
     end
 
-%     temp2=temp;
     % orthogonalize vectors
-    for i=1:j-1
-      h=IP(temp,V(:,i));
-      temp=temp-V(:,i)*h;
-      temp_EV=temp_EV-EV(:,i)*h;
-      temp_AV=temp_AV-AV(:,i)*h;
-      Ct(j)=Ct(j)-h*Ct(i);
+    for iCol=1:jCol-1
+      h=IP(tempV,V(:,iCol));
+      tempV=tempV-V(:,iCol)*h;
+      Ct(jCol)=Ct(jCol)-h*Ct(iCol);
+      if hermite
+        h=IP(tempW,W(:,iCol));
+        tempW=tempW-W(:,iCol)*h;
+        Bt(jCol)=Bt(jCol)-h*Bt(iCol);
+      end
+          
     end
 
     % normalize new basis vector
-    h = sqrt(IP(temp,temp));
-    V(:,j)=temp/h;
-    EV(:,j)=temp_EV/h;
-    AV(:,j)=temp_AV/h;
-    Ct(j) = Ct(j)/h;
+    h = sqrt(IP(tempV,tempV));
+    V(:,jCol)=tempV/h;
+    Ct(jCol) = Ct(jCol)/h;
+    if hermite
+        h = sqrt(IP(tempW,tempW));
+        W(:,jCol)=tempW/h;
+        Bt(jCol) = Bt(jCol)/h;
+    end
    
 end
 
 %orthogonalize columns from imaginary components
-for j=length(s0)+1:q
-    temp=V(:,j);
-    temp_EV=EV(:,j);
-    temp_AV=AV(:,j);
-    for i=1:j-1
-      h=IP(temp, V(:,i));
-      temp=temp-h*V(:,i);
-      temp_AV=temp_AV-AV(:,i)*h;
-      temp_EV=temp_EV-EV(:,i)*h;
-      Ct(j) = Ct(j)-h*Ct(i);
+for jCol=length(s0)+1:q
+    tempV=V(:,jCol);
+    if hermite, tempW=W(:,jCol);end
+    for iCol=1:jCol-1
+      h=IP(tempV, V(:,iCol));
+      tempV=tempV-h*V(:,iCol);
+      Ct(jCol) = Ct(jCol)-h*Ct(iCol);
+      if hermite
+        h=IP(tempW, W(:,iCol));
+        tempW=tempW-h*V(:,iCol);
+        Bt(jCol) = Bt(jCol)-h*Bt(iCol);
+      end
     end
-%     V(:,j)=temp/sqrt(temp'*IP*temp);
-    h = sqrt(IP(temp,temp));
-    V(:,j)=temp/h;
-    AV(:,j)=temp_AV/h;
-    EV(:,j)=temp_EV/h;
-    Ct(j) = Ct(j)/h;
+    h = sqrt(IP(tempV,tempV));
+    V(:,jCol)=tempV/h;
+    Ct(jCol) = Ct(jCol)/h;
+    if hermite
+        h = sqrt(IP(tempW,tempW));
+        W(:,jCol)=tempW/h;
+        Bt(jCol) = Bt(jCol)/h;
+    end
 end
 
-%QR-orthogonalization in case V is badly scaled
-s = svd(IP(V,V)); %determinant computation would also work
-if max(s)>1.02
-    warning('Modified Gram-Schmidt could not manage to fully keep numerics well behaved. Performing a QR decomposition...');
-    [Q,~] = qr(V);
-    V = Q(:,1:q);
-    AV = A*V;
-    EV = E*V;
-end
+%% reorthogonalized Gram-Schmidt
+%   from a theoretical standpoint, it does not change anything
+%   numerically it is necessary to keep the numerics well behaved if the 
+%   reduced order is large
 
-% assignin('base', 'Ct', Ct);
-
-% fprintf([repmat(8,1,4) 'done.\n']);
-end
-
-
-function newcol = invsolve(newcol,L,U,p,o,S)
-    b=S\newcol;
-%     opts1.LT = true;
-%     newcol=linsolve(L,b(p,:),opts1);
-    newcol=L\b(p,:);
-%     opts2.UT = true;
-%     newcol=linsolve(U,newcol,opts2);
-    newcol(o,:)=U\newcol;
-end
+tic
+    for jCol = 2:q
+        tempV = V(:,jCol);
+        if hermite, tempW = W(:,jCol);end
+        for iCol = 1:jCol-1
+             h=IP(tempV, V(:,iCol));
+             tempV=tempV-h*V(:,iCol);
+             if hermite
+                h=IP(tempW, W(:,iCol));
+                tempW=tempW-h*W(:,iCol);
+             end
+        end
+        h = sqrt(IP(tempV,tempV));
+        V(:,jCol)=tempV/h;
+        if hermite
+            h = sqrt(IP(tempW,tempW));
+            W(:,jCol)=tempW/h;
+        end
+    end
+ tReorthogonalizedGS = toc
