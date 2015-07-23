@@ -24,7 +24,7 @@ function headerTemplate
 % of Automatic Control, Technische Universitaet Muenchen.
 % For updates and further information please visit www.rt.mw.tum.de
 % For any suggestions, submission and/or bug reports, mail us at
-%                      -> MORLab@tum.de <-
+%                   -> MORLab@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto, Maria Cruz Varona
 %               HiWi
