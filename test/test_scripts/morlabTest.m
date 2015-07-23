@@ -12,6 +12,109 @@ sys = sss(A,B,C,D,E)
 
 bode(sys)
 
+%% Test RK and Arnoldi
+clear, clc
+
+load beam
+sys = sss(A,B,C);
+
+s0 = zeros(1,100);
+tic,[sysr1i,V1i,W1i]    = RK(sys,s0);t1i = toc
+tic,[sysr1o,V1o,W1o]    = RK(sys,[],s0); t1o = toc
+tic,[sysr2,V2,W2]       = RK(sys,s0,s0); t2 = toc
+
+norm(V1i-V2)
+norm(W1o-W2)
+
+%%  Test Arnoldi (invsolve)
+clc
+n = 1e2; density = 0.1;
+A = sprand(n,n,density); E = sprand(n,n,density); b = sprand(n,1,density);
+Id = speye(size(A));
+
+[L,U,p,o,S]=lu(A,'vector');
+    
+% Input Krylov
+fprintf('--- input Krylov ---');
+    %1st direction
+    xCorr = A\b;
+    %a) invsolve
+    tic
+    xInvsolve=S\b;
+    xInvsolve=L\xInvsolve(p,:);
+    xInvsolve(o,:)=U\xInvsolve;
+    tInvsolve = toc
+    eInvsolve = norm(xCorr-xInvsolve)
+    
+    %b) direct computation
+    tic
+    xDirect = Id(:,o)*(U\(L\(Id(:,p)'*(S\b))));
+    tDirect = toc
+    eDirect = norm(xCorr-xDirect)
+    
+    %c) New: a mixture of both a and b
+    tic
+    xNew(o,:) = U\(L\(S(:,p)\b));
+    tNew = toc
+    eNew = norm(xCorr-xNew)
+
+    
+    %2nd direction
+    xCorr = A\(E*xCorr);
+    %a) invsolve
+    xInvsolve=S\(E*xInvsolve);
+    xInvsolve=L\xInvsolve(p,:);
+    xInvsolve(o,:)=U\xInvsolve;
+    eInvsolve = norm(xCorr-xInvsolve)
+    
+    %b) direct computation
+    xDirect = Id(:,o)*(U\(L\(Id(:,p)'*(S\(E*xDirect)))));
+    eDirect = norm(xCorr-xDirect)
+    
+    %c) New: a mixture of both a and b
+    xNew(o,:) = U\(L\(S(:,p)\(E*xNew)));
+    eNew = norm(xCorr-xNew)
+    
+% Output Krylov
+fprintf('--- output Krylov ---');
+    %1st direction
+    xCorr = A'\b;
+
+    %a) direct computation
+    tic
+    xDirect = (S*Id(:,p))'\(L'\(U'\(Id(:,o)'*b)));
+    tDirect = toc
+    eDirect = norm(xCorr-xDirect)
+    
+    %c) New: a mixture of both a and b
+    tic
+    xNew = (S(:,p))'\(L'\(U'\(b(o,:))));
+    tNew = toc
+    eNew = norm(xCorr-xNew)
+
+    
+    %2nd direction
+    xCorr = A'\(E'*xCorr);
+    
+    %b) direct computation
+    xDirect = (S*Id(:,p))'\(L'\(U'\(Id(:,o)'*(E'*xDirect))));
+    eDirect = norm(xCorr-xDirect)
+    
+    %c) New: a mixture of both a and b
+    temp = E'*xNew;
+    xNew = (S(:,p))'\(L'\(U'\(temp(o,:))));
+    eNew = norm(xCorr-xNew)
+    
+%%  Test IRKA
+clear, clc
+
+load build
+sys = sss(A,B,C);
+s0 = zeros(1,8);
+% sysr = IRKA_analyze(sys, s0, 100, 1e-3,{'complete',2});
+Opts = struct('maxiter',100,'epsilon',1e-3,'stopCrit','combAll','verb',1);
+sysr = IRKA(sys, s0, Opts)
+analyze_MOR(sys,sysr);
 %% Test CURE
 close all, clear, clc
 load fom; %beam, fom
