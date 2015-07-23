@@ -106,12 +106,11 @@ else
 
     if nargout > 3
         Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
-        Cb = sys.C - sysr.C/sysr.E*(sys.E'*W)';
+        Cb = sys.C - sysr.C/sysr.E*W'*sys.E;
     end
 end
 
-end
-
+%----------- AUXILIARY --------------
 function s0=s0_vect(s0)
     % change two-row notation to vector notation
     if size(s0,1)==2
@@ -127,6 +126,5 @@ function s0=s0_vect(s0)
     if size(s0,1)>size(s0,2)
         s0=transpose(s0);
     end
-end
 
 

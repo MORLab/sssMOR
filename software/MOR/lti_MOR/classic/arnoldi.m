@@ -153,7 +153,7 @@ for jCol=1:length(s0)
         tempV(o,:) = U\(L\(S(:,p)\tempV)); %LU x(o,:) = S(:,p)\b 
 %         if hermite, tempW = ((S(:,p)).')\((L.')\((U.')\tempW(o,:))); end %U'L'S(:,p) x = c'(o,:) 
         if hermite,
-            [Lt,Ut,pt,ot,St]=lu(sparse((A-s0(jCol)*E)'),'vector');
+            [Lt,Ut,pt,ot,St]=lu(sparse((A'-s0(jCol)*E')),'vector');
             tempW(ot,:) = Ut\(Lt\(St(:,pt)\tempW));
         end %U'L'S(:,p) x = c'(o,:) 
     end 

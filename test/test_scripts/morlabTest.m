@@ -13,12 +13,13 @@ sys = sss(A,B,C,D,E)
 bode(sys)
 
 %% Test RK and Arnoldi
-clear, clc
+% clear, 
+clc
 
-load beam
+load build
 sys = sss(A,B,C);
 
-s0 = rand(1,20);
+s0 = -rand(1,20);
 tic,[sysr1i,V1i,W1i]    = RK(sys,s0);t1i = toc
 tic,[sysr1o,V1o,W1o]    = RK(sys,[],s0); t1o = toc
 tic,[sysr2,V2,W2]       = RK(sys,s0,s0); t2 = toc
@@ -118,9 +119,9 @@ clear, clc
 
 load build
 sys = sss(A,B,C);
-s0 = rand(1,10);
+s0 = -rand(1,10);
 Opts = struct('maxiter',100,'epsilon',1e-3,'stopCrit','combAny','verb',1);
-sysr = IRKA(sys, s0, Opts);
+[sysr, V, W, s0, s0_traj] = IRKA(sys, s0, Opts);
 % analyze_MOR(sys,sysr);
 %% Test CURE
 close all, clear, clc

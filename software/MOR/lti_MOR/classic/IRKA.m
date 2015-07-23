@@ -79,7 +79,9 @@ while true
     [~, VTest] = RK(sys, s0);
     [~, ~, WTest] = RK(sys, [], s0);
     sysrTest = sss(WTest'*sys.A*VTest, WTest'*sys.B, sys.C*VTest, sys.D,WTest'*sys.E*VTest);
-    norm(eig(sysrTest)-eig(sysr))
+    eigenv = eig(sysr); eigenvTest = eig(sysrTest);
+    plot(real(eigenv),imag(eigenv),'b*',real(eigenvTest),imag(eigenvTest),'ro');pause
+    norm(V-VTest),norm(W-WTest)
     %--
 
     s0_old=s0;
@@ -94,7 +96,6 @@ while true
     end
 
     s0_traj(k+1,:) = s0;
-    plot(real(s0),imag(s0),'b*',real(s0_old),imag(s0_old),'ro');pause
     
     [stop, stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts);
     if Opts.verb
