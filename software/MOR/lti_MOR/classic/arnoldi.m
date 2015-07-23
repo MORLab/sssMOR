@@ -99,7 +99,7 @@ end
 % preallocate memory
 V=zeros(length(b),q);
 Ct=eye(1,q); %**
-if hermite, W = V; Bt = Ct'; end
+if hermite, W = zeros(length(b),q); Bt = eye(1,q)';end
 
 for jCol=1:length(s0)
     % new basis vector
@@ -151,14 +151,18 @@ for jCol=1:length(s0)
         end
         % Solve the linear system of equations
         tempV(o,:) = U\(L\(S(:,p)\tempV)); %LU x(o,:) = S(:,p)\b 
-        if hermite, tempW = ((S(:,p)).')\((L.')\((U.')\tempW(o,:))); end %U'L'S(:,p) x = c'(o,:) 
+%         if hermite, tempW = ((S(:,p)).')\((L.')\((U.')\tempW(o,:))); end %U'L'S(:,p) x = c'(o,:) 
+        if hermite,
+            [Lt,Ut,pt,ot,St]=lu(sparse((A-s0(jCol)*E)'),'vector');
+            tempW(ot,:) = Ut\(Lt\(St(:,pt)\tempW));
+        end %U'L'S(:,p) x = c'(o,:) 
     end 
 
     % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
     if ~isreal(s0(jCol))
         V(:,jCol+length(s0c)/2)=imag(tempV); 
         tempV=real(tempV);
-        if hermite, W(:,jCol+length(s0c)/2)=imag(tempW);tempW=real(tempW); end
+        if hermite, W(:,jCol+length(s0c)/2)=imag(tempW);tempW=real(tempW);end
     end
 
     % orthogonalize vectors
@@ -194,7 +198,7 @@ for jCol=length(s0)+1:q
       h=IP(tempV, V(:,iCol));
       tempV=tempV-h*V(:,iCol);
       Ct(jCol) = Ct(jCol)-h*Ct(iCol);
-      if hermite
+      if hermite        
         h=IP(tempW, W(:,iCol));
         tempW=tempW-h*V(:,iCol);
         Bt(jCol) = Bt(jCol)-h*Bt(iCol);
@@ -235,3 +239,4 @@ if reorthogonalize
         end
     end
 end
+

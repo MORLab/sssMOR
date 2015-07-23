@@ -73,10 +73,17 @@ while true
     k=k+1;
     
     sysr_old = sysr;
-    [sysr, V, W] = RK(sys, s0, s0); %@(x,y) (x'*y)
+    [sysr, V, W] = RK(sys, s0, s0);
+    
+    %--
+    [~, VTest] = RK(sys, s0);
+    [~, ~, WTest] = RK(sys, [], s0);
+    sysrTest = sss(WTest'*sys.A*VTest, WTest'*sys.B, sys.C*VTest, sys.D,WTest'*sys.E*VTest);
+    norm(eig(sysrTest)-eig(sysr))
+    %--
 
     s0_old=s0;
-    s0 = -eig(sysr)';
+    s0 = -eig(sysrTest)';
 
     s0(isnan(s0)) = 0;
     s0 = cplxpair(s0);
@@ -87,7 +94,7 @@ while true
     end
 
     s0_traj(k+1,:) = s0;
-    
+    plot(real(s0),imag(s0),'b*',real(s0_old),imag(s0_old),'ro');pause
     
     [stop, stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts);
     if Opts.verb

@@ -102,8 +102,8 @@ else
         Bt = Bt';
     end
 %    [V,W]=lanczos(sys.E,sys.A,sys.B,sys.C,s0_inp,s0_out,IP);
+     sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
 
-    sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
     if nargout > 3
         Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
         Cb = sys.C - sysr.C/sysr.E*(sys.E'*W)';
