@@ -45,10 +45,11 @@ function [V,Ct,W,Bt] = arnoldi(E,A,b,varargin)
 % ------------------------------------------------------------------
 
 %%  Parse input
-hermite = 0; % same shifts for input and output Krylov?
+
 if nargin == 4
     % usage: ARNOLDI(E,A,b,s0)
     s0 = varargin{1};
+    hermite = 0; % same shifts for input and output Krylov?
 elseif nargin == 5
     if size(varargin{1},2) == size(A,1)
         % usage: ARNOLDI(E,A,b,c,s0)
@@ -59,6 +60,7 @@ elseif nargin == 5
         % usage: ARNOLDI(E,A,b,s0,IP)
         s0 = varargin{1};
         IP = varargin{2};
+        hermite = 0; % same shifts for input and output Krylov?
     end
 elseif nargin == 6
     % usage: ARNOLDI(E,A,b,c,s0,IP)
@@ -70,7 +72,6 @@ else
     error('Wrong number of inputs')
 end
     
-
 if ~exist('IP', 'var') 
     if abs(condest(E))<Inf % 
         IP=@(x,y) (x'*E*y); 
@@ -84,6 +85,7 @@ if size(s0,1)>1
 end
 
 q=length(s0); % order of the reduced model
+reorthogonalize = 0; %reorthogonalized GS?
 
 %%  Compute the Krylov subspaces
 % remove one element of complex pairs
@@ -149,7 +151,7 @@ for jCol=1:length(s0)
         end
         % Solve the linear system of equations
         tempV(o,:) = U\(L\(S(:,p)\tempV)); %LU x(o,:) = S(:,p)\b 
-        if hermite, tempW = (S(:,p))'\(L'\(U'\tempW(o,:))); end %U'L'S(:,p) x = c'(o,:) 
+        if hermite, tempW = ((S(:,p)).')\((L.')\((U.')\tempW(o,:))); end %U'L'S(:,p) x = c'(o,:) 
     end 
 
     % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
@@ -213,7 +215,7 @@ end
 %   numerically it is necessary to keep the numerics well behaved if the 
 %   reduced order is large
 
-tic
+if reorthogonalize
     for jCol = 2:q
         tempV = V(:,jCol);
         if hermite, tempW = W(:,jCol);end
@@ -232,4 +234,4 @@ tic
             W(:,jCol)=tempW/h;
         end
     end
- tReorthogonalizedGS = toc
+end

@@ -18,7 +18,7 @@ clear, clc
 load beam
 sys = sss(A,B,C);
 
-s0 = zeros(1,100);
+s0 = rand(1,100);
 tic,[sysr1i,V1i,W1i]    = RK(sys,s0);t1i = toc
 tic,[sysr1o,V1o,W1o]    = RK(sys,[],s0); t1o = toc
 tic,[sysr2,V2,W2]       = RK(sys,s0,s0); t2 = toc
@@ -113,8 +113,8 @@ sys = sss(A,B,C);
 s0 = zeros(1,8);
 % sysr = IRKA_analyze(sys, s0, 100, 1e-3,{'complete',2});
 Opts = struct('maxiter',100,'epsilon',1e-3,'stopCrit','combAll','verb',1);
-sysr = IRKA(sys, s0, Opts)
-analyze_MOR(sys,sysr);
+sysr = IRKA(sys, s0, Opts);
+% analyze_MOR(sys,sysr);
 %% Test CURE
 close all, clear, clc
 load fom; %beam, fom
