@@ -66,8 +66,7 @@ function sysr = CURE(sys,Opts)
         Opts = Def;
     else
         Opts = parseOpts(Opts,Def);
-    end
-              
+    end              
 %%  Plot for testing
 if Opts.CURE.test
     fhOriginalSystem = nicefigure('CURE - Reduction of the original model');
@@ -120,6 +119,7 @@ if Opts.verbose, fprintf('\nBeginning CURE iteration...\n'); end
 iCure = 0; %iteration counter
 while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
     iCure = iCure + 1;
+    if Opts.verbose, fprintf('\tCURE iteration %03i\n',iCure');end
     %   Redefine the G_ system at each iteration
     sys = sss(sys.a,B_,C_,0,sys.e);
     
@@ -247,9 +247,11 @@ switch opts.CURE.stop
         error('The stopping criterion chosen does not exist or is not yet implemented');
 end
 function [s0,Opts] = initializeShifts(sys,Opts,iCure)
-
-         %   initialization of the shifts
- if ~ischar(Opts.CURE.init) %numeric values were passed
+ %%   parse
+ if Opts.CURE.init ==0, Opts.CURE.init = 'zero'; end
+ 
+ %%   initialization of the shifts
+ if ~ischar(Opts.CURE.init) %initial shifts were defined
      if length(Opts.CURE.init) == Opts.CURE.nk %correct amount for iteration
          s0 = Opts.CURE.init;
      elseif length(Opts.CURE.init)> Opts.CURE.nk
@@ -276,7 +278,7 @@ function [s0,Opts] = initializeShifts(sys,Opts,iCure)
      
      %  compute the shifts
      switch Opts.CURE.init
-         case 'zero' %zero initialization
+         case 'zero'  %zero initialization
              Opts.CURE.init = Opts.zeroThres*ones(1,ns0);
          case 'sm' %smallest magnitude eigenvalues
              Opts.CURE.init = -eigs(sys.a,sys.e,ns0,0, ...
@@ -351,7 +353,6 @@ function Bnew = adaptDaeForSpark(sys,dynamicOrder,A22InvB22)
 %         C11 = sys.c(1:opts.CURE.SE_DAE);
 %         C22 = sys.c(opts.CURE.SE_DAE+1:end);
 %         sysCURE.C = [ C11- C22*(A22\A21),zeros(size(C22))];
-
 function writeGif(gifMode)
     filename = 'CURE.gif';
     dt = 1.5;
@@ -365,8 +366,7 @@ function writeGif(gifMode)
             imwrite(imind,cm,filename,'gif','WriteMode','append','DelayTime',dt);
         otherwise
             error('Invalid gifMode')
-    end
-    
+    end   
 function isEven = isEven(a)
     isEven = round(a/2)== a/2;
     
