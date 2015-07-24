@@ -40,6 +40,7 @@ function [sysr, V, W, Bb, Ct, Cb, Bt] = RK(sys, s0_inp, s0_out, IP)
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
+%%  Parsing
 if ~exist('IP', 'var'), IP=@(x,y) (x'*sys.E*y); end
 
 if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
@@ -65,6 +66,7 @@ if ~isempty(s0_inp) && ~isempty(s0_out)
     end
 end
 
+%%  Computation
 if isempty(s0_out)
     % input Krylov subspace
     if sys.m>1
