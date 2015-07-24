@@ -74,18 +74,9 @@ while true
     
     sysr_old = sysr;
     [sysr, V, W] = RK(sys, s0, s0);
-    
-    %--
-    [~, VTest] = RK(sys, s0);
-    [~, ~, WTest] = RK(sys, [], s0);
-    sysrTest = sss(WTest'*sys.A*VTest, WTest'*sys.B, sys.C*VTest, sys.D,WTest'*sys.E*VTest);
-    eigenv = eig(sysr); eigenvTest = eig(sysrTest);
-    plot(real(eigenv),imag(eigenv),'b*',real(eigenvTest),imag(eigenvTest),'ro');pause
-    norm(V-VTest),norm(W-WTest)
-    %--
 
     s0_old=s0;
-    s0 = -eig(sysrTest)';
+    s0 = -eig(sysr)';
 
     s0(isnan(s0)) = 0;
     s0 = cplxpair(s0);
@@ -99,8 +90,8 @@ while true
     
     [stop, stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts);
     if Opts.verb
-        fprintf('IRKA step %03u - Convergence (%s): %s \n', ...
-            k, Opts.stopCrit, sprintf('% 3.1e', stopCrit));
+        fprintf('IRKA step %03u - Convergence: %s \n', ...
+            k, sprintf('% 3.1e', stopCrit));
     end
     
     if stop || k>= Opts.maxiter
