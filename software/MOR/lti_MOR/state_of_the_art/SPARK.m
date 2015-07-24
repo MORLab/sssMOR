@@ -43,6 +43,7 @@ function [V,S_V,Crt,k] = SPARK(A,B,C,E,s0,Opts)
     % default values
     Def.SPARK.type = 'model'; %SPARK type, 'model' or 'standard'
     Def.SPARK.test = 0; %execute analysis code
+    Def.SPARK.verbose = 0; %show text?
     Def.SPARK.mfe = 5e3;
     Def.SPARK.mi = 1.5e2; %5e3
     Def.SPARK.xTol = 1e-20;
@@ -148,15 +149,15 @@ warning('off','MATLAB:nearlySingularMatrix')
         
         if Opts.MESPARK.ritz
             % Model-function-based initialization
-            if Opts.verbose,fprintf('User initialization: p0 =[%e,%e]',p0(1),p0(2));end
+            if Opts.SPARK.verbose,fprintf('User initialization: p0 =[%e,%e]',p0(1),p0(2));end
             p0 = ritz_initial;  
         end
         
         count = 0; %counter for perturbation if not improving
-        if Opts.verbose, fprintf('Starting MESPARK...\n'),end
+        if Opts.SPARK.verbose, fprintf('Starting MESPARK...\n'),end
         while(1)
             k = k + 1;
-            if Opts.verbose,fprintf('\tIteration %i: q=%i\n',k,size(V,2)),end
+            if Opts.SPARK.verbose,fprintf('\tIteration %i: q=%i\n',k,size(V,2)),end
             
             p_opt = ESPARK(p0);
     
@@ -172,33 +173,33 @@ warning('off','MATLAB:nearlySingularMatrix')
             % decide how to proceed
             if abs((J-J_old)/J) < Opts.SPARK.modelTol || ...
                     norm((p0-p_opt)./p0) < Opts.SPARK.modelTol %|| size(Am,1)>=20
-                if Opts.verbose,fprintf('Tolerance reached! Quitting MESPARK...\n'),end
+                if Opts.SPARK.verbose,fprintf('Tolerance reached! Quitting MESPARK...\n'),end
                 break;                      % convergence in J or in p  => stop
             elseif J<J_old
                  J_old = J;  p0 = p_opt;	% improvement: continue with p_opt
-                 if Opts.verbose
+                 if Opts.SPARK.verbose
                      fprintf('\t\t updating the model function...\n')
                      fprintf('\t\t restarting MESPARK where it converged...\n')
                  end
                  count = 0; %reset stagnation counter
             else %no improvement
-                if Opts.verbose,fprintf('\t\t no improvement!\n'),end
+                if Opts.SPARK.verbose,fprintf('\t\t no improvement!\n'),end
                 count = count+1; %add one to the stagnation counter
                 
                 % maximum iterations reached
                 if k >= Opts.MESPARK.maxIter 
-                    if Opts.verbose
+                    if Opts.SPARK.verbose
                         warning('Maximum number of iterations in MESPARK reached! Aborting...')
                     end
                     break;
                 end
                 
                 % going on with MESPARK
-                if Opts.verbose,fprintf('\t\t updating the model function...\n'),end
+                if Opts.SPARK.verbose,fprintf('\t\t updating the model function...\n'),end
                 if count <Opts.MESPARK.pertIter
-                    if Opts.verbose,fprintf('\t\t restarting MESPARK where it began...\n'),end
+                    if Opts.SPARK.verbose,fprintf('\t\t restarting MESPARK where it began...\n'),end
                 else
-                    if Opts.verbose,warning('long-term stagnation: perturbing p0...'),end
+                    if Opts.SPARK.verbose,warning('long-term stagnation: perturbing p0...'),end
                     p0 = perturb(p0,count);
                 end
             end
@@ -317,7 +318,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         % Take the mirror images to get positive real parts
         s0ritz = l_ritz-2*real(l_ritz);
         p0 = s2p(s0ritz); 
-        if Opts.verbose,fprintf('Initialization according to Ritz values: p0=[%e,%e]',p0(1),p0(2));end
+        if Opts.SPARK.verbose,fprintf('Initialization according to Ritz values: p0=[%e,%e]',p0(1),p0(2));end
         if Opts.SPARK.test,pause,close(bla);end
     end
     function p0 = perturb(p0,count)

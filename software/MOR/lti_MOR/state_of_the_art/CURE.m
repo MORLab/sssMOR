@@ -45,8 +45,8 @@ function sysr = CURE(sys,Opts)
 %% Parse input and load default parameters
 
     % default values
-    Def.warn = 0; %show warnings?
-    Def.verbose = 0; %show progress text?
+    Def.warn = 0;%show warnings?
+    Def.CURE.verbose = 0; %show progress text?
     Def.w = []; %frequencies for bode plot
     
     Def.zeroThres = 1e-4; % define the threshold to replace "0" by
@@ -114,12 +114,12 @@ end
 Dr_tot = sys.d + DrImp;
 
 %%   Start cumulative reduction
-if Opts.verbose, fprintf('\nBeginning CURE iteration...\n'); end
+if Opts.CURE.verbose, fprintf('\nBeginning CURE iteration...\n'); end
 
 iCure = 0; %iteration counter
 while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
     iCure = iCure + 1;
-    if Opts.verbose, fprintf('\tCURE iteration %03i\n',iCure');end
+    if Opts.CURE.verbose, fprintf('\tCURE iteration %03i\n',iCure');end
     %   Redefine the G_ system at each iteration
     sys = sss(sys.a,B_,C_,0,sys.e);
     
@@ -221,7 +221,7 @@ end
 sysr.D = Dr_tot;
 
 %%  Finishing execution
-if Opts.verbose,fprintf('Stopping criterion satisfied. Exiting CURE...\n\n');end
+if Opts.CURE.verbose,fprintf('Stopping criterion satisfied. Exiting CURE...\n\n');end
 if Opts.CURE.test
         sysr_bode = sysr;
         figure(fhOriginalSystem);
