@@ -85,7 +85,9 @@ if size(s0,1)>1
 end
 
 q=length(s0); % order of the reduced model
-reorthogonalize = 0; %reorthogonalized GS?
+reorth = 'gs'; %0, 'gs','qr'
+% lseSol = '\'; %'lu', '\'
+
 
 %%  Compute the Krylov subspaces
 % remove one element of complex pairs
@@ -115,8 +117,7 @@ for jCol=1:length(s0)
         end
     end
     
-    if isinf(s0(jCol))
-        % s0=inf, match Markov parameter instead of moment
+    if isinf(s0(jCol)) %Realization problem (match Markov parameters)
         if newlu==0
             tempV=A*tempV;
         end
@@ -140,7 +141,7 @@ for jCol=1:length(s0)
         else
             tempV = S*(R\(R'\(S'*tempV)));
         end
-    else
+    else %Rational Krylov
         if newlu==0
             tempV=E*tempV;
             if hermite, tempW = E'*tempW; end
@@ -151,7 +152,7 @@ for jCol=1:length(s0)
         end
         % Solve the linear system of equations
         tempV(o,:) = U\(L\(S(:,p)\tempV)); %LU x(o,:) = S(:,p)\b 
-%         if hermite, tempW = ((S(:,p)).')\((L.')\((U.')\tempW(o,:))); end %U'L'S(:,p) x = c'(o,:) 
+%         if hermite, tempW = (S(:,p)).'\(L.'\(U.'\(tempW(o,:)))); end %U'L'S(:,p) x = c'(o,:) 
         if hermite,
             [Lt,Ut,pt,ot,St]=lu(sparse((A'-s0(jCol)*E')),'vector');
             tempW(ot,:) = Ut\(Lt\(St(:,pt)\tempW));
@@ -200,7 +201,7 @@ for jCol=length(s0)+1:q
       Ct(jCol) = Ct(jCol)-h*Ct(iCol);
       if hermite        
         h=IP(tempW, W(:,iCol));
-        tempW=tempW-h*V(:,iCol);
+        tempW=tempW-h*W(:,iCol);
         Bt(jCol) = Bt(jCol)-h*Bt(iCol);
       end
     end
