@@ -215,29 +215,44 @@ for jCol=length(s0)+1:q
     end
 end
 
-%% reorthogonalized Gram-Schmidt
-%   from a theoretical standpoint, it does not change anything
-%   numerically it is necessary to keep the numerics well behaved if the 
-%   reduced order is large
-
-if reorthogonalize
-    for jCol = 2:q
-        tempV = V(:,jCol);
-        if hermite, tempW = W(:,jCol);end
-        for iCol = 1:jCol-1
-             h=IP(tempV, V(:,iCol));
-             tempV=tempV-h*V(:,iCol);
-             if hermite
-                h=IP(tempW, W(:,iCol));
-                tempW=tempW-h*W(:,iCol);
-             end
-        end
-        h = sqrt(IP(tempV,tempV));
-        V(:,jCol)=tempV/h;
-        if hermite
-            h = sqrt(IP(tempW,tempW));
-            W(:,jCol)=tempW/h;
-        end
-    end
+%% Reorthogonalization
+%{   
+   Even modified Gram-Schmidt is not able to yield an orthonormal basis
+   if the dimensions are high. Therefore, a reorthogonalization might be
+   needed. On can choose to run modified GS again. From a theoretical 
+   standpoint, this does not change the basis. However,
+   numerically it is necessary to keep the numerics well behaved if the 
+   reduced order is large
+   The QR algorithm is much faster, however it does change the basis
+%}
+if reorth
+   switch reorth
+       case 'gs' %reorthogonalized GS
+            for jCol = 2:q
+                tempV = V(:,jCol);
+                if hermite, tempW = W(:,jCol);end
+                for iCol = 1:jCol-1
+                     h=IP(tempV, V(:,iCol));
+                     tempV=tempV-h*V(:,iCol);
+                     if hermite
+                        h=IP(tempW, W(:,iCol));
+                        tempW=tempW-h*W(:,iCol);
+                     end
+                end
+                h = sqrt(IP(tempV,tempV));
+                V(:,jCol)=tempV/h;
+                if hermite
+                    h = sqrt(IP(tempW,tempW));
+                    W(:,jCol)=tempW/h;
+                end
+            end
+       case 'orth'
+           % not recommended, since qr is faster
+           V = orth(V); if hermite, W = qr(W); end
+       case 'qr' 
+           V = qr(V,0); if hermite, W = qr(W,0); end
+       otherwise
+           error('The orthogonalization chosen is incorrect or not implemented')
+   end
 end
 
