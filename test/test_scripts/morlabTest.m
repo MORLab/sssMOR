@@ -124,7 +124,7 @@ clear, clc
 
 load build
 sys = sss(A,B,C);
-s0 = rand(1,40);
+s0 = 100*rand(1,40);
 Opts = struct('maxiter',100,'epsilon',1e-3,'stopCrit','combAll','verb',1);
 [sysr, V, W, s0, s0_traj] = IRKA(sys, s0, Opts);
 analyze_MOR(sys,sysr);

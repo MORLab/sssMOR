@@ -163,7 +163,7 @@ for jCol=1:length(s0)
             tempW2(ot,:) = Ut\(Lt\(St(:,pt)\tempW));
             %--
             tempW = (S(:,p)).'\(L.'\(U.'\(tempW(o,:)))); 
-            eLSE(jCol) = norm(tempW2-tempW);
+            eLSE(jCol) = norm(tempW2-tempW)/norm(W2);
         end %U'L'S(:,p) x = c'(o,:) 
     end 
 
@@ -202,7 +202,7 @@ for jCol=1:length(s0)
         Bt(jCol) = Bt(jCol)/h;
         %--
         h = sqrt(IP(tempW2,tempW2)); W2(:,jCol)=tempW2/h; 
-        eGS(jCol) = norm(W-W2);
+        eGS(jCol) = norm(W-W2)/norm(W2);
     end
    
 end
