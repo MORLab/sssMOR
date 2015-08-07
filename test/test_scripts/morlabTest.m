@@ -119,7 +119,8 @@ fprintf('--- output Krylov ---');
     xNew = (S(:,p)).'\(L.'\(U.'\(temp(o,:))));
     eNew = norm(xCorr-xNew)
     
-%%  Test IRKA
+%%  Test IRKA 
+%   [Ale]
 clear, clc
 
 load build
