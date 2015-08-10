@@ -86,7 +86,19 @@ end
 
 q=length(s0); % order of the reduced model
 reorth = 'gs'; %0, 'gs','qr'
-% lseSol = '\'; %'lu', '\'
+% lseSol = 'lu'; %'lu', '\'
+
+
+% % default execution options
+% Def.reorth = 'gs'; %Orthogonalization algorithm (0, 'gs','qr')
+% Def.lseSol = 'lu'; %Solution of LSE ('lu', '\')
+% 
+% % create the options structure
+% if ~exist('Opts','var') || isempty(Opts)
+%     Opts = Def;
+% else
+%     Opts = parseOpts(Opts,Def);
+% end
 
 
 %%  Compute the Krylov subspaces
@@ -98,20 +110,16 @@ if ~isempty(k)
     s0 = [s0 s0c(1:2:end)];
 end
 
-%---
-eLSE = zeros(1,length(s0));
-eGS  = zeros(1,length(s0));
-
 % preallocate memory
 V=zeros(length(b),q);
 Ct=eye(1,q); %**
-if hermite, W = zeros(length(b),q); Bt = eye(1,q)'; W2 = zeros(size(W));end
+if hermite, W = zeros(length(b),q); Bt = eye(1,q)';end
 
 for jCol=1:length(s0)
     % new basis vector
     tempV=b; newlu=1; 
     Ct(jCol)=1; %**
-    if hermite, tempW = c'; Bt(jCol) = 1; tempW2 = c'; end ;
+    if hermite, tempW = c'; Bt(jCol) = 1; end ;
     if jCol>1
         if s0(jCol)==s0(jCol-1)
             tempV=V(:,jCol-1);
@@ -156,25 +164,14 @@ for jCol=1:length(s0)
         end
         % Solve the linear system of equations
         tempV(o,:) = U\(L\(S(:,p)\tempV)); %LU x(o,:) = S(:,p)\b 
-%         if hermite, tempW = (S(:,p)).'\(L.'\(U.'\(tempW(o,:)))); end %U'L'S(:,p) x = c'(o,:) 
-        if hermite,
-            %--
-            [Lt,Ut,pt,ot,St]=lu(sparse((A.'-s0(jCol)*E.')),'vector');
-            tempW2(ot,:) = Ut\(Lt\(St(:,pt)\tempW));
-            %--
-            tempW = (S(:,p)).'\(L.'\(U.'\(tempW(o,:)))); 
-            eLSE(jCol) = norm(tempW2-tempW)/norm(W2);
-        end %U'L'S(:,p) x = c'(o,:) 
+        if hermite, tempW = (S(:,p)).'\(L.'\(U.'\(tempW(o,:)))); end %U'L'S(:,p) x = c'(o,:) 
     end 
 
     % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
     if ~isreal(s0(jCol))
         V(:,jCol+length(s0c)/2)=imag(tempV); 
         tempV=real(tempV);
-        if hermite, W(:,jCol+length(s0c)/2)=imag(tempW);tempW=real(tempW);
-            %--
-            W2(:,jCol+length(s0c)/2)=imag(tempW2);tempW2=real(tempW2);
-        end
+        if hermite, W(:,jCol+length(s0c)/2)=imag(tempW);tempW=real(tempW); end
     end
 
     % orthogonalize vectors
@@ -186,8 +183,6 @@ for jCol=1:length(s0)
         h=IP(tempW,W(:,iCol));
         tempW=tempW-W(:,iCol)*h;
         Bt(jCol)=Bt(jCol)-h*Bt(iCol);
-        %--
-        h=IP(tempW2,W2(:,iCol));tempW2=tempW2-W2(:,iCol)*h;
       end
           
     end
@@ -200,17 +195,8 @@ for jCol=1:length(s0)
         h = sqrt(IP(tempW,tempW));
         W(:,jCol)=tempW/h;
         Bt(jCol) = Bt(jCol)/h;
-        %--
-        h = sqrt(IP(tempW2,tempW2)); W2(:,jCol)=tempW2/h; 
-        eGS(jCol) = norm(W-W2)/norm(W2);
     end
    
-end
-if hermite, 
-    figure; semilogy(eLSE,'-b');hold on, semilogy(eGS,'-r'), 
-    title('Error by using same LU decomposition');
-    ylabel('2 norm of error');xlabel('arnoldi iteration');
-    legend('solution of the LSE','projection matrix after GS','location','NorthWest');
 end
 
 %orthogonalize columns from imaginary components
@@ -268,9 +254,6 @@ if reorth
                     W(:,jCol)=tempW/h;
                 end
             end
-       case 'orth'
-           % not recommended, since qr is faster
-           V = orth(V); if hermite, W = qr(W); end
        case 'qr' 
            V = qr(V,0); if hermite, W = qr(W,0); end
        otherwise
