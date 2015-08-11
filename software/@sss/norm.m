@@ -1,19 +1,35 @@
 function [nrm, varargout] = norm(sys, varargin)
-% Computes the p-norm of an LTI system
+
+% NORM - Computes the p-norm of an sss LTI system
 % ------------------------------------------------------------------
-% [nrm, H_inf_peakfreq] = norm(sys, p)
+% [nrm, H_inf_peakfreq] = NORM(sys, p)
 % Inputs:       * sys: an sss-object containing the LTI system
 %    [optional] * p: 2 for H_2-norm or inf for H_inf-norm
 % Outputs:      * nrm: value of norm
 %    [H_inf]    * H_inf_peakfreq: peak frequency of magnitude
 % ------------------------------------------------------------------
-% This file is part of the MORLAB_GUI, a Model Order Reduction and
-% System Analysis Toolbox developed at the
-% Institute of Automatic Control, Technische Universitaet Muenchen
+% USAGE:  This function computes the p-norm of an LTI system given
+% as a sparse state-space (sss) object sys. The value of p can be 
+% passed as a second optional argument to the function and is set to
+% 2 otherwise.
+%
+% See also NORM, SSS, LYAPCHOL
+%
+% ------------------------------------------------------------------
+% REFERENCES:
+% [1] Antoulas (2005), Approximation of large-scale Dnymical Systems
+% ------------------------------------------------------------------
+% This file is part of sssMOR, a Sparse State Space, Model Order
+% Reduction and System Analysis Toolbox developed at the Institute 
+% of Automatic Control, Technische Universitaet Muenchen.
 % For updates and further information please visit www.rt.mw.tum.de
+% For any suggestions, submission and/or bug reports, mail us at
+%                      -> sssMOR@tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Heiko Panzer (heiko@mytum.de), Sylvia Cremer, Rudy Eid
-% Last Change:  03 Feb 2011
+%               Alessandro Castagnotto
+% Last Change:  11 Aug 2015
+% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
 p=2;    % default: H_2
@@ -100,9 +116,15 @@ elseif p==2
                             sys.ConGramChol = lyapchol(sys.A,sys.B); % P = R'*R
                             nrm=norm(sys.ConGramChol*sys.C','fro');
                         catch ex
-                            warning(ex.message, 'Error solving Lyapunov equation. Trying without Cholesky factorization...')
-                            sys.ConGram = lyap(sys.A, sys.B*sys.B');                
-                            nrm=sqrt(trace(sys.C*sys.ConGram*sys.C'));
+                            if strcmp(ex.identifier,'Control:foundation:LyapChol4');
+                                %Unstable system. Set the norm to infinity
+                                warning('System appears to be unstable. The norm will be set to Inf.')
+                                nrm = Inf;
+                            else
+                                warning(ex.message, 'Error solving Lyapunov equation. Trying without Cholesky factorization...')
+                                sys.ConGram = lyap(sys.A, sys.B*sys.B');                
+                                nrm=sqrt(trace(sys.C*sys.ConGram*sys.C'));
+                            end
                         end
                         
                     end
