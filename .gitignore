@@ -93,4 +93,4 @@ Temporary Items
 _*.pdf
 
 # Complete directories
-GUI/
+#GUI/
