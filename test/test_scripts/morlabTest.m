@@ -1,14 +1,13 @@
 %% Define version/functions to test
 
-dirname = spritf(...
+% dirname = spritf(...
 
 % go to target directory
-cd()
+% cd()
 
 %% Test Bode
 %1) bode plot
-load(build)
-sys = sss(A,B,C,D,E)
+sys = loadSss('build');
 
 bode(sys)
 
@@ -22,9 +21,9 @@ sys = sss(A,B,C);
 % s0 = rand(1,20);
 s0 = rand(1,10) + 1i*rand(1,10);
 s0 = [s0, conj(s0)];
-tic,[sysr1i,V1i,W1i]    = RK(sys,s0);t1i = toc;
-tic,[sysr1o,V1o,W1o]    = RK(sys,[],s0); t1o = toc;
-tic,[sysr2,V2,W2]       = RK(sys,s0,s0); t2 = toc;
+tic,[sysr1i,V1i,W1i]    = rk(sys,s0);t1i = toc;
+tic,[sysr1o,V1o,W1o]    = rk(sys,[],s0); t1o = toc;
+tic,[sysr2,V2,W2]       = rk(sys,s0,s0); t2 = toc;
 
 norm(V1i-V2)
 norm(W1o-W2)
@@ -127,7 +126,7 @@ load build
 sys = sss(A,B,C);
 s0 = 100*rand(1,40);
 Opts = struct('maxiter',100,'epsilon',1e-3,'stopCrit','combAll','verb',1);
-[sysr, V, W, s0, s0_traj] = IRKA(sys, s0, Opts);
+[sysr, V, W, s0, s0_traj] = irka(sys, s0, Opts);
 analyze_MOR(sys,sysr);
 %% Test CURE
 close all, clear, clc
