@@ -1,4 +1,4 @@
-function sysr = CURE(sys,Opts)
+function sysr = cure(sys,Opts)
 %CURE - CUmulative REduction framework
 % ------------------------------------------------------------------
 % sysr = CURE(sys, opts)
@@ -132,9 +132,9 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
             % V-based decomposition, if A*V - E*V*S - B*Crt = 0
             switch Opts.CURE.red
                 case 'SPARK'               
-                    [V,S_V,Crt] = SPARK(sys.a,sys.b,sys.c,sys.e,s0,Opts); 
+                    [V,S_V,Crt] = spark(sys.a,sys.b,sys.c,sys.e,s0,Opts); 
                     
-                    [Ar,Br,Cr,Er] = PORK_V(V,S_V,Crt,C_);                   
+                    [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C_);                   
                 case 'IRKA'
                     [sysr_temp,V,W] = IRKA(sys,s0);
                     
@@ -145,10 +145,10 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
                     
                     Crt = [eye(m), zeros(m)]; 
                 case 'RK+PORK'
-                    [sysRedRK, V, ~, ~, Crt] = RK(sys,s0); 
+                    [sysRedRK, V, ~, ~, Crt] = rk(sys,s0); 
                     S_V = sysRedRK.E\(sysRedRK.A-sysRedRK.B*Crt);
                     
-                    [Ar,Br,Cr,Er] = PORK_V(V,S_V,Crt,C_);
+                    [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C_);
                     
                     %   Adapt Cr for SE DAEs
                     Cr = Cr - DrImp*Crt;
@@ -165,16 +165,16 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
         % W-based decomposition, if A'*W - E'*W*SW' - C'*Brt' = 0
             switch Opts.CURE.red
                 case 'SPARK'               
-                    [W,S_W,Brt] = SPARK(sys.a',sys.c',sys.b',sys.e',s0,Opts);
+                    [W,S_W,Brt] = spark(sys.a',sys.c',sys.b',sys.e',s0,Opts);
                     Brt = Brt';
                     S_W = S_W';
                     
-                    [Ar,Br,Cr,Er] = PORK_W(W,S_W,Brt,B_);
+                    [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B_);
                 case 'RK+PORK'
-                    [sysRedRK, ~, W, ~, ~, ~, Brt] = RK(sys,[],s0);
+                    [sysRedRK, ~, W, ~, ~, ~, Brt] = rk(sys,[],s0);
                     S_W = sysRedRK.E'\(sysRedRK.A'-Brt*sysRedRK.C);
                     
-                    [Ar,Br,Cr,Er] = PORK_W(W,S_W,Brt,B_);  
+                    [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B_);  
                     
                     %   Adapt Br for SE-DAEs
                     Br = Br - Brt*DrImp;

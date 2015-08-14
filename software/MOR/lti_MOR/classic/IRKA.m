@@ -73,7 +73,7 @@ while true
     k=k+1;
     
     sysr_old = sysr;
-    [sysr, V, W] = RK(sys, s0, s0);
+    [sysr, V, W] = rk(sys, s0, s0);
 
     s0_old=s0;
     s0 = -eig(sysr)';
