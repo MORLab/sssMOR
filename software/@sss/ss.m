@@ -14,7 +14,7 @@ function sys_ss = ss(sys_sss)
 % Last Change:  02 Feb 2011
 % ------------------------------------------------------------------
 
-if sys_sss.is_dae
+if sys_sss.isdescriptor
     sys_ss=dss(full(sys_sss.A),full(sys_sss.B),full(sys_sss.C),full(sys_sss.D),full(sys_sss.E));
 else
     sys_ss=ss(full(sys_sss.A),full(sys_sss.B),full(sys_sss.C),full(sys_sss.D));
