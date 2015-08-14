@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, s0_traj] = IRKA(sys, s0, Opts) 
+function [sysr, V, W, s0, s0_traj] = irka(sys, s0, Opts) 
 % IRKA - Iterative Rational Krylov Algorithm
 % ------------------------------------------------------------------
 % [sysr, V, W, s0, s0_traj] = IRKA(sys, s0, Opts)
