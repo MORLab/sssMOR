@@ -1,7 +1,7 @@
 function [mu, L_S, P_S] = NumericalAbscissa(A,E)
 % Compute generalized numerical abscissa
 %   Input:  A, E:     HFM matrices
-%   Output: mu:       generalized spectral abscissa mu_E(A)
+%   Output: mu:       generalized numerical abscissa mu_E(A)
 %           L_S, P_S: Cholesky decomposition of S=-A-A'
 % $\MatlabCopyright$
 

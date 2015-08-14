@@ -1,5 +1,4 @@
 function h = analyze_MOR(sys,sysr,h)
-
 %   This function generates several plots that compare the original, high
 %   fidelity model "sys" to the reduced order model sysr
 %
@@ -40,6 +39,8 @@ if newplot
     [mag, phase, omega] = get_bode(sys);
     [magr, phaser, omegar]  = get_bode(sysr);
     
+    
+    mag = mag2db(mag); magr = mag2db(magr);
     ax(1) = subplot(2,3,1);
             % amplitude
             h.bmsys = plot(omega,mag,'Color',TUM_Blau); hold on
@@ -69,7 +70,7 @@ if newplot
 
     %%  Bode diagram of error system
     syse = error_system(sys,sysr);
-    [mag, phase, omega]     = bode(ss(syse));
+    [mag, phase, omega] = bode(ss(syse));
    
     if iscell(mag)
         %replace code her
@@ -78,16 +79,14 @@ if newplot
         phase = {squeeze(phase)};
     end
         
-    
     ax(3) = subplot(2,3,2);
             % amplitude
             h.bmsyse = plot(omega,mag{1},'Color',TUM_Rot);
 
-            set(gca, 'XScale', 'log');
+            set(gca, 'XScale', 'log','YScale','log');
             set(gca, 'XLim', [min(omega) max(omega)]);
             box on
             mx=max(mag{1}); mn=min(mag{1});
-            set(gca, 'YLim', [mn-(mx-mn)/20, mx+(mx-mn)/20]);
             title('Error system');
             ylabel('Magnitude [dB]') 
 
@@ -181,7 +180,6 @@ if isstruct(sys) && isfield(sys,'bode')
         mag = mag{1};
         phase = phase{1};
 end
-
 function p = get_poles(sys)
 
 %   gets the relevant information if sys is a structure containing the
@@ -196,9 +194,6 @@ if isstruct(sys) && isfield(sys,'eigs')
 else
     p = eig(sys);
 end
-
-
-
 function syse = error_system(sys,sysr)
 
 if isstruct(sys)
