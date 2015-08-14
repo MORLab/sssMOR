@@ -45,35 +45,45 @@ cd(directory);
 
 %   Get all .mat files
 benchmarks = dir('*.mat');
-fname = 'benchmarkReport.txt';
+fname = '_benchmarkReport.txt';
 fid = fopen(fname,'w'); 
 % fid = 1; %for debugging
 fprintf(fid,'Benchmark report started %s\n',datestr(now));
-fprintf(fid,'--------------------------------------------------\n');
+fprintf(fid,'--------------------------------------------------\n\n');
 
 %   Check all benchmarks and write report
+
 for iBench = 1:length(benchmarks)
     fprintf(fid,'Loading "%s"...\n',benchmarks(iBench).name);
-    sys = loadSss(benchmarks(iBench).name);
-    info = disp(sys); 
-    fprintf(fid,'%s\n',info);
-    
-    % check if DAE
-    condE = condest(sys.e);
-    fprintf(fid,'condE: \t\t %e\n',condE);
-    
-    % check stability and strict dissipativity
-    stab = isstable(sys);
-    fprintf(fid,'stable: \t%i\n',stab);
     try
-        [sd, mu] = issd(sys);
-        fprintf(fid,'issd: \t\t%i \t\t mu = %e\n',sd,mu);
-    catch err
-        warning('issd failed with message: %s.',err.message);
-        fprintf(fid,'issd failed with message: %s.',err.message);
-    end
-    fprintf(fid,'\n\n');
-end
+        sys = loadSss(benchmarks(iBench).name);
+        info = disp(sys); 
+        fprintf(fid,'%s\n',info);
 
-%   Go back to original directory
-cd(currDir)
+        % check if DAE
+        condE = condest(sys.e);
+        fprintf(fid,'condE: \t %e\n',condE);
+
+        % check stability and strict dissipativity
+        try %stability
+            stab = isstable(sys);
+            fprintf(fid,'stable: \t%i\n',stab);
+        catch err
+            warning('isstable failed with message: %s.',err.message);
+            fprintf(fid,'isstable failed with message: %s.',err.message);
+        end
+        try %strict dissipativity
+            [sd, mu] = issd(sys);
+            fprintf(fid,'issd: \t%i \t\t mu = %e\n',sd,mu);
+        catch err
+            warning('issd failed with message: %s.',err.message);
+            fprintf(fid,'issd failed with message: %s.',err.message);
+        end
+        fprintf(fid,'\n\n');
+    catch err
+        fprintf(fid,strrep(getReport(err,'basic','hyperlinks','off'),sprintf('\n'),'-'));
+        fprintf(fid,'\n\n');
+    end
+end
+fclose(fid); cd(currDir)
+
