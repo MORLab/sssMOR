@@ -45,8 +45,8 @@ function sysr = cure(sys,Opts)
 %% Parse input and load default parameters
 
     % default values
-    Def.warn = 0; %show warnings?
-    Def.verbose = 0; %show progress text?
+    Def.warn = 0;%show warnings?
+    Def.cure.verbose = 0; %show progress text?
     Def.w = []; %frequencies for bode plot
     
     Def.zeroThres = 1e-4; % define the threshold to replace "0" by
@@ -66,8 +66,7 @@ function sysr = cure(sys,Opts)
         Opts = Def;
     else
         Opts = parseOpts(Opts,Def);
-    end
-              
+    end              
 %%  Plot for testing
 if Opts.cure.test
     fhOriginalSystem = nicefigure('CURE - Reduction of the original model');
@@ -115,11 +114,12 @@ end
 Dr_tot = sys.d + DrImp;
 
 %%   Start cumulative reduction
-if Opts.verbose, fprintf('\nBeginning CURE iteration...\n'); end
+if Opts.CURE.verbose, fprintf('\nBeginning CURE iteration...\n'); end
 
 iCure = 0; %iteration counter
 while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
     iCure = iCure + 1;
+    if Opts.CURE.verbose, fprintf('\tCURE iteration %03i\n',iCure');end
     %   Redefine the G_ system at each iteration
     sys = sss(sys.a,B_,C_,0,sys.e);
     
@@ -221,7 +221,7 @@ end
 sysr.D = Dr_tot;
 
 %%  Finishing execution
-if Opts.verbose,fprintf('Stopping criterion satisfied. Exiting cure...\n\n');end
+if Opts.cure.verbose,fprintf('Stopping criterion satisfied. Exiting cure...\n\n');end
 if Opts.cure.test
         sysr_bode = sysr;
         figure(fhOriginalSystem);
@@ -248,8 +248,11 @@ switch opts.cure.stop
 end
 function [s0,Opts] = initializeShifts(sys,Opts,iCure)
 
-         %   initialization of the shifts
- if ~ischar(Opts.cure.init) %numeric values were passed
+ %%   parse
+ if Opts.cure.init ==0, Opts.cure.init = 'zero'; end
+ 
+ %%   initialization of the shifts
+ if ~ischar(Opts.cure.init) %initial shifts were defined
      if length(Opts.cure.init) == Opts.cure.nk %correct amount for iteration
          s0 = Opts.cure.init;
      elseif length(Opts.cure.init)> Opts.cure.nk
@@ -356,7 +359,6 @@ function Bnew = adaptDaeForSpark(sys,dynamicOrder,A22InvB22)
 %         C11 = sys.c(1:opts.CURE.SE_DAE);
 %         C22 = sys.c(opts.CURE.SE_DAE+1:end);
 %         sysCURE.C = [ C11- C22*(A22\A21),zeros(size(C22))];
-
 function writeGif(gifMode)
     filename = 'CURE.gif';
     dt = 1.5;
@@ -370,8 +372,7 @@ function writeGif(gifMode)
             imwrite(imind,cm,filename,'gif','WriteMode','append','DelayTime',dt);
         otherwise
             error('Invalid gifMode')
-    end
-    
+    end   
 function isEven = isEven(a)
     isEven = round(a/2)== a/2;
     

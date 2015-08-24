@@ -43,6 +43,7 @@ function [V,S_V,Crt,k] = spark(A,B,C,E,s0,Opts)
     % default values
     Def.spark.type = 'model'; %SPARK type, 'model' or 'standard'
     Def.spark.test = 0; %execute analysis code
+    Def.spark.verbose = 0; %show text?
     Def.spark.mfe = 5e3;
     Def.spark.mi = 1.5e2; %5e3
     Def.spark.xTol = 1e-20;
@@ -148,15 +149,15 @@ warning('off','MATLAB:nearlySingularMatrix')
         
         if Opts.MESPARK.ritz
             % Model-function-based initialization
-            if Opts.verbose,fprintf('User initialization: p0 =[%e,%e]',p0(1),p0(2));end
+            if Opts.SPARK.verbose,fprintf('User initialization: p0 =[%e,%e]',p0(1),p0(2));end
             p0 = ritz_initial;  
         end
         
         count = 0; %counter for perturbation if not improving
-        if Opts.verbose, fprintf('Starting MESPARK...\n'),end
+        if Opts.SPARK.verbose, fprintf('Starting MESPARK...\n'),end
         while(1)
             k = k + 1;
-            if Opts.verbose,fprintf('\tIteration %i: q=%i\n',k,size(V,2)),end
+            if Opts.SPARK.verbose,fprintf('\tIteration %i: q=%i\n',k,size(V,2)),end
             
             p_opt = ESPARK(p0);
     
@@ -176,29 +177,29 @@ warning('off','MATLAB:nearlySingularMatrix')
                 break;                      % convergence in J or in p  => stop
             elseif J<J_old
                  J_old = J;  p0 = p_opt;	% improvement: continue with p_opt
-                 if Opts.verbose
+                 if Opts.SPARK.verbose
                      fprintf('\t\t updating the model function...\n')
                      fprintf('\t\t restarting MESPARK where it converged...\n')
                  end
                  count = 0; %reset stagnation counter
             else %no improvement
-                if Opts.verbose,fprintf('\t\t no improvement!\n'),end
+                if Opts.SPARK.verbose,fprintf('\t\t no improvement!\n'),end
                 count = count+1; %add one to the stagnation counter
                 
                 % maximum iterations reached
                 if k >= Opts.MESPARK.maxIter 
-                    if Opts.verbose
+                    if Opts.SPARK.verbose
                         warning('Maximum number of iterations in MESPARK reached! Aborting...')
                     end
                     break;
                 end
                 
                 % going on with MESPARK
-                if Opts.verbose,fprintf('\t\t updating the model function...\n'),end
+                if Opts.SPARK.verbose,fprintf('\t\t updating the model function...\n'),end
                 if count <Opts.MESPARK.pertIter
-                    if Opts.verbose,fprintf('\t\t restarting MESPARK where it began...\n'),end
+                    if Opts.SPARK.verbose,fprintf('\t\t restarting MESPARK where it began...\n'),end
                 else
-                    if Opts.verbose,warning('long-term stagnation: perturbing p0...'),end
+                    if Opts.SPARK.verbose,warning('long-term stagnation: perturbing p0...'),end
                     p0 = perturb(p0,count);
                 end
             end
