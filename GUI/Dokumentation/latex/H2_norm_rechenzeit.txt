@@ -1,0 +1,130 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%   Matalab Code  %%%%%%%%%%%%%%%
+
+t=zeros(6,3);
+%cd
+disp('CD')
+tic;
+[x,~]=h2_norm(cd_mit)
+t(1,1)=toc;
+tic;
+[x,~]=h2_norm(cd)
+t(1,2)=toc;
+tic;
+norm(ss(cd))
+t(1,3)=toc;
+%beam
+disp('beam')
+tic;
+[x,~]=h2_norm(beam_mit)
+t(2,1)=toc;
+tic;
+[x,~]=h2_norm(beam)
+t(2,2)=toc;
+tic;
+norm(ss(beam))
+t(2,3)=toc;
+%beam_MDK
+disp('beam_MDK')
+tic;
+[x,~]=h2_norm(beam_MDK_mit)
+t(3,1)=toc;
+tic;
+[x,~]=h2_norm(beam_MDK)
+t(3,2)=toc;
+tic;
+norm(ss(beam_MDK))
+t(3,3)=toc;
+%build
+disp('build')
+tic;
+[x,~]=h2_norm(build_mit)
+t(4,1)=toc;
+tic;
+[x,~]=h2_norm(build)
+t(4,2)=toc;
+tic;
+norm(ss(build))
+t(4,3)=toc;
+% iss2
+disp('iss2')
+tic;
+[x,~]=h2_norm(iss2_mit)
+t(5,1)=toc;
+tic;
+[x,~]=h2_norm(iss2)
+t(5,2)=toc;
+tic;
+norm(ss(iss2))
+t(5,3)=toc;
+% tub2
+disp('tub2')
+tic;
+[x,~]=h2_norm(tub2_mit)
+t(6,1)=toc;
+tic;
+[x,~]=h2_norm(tub2)
+t(6,2)=toc;
+tic;
+norm(ss(tub2))
+t(6,3)=toc;
+
+%%%
+disp('time: reiduen/poles  lyap  matlab')
+t
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%  Ausgabe  %%%%%%%%%%%%%%%%%%%%%%%
+
+
+CD
+x =
+  1.1021e+006
+x =
+  1.1021e+006
+ans =
+  1.1021e+006
+beam
+x =
+  326.6783
+x =
+  326.6783
+ans =
+  326.6783
+beam_MDK
+x =
+    1.0392
+x =
+    1.0846
+ans =
+    1.0391
+build
+x =
+    0.0045
+x =
+    0.0045
+ans =
+    0.0045
+iss2
+x =
+    0.0099
+x =
+    0.0101
+ans =
+    0.0101
+tub2
+x =
+    8.2252
+x =
+    8.2252
+ans =
+    8.2252
+time: reiduen/poles  lyap  matlab
+t =
+    0.0313    0.0179    0.0712
+    0.0300    0.4664    1.3519
+    0.7493  125.6520   40.1815
+    0.0013    0.0043    0.0163
+    0.1347    0.2258    0.5902
+    0.0097    0.0074    0.0240

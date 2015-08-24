@@ -1,0 +1,22 @@
+Um die GUI als executable zu generieren kann das Deployment Tool von Matlab verwendet werden.
+
+Dieses wird über die Eingabe von "deploytool" im commandwindow aufgerufen.
+
+Mainfile ist MORLAB_GUI.m
+
+bei Shared Resources and Helper Files müssen alle verwendeten .fig und .jpg Dateien eingefügt werden:
+About.jpg
+entermatrixname.fig
+load_ABC_mat.fig
+Logo_GUI_3.jpg
+MORLAB_GUI.fig
+splash_bild.jpg
+stqd.fig
+
+
+Bei Package sollte noch der MCRInstaller hinzugefügt werden.
+
+Dann kann über "Build" (oben rechts, neben dem Projektnamen) das Projekt erstellt werden.
+
+Damit die .exe läuft muss der Benutzer den MCRInstaller auf seinem Rechner installieren.
+Matlab empfiehlt nur den Installer zu verwenden, der zu der Matlab Version gehört, mit der das Deployment Tool gearbeitet hat.
