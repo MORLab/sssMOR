@@ -1,5 +1,5 @@
 function headerTemplate
-%HEADERTEMPLATE  MORLab toolbox header template
+% HEADERTEMPLATE - sssMOR toolbox header template
 %
 % Syntax:
 %   HEADERTEMPLATE
@@ -29,6 +29,6 @@ function headerTemplate
 %                     -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
-% Last Change:  13 Aug 2015
+% Last Change:  24 Aug 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
