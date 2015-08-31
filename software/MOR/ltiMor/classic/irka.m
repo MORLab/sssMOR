@@ -136,7 +136,7 @@ function [stop,stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts)
 switch Opts.stopCrit
     case 's0' %shift convergence
         stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
-        
+        stop = stopCrit <= Opts.epsilon;
     case 'sysr' %reduced model convergence
         stopCrit = inf; %initialize in case the reduced model is unstable
         if all(real(eig(sysr))<0) && all(real(eig(sysr_old))<0)
