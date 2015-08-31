@@ -62,6 +62,23 @@ Segment.length, Options.MAX_ITERATIONS, GeneralOptions.fieldName
 %   Functions that return only one value are named by that value
 mean, moment, maxError
 
+%%  2) Definition of execution options
+%   Whenever a function can be executed with different parameters or even
+%   in different modes, the execution options should be passed at the end
+%   of the inputs such as
+      sysr = cure(sys,..,Opts)
+%   Opts is a structure containing some of the parameters that the function
+%   accepts.
+%   Default paramters are defined at the beginning of the function in which
+%   they are used with a default structure
+      Def.<fieldname> = ...
+%   Then, the input should be parsed and the current options structure
+%   updated with the function parseOpts:
+      if ~exist('Opts','var') || isempty(Opts)
+            Opts = Def;
+      else
+            Opts = parseOpts(Opts,Def);
+      end       
 
 %%  #) Testing
 
