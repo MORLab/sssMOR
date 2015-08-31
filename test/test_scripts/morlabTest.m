@@ -10,7 +10,6 @@
 sys = loadSss('build');
 
 bode(sys)
-
 %% Test RK and Arnoldi
 clear, 
 clc
@@ -33,7 +32,6 @@ figure;bode(sys,'k');hold on, bode(sysr2,'r-'); bode(sysr3,'g--');
 
 norm(cplxpair(eig(sysr2))-cplxpair(eig(sysr3)))
 norm(sysr3-sysr2)/norm(sysr3)
-
 %%  Test Arnoldi (invsolve)
 clear, clc
 n = 1e2; density = 0.1;
@@ -116,8 +114,7 @@ fprintf('--- output Krylov ---');
     %c) New: a mixture of both a and b
     temp = E'*xNew;
     xNew = (S(:,p)).'\(L.'\(U.'\(temp(o,:))));
-    eNew = norm(xCorr-xNew)
-    
+    eNew = norm(xCorr-xNew)  
 %%  Test IRKA 
 %   [Ale]
 clear, clc
@@ -127,8 +124,8 @@ sys = sss(A,B,C);
 s0 = 100*rand(1,40);
 Opts = struct('maxiter',100,'epsilon',1e-3,'stopCrit','combAll','verb',1);
 [sysr, V, W, s0, s0_traj] = irka(sys, s0, Opts);
-analyze_MOR(sys,sysr);
-%% Test CURE
+analyzeMor(sys,sysr);
+%%  Test CURE
 close all, clear, clc
 
 % NOTE: obsolete --v
@@ -189,3 +186,50 @@ end
 %     pause
 % end
 
+%%  Test all MOR functions
+clc
+fprintf('------------------------------------\n');
+fprintf('Test all MOR functions:\n');
+fprintf('------------------------------------\n');
+
+benchmarkName = {'build','beam'}; %to be expanded
+morFunction = {'rk','tbr','modalMor','irka','cure'};
+
+for iMorFun = 1:length(morFunction)
+    % define a handle for the reduction
+    switch morFunction{iMorFun}
+        case 'rk'
+            q = 10;
+            s0 = zeros(1,q);
+            redFun = @(sys) rk(sys,s0,s0);
+        case 'tbr'
+            q = 10;
+            redFun = @(sys) tbr(sys,q);
+        case 'modalMor'
+            q = 10;
+            redFun = @(sys) modalMor(sys, q);
+        case 'irka'
+            q = 10;
+            redFun = @(sys) irka(sys,zeros(1,q));
+        case 'cure'
+            redFun = @(sys) cure(sys);
+        otherwise
+            error('This reduction method is not defined for testing');
+    end
+    for jBenchmark = 1:length(benchmarkName)
+        fprintf('Testing reduction of %s with %s...\n',...
+            benchmarkName{jBenchmark}, morFunction{iMorFun});
+        
+        %TODO: if several reductions should be conducted for one reduction
+        %methods, pass a CELL ARRAY of functions handles and go through all
+        %of them!
+        
+        sys  = loadSss(benchmarkName{jBenchmark});
+        sysr = redFun(sys); 
+        analyzeMor(sys,sysr,struct('mode','red'));
+        pause(3), close
+    end
+end
+fprintf('------------------------------------\n');
+fprintf('Test all MOR functions finished!\n')
+fprintf('------------------------------------\n');
