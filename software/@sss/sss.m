@@ -24,7 +24,7 @@ classdef sss
         ConGram, ConGramChol
         ObsGram, ObsGramChol
 
-        is_dae=0
+        isdescriptor=0
         
         SimulationTime
         
@@ -86,7 +86,7 @@ classdef sss
                 end
                 if any(any(sparse(varargin{5})-speye(sys.n)))
                     sys.E = sparse(varargin{5});
-                    sys.is_dae = 1;
+                    sys.isdescriptor = 1;
                 else
                     sys.E = [];
                 end
@@ -157,9 +157,6 @@ classdef sss
         function varargout = disp(sys)
             % display system information
             str = 'Sparse State Space Model';
-            if sys.is_dae
-                str = [str ' (DAE)'];
-            end
             str = [str '.' char(10)];
             if sys.n==1
                 str = [str '1 state, '];
@@ -200,7 +197,7 @@ classdef sss
         
         function p = eig(sys)
             if isempty(sys.poles)
-                if sys.is_dae
+                if sys.isdescriptor
                     sys.poles = eig(full(sys.a), full(sys.e));
                 else
                     sys.poles = eig(full(sys.a));
@@ -214,7 +211,7 @@ classdef sss
                 sys.A = sys.E\sys.A;
                 sys.B = sys.E\sys.B;
                 sys.E = [];
-                sys.is_dae = 0;
+                sys.isdescriptor = 0;
             elseif varargin{1}==1
                 %***
             elseif varargin{1}==2

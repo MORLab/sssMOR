@@ -73,7 +73,7 @@ elseif p==2
             if isempty(sys.ConGram)
                 if isempty(sys.ObsGram)
                     % No, it is not. Solve Lyapunov equation.
-                    if sys.is_dae
+                    if sys.isdescriptor
                         %mit E^-1 durchmultipliziert
                     %     S = lyapchol(sys.A,sys.B,sys.E);
                     %     R = lyapchol(transpose(E\A),C');

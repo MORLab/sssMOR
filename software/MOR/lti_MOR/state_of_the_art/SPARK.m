@@ -1,4 +1,4 @@
-function [V,S_V,Crt,k] = SPARK(A,B,C,E,s0,Opts)
+function [V,S_V,Crt,k] = spark(A,B,C,E,s0,Opts)
 % SPARK - Stability Preserving Adaptive Rational Krylov
 % ------------------------------------------------------------------
 % [V,S_V,Crt,k] = SPARK(A,B,C,E,s0,opts)
@@ -41,28 +41,28 @@ function [V,S_V,Crt,k] = SPARK(A,B,C,E,s0,Opts)
 
 %% Parse input and load default parameters
     % default values
-    Def.SPARK.type = 'model'; %SPARK type, 'model' or 'standard'
-    Def.SPARK.test = 0; %execute analysis code
-    Def.SPARK.verbose = 0; %show text?
-    Def.SPARK.mfe = 5e3;
-    Def.SPARK.mi = 1.5e2; %5e3
-    Def.SPARK.xTol = 1e-20;
-    Def.SPARK.fTol = 1e-20;
-    Def.SPARK.modelTol = 1e-5;
-        Def.MESPARK.ritz = 1;
-        Def.MESPARK.pertIter = 5; % # iteration at which perturbation begins
-        Def.MESPARK.maxIter = 20; %maximum number of model function updates
+    Def.spark.type = 'model'; %SPARK type, 'model' or 'standard'
+    Def.spark.test = 0; %execute analysis code
+    Def.spark.verbose = 0; %show text?
+    Def.spark.mfe = 5e3;
+    Def.spark.mi = 1.5e2; %5e3
+    Def.spark.xTol = 1e-20;
+    Def.spark.fTol = 1e-20;
+    Def.spark.modelTol = 1e-5;
+        Def.mespark.ritz = 1;
+        Def.mespark.pertIter = 5; % # iteration at which perturbation begins
+        Def.mespark.maxIter = 20; %maximum number of model function updates
     
     % create the options structure
-    if ~isfield(Opts,'SPARK') || isempty(Opts.SPARK)
-        Opts.SPARK = Def.SPARK;
+    if ~isfield(Opts,'spark') || isempty(Opts.spark)
+        Opts.spark = Def.spark;
     else
-        Opts.SPARK = parseOpts(Opts.SPARK,Def.SPARK);
+        Opts.spark = parseOpts(Opts.spark,Def.spark);
     end  
-    if ~isfield(Opts,'MESPARK') || isempty(Opts.MESPARK)
-        Opts.MESPARK = Def.MESPARK;
+    if ~isfield(Opts,'mespark') || isempty(Opts.mespark)
+        Opts.mespark = Def.mespark;
     else
-        Opts.MESPARK = parseOpts(Opts.MESPARK,Def.MESPARK);
+        Opts.mespark = parseOpts(Opts.mespark,Def.mespark);
     end  
     
 %------------------------- PARSE INPUT ---------------------------
@@ -70,11 +70,11 @@ if size(B,2)>1 || size(C,1)>1, error('System must be SISO.'), end
 
 %   Definition of defauls options
 %   (ensures also compatibility to previous versions)
-if ~isfield(Opts.SPARK,'type') || isempty(Opts.SPARK.type)
-    Opts.SPARK = 'standard';
+if ~isfield(Opts.spark,'type') || isempty(Opts.spark.type)
+    Opts.spark = 'standard';
 end
-if ~isfield(Opts.MESPARK,'pertIter'), Opts.MESPARK.pertIter=18;end
-if ~isfield(Opts.MESPARK,'maxIter'), Opts.MESPARK.maxIter=35;end
+if ~isfield(Opts.mespark,'pertIter'), Opts.mespark.pertIter=18;end
+if ~isfield(Opts.mespark,'maxIter'), Opts.mespark.maxIter=35;end
 %let all functions have access to the figure window created in ESPARK
 global fh  
 %---------------------------- CODE -------------------------------
@@ -84,18 +84,18 @@ warning('off','MATLAB:nearlySingularMatrix')
     p0 = [(s0(1)+s0(2))/2, s0(1)*s0(2)];   
     t = tic; precond = eye(2); 
     
-    Opts.fmincon=optimset('TolFun',Opts.SPARK.fTol,'TolX',Opts.SPARK.xTol, ...
+    Opts.fmincon=optimset('TolFun',Opts.spark.fTol,'TolX',Opts.spark.xTol, ...
         'Display','none', 'Algorithm','trust-region-reflective', ...
-        'GradObj','on','Hessian','on','MaxFunEvals',Opts.SPARK.mfe,'MaxIter',...
-        Opts.SPARK.mi);
-    if Opts.SPARK.test
+        'GradObj','on','Hessian','on','MaxFunEvals',Opts.spark.mfe,'MaxIter',...
+        Opts.spark.mi);
+    if Opts.spark.test
         Opts.fmincon = optimset(Opts.fmincon,...
         'OutputFcn', @OuputFcn,...
         'PlotFcns',{@optimplotx, @optimplotfval, @optimplotfirstorderopt});
 %     opts.fmincon = optimset(opts.fmincon,'Diagnostics','on','Display','iter-detailed');
     end
     
-    switch Opts.SPARK.type
+    switch Opts.spark.type
         case 'standard'
             %definition of "mock model function" for consistency in CostFunction
             Am=A; Bm=B; Cm=C; Em=E;
@@ -103,14 +103,14 @@ warning('off','MATLAB:nearlySingularMatrix')
             p_opt = ESPARK(p0);
             k = [];
         case 'model'
-            [p_opt,k] = MESPARK(p0,s0);
+            [p_opt,k] = mespark(p0,s0);
     end
     
     % supply output variables
     v1  = Q1*(U1\(L1\(P1*B))); v12= Q2*(U2\(L2\(P2*B))); v2 = Q2*(U2\(L2\(P2*(E*v1))));
     V   = full(real([v1/2 + (v12/2+p_opt(1)*v2), v2*sqrt(p_opt(2))]));
     S_V = [2*p_opt(1), sqrt(p_opt(2)); -sqrt(p_opt(2)), 0]; Crt = [1 0];
-%     disp(['SPARK required ca. ' num2str(2*(k+1)) ' LUs ', ...
+%     disp(['spark required ca. ' num2str(2*(k+1)) ' LUs ', ...
 %         ' and converged in ' num2str(toc(t),'%.1f') 'sec.'])
   
     warning('on','MATLAB:nearlySingularMatrix')
@@ -120,7 +120,7 @@ warning('off','MATLAB:nearlySingularMatrix')
     % a) PRIMARY
     function p_opt = ESPARK(p0)
         
-        if Opts.SPARK.test, fh = plotCost(p0); end
+        if Opts.spark.test, fh = plotCost(p0); end
         [~,~,H] = CostFunction(p0); precond = diag(1./abs(diag(H).^0.25));
         
         % run trust region algorithm to find minimum of model function
@@ -130,7 +130,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         end
         p_opt = p_opt*precond; precond = eye(2);
 
-        if Opts.SPARK.test
+        if Opts.spark.test
             figure(fh);
             plot(p_opt(1),p_opt(2),'p','LineWidth',2,'MarkerSize',10,...
                 'MarkerFaceColor',TUM_Gruen,'MarkerEdgeColor','k');
@@ -140,24 +140,24 @@ warning('off','MATLAB:nearlySingularMatrix')
         % convert parameter to shifts and perform LU decompositions
         s_opt=p_opt(1)+[1,-1]*sqrt(p_opt(1)^2-p_opt(2)); computeLU(s_opt);
     end
-    function [p_opt,k] = MESPARK(p0,s0)
+    function [p_opt,k] = mespark(p0,s0)
         k = 0;
         % compute initial model function and cost function at p0
         computeLU(s0);  V = newColV([],3);  W = newColW([],3);
         Am=W'*A*V; Bm=W'*B; Cm=C*V; Em=W'*E*V;
         J_old = CostFunction(p0);
         
-        if Opts.MESPARK.ritz
+        if Opts.mespark.ritz
             % Model-function-based initialization
-            if Opts.SPARK.verbose,fprintf('User initialization: p0 =[%e,%e]',p0(1),p0(2));end
+            if Opts.spark.verbose,fprintf('User initialization: p0 =[%e,%e]',p0(1),p0(2));end
             p0 = ritz_initial;  
         end
         
         count = 0; %counter for perturbation if not improving
-        if Opts.SPARK.verbose, fprintf('Starting MESPARK...\n'),end
+        if Opts.spark.verbose, fprintf('Starting MESPARK...\n'),end
         while(1)
             k = k + 1;
-            if Opts.SPARK.verbose,fprintf('\tIteration %i: q=%i\n',k,size(V,2)),end
+            if Opts.spark.verbose,fprintf('\tIteration %i: q=%i\n',k,size(V,2)),end
             
             p_opt = ESPARK(p0);
     
@@ -171,35 +171,35 @@ warning('off','MATLAB:nearlySingularMatrix')
 %             disp(['  absolute J = ' num2str(J, '%1.12e')]);
 
             % decide how to proceed
-            if abs((J-J_old)/J) < Opts.SPARK.modelTol || ...
-                    norm((p0-p_opt)./p0) < Opts.SPARK.modelTol %|| size(Am,1)>=20
-                if Opts.SPARK.verbose,fprintf('Tolerance reached! Quitting MESPARK...\n'),end
+            if abs((J-J_old)/J) < Opts.spark.modelTol || ...
+                    norm((p0-p_opt)./p0) < Opts.spark.modelTol %|| size(Am,1)>=20
+                if Opts.spark.verbose,fprintf('Tolerance reached! Quitting MESPARK...\n'),end
                 break;                      % convergence in J or in p  => stop
             elseif J<J_old
                  J_old = J;  p0 = p_opt;	% improvement: continue with p_opt
-                 if Opts.SPARK.verbose
+                 if Opts.spark.verbose
                      fprintf('\t\t updating the model function...\n')
                      fprintf('\t\t restarting MESPARK where it converged...\n')
                  end
                  count = 0; %reset stagnation counter
             else %no improvement
-                if Opts.SPARK.verbose,fprintf('\t\t no improvement!\n'),end
+                if Opts.spark.verbose,fprintf('\t\t no improvement!\n'),end
                 count = count+1; %add one to the stagnation counter
                 
                 % maximum iterations reached
-                if k >= Opts.MESPARK.maxIter 
-                    if Opts.SPARK.verbose
+                if k >= Opts.mespark.maxIter 
+                    if Opts.spark.verbose
                         warning('Maximum number of iterations in MESPARK reached! Aborting...')
                     end
                     break;
                 end
                 
                 % going on with MESPARK
-                if Opts.SPARK.verbose,fprintf('\t\t updating the model function...\n'),end
-                if count <Opts.MESPARK.pertIter
-                    if Opts.SPARK.verbose,fprintf('\t\t restarting MESPARK where it began...\n'),end
+                if Opts.spark.verbose,fprintf('\t\t updating the model function...\n'),end
+                if count <Opts.mespark.pertIter
+                    if Opts.spark.verbose,fprintf('\t\t restarting MESPARK where it began...\n'),end
                 else
-                    if Opts.SPARK.verbose,warning('long-term stagnation: perturbing p0...'),end
+                    if Opts.spark.verbose,warning('long-term stagnation: perturbing p0...'),end
                     p0 = perturb(p0,count);
                 end
             end
@@ -215,7 +215,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         g = g * precond;  H = precond * H * precond;
     end
     function [J, g, H] = CostFunctionH2(A, B, C, E, p, r, l)
-    % Enhanced SPARK Cost Functional
+    % Enhanced spark Cost Functional
     %   Input:  A,B,C,E: HFM matrices; 
     %           p:       parameter vector [a,b]; 
     %           r,l:     left an right rational Krylov sequence;
@@ -308,7 +308,7 @@ warning('off','MATLAB:nearlySingularMatrix')
             l_ritz = -ones(2,1);
         end
         
-        if Opts.SPARK.test
+        if Opts.spark.test
             bla=nicefigure('Ritz Values for Initialization');plot(real(l),imag(l),'b*');hold on
             plot(real(l_ritz),imag(l_ritz),'ro');
             legend('Ritz Values','initialization')
@@ -318,25 +318,25 @@ warning('off','MATLAB:nearlySingularMatrix')
         % Take the mirror images to get positive real parts
         s0ritz = l_ritz-2*real(l_ritz);
         p0 = s2p(s0ritz); 
-        if Opts.SPARK.verbose,fprintf('Initialization according to Ritz values: p0=[%e,%e]',p0(1),p0(2));end
-        if Opts.SPARK.test,pause,close(bla);end
+        if Opts.spark.verbose,fprintf('Initialization according to Ritz values: p0=[%e,%e]',p0(1),p0(2));end
+        if Opts.spark.test,pause,close(bla);end
     end
     function p0 = perturb(p0,count)
         % function used to perturb p0 in case of long-term stagnation
         %
         % Generate a normally distributed random variable with mean in p0
         % and an iteration-step-dependent standard deviation
-        sd = p0*((count+1-Opts.MESPARK.pertIter)/Opts.MESPARK.pertIter);
+        sd = p0*((count+1-Opts.mespark.pertIter)/Opts.mespark.pertIter);
         p0 = random('norm',p0,sd);
         
         % replace negative values by 0
         p0(p0<=0) = Opts.zeroThres;
     end
     function varargout = s2p(varargin)
-        % s2p: Shifts to optimization parameters for SPARK
+        % s2p: Shifts to optimization parameters for spark
         % ------------------------------------------------------------------
         % USAGE:  This function computes the two paramters a,b that are used within
-        % the optimization in SPARK. 
+        % the optimization in spark. 
         %
         % p = s2p(s)
         % [a,b] = s2p(s1,s2)
@@ -348,7 +348,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         % s1 = a + sqrt(a^2-b)
         % s2 = a - sqrt(a^2-b)
         %
-        % See also CURE, SPARK.
+        % See also CURE, SPARKS.
         %
         % ------------------------------------------------------------------
         % REFERENCES:
