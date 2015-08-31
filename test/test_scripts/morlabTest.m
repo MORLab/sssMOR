@@ -130,39 +130,44 @@ Opts = struct('maxiter',100,'epsilon',1e-3,'stopCrit','combAll','verb',1);
 analyze_MOR(sys,sysr);
 %% Test CURE
 close all, clear, clc
-load gyro; %build, beam, fom, rail_1357, rail_1357
-if ~exist('A','var') && exist('M','var') %2nd order
-    E = blkdiag(M,M);
-    A = [zeros(size(M)),M; - K, -1e-6*K];
-    B = [zeros(size(B)); B];
-    C = [C, zeros(size(C))];
-    clear M K
-end
-    
-if size(B,2)>1, B = B(:,1);end
-if size(C,1)>1, C = C(1,:);end
-if ~exist('D','var'), D = zeros(size(C,1),size(B,2)); end
-if ~exist('E','var'), E = speye(size(A)); end
-    
-sys = sss(A,B,C(1,:),D,E);
 
-Opts.CURE.init = 'slm';
-Opts.CURE.test = 0;
-Opts.SPARK.test = 0;
-Opts.CURE.stopval = 20;
+% NOTE: obsolete --v
+% load beam; %build, beam, fom, rail_1357, rail_1357, gyro
+% if ~exist('A','var') && exist('M','var') %2nd order
+%     E = blkdiag(M,M);
+%     A = [zeros(size(M)),M; - K, -1e-6*K];
+%     B = [zeros(size(B)); B];
+%     C = [C, zeros(size(C))];
+%     clear M K
+% end
+%     
+% if size(B,2)>1, B = B(:,1);end
+% if size(C,1)>1, C = C(1,:);end
+% if ~exist('D','var'), D = zeros(size(C,1),size(B,2)); end
+% if ~exist('E','var'), E = speye(size(A)); end
+% 
+% sys = sss(A,B,C(1,:),D,E);
+% -- ^
+
+sys = loadSss('beam');
+   
+Opts.cure.init = 'slm';
+Opts.cure.test = 0;
+Opts.spark.test = 0;
+Opts.cure.stopval = 20;
 
 Opts.verbose = 0; %show progress text?
-% Opts.CURE.red = 'RK'; %reduction algorithm
-% Opts.CURE.nk = 10; % reduced order at each step
+% Opts.cure.red = 'rk'; %reduction algorithm
+% Opts.cure.nk = 10; % reduced order at each step
 
-Opts.MESPARK.ritz = 0;
-tic, sysr = CURE(sys,Opts); tCure = toc
+Opts.mespark.ritz = 0;
+tic, sysr = cure(sys,Opts); tCure = toc
 
-Opts.MESPARK.ritz = 1;
-% Opts.SPARK.test = 1;
-tic, sysrRitz = CURE(sys,Opts); tCureRitz = toc 
+Opts.mespark.ritz = 1;
+% Opts.spark.test = 1;
+tic, sysrRitz = cure(sys,Opts); tCureRitz = toc 
 
-if size(A,1) < 2e3
+if size(sys.A,1) < 2e3
     figure;bode(ss(sys),'b-',ss(sysr),'r--',ss(sysrRitz),'g-.');
     h2Norm      = norm(sys-sysr)
     h2NormRitz  = norm(sys-sysrRitz)

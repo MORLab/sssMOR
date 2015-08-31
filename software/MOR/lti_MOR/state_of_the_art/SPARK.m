@@ -49,9 +49,9 @@ function [V,S_V,Crt,k] = spark(A,B,C,E,s0,Opts)
     Def.spark.xTol = 1e-20;
     Def.spark.fTol = 1e-20;
     Def.spark.modelTol = 1e-5;
-        Def.MESPARK.ritz = 1;
-        Def.MESPARK.pertIter = 5; % # iteration at which perturbation begins
-        Def.MESPARK.maxIter = 20; %maximum number of model function updates
+        Def.mespark.ritz = 1;
+        Def.mespark.pertIter = 5; % # iteration at which perturbation begins
+        Def.mespark.maxIter = 20; %maximum number of model function updates
     
     % create the options structure
     if ~isfield(Opts,'spark') || isempty(Opts.spark)
@@ -59,10 +59,10 @@ function [V,S_V,Crt,k] = spark(A,B,C,E,s0,Opts)
     else
         Opts.spark = parseOpts(Opts.spark,Def.spark);
     end  
-    if ~isfield(Opts,'MESPARK') || isempty(Opts.MESPARK)
-        Opts.MESPARK = Def.MESPARK;
+    if ~isfield(Opts,'mespark') || isempty(Opts.mespark)
+        Opts.mespark = Def.mespark;
     else
-        Opts.MESPARK = parseOpts(Opts.MESPARK,Def.MESPARK);
+        Opts.mespark = parseOpts(Opts.mespark,Def.mespark);
     end  
     
 %------------------------- PARSE INPUT ---------------------------
@@ -73,8 +73,8 @@ if size(B,2)>1 || size(C,1)>1, error('System must be SISO.'), end
 if ~isfield(Opts.spark,'type') || isempty(Opts.spark.type)
     Opts.spark = 'standard';
 end
-if ~isfield(Opts.MESPARK,'pertIter'), Opts.MESPARK.pertIter=18;end
-if ~isfield(Opts.MESPARK,'maxIter'), Opts.MESPARK.maxIter=35;end
+if ~isfield(Opts.mespark,'pertIter'), Opts.mespark.pertIter=18;end
+if ~isfield(Opts.mespark,'maxIter'), Opts.mespark.maxIter=35;end
 %let all functions have access to the figure window created in ESPARK
 global fh  
 %---------------------------- CODE -------------------------------
@@ -103,7 +103,7 @@ warning('off','MATLAB:nearlySingularMatrix')
             p_opt = ESPARK(p0);
             k = [];
         case 'model'
-            [p_opt,k] = MESPARK(p0,s0);
+            [p_opt,k] = mespark(p0,s0);
     end
     
     % supply output variables
@@ -140,24 +140,24 @@ warning('off','MATLAB:nearlySingularMatrix')
         % convert parameter to shifts and perform LU decompositions
         s_opt=p_opt(1)+[1,-1]*sqrt(p_opt(1)^2-p_opt(2)); computeLU(s_opt);
     end
-    function [p_opt,k] = MESPARK(p0,s0)
+    function [p_opt,k] = mespark(p0,s0)
         k = 0;
         % compute initial model function and cost function at p0
         computeLU(s0);  V = newColV([],3);  W = newColW([],3);
         Am=W'*A*V; Bm=W'*B; Cm=C*V; Em=W'*E*V;
         J_old = CostFunction(p0);
         
-        if Opts.MESPARK.ritz
+        if Opts.mespark.ritz
             % Model-function-based initialization
-            if Opts.SPARK.verbose,fprintf('User initialization: p0 =[%e,%e]',p0(1),p0(2));end
+            if Opts.spark.verbose,fprintf('User initialization: p0 =[%e,%e]',p0(1),p0(2));end
             p0 = ritz_initial;  
         end
         
         count = 0; %counter for perturbation if not improving
-        if Opts.SPARK.verbose, fprintf('Starting MESPARK...\n'),end
+        if Opts.spark.verbose, fprintf('Starting MESPARK...\n'),end
         while(1)
             k = k + 1;
-            if Opts.SPARK.verbose,fprintf('\tIteration %i: q=%i\n',k,size(V,2)),end
+            if Opts.spark.verbose,fprintf('\tIteration %i: q=%i\n',k,size(V,2)),end
             
             p_opt = ESPARK(p0);
     
@@ -173,33 +173,33 @@ warning('off','MATLAB:nearlySingularMatrix')
             % decide how to proceed
             if abs((J-J_old)/J) < Opts.spark.modelTol || ...
                     norm((p0-p_opt)./p0) < Opts.spark.modelTol %|| size(Am,1)>=20
-                if Opts.verbose,fprintf('Tolerance reached! Quitting MESPARK...\n'),end
+                if Opts.spark.verbose,fprintf('Tolerance reached! Quitting MESPARK...\n'),end
                 break;                      % convergence in J or in p  => stop
             elseif J<J_old
                  J_old = J;  p0 = p_opt;	% improvement: continue with p_opt
-                 if Opts.SPARK.verbose
+                 if Opts.spark.verbose
                      fprintf('\t\t updating the model function...\n')
                      fprintf('\t\t restarting MESPARK where it converged...\n')
                  end
                  count = 0; %reset stagnation counter
             else %no improvement
-                if Opts.SPARK.verbose,fprintf('\t\t no improvement!\n'),end
+                if Opts.spark.verbose,fprintf('\t\t no improvement!\n'),end
                 count = count+1; %add one to the stagnation counter
                 
                 % maximum iterations reached
-                if k >= Opts.MESPARK.maxIter 
-                    if Opts.SPARK.verbose
+                if k >= Opts.mespark.maxIter 
+                    if Opts.spark.verbose
                         warning('Maximum number of iterations in MESPARK reached! Aborting...')
                     end
                     break;
                 end
                 
                 % going on with MESPARK
-                if Opts.SPARK.verbose,fprintf('\t\t updating the model function...\n'),end
-                if count <Opts.MESPARK.pertIter
-                    if Opts.SPARK.verbose,fprintf('\t\t restarting MESPARK where it began...\n'),end
+                if Opts.spark.verbose,fprintf('\t\t updating the model function...\n'),end
+                if count <Opts.mespark.pertIter
+                    if Opts.spark.verbose,fprintf('\t\t restarting MESPARK where it began...\n'),end
                 else
-                    if Opts.SPARK.verbose,warning('long-term stagnation: perturbing p0...'),end
+                    if Opts.spark.verbose,warning('long-term stagnation: perturbing p0...'),end
                     p0 = perturb(p0,count);
                 end
             end
@@ -318,7 +318,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         % Take the mirror images to get positive real parts
         s0ritz = l_ritz-2*real(l_ritz);
         p0 = s2p(s0ritz); 
-        if Opts.verbose,fprintf('Initialization according to Ritz values: p0=[%e,%e]',p0(1),p0(2));end
+        if Opts.spark.verbose,fprintf('Initialization according to Ritz values: p0=[%e,%e]',p0(1),p0(2));end
         if Opts.spark.test,pause,close(bla);end
     end
     function p0 = perturb(p0,count)
@@ -326,7 +326,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         %
         % Generate a normally distributed random variable with mean in p0
         % and an iteration-step-dependent standard deviation
-        sd = p0*((count+1-Opts.MESPARK.pertIter)/Opts.MESPARK.pertIter);
+        sd = p0*((count+1-Opts.mespark.pertIter)/Opts.mespark.pertIter);
         p0 = random('norm',p0,sd);
         
         % replace negative values by 0

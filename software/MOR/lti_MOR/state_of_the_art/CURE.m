@@ -4,12 +4,12 @@ function sysr = cure(sys,Opts)
 % sysr = CURE(sys, opts)
 % Inputs:       * sys: an sss-object containing the LTI system
 %               * opts: a structure containing following options
-%                   * CURE.red:  reduction algorithm - {'RK','IRKA','SPARK',...}
-%                   * CURE.nk:   reduced order at each iteration
-%                   * CURE.fact: factorization mode - {'V','W'}
-%                   * CURE.stop: stopping criterion - {'H2-error','HInf-error',...
+%                   * cure.red:  reduction algorithm - {'RK','IRKA','SPARK',...}
+%                   * cure.nk:   reduced order at each iteration
+%                   * cure.fact: factorization mode - {'V','W'}
+%                   * cure.stop: stopping criterion - {'H2-error','HInf-error',...
 %                               'nmax'}
-%                   * CURE.stopval: value according to which the stopping
+%                   * cure.stopval: value according to which the stopping
 %                               criterion is evaluated (e.g. 'error'->tol, etc.)
 %                   * test:     produce plots and verbatim to analyze
 % Outputs:      * sysr: reduced system
@@ -114,12 +114,12 @@ end
 Dr_tot = sys.d + DrImp;
 
 %%   Start cumulative reduction
-if Opts.CURE.verbose, fprintf('\nBeginning CURE iteration...\n'); end
+if Opts.cure.verbose, fprintf('\nBeginning CURE iteration...\n'); end
 
 iCure = 0; %iteration counter
 while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
     iCure = iCure + 1;
-    if Opts.CURE.verbose, fprintf('\tCURE iteration %03i\n',iCure');end
+    if Opts.cure.verbose, fprintf('\tCURE iteration %03i\n',iCure');end
     %   Redefine the G_ system at each iteration
     sys = sss(sys.a,B_,C_,0,sys.e);
     
@@ -356,8 +356,8 @@ function Bnew = adaptDaeForSpark(sys,dynamicOrder,A22InvB22)
     Bnew = [ B11 - A12*A22InvB22;
           zeros(size(sys.a,1)-dynamicOrder,size(B11,2))];
 %         Alternatively, the same can be done with C
-%         C11 = sys.c(1:opts.CURE.SE_DAE);
-%         C22 = sys.c(opts.CURE.SE_DAE+1:end);
+%         C11 = sys.c(1:opts.cure.SE_DAE);
+%         C22 = sys.c(opts.cure.SE_DAE+1:end);
 %         sysCURE.C = [ C11- C22*(A22\A21),zeros(size(C22))];
 function writeGif(gifMode)
     filename = 'CURE.gif';

@@ -1,4 +1,4 @@
-function [sysr, V, W, Bb, Ct, Cb, Bt] = RK(sys, s0_inp, s0_out, IP)
+function [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sys, s0_inp, s0_out, IP)
 % RK - Model Order Reduction by Rational Krylov
 % ------------------------------------------------------------------
 % [sysr, V, W] = RK(sys, s0_inp, s0_out, IP)
@@ -96,7 +96,7 @@ elseif isempty(s0_inp)
     Cb = sys.C - sysr.C/sysr.E*W'*sys.E;
     Bb = []; Ct = [];
 else
-    if all(s0_inp == s0_out)
+    if all(s0_inp == s0_out) %use only 1 LU decomposition for V and W
         [V,Ct,W,Bt] = arnoldi(sys.E, sys.A, sys.B, sys.C, s0_inp, IP);
     else
         [V,Ct] = arnoldi(sys.E, sys.A, sys.B, s0_inp, IP);
