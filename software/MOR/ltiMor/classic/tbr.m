@@ -1,4 +1,4 @@
-function [sysr, varargout] = TBR(sys, varargin)
+function [sysr, varargout] = tbr(sys, varargin)
 % Performs model order reduction by the Truncated Balanced Realization
 % ------------------------------------------------------------------
 % [sysr, varargout] = TBR(sys, varargin)
@@ -59,7 +59,7 @@ if isempty(sys.ConGramChol)
     if isempty(sys.ConGram)
         % No, it is not. Solve Lyapunov equation.
         try
-            if sys.is_dae
+            if sys.isdescriptor
                 sys.ConGramChol = lyapchol(sys.A,sys.B,sys.E);
             else
                 sys.ConGramChol = lyapchol(sys.A,sys.B);
@@ -67,7 +67,7 @@ if isempty(sys.ConGramChol)
             R = sys.ConGramChol;
         catch ex
             warning(ex.message, 'Error in lyapchol. Trying without Cholesky factorization...')
-            if sys.is_dae
+            if sys.isdescriptor
                 try
                     sys.ConGram = lyap(sys.A, sys.B*sys.B', [], sys.E);
                 catch ex2
@@ -98,7 +98,7 @@ if isempty(sys.ObsGramChol)
     if isempty(sys.ObsGram)
         % No, it is not. Solve Lyapunov equation. 
        try
-            if sys.is_dae
+            if sys.isdescriptor
                 L = lyapchol(sys.A'/sys.E', sys.C');
             else
                 L = lyapchol(sys.A',sys.C');
@@ -106,7 +106,7 @@ if isempty(sys.ObsGramChol)
             sys.ObsGramChol = sparse(L);
         catch ex
             warning(ex.message, 'Error in lyapchol. Trying without Cholesky factorization...')
-            if sys.is_dae
+            if sys.isdescriptor
                 sys.ObsGram = lyap(sys.A'/sys.E', sys.C'*sys.C);
             else
                 sys.ObsGram = lyap(full(sys.A'), full(sys.C'*sys.C));

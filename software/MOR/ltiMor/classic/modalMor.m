@@ -1,4 +1,4 @@
-function [sysr, V, W] = modalMOR(sys, q, varargin)
+function [sysr, V, W] = modalMor(sys, q, varargin)
 % Modal order reduction of LTI SISO systems
 % ------------------------------------------------------------------
 % [sysr, V, W] = modalMOR(sys, q,handles)
@@ -20,7 +20,7 @@ function [sysr, V, W] = modalMOR(sys, q, varargin)
 % Last Change:  11 Feb 2011
 % ------------------------------------------------------------------
 
-if sys.is_dae
+if sys.isdescriptor
     E=sys.E;
 else
     E=[];
