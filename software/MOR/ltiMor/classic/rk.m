@@ -41,7 +41,13 @@ function [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sys, s0_inp, s0_out, IP)
 % ------------------------------------------------------------------
 
 %%  Parsing
-if ~exist('IP', 'var'), IP=@(x,y) (x'*sys.E*y); end
+if ~exist('IP', 'var'), 
+    if ispd(sys.E) %assign IP to speed-up computations
+        IP=@(x,y) (x'*sys.E*y); 
+    else
+        IP=@(x,y) (x'*y);
+    end
+end
 
 if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
     (~exist('s0_out', 'var') || isempty(s0_out))
