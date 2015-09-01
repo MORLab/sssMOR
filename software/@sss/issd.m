@@ -1,5 +1,4 @@
 function [issd, numericalAbscissa] = issd(sys)
-
 %ISSD  check strict dissipativity of LTI sss system
 %
 % Syntax:
@@ -24,7 +23,7 @@ function [issd, numericalAbscissa] = issd(sys)
 %   multiplicity of the eigenvalues at the origin is greater than one.
 %
 % See also:
-%   EIGS, CHOL, SPARSE
+%   ISPD, EIGS, CHOL, SPARSE,
 %
 % References:
 %   [1] Panzer 2014 Model order reduction by Krylov subspace methods
@@ -39,7 +38,7 @@ function [issd, numericalAbscissa] = issd(sys)
 %                   -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto
-% Last Change:  13 Aug 2015
+% Last Change:  01 Sep 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
@@ -48,8 +47,7 @@ if condest(sys.e)>1e16, error('issd does not support DAEs'),end
 
 %%  Perform computations
 % E >0?
-[Re,p] = chol(sys.e); % Echol'*Echol = E
-isPosDef = ~(p>0);
+isPosDef = ispd(sys.e);
 if ~isPosDef
     if nargout == 0, warning('System is not strictly dissipative (E~>0).'); 
     else issd = 0; end
@@ -57,8 +55,7 @@ if ~isPosDef
 end
 
 % A + A' <0?  
-[Ra,p,Sa] = chol(-sys.a-sys.a'); % Ra'*Ra = Sa'*(-A-A')*Sa
-isNegDef = ~(p>0);
+isNegDef = ispd(-sys.a-sys.a');
 if isNegDef
     if nargout == 0, fprintf('System is strictly dissipative.\n'); else issd = 1; end
 else
