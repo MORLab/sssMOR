@@ -66,3 +66,11 @@ if norm(setdiffVec(s0',-conj(eig(sysr))))/norm(s0)<=Opts.tol
     %   if you reached this point, all verifications passed!
     isH2optimal = 1;
 end
+%%  Print result if no ouput was defined
+if nargout == 0
+    if isH2optimal
+        fprintf('Reduced model IS locally H2-optimal\n');
+    else
+        fprintf('Reduced model is NOT locally H2-optimal\n');
+    end
+end
