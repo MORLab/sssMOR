@@ -47,6 +47,7 @@ Def.epsilon = 1e-3;
 Def.type = ''; %'stab', 'newton','restarted'
 Def.verb = 0; % text output durint iteration?
 Def.stopCrit = 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
+Def.cplxpairTol = 1e-6;
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -79,7 +80,7 @@ while true
     s0 = -eig(sysr)';
 
     s0(isnan(s0)) = 0;
-    s0 = cplxpair(s0);
+    s0 = cplxpair(s0,Opts.cplxpairTol);
 
     if strcmp(Opts.type,'stab')
         % mirror shifts with negative real part
