@@ -51,12 +51,13 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
                 Opts = varargin{2};
             end
         else
+            s0 = [];
             Opts = varargin{1};
         end
     end
 
     %   Default Opts
-    Def.qm0     = 10;
+    Def.qm0     = max([10,2*length(s0)]); %at least twice the reduced order
     Def.s0m     = zeros(1,Def.qm0);
     Def.maxiter = 20;
     Def.tol     = 1e-6;
@@ -76,9 +77,15 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
     if Opts.verbose, fprintf('Starting model function MOR...\n'); end
 
     while ~stop
-        kIter = kIter + 1; if Opts.verbose, fprintf(sprintf('k=%i',k));end
+        kIter = kIter + 1; if Opts.verbose, fprintf(sprintf('modelFctMor: k=%i\n',kIter));end
         % update model
-        sysm = rk(sys,s0m,s0m);
+        if length(s0m)<size(sys.a,1)
+            sysm = rk(sys,s0m,s0m);
+        else
+            warning(['Model function is already as big as the original model.',...
+                ' Using the original model for one last iteration']);
+            sysm = sys;
+        end
         % reduction of new model with new starting shifts
         [sysr, s0new] = redFct(sysm,s0);
         % computation of convergence
@@ -93,10 +100,9 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
         end
     end
 
-
-
     function stop = stoppingCrit
         stop = 0;
-        if norm(setdiffVec(s0new,s0))/norm(s0)<= Opts.tol, stop = 1; end
+        if norm(setdiffVec(s0new,s0))/norm(s0)<= Opts.tol, stop = 1;
+        elseif length(s0m)> size(sys.a,1),stop = 1;end
     end
 end
