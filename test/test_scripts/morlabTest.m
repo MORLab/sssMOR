@@ -233,3 +233,26 @@ end
 fprintf('------------------------------------\n');
 fprintf('Test all MOR functions finished!\n')
 fprintf('------------------------------------\n');
+
+%%  Test compareMor
+clear, clc
+
+morFunction = {}; %Function handles with MOR functions
+
+benchmarkName = 'gyro'; sys = loadSss(benchmarkName);
+q  = 10;
+s0 = zeros(1,q); 
+
+morFunction{1} = @(sys) rk(sys,s0,s0);
+% morFunction{2} = @(sys) tbr(sys,q);
+morFunction{3} = @(sys) modalMor(sys,q);
+morFunction{4} = @(sys) irka(sys,s0);
+Opts.cure.stopval = q; morFunction{5} = @(sys) cure(sys,Opts);
+
+redFct      = @(sys,s0) irka(sys,s0,struct('stopCrit','s0','epsilon',1e-6,'maxiter',50));
+redFctOut   = @(sys,s0) getDesiredOutput(redFct,[1,4],sys,s0);
+cirka       = @(sys)    modelFctMor(sys, redFctOut, s0);
+morFunction{2} = cirka;
+
+clear Opts, Opts.verbose = 1;
+RedData = compareMor(sys,morFunction,Opts);
