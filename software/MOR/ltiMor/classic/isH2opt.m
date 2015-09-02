@@ -1,10 +1,10 @@
-function isH2optimal = isH2optimal(sys,sysr,s0,Opts)
-% ISH2OPTIMAL - evaluate Maier-Luenberger conditions for H2-optimality
+function isH2opt = isH2opt(sys,sysr,s0,Opts)
+% ISH2OPT - evaluate Maier-Luenberger conditions for H2-optimality
 %
 % Syntax:
-%   ISH2OPTIMAL(sys,sysr,s0)
-%   ISH2OPTIMAL(sys,sysr,s0,Opts)
-%   isH2optimal = ISH2OPTIMAL(sys,sysr,s0)
+%   ISH2OPT(sys,sysr,s0)
+%   ISH2OPT(sys,sysr,s0,Opts)
+%   isH2opt = ISH2OPT(sys,sysr,s0)
 %
 % Description:
 %   This function evaluates the Maier-Luenberger conditions for
@@ -51,7 +51,7 @@ else
 end
 
 %   Predefine variables
-isH2optimal = 0; %initialize
+isH2opt = 0; %initialize
 %%  Computations 
 if norm(setdiffVec(s0',-conj(eig(sysr))))/norm(s0)<=Opts.tol
     %   reduced eigenvalues are mirror images of shifts
@@ -64,11 +64,11 @@ if norm(setdiffVec(s0',-conj(eig(sysr))))/norm(s0)<=Opts.tol
         end
     end
     %   if you reached this point, all verifications passed!
-    isH2optimal = 1;
+    isH2opt = 1;
 end
 %%  Print result if no ouput was defined
 if nargout == 0
-    if isH2optimal
+    if isH2opt
         fprintf('Reduced model IS locally H2-optimal\n');
     else
         fprintf('Reduced model is NOT locally H2-optimal\n');
