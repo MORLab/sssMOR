@@ -47,8 +47,9 @@ function RedData = compareMor(sys,redFct,Opts)
 if ~iscell(redFct), redFct = {redFct}; end
 
 %   Default Opts
-Def.verbose = 1;
-Def.plotres = 1;
+Def.verbose     = 1;
+Def.plot        = 0;
+Def.plotErr     = 1;
 
 if ~exist('Opts','var') || isempty(Opts)
     Opts = Def;
@@ -84,4 +85,70 @@ for iRedFct = 1:length(redFct)
     end
     
     RedData.data(iRedFct) = CurrData;
+end
+
+%%  Generate plots (if required)
+
+if Opts.plot || nargout == 0
+    %   Define variables
+    mag = cell(length(redFct)+1,1); phase = cell(length(redFct)+1,1);
+    randColor = cell(length(redFct),1); legName = cell(length(redFct)+1,1);
+    
+    %   Compute frequency data
+   [mag{1}, phase{1}, w] = bode(sys); legName{1} = 'FOM';
+    for iRedFct = 1:length(redFct)
+       [mag{1+iRedFct},phase{1+iRedFct}] = bode(RedData.data(iRedFct).sysr,w);
+       legName{1+iRedFct} = RedData.data(iRedFct).redFct;
+    end
+    
+    %   Bode plots
+    nicefigure('compareMor - results (bode)');
+    redo_bodeplot(mag{1},phase{1},w,'-b');hold on
+    for iRedFct = 1:length(redFct)
+        randColor{iRedFct} = rand(1,3); %to be reused later
+       redo_bodeplot(mag{1+iRedFct},phase{1+iRedFct},w,'--',...
+           'Color',randColor{iRedFct});
+    end     
+    legend(legName{:});
+
+    if Opts.plotErr
+        %   Define variables
+        magErr = cell(length(redFct),1); phaseErr = cell(length(redFct),1);
+    
+        %   Compute frequency data
+        for iRedFct = 1:length(redFct)
+            [magErr{iRedFct},phaseErr{iRedFct}] = bode(sys-RedData.data(iRedFct).sysr,w);
+        end
+        
+        %   Plotting
+        nicefigure('compareMor - results (error)');
+
+        %   Create axis
+        ax1 = axes;
+        ax1_pos = get(ax1,'Position'); % position of first axes
+        ax2 = axes('Position',ax1_pos,...
+            'XAxisLocation','bottom',...
+            'YAxisLocation','right',...
+            'Color','none');
+        set(ax2,'YColor','b');
+
+        % Bode plot of original on right y axis
+        lih(1) = line(w,mag2db(cell2mat(mag{1})),'Parent',ax2);
+        set(lih(1),'Color','b');
+        set(ax2,'XTick',[],'XScale','log')
+
+        % Error plots on left y axis
+        for iRedFct = 1:length(redFct)
+           lih(1+iRedFct) = line(w,cell2mat(magErr{iRedFct}),'Parent',ax1);hold on
+           set(lih(1+iRedFct),'Color',randColor{iRedFct},'LineStyle','--');
+        end
+        set(ax1,'XScale','log','YScale','log')
+
+        ylabel(ax1,'Error');
+        ylabel(ax2,'Magnitude /dB');
+
+        xlabel(ax1,'Frequency /rad/sec');
+        legend(lih,legName{:},'Location','SouthEast');
+
+    end
 end
