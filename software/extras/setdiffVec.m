@@ -60,6 +60,19 @@ setdiffVec = zeros(size(v1));
 v1diff = setdiff(v1,v2,'stable');
 v2diff = setdiff(v2,v1,'stable');
 
+%   Repeated entries are returned only once by setdiff. Make sure you get
+%   the right multiplicity
+idx = [];
+for iElements = 1:length(v1diff),
+    idx = [idx, find(v1==v1diff(iElements))];
+end
+v1diff = v1(idx);
+idx = [];
+for iElements = 1:length(v2diff),
+    idx = [idx, find(v2==v2diff(iElements))];
+end
+v2diff = v2(idx);
+
 %   Make some appropriate sorting
 tol = 1e-6;
 v1diff = cplxpair(v1diff,tol); %sort v1diff and v2diff by the same principle

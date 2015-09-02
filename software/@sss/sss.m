@@ -206,6 +206,14 @@ classdef sss
             p = sys.poles;
         end
         
+        function p = eigs(sys,varargin)
+            if sys.isdescriptor
+                p = eigs(sys.A,sys.E,varargin{:});
+            else
+                p = eigs(sys.A,varargin{:});
+            end
+        end
+        
         function sys = resolve_dae(sys, varargin)
             if nargin==1
                 sys.A = sys.E\sys.A;

@@ -45,7 +45,7 @@ function [sysr, V, W, s0, s0_traj] = irka(sys, s0, Opts)
 Def.maxiter = 50; 
 Def.epsilon = 1e-3; 
 Def.type = ''; %'stab', 'newton','restarted'
-Def.verb = 0; % text output durint iteration?
+Def.verbose = 0; % text output durint iteration?
 Def.stopCrit = 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
 Def.cplxpairTol = 1e-6;
 
@@ -90,7 +90,7 @@ while true
     s0_traj(k+1,:) = s0;
     
     [stop, stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts);
-    if Opts.verb
+    if Opts.verbose
         fprintf('IRKA step %03u - Convergence: %s \n', ...
             k, sprintf('% 3.1e', stopCrit));
     end
@@ -103,7 +103,7 @@ while true
 end
 
 
-if ~Opts.verb %display at least the last value
+if ~Opts.verbose %display at least the last value
     fprintf('IRKA step %03u - Convergence (%s): %s \n', ...
             k, Opts.stopCrit, sprintf('% 3.1e', stopCrit));
 end

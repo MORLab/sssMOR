@@ -1,4 +1,4 @@
-function redo_bodeplot(mag,phase,omega,options)
+function redoBodeplot(mag,phase,omega,varargin)
 
 %   this function executes the exact same code that the bode command would,
 %   if called without arguments
@@ -29,8 +29,8 @@ end
 % end
 
 %   if no options were passed, create an empty cell
-if ~exist('options','var')
-    options = {};
+if nargin<4
+    varargin = {};
 end
 
 
@@ -53,7 +53,7 @@ for i=1:m %for each input
       
         % amplitude
         y_plot=mag{i,j};
-        plot(omega,y_plot,options{:})
+        plot(omega,y_plot,varargin{:})
         set(gca, 'XScale', 'log');
         set(gca, 'XLim', [min(omega) max(omega)]);
         box on
@@ -66,7 +66,7 @@ for i=1:m %for each input
         box on
         % phase
         y_plot=phase{i,j};
-        plot(omega,y_plot,options{:})
+        plot(omega,y_plot,varargin{:})
         set(gca, 'XScale', 'log');
         set(gca, 'XLim', [min(omega) max(omega)]);
         ylabel('Phase [deg]');

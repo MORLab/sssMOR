@@ -183,8 +183,7 @@ for jCol=1:length(s0)
         h=IP(tempW,W(:,iCol));
         tempW=tempW-W(:,iCol)*h;
         Bt(jCol)=Bt(jCol)-h*Bt(iCol);
-      end
-          
+      end 
     end
 
     % normalize new basis vector
