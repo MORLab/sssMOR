@@ -26,7 +26,7 @@ end
 
 tic
 %perform eigen-decomposition of system
-if sys.is_dae
+if sys.isdescriptor
     [T,J] = eig(full(sys.A),full(sys.E));
     if max(max(J))==inf
     error('System contains algebraic states.')
