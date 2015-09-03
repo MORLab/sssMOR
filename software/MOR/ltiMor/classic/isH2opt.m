@@ -60,6 +60,9 @@ if norm(setdiffVec(s0',-conj(eig(sysr))))/norm(s0)<=Opts.tol
         mr  = moments(sysr,s0(iShift),2);
         if norm(m-mr)/norm(m)> Opts.tol
             % moments do not match
+            if nargout == 0
+                fprintf('Reduced model is NOT locally H2-optimal\n');
+            end
             return
         end
     end
