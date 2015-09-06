@@ -6,6 +6,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %    [optional] * q: order of reduced system
 % Output:       * sysr: reduced system
 %    [optional] * V, W: projection matrices (only if q is given!)
+%               * hsv: Hankel singular values
 % ------------------------------------------------------------------
 % If no q is given, the balancing transformation and calculation of the
 % Hankel Singular Values is performed without subsequent model reduction.
@@ -158,3 +159,4 @@ W = sys.T_bal(1:q,:)';
 sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
 varargout{1} = V;
 varargout{2} = W;
+varargout{3} = real(hsv);
