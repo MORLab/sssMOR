@@ -1,4 +1,4 @@
-function [sysr, V, W] = modalMor(sys, q, varargin)
+function [sysr, V, W] = modalMor(sys, q, Opts)
 % Modal order reduction of LTI SISO systems
 % ------------------------------------------------------------------
 % [sysr, V, W] = modalMOR(sys, q,handles)
@@ -20,31 +20,78 @@ function [sysr, V, W] = modalMor(sys, q, varargin)
 % Last Change:  11 Feb 2011
 % ------------------------------------------------------------------
 
+%   Default execution parameters
+Def.type = 'SM'; 
+
+% create the options structure
+if ~exist('Opts','var') || isempty(Opts)
+    Opts = Def;
+else
+    Opts = parseOpts(Opts,Def);
+end
+
 if sys.isdescriptor
     E=sys.E;
 else
     E=[];
 end
-if nargin==2
-    options = {'SM'};
-else
-    options = varargin;
-end
 
-[V, p] = eigs(sys.A, E, q, options{:});
+[V, p] = eigs(sys.A, E, q, Opts.type);
 p=diag(p);
 W=zeros(size(V));
+r=zeros(size(p));
 for i=1:q
     warning off
-    [wi, pi]=eigs(sys.A',sys.E', 1, p(i)); %#ok<NASGU>
+    sigma = p(i) - 1e-6; %eigs fails if sigma is equal to an eigenvalue
+    [wi, pi]=eigs(sys.A',sys.E', 1, sigma); %#ok<NASGU>
     warning on
     W(:,i) = wi;
+    r(i)=pi;
 end
 
-% ***
-V=[real(V(:,1:2:q)) imag(V(:,1:2:q))];
+%sort eigenvalues and eigenvectors in descending/ascending order 
+%(complex conjugated pairs are sorted successively)
+V=V';
+tbl=table(p,V);
+tbl=sortrows(tbl);
+V=tbl.V';
+p=tbl.p;
+
+W=W';
+tbl=table(r,W);
+tbl=sortrows(tbl);
+W=tbl.W';
+r=tbl.r;
+
+%split complex conjugated columns into real and imaginary
+k=find(imag(p));
+if ~isempty(k)
+     if mod(length(k),2)==0
+          for i=1:2:length(k)
+               temp=V(:,i);
+               V(:,i)=real(temp);
+               V(:,i+1)=imag(temp);
+          end
+     else
+          warning('Reduced system contains complex elements. Please try the reduction order q+1.');
+     end
+end
+
+k=find(imag(r));
+if ~isempty(k)
+     if mod(length(k),2)==0
+          for i=1:2:length(k)
+               temp=W(:,i);
+               W(:,i)=real(temp);
+               W(:,i+1)=imag(temp);
+          end
+     else
+          warning('Reduced system contains complex elements. Please try the reduction order q+1.');
+     end
+end
+
 V=orth(V);
-W=[real(W(:,1:2:q)) imag(W(:,1:2:q))];
 W=orth(W);
+
 sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
    
