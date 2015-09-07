@@ -17,7 +17,7 @@
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 %               Lisa Jeschek
-% Last Change:  04 Sep 2015
+% Last Change:  07 Sep 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
@@ -25,8 +25,8 @@ clear all;
 clc;
 import matlab.unittest.TestSuite;
 
-%% Test all unittest-files in folder 'testScripts'
-suite = TestSuite.fromFolder('testScripts');
+%% Test all unittest-files in current folder
+% suite = TestSuite.fromFolder(pwd);
 
 
 %% Test specific unittest-files
@@ -35,10 +35,11 @@ suite1=TestSuite.fromFile('testArnoldi.m');
 suite2=TestSuite.fromFile('testRk.m');
 suite3=TestSuite.fromFile('testIrka.m');
 suite4=TestSuite.fromFile('testTbr.m'); 
-% suite5=TestSuite.fromFile('testScripts\testModal.m'); %not yet
+suite5=TestSuite.fromFile('testModal.m'); 
+% suite6=TestSuite.fromFile('testSSS.m'); %not yet
 
 % Add/remove suiteX (e.g. [suite1, suite3] to run testArnoldi and testIRKA)
-% suite=[ suite4];
+suite=[suite1, suite2, suite3, suite4, suite5];
 
 
 %% Run and show results
