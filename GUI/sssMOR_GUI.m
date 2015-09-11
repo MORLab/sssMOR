@@ -1,5 +1,4 @@
 function varargout = sssMOR_GUI(varargin)
-
 % SSSMOR_GUI - nes at end of demos 
 % ------------------------------------------------------------------
 % USAGE:  TODO
@@ -3229,4 +3228,3 @@ sys = evalin('base', sysname);
 if ~strcmp(class(sys), 'sss')
     sys=sss(sys);
 end
-
