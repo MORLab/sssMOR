@@ -27,12 +27,12 @@ function [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sys, s0_inp, s0_out, IP)
 % REFERENCES:
 % [1] Grimme (1997), Krylov Projection Methods for Model Reduction
 % ------------------------------------------------------------------
-% This file is part of MORLab, a Sparse State Space, Model Order
-% Reduction and System Analysis Toolbox developed at the Institute 
-% of Automatic Control, Technische Universitaet Muenchen.
-% For updates and further information please visit www.rt.mw.tum.de
-% For any suggestions, submission and/or bug reports, mail us at
-%                   -> MORLab@rt.mw.tum.de <-
+%   This file is part of sssMOR, a Sparse State Space, Model Order
+%   Reduction and System Analysis Toolbox developed at the Institute 
+%   of Automatic Control, Technische Universitaet Muenchen.
+%   For updates and further information please visit www.rt.mw.tum.de
+%   For any suggestions, submission and/or bug reports, mail us at
+%                     -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto 
 %               (a.castagnotto@tum.de)

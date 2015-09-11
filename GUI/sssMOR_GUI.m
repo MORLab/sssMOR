@@ -1,11 +1,32 @@
+function varargout = sssMOR_GUI(varargin)
 
-function varargout = MORLAB_GUI(varargin)
+% SSSMOR_GUI - nes at end of demos 
+% ------------------------------------------------------------------
+% USAGE:  TODO
+%
+% See also SSSMOR_GETTINGSTARTED, SSS.
+%
+% ------------------------------------------------------------------
+% This file is part of sssMOR, a Sparse State Space, Model Order
+% Reduction and System Analysis Toolbox developed at the Institute 
+% of Automatic Control, Technische Universitaet Muenchen.
+% For updates and further information please visit www.rt.mw.tum.de
+% For any suggestions, submission and/or bug reports, mail us at
+%                    -> sssMOR@rt.mw.tum.de <-
+% ------------------------------------------------------------------
+% Authors:      Heiko Panzer, Sylvia Cremer, Maria Cruz Varona, 
+%               Alessandro Castagnotto
+% Last Change:  11 Sep 2015
+% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% ------------------------------------------------------------------
+
+%%
 % initialization
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @MORLAB_GUI_OpeningFcn, ...
-                   'gui_OutputFcn',  @MORLAB_GUI_OutputFcn, ...
+                   'gui_OpeningFcn', @sssMOR_GUI_OpeningFcn, ...
+                   'gui_OutputFcn',  @sssMOR_GUI_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -23,7 +44,7 @@ end
 % end
         
         
-function MORLAB_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INUSL>
+function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INUSL>
 handles.splash = splash('splash.jpg');
 handles.output = hObject;
 handles.virtgr_an_red_buttons=[handles.pb_an_stability,handles.pb_an_h2,handles.pb_an_hinf,handles.pb_an_simtime,handles.pb_an_h2error,handles.pb_an_hinferror,handles.pb_an_simtimeobt,handles.pb_an_simtimeorig];
@@ -56,7 +77,7 @@ splash(handles.splash,'off')
 evalin('base','stop(timerfind),delete(timerfind)')
 
 
-function varargout = MORLAB_GUI_OutputFcn(hObject, eventdata, handles)
+function varargout = sssMOR_GUI_OutputFcn(hObject, eventdata, handles)
 varargout{1} = handles.output;
 
 function pb_loading_Callback(hObject, eventdata, handles)  %#ok<*DEFNU>
@@ -2895,7 +2916,7 @@ if val>1
     k=userdata(val);
 end
 % get handles of all open figures. their order changes each time!
-% figures are focussed and thereby can overlap the MORLAB_GUI
+% figures are focussed and thereby can overlap the sssMOR_GUI
 
 openfig=get(0,'Children');
 c=cell({'New Figure'});
@@ -2942,7 +2963,7 @@ try
     
     for i=1:length(openfig)
         if openfig(i)==handles.figure1
-            % MORLAB_GUI
+            % sssMOR_GUI
             continue
         elseif strcmp(get(openfig(i),'Tag'),'load_ABC_mat')
             continue
@@ -2984,7 +3005,7 @@ try
     else
         set(handles.figure,'Value',1)
     end
-    % bring MORLAB_GUI back to front
+    % bring sssMOR_GUI back to front
     figure(handles.figure1)
 catch %#ok<CTCH>
     % if an error occurs, restore default setting

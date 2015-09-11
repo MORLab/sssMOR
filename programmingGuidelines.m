@@ -13,12 +13,12 @@
 % [1] Johnson (2014): MATLAB Style Guidelines 2.0
 % [2] Hung (1999): The Pragmatic Programmer
 % ------------------------------------------------------------------
-% This file is part of MORLab, a Sparse State Space, Model Order
+% This file is part of sssMOR, a Sparse State Space, Model Order
 % Reduction and System Analysis Toolbox developed at the Institute 
 % of Automatic Control, Technische Universitaet Muenchen.
 % For updates and further information please visit www.rt.mw.tum.de
 % For any suggestions, submission and/or bug reports, mail us at
-%                      -> MORLab@tum.de <-
+%                    -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 % Last Change:  26 April 2015

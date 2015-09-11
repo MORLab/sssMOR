@@ -30,7 +30,7 @@ function [sysr, V, W, s0, s0_traj] = irka(sys, s0, Opts)
 % of Automatic Control, Technische Universitaet Muenchen.
 % For updates and further information please visit www.rt.mw.tum.de
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> MORLab@rt.mw.tum.de <-
+%                   -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto
 %               (a.castagnotto@tum.de)

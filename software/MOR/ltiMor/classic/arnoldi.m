@@ -31,12 +31,12 @@ function [V,Ct,W,Bt] = arnoldi(E,A,b,varargin)
 %TODO: Reference for the duality between Krylov and Sylvester 
 % [3] Giraud (2005), The loss of orthogonality in the Gram-Schmidt...
 % ------------------------------------------------------------------
-% This file is part of MORLab, a Sparse State Space, Model Order
+% This file is part of sssMOR, a Sparse State Space, Model Order
 % Reduction and System Analysis Toolbox developed at the Institute 
 % of Automatic Control, Technische Universitaet Muenchen.
 % For updates and further information please visit www.rt.mw.tum.de
 % For any suggestions, submission and/or bug reports, mail us at
-%                  -> MORLab@rt.mw.tum.de <-
+%                   -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto 
 %               (a.castagnotto@tum.de)

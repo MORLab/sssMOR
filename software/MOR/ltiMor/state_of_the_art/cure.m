@@ -4,7 +4,7 @@ function sysr = cure(sys,Opts)
 % sysr = CURE(sys, opts)
 % Inputs:       * sys: an sss-object containing the LTI system
 %               * opts: a structure containing following options
-%                   * cure.red:  reduction algorithm - {'RK','IRKA','SPARK',...}
+%                   * cure.red:  reduction algorithm - {'rk','irka','spark',...}
 %                   * cure.nk:   reduced order at each iteration
 %                   * cure.fact: factorization mode - {'V','W'}
 %                   * cure.stop: stopping criterion - {'H2-error','HInf-error',...
@@ -15,13 +15,13 @@ function sysr = cure(sys,Opts)
 % Outputs:      * sysr: reduced system
 % ------------------------------------------------------------------
 % USAGE:  This function implements the CUmulative REduction framework
-% (CURE) introduced by Panzer and Wolf (see [1,2]).
+% (cure) introduced by Panzer and Wolf (see [1,2]).
 %
 % Using the duality between Sylvester equation and Krylov subspaces, the 
 % error is factorized at each step of CURE and only the high-dimensional
 % factor is reduced in a subsequent step of the iteration.
 %
-% See also SPARK, RK, IRKA, PORK_V, PORK_W.
+% See also SPARK, RK, IRKA, PORKV, PORKW.
 %
 % ------------------------------------------------------------------
 % REFERENCES:
@@ -29,12 +29,12 @@ function sysr = cure(sys,Opts)
 %     with Global Error Bounds and Automatic Choice of Parameters
 % [2] Wolf (2014): H2 Pseudo-Optimal Moder Order Reduction
 % ------------------------------------------------------------------
-% This file is part of MORLab, a Sparse State Space, Model Order
+% This file is part of sssMOR, a Sparse State Space, Model Order
 % Reduction and System Analysis Toolbox developed at the Institute 
 % of Automatic Control, Technische Universitaet Muenchen.
 % For updates and further information please visit www.rt.mw.tum.de
 % For any suggestions, submission and/or bug reports, mail us at
-%                      -> MORLab@tum.de <-
+%                   -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Heiko K.F. Panzer, Alessandro Castagnotto, 
 %               Maria Cruz Varona
@@ -90,7 +90,7 @@ sysr = sss(Ar_tot,Br_tot,Cr_tot,zeros(p,m),Er_tot);
 if Opts.cure.SE_DAE
     [DrImp,A22InvB22] = implicitFeedthrough(sys,Opts.cure.SE_DAE);
     
-    % if we inted to used SPARK, the DAE has to be modified if DrImp~=0
+    % if we inted to used spark, the DAE has to be modified if DrImp~=0
     if DrImp && strcmp(Opts.cure.red,'spark')
         B_ = adaptDaeForSpark(sys,Opts.cure.SE_DAE,A22InvB22);
         
@@ -135,8 +135,8 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
                     [V,S_V,Crt] = spark(sys.a,sys.b,sys.c,sys.e,s0,Opts); 
                     
                     [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C_);                   
-                case 'IRKA'
-                    [sysr_temp,V,W] = IRKA(sys,s0);
+                case 'irka'
+                    [sysr_temp,V,W] = irka(sys,s0);
                     
                     Ar = sysr_temp.a;
                     Br = sysr_temp.b;
@@ -144,7 +144,7 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
                     Er = sysr_temp.e;
                     
                     Crt = [eye(m), zeros(m)]; 
-                case 'RK+PORK'
+                case 'rk+pork'
                     [sysRedRK, V, ~, ~, Crt] = rk(sys,s0); 
                     S_V = sysRedRK.E\(sysRedRK.A-sysRedRK.B*Crt);
                     
@@ -170,7 +170,7 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
                     S_W = S_W';
                     
                     [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B_);
-                case 'RK+PORK'
+                case 'rk+pork'
                     [sysRedRK, ~, W, ~, ~, ~, Brt] = rk(sys,[],s0);
                     S_W = sysRedRK.E'\(sysRedRK.A'-Brt*sysRedRK.C);
                     
@@ -336,7 +336,7 @@ function [DrImp,A22InvB22] = implicitFeedthrough(sys,dynamicOrder)
     if norm(B22)>0 && norm(C22)>0
         %this is not suffiecient for Dr~=0, but it is necessary
         
-        %   Computing A22\B22 since it can be reused before SPARK
+        %   Computing A22\B22 since it can be reused before spark
         A22InvB22 = sys.a(dynamicOrder+1:end,dynamicOrder+1:end)\B22;
         if norm(A22InvB22)>0
             DrImp = -C22*A22InvB22;

@@ -1,6 +1,6 @@
-function MORLab_gettingStarted
+function sssMOR_gettingStarted
 
-% MORLAB_GETTINGSTARTED - Introductory demo to MORLab toolbox 
+% SSSMOR_GETTINGSTARTED - Introductory demo to sssMOR toolbox 
 % ------------------------------------------------------------------
 % USAGE:  This function can be executed as it is and will guide the 
 % user in the command window through an introductory journey in the 
@@ -10,12 +10,12 @@ function MORLab_gettingStarted
 % See also SSS, SSS\BODE.
 %
 % ------------------------------------------------------------------
-% This file is part of MORLab, a Sparse State Space, Model Order
+% This file is part of sssMOR, a Sparse State Space, Model Order
 % Reduction and System Analysis Toolbox developed at the Institute 
 % of Automatic Control, Technische Universitaet Muenchen.
 % For updates and further information please visit www.rt.mw.tum.de
 % For any suggestions, submission and/or bug reports, mail us at
-%                    -> MORLab@rt.mw.tum.de <-
+%                    -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 % Last Change:  14 Jul 2015
@@ -24,10 +24,10 @@ function MORLab_gettingStarted
 
 %%  Initialization
 clear, clc
-fprintf('Starting demo execution: MORLab_gettingStarted...\n\n'); 
+fprintf('Starting demo execution: sssMOR_gettingStarted...\n\n'); 
 
 rule
-fprintf(['\t MORLab - A sparse state space and model reduction toolbox\n']); 
+fprintf(['\t sssMOR - A sparse state space and model reduction toolbox\n']); 
 rule
 fprintf(['\tDeveloped at Chair of Automatic Control, TUM\n']);
 fprintf(['\tNote: for academic use only.\n']);
@@ -63,14 +63,14 @@ fprintf('freqresp etc., but even model reduction functions as balred, \n');
 fprintf('balancmr, modred etc. cannot be used \n')
 customPause
 
-fprintf('MORLab includes the definition of sparse state space (sss) objects\n');
+fprintf('sssMOR includes the definition of sparse state space (sss) objects\n');
 fprintf('and the sparsity and large-scale-optimized implementation of some \n');
 fprintf('of the most common function for dynamic systems objects.\n');
 customPause
 
 
 fprintf('\nLet us begin with an example that illustrates the capabilities \n');
-fprintf('of the MORLab toolbox and in particular sss-objects.\n');
+fprintf('of the sssMOR toolbox and in particular sss-objects.\n');
 
 %   *Selection of a benchmark model
 [sysName,A,B,C,D,E] = selectModel;
@@ -89,7 +89,7 @@ fprintf('\tE * d/dt(x) = A x + B u\n');
 fprintf('\t         y  = C x + D u\n');
 customPause
 
-fprintf('Using MORLab, the dynamic system can be stored as sss-object calling:\n');
+fprintf('Using sssMOR, the dynamic system can be stored as sss-object calling:\n');
 fprintf('>> sys = sss(A,B,C,D,E)\n');
 sys = sss(A,B,C,D,E);
 sysDss = dss(full(A),full(B),full(C),full(D),full(E));
@@ -183,7 +183,7 @@ clear
 fprintf(['\t PART II: Model Order Reduction (MOR)\n\n']);
 
 fprintf('Besides allowing the definition of sparse dynamic systems, the \n');
-fprintf('main goal of the MORLab toolbox is to provide basic and state-of- \n');
+fprintf('main goal of the sssMOR toolbox is to provide basic and state-of- \n');
 fprintf('the-art MOR functions for academic research and teaching.\n');
 
 fprintf('The functions are implemented to work in combination with the sss- \n');
@@ -192,7 +192,7 @@ fprintf('balanced truncation or rational Krylov, as well as more advanced \n');
 fprintf('techniques developed in recent years. \n');
 customPause
 
-fprintf('\nWe will now demonstrate the main MOR capabilities of the MORLab \n');
+fprintf('\nWe will now demonstrate the main MOR capabilities of the sssMOR \n');
 fprintf('toolbox through an example.\n');
 
 %   *Selection of a benchmark model
@@ -217,7 +217,7 @@ customPause
 fprintf('The first model reduction procedure we would like to test is\n');
 fprintf('MODAL REDUCTION, i.e. the truncation of less dominant modes in the\n');
 fprintf('system. There are several ways to define "dominance". The default\n');
-fprintf('choice in "modalMOR", the MORLab function for modal reduction, is\n');
+fprintf('choice in "modalMOR", the sssMOR function for modal reduction, is\n');
 fprintf('to select the eigenmodes corresponding to the first q eigenvalues \n');
 fprintf('with smallest magnitude (q is the desired reduced order). This can \n');
 fprintf('be computed quite efficiently using the "eigs" function.\n');
@@ -230,8 +230,8 @@ fprintf('corresponds to approximately a third of the original order.\n');
 customPause
 
 fprintf('\nThe reduction is performed by calling:\n');
-fprintf('>> sysrModal = modalMOR(sys,q)\n');
-    tic, sysrModal = modalMOR(sys,q); tModal = toc;
+fprintf('>> sysrModal = modalMor(sys,q)\n');
+    tic, sysrModal = modalMor(sys,q); tModal = toc;
 fprintf('(This reduction took %4.2fs. The results will be shown later.)\n',tModal);
     h2ErrorModal = norm(sys-sysrModal);
     hInfErrorModal = norm(sys-sysrModal,Inf);
@@ -247,8 +247,8 @@ fprintf('case. \n');
 customPause
 
 fprintf('The reduction is performed by calling:\n');
-fprintf('>> sysrTbr = TBR(sys,q)\n');
-tic, sysrTbr = TBR(sys,q); tTbr = toc;
+fprintf('>> sysrTbr = tbr(sys,q)\n');
+tic, sysrTbr = tbr(sys,q); tTbr = toc;
 fprintf('(This reduction took %4.2fs. The results will be shown later.)\n',tTbr);
     h2ErrorTbr = norm(sys-sysrTbr);
     hInfErrorTbr = norm(sys-sysrTbr,Inf);
@@ -279,11 +279,11 @@ fprintf('>> s0 = [0;q]\n');
 customPause
 
 fprintf('The reduction is performed by calling:\n');
-fprintf('>> sysrRk = RK(sys,s0,s0)\n');
+fprintf('>> sysrRk = rk(sys,s0,s0)\n');
 fprintf('(The first "s0" defines the frequencies for the input, the second "s0"\n');
 fprintf('for the output Krylov subspace.)\n');
 
-    tic, sysrRk = RK(sys,s0,s0); tRk = toc;
+    tic, sysrRk = rk(sys,s0,s0); tRk = toc;
 fprintf('(This reduction took %4.2fs. The results will be shown later.)\n',tRk);
     h2ErrorRk = norm(sys-sysrRk);
     hInfErrorRk = norm(sys-sysrRk,Inf);
@@ -304,8 +304,8 @@ fprintf('>> s0 = [0 0 ... 0]\n');
 customPause
 
 fprintf('The reduction is performed by calling:\n');
-fprintf('>> sysrIrka = IRKA(sys,s0)\n');
-    tic, sysrIrka = IRKA(sys,s0); tIrka = toc;
+fprintf('>> sysrIrka = irka(sys,s0)\n');
+    tic, sysrIrka = irka(sys,s0); tIrka = toc;
 fprintf('(This reduction took %4.2fs. The results will be shown later.)\n',tIrka);
     h2ErrorIrka = norm(sys-sysrIrka);
     hInfErrorIrka = norm(sys-sysrIrka,Inf);
