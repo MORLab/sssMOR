@@ -62,7 +62,6 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
     Def.maxiter = 20;
     Def.tol     = 1e-6;
     Def.verbose = 0;
-    Def.update  = '';
 
     if ~exist('Opts','var') || isempty(Opts)
         Opts = Def;
@@ -70,14 +69,14 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
         Opts = parseOpts(Opts,Def);
     end  
     %%  Computations
-
-    s0m = Opts.s0m; %initialize
-    [sysm,V,W] = rk(sys,s0m,s0m);
-    
     %   Initialize variables in nested functions
     L1 = zeros(size(sys.A));U1=L1;P1=L1;Q1=L1; 
     L2 = zeros(size(sys.A));U2=L2;P2=L2;Q2=L2; 
     
+    %   Initialize model function
+    s0m = Opts.s0m; 
+    V = []; W = []; [sysm,V,W] = buildModelFunction(s0m,V,W);
+   
     stop = 0;
     kIter = 0;
 
@@ -89,15 +88,7 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
             % update model
             if length(s0m)<size(sys.a,1)
                 %   Update model function
-                switch Opts.update
-                    case 'rk'
-                        sysm = rk(sys,s0m,s0m);
-                    otherwise
-                        computeLU(s0);  
-                        V = newColV(V, 2);  W = newColW(W, 2);
-                        sysm = sss(W'*sys.A*V,W'*sys.B,sys.C*V,...
-                            zeros(size(sys.C,1),size(sys.B,2)),W'*sys.E*V);
-                end
+                [sysm,V,W] = buildModelFunction(s0,V,W);
             else
                 warning(['Model function is already as big as the original model.',...
                     ' Using the original model for one last iteration']);
@@ -114,7 +105,6 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
             s0 = s0new;
         end
         if kIter > Opts.maxiter; 
-%             error('modelFctMor did not converge within maxiter'); 
             warning('modelFctMor did not converge within maxiter'); 
             return
         end
@@ -131,31 +121,61 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
         elseif length(s0m)> size(sys.a,1),stop = 1;end
     end
     
+    %%  Model function creation and update
+    function [sysm,V,W] = buildModelFunction(s0,V,W)
+        idxComplex=find(imag(s0));
+        if ~isempty(idxComplex)
+            s0c = cplxpair(s0(idxComplex));
+            s0(idxComplex) = []; %real shifts
+            s0 = [s0 s0c(1:2:end)]; %add 1 complex shift per complex partner
+        end
+
+        for iShift = 1:length(s0)
+            if iShift > 1 && s0(iShift)==s0(iShift-1)
+                    %do nothing: no new LU decomposition needed
+            else %new LU needed
+                computeLU(s0(iShift));
+            end
+            V = newColV(V);  W = newColW(W);
+        end
+        sysm = sss(W'*sys.A*V,W'*sys.B,sys.C*V,...
+                            zeros(size(sys.C,1),size(sys.B,2)),W'*sys.E*V);
+    end
     %%  Functions copied from "spark"
     function computeLU(s0)
         % compute new LU decompositions
-        if real(s0(1))==real(s0(2))  % complex conjugated or double shift
-            [L1,U1,P1,Q1] = lu(sparse(sys.A-s0(1)*sys.E));  L2=conj(L1);U2=conj(U1);P2=P1;Q2=Q1;
-        else                         % two real shifts
-            [L1,U1,P1,Q1] = lu(sparse(sys.A-s0(1)*sys.E));  [L2,U2,P2,Q2] = lu(sparse(sys.A-s0(2)*sys.E));
+        if imag(s0)  % complex conjugated 
+            [L1,U1,P1,Q1] = lu(sparse(sys.A-s0*sys.E));  L2=conj(L1);U2=conj(U1);P2=P1;Q2=Q1;
+        else % real shift
+            [L1,U1,P1,Q1] = lu(sparse(sys.A-s0*sys.E)); L2 =[];%make empty
         end
     end
-    function V = newColV(V, k)
+    function V = newColV(V)
         % add columns to input Krylov subspace
-        for i=(size(V,2)+1):2:(size(V,2)+2*k)
-            if i==1, x=sys.B; else x=sys.E*V(:,i-1); end
-            r1  = Q1*(U1\(L1\(P1*x)));   tmp = Q2*(U2\(L2\(P2*x)));
+        iCol=size(V,2)+1;
+        if iCol==1, x = sys.B; else x=sys.E*V(:,iCol-1);end
+        r1  = Q1*(U1\(L1\(P1*x)));   
+        if isempty(L2) %only one shift 
+            v1 = r1;
+            V = GramSchmidt([V,v1],[],[],iCol*[1 1]);
+        else %complex conjugated pair
+            tmp = Q2*(U2\(L2\(P2*x)));
             v1 = real(0.5*r1 + 0.5*tmp); v2  = real(Q2*(U2\(L2\(P2*(sys.E*r1)))));
-            V = GramSchmidt([V,v1,v2],[],[],[i,i+1]);
+            V = GramSchmidt([V,v1,v2],[],[],[iCol,iCol+1]);
         end
     end
-    function W = newColW(W, k)
+    function W = newColW(W)
         % add columns to output Krylov subspace
-        for i=(size(W,2)+1):2:(size(W,2)+2*k)
-            if i==1, x=sys.C; else x=W(:,i-1)'*sys.E; end
-            l1  = x*Q1/U1/L1*P1;          tmp = x*Q2/U2/L2*P2;
+        iCol=size(W,2)+1;
+        if iCol==1, x=sys.C; else x=W(:,iCol-1)'*sys.E; end
+        l1  = x*Q1/U1/L1*P1;          
+        if isempty(L2) %only one shift
+            w1 = l1;
+            W = GramSchmidt([W,w1'],[],[],iCol*[1 1]);
+        else %complex conjugated pair
+            tmp = x*Q2/U2/L2*P2;
             w1 = real(0.5*l1 + 0.5*tmp);  w2  = real(l1*sys.E*Q2/U2/L2*P2);
-            W = GramSchmidt([W,w1',w2'],[],[],[i,i+1]);
+            W = GramSchmidt([W,w1',w2'],[],[],[iCol,iCol+1]);
         end
     end
     function [X,Y,Z] = GramSchmidt(X,Y,Z,cols)
@@ -166,16 +186,65 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
         % $\MatlabCopyright$
 
         if nargin<4, cols=[1 size(X,2)]; end
-        for k=cols(1):cols(2)
-            for j=1:(k-1)                       % orthogonalization
-                T = eye(size(X,2)); T(j,k)=-X(:,k)'*X(:,j);
+        
+        for kNewCols=cols(1):cols(2)
+            for jCols=1:(kNewCols-1)                       % orthogonalization
+                T = eye(size(X,2)); T(jCols,kNewCols)=-X(:,kNewCols)'*X(:,jCols);
                 X = X*T;
                 if nargout>=2, Y=T\Y*T; end
                 if nargout>=3, Z=Z*T; end
             end
-            h = norm(X(:,k));  X(:,k)=X(:,k)/h; % normalization
-            if nargout>=2, Y(:,k) = Y(:,k)/h; Y(k,:) = Y(k,:)*h; end
-            if nargout==3, Z(:,k) = Z(:,k)/h; end
+            h = norm(X(:,kNewCols));  X(:,kNewCols)=X(:,kNewCols)/h; % normalization
+            if nargout>=2, Y(:,kNewCols) = Y(:,kNewCols)/h; Y(kNewCols,:) = Y(kNewCols,:)*h; end
+            if nargout==3, Z(:,kNewCols) = Z(:,kNewCols)/h; end
         end
     end
+
+%% -------- old    
+%     function computeLU(s0)
+%         % compute new LU decompositions
+%         if real(s0(1))==real(s0(2))  % complex conjugated or double shift
+%             [L1,U1,P1,Q1] = lu(sparse(sys.A-s0(1)*sys.E));  L2=conj(L1);U2=conj(U1);P2=P1;Q2=Q1;
+%         else                         % two real shifts
+%             [L1,U1,P1,Q1] = lu(sparse(sys.A-s0(1)*sys.E));  [L2,U2,P2,Q2] = lu(sparse(sys.A-s0(2)*sys.E));
+%         end
+%     end
+%     function V = newColV(V, k)
+%         % add columns to input Krylov subspace
+%         for i=(size(V,2)+1):2:(size(V,2)+2*k)
+%             if i==1, x=sys.B; else x=sys.E*V(:,i-1); end
+%             r1  = Q1*(U1\(L1\(P1*x)));   tmp = Q2*(U2\(L2\(P2*x)));
+%             v1 = real(0.5*r1 + 0.5*tmp); v2  = real(Q2*(U2\(L2\(P2*(sys.E*r1)))));
+%             V = GramSchmidt([V,v1,v2],[],[],[i,i+1]);
+%         end
+%     end
+%     function W = newColW(W, k)
+%         % add columns to output Krylov subspace
+%         for i=(size(W,2)+1):2:(size(W,2)+2*k)
+%             if i==1, x=sys.C; else x=W(:,i-1)'*sys.E; end
+%             l1  = x*Q1/U1/L1*P1;          tmp = x*Q2/U2/L2*P2;
+%             w1 = real(0.5*l1 + 0.5*tmp);  w2  = real(l1*sys.E*Q2/U2/L2*P2);
+%             W = GramSchmidt([W,w1',w2'],[],[],[i,i+1]);
+%         end
+%     end
+%     function [X,Y,Z] = GramSchmidt(X,Y,Z,cols)
+%         % Gram-Schmidt orthonormalization
+%         %   Input:  X,[Y,[Z]]:  matrices in Sylvester eq.: V,S_V,Crt or W.',S_W.',Brt.'
+%         %           cols:       2-dim. vector: number of first and last column to be treated
+%         %   Output: X,[Y,[Z]]:  solution of Sylvester eq. with X.'*X = I
+%         % $\MatlabCopyright$
+% 
+%         if nargin<4, cols=[1 size(X,2)]; end
+%         for k=cols(1):cols(2)
+%             for j=1:(k-1)                       % orthogonalization
+%                 T = eye(size(X,2)); T(j,k)=-X(:,k)'*X(:,j);
+%                 X = X*T;
+%                 if nargout>=2, Y=T\Y*T; end
+%                 if nargout>=3, Z=Z*T; end
+%             end
+%             h = norm(X(:,k));  X(:,k)=X(:,k)/h; % normalization
+%             if nargout>=2, Y(:,k) = Y(:,k)/h; Y(k,:) = Y(k,:)*h; end
+%             if nargout==3, Z(:,k) = Z(:,k)/h; end
+%         end
+%     end
 end
