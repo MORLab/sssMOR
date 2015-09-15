@@ -96,13 +96,20 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
             s0 = s0new;
         end
         if kIter > Opts.maxiter; 
-            error('modelFctMor did not converge within maxiter'); 
+%             error('modelFctMor did not converge within maxiter'); 
+            warning('modelFctMor did not converge within maxiter'); 
+            return
         end
     end
 
     function stop = stoppingCrit
         stop = 0;
-        if norm(setdiffVec(s0new,s0))/norm(s0)<= Opts.tol, stop = 1;
+        if norm(s0) == 0
+            crit = norm(setdiffVec(s0new,s0)); %absolute
+        else
+            crit = norm(setdiffVec(s0new,s0))/norm(s0); %relative
+        end
+        if crit <= Opts.tol, stop = 1;
         elseif length(s0m)> size(sys.a,1),stop = 1;end
     end
 end
