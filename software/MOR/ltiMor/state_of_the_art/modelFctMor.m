@@ -70,8 +70,9 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
     end  
     %%  Computations
     %   Initialize variables in nested functions
-    L1 = zeros(size(sys.A));U1=L1;P1=L1;Q1=L1; 
-    L2 = zeros(size(sys.A));U2=L2;P2=L2;Q2=L2; 
+    N = size(sys.A,1);
+    L1 = sparse(N,N);U1=L1;P1=L1;Q1=L1; 
+    L2 = sparse(N,N);U2=L2;P2=L2;Q2=L2; 
     
     %   Initialize model function
     s0m = Opts.s0m; 

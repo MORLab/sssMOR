@@ -79,6 +79,9 @@ mean, moment, maxError
       else
             Opts = parseOpts(Opts,Def);
       end       
+      
+%%  3) Definition of empty (sparse) matrices for memory allocation
+A = sparse(n,n); %zeros(n) can go out of memory
 
 %%  #) Testing
 
