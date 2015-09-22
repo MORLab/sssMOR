@@ -37,6 +37,7 @@ function [sysr, V, W, s0, s0_traj] = irka(sys, s0, Opts)
 % Last Change:  23 Jul 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
+
 %% Parse input and load default parameters
     % default values
     
