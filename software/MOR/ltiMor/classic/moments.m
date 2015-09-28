@@ -18,14 +18,14 @@ function m = moments(sys, s0, n)
 
 m=zeros(1,n);
 if isinf(s0)
-    m(1) = D;
+    m(1) = sys.D;
     [L,U,k,l,S]=lu(sys.E, 'vector');
     B=sys.B;
     for i=2:n
         b=S\B; b=b(k,:);
         x=L\b;
         x(l,:)=U\x;
-        m(i) = C*x - sys.D;
+        m(i) = sys.C*x - sys.D;
         B=sys.A*x;
     end
 else

@@ -36,10 +36,12 @@ suite2=TestSuite.fromFile('testRk.m');
 suite3=TestSuite.fromFile('testIrka.m');
 suite4=TestSuite.fromFile('testTbr.m'); 
 suite5=TestSuite.fromFile('testModal.m'); 
-% suite6=TestSuite.fromFile('testSSS.m'); %not yet
+suite6=TestSuite.fromFile('testMoments.m'); 
+suite7=TestSuite.fromFile('testIsH2opt.m');
+% suite8=TestSuite.fromFile('testSSS.m'); %not yet
 
 % Add/remove suiteX (e.g. [suite1, suite3] to run testArnoldi and testIRKA)
-suite=[suite1, suite2, suite3, suite4, suite5];
+suite=[suite1, suite2, suite3, suite4, suite5, suite6, suite7];
 
 
 %% Run and show results
