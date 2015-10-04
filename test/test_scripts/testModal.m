@@ -26,8 +26,10 @@ classdef testModal < matlab.unittest.TestCase
     methods(Test)
         function testModal1(testCase) 
             %Diagonal matrix
+            A=zeros(11);
             A=diag(-10:-10:-100);
-            B=(1:10)';
+            A(11,11)=-30;
+            B=(1:11)';
             C=B';
 
             Opts.type='SM';
@@ -45,10 +47,12 @@ classdef testModal < matlab.unittest.TestCase
 
             Opts.type='SM';
             [sysr] = modalMor(sss(A,B,C,0), 6, Opts);
-            actSolution={sort(eig(sysr))};
+            actEig=sort(eig(sysr));
+            actSolution={real(actEig), abs(imag(actEig))};
             
             [expsysr,~]=modreal(ss(full(A),full(B),full(C),0),6);
-            expSolution={sort(eig(expsysr))};
+            expEig=sort(eig(expsysr));
+            expSolution={real(expEig), abs(imag(expEig))};
                  
             verification(testCase, actSolution, expSolution, sysr);
         end
@@ -59,13 +63,15 @@ classdef testModal < matlab.unittest.TestCase
             A=[zeros(size(M)),speye(size(M)); -K, -D];
             B=[zeros(size(M,1),1); B];
             C=[C, zeros(1,size(M,1))];
-
-            Opts.type='SM';
-            [sysr] = modalMor(sss(A,B,C,0,E), 4, Opts);
-            actSolution={sort(eig(sysr))};
             
-            [expsysr,~]=modreal(ss(full(E\A),full(E\B),full(C),0),4);
-            expSolution={sort(eig(expsysr))};
+            Opts.type='SM';
+            [sysr] = modalMor(sss(A,B,C,0,E), 9, Opts);
+            actSolution=sort(eig(sysr));
+%             actSolution={real(actEig), abs(imag(actEig))};
+            
+            [expsysr,~]=modreal(ss(full(E\A),full(E\B),full(C),0),9);
+            expSolution=sort(eig(expsysr));
+%             expSolution={real(expEig), abs(imag(expEig))};
                  
             verification(testCase, actSolution, expSolution, sysr);
         end
@@ -75,10 +81,6 @@ end
 function [] = verification(testCase, actSolution, expSolution, sysr)
        verifyEqual(testCase, actSolution, expSolution,'RelTol',0.2,'AbsTol',0.00000001,...
             'Difference between actual and expected exceeds relative tolerance');
-       verifyLessThanOrEqual(testCase, max(imag(sysr.A)), 0, ...
-            'Ar is not purely real'); 
-       verifyLessThanOrEqual(testCase, max(imag(sysr.E)), 0, ...
-            'Er is not purely real'); 
        verifyEqual(testCase, rank(full(sysr.A)), length(sysr.B),...
             'Rank(Ar) is not full');
        verifyEqual(testCase, rank(full(sysr.E)), length(sysr.B),...
