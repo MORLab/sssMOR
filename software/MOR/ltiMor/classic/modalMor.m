@@ -48,8 +48,7 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 % Default execution parameters
 Def.type = 'SM'; 
 Def.orth = '0'; %orthogonalization ('0','qr')
-Def.split = '0'; %real reduced system ('0', 'real')
-Def.tol  = 10e-6; %tolerance of eigenvalues
+Def.real = '0'; %real reduced system ('0', 'real')
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -82,13 +81,13 @@ llambda=tbl.llambda;
 
 %check if the same eigenvalues have been found
 for i=1:q
-    if abs(real(llambda)-real(rlambda(i)))+abs(imag(llambda)-imag(rlambda(i))) > Opts.tol
+    if abs(real(llambda)-real(rlambda(i)))+abs(imag(llambda)-imag(rlambda(i))) > 10e-6
         error('Eigenvectors belong to different eigenvalues. Please try again.');
     end
 end
 
 %split complex conjugated columns into real and imaginary
-if strcmp(Opts.split,'real');
+if strcmp(Opts.real,'real');
     k=find(imag(rlambda));
     if ~isempty(k)
          if mod(length(k),2)==0

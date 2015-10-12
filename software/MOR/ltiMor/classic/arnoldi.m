@@ -149,7 +149,7 @@ for jCol=1:length(s0)
             end
         end
         if exist('U', 'var')
-            tempV = invsolve(tempV,L,U,p,o,S);
+            tempV(o,:) = U\(L\(S(:,p)\tempV)); %LU x(o,:) = S(:,p)\b 
         else
             tempV = S*(R\(R'\(S'*tempV)));
         end

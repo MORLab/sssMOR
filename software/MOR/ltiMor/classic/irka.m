@@ -44,7 +44,7 @@ function [sysr, V, W, s0, s0_traj] = irka(sys, s0, Opts)
 %% Parse the inputs
 %   Default execution parameters
 Def.maxiter = 50; 
-Def.epsilon = 1e-3; 
+Def.tol = 1e-3; 
 Def.type = ''; %'stab', 'newton','restarted'
 Def.verbose = 0; % text output durint iteration?
 Def.stopCrit = 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
@@ -58,8 +58,8 @@ else
 end
 
 % Further check/transform the input
-if Opts.epsilon<=0 || ~isreal(Opts.epsilon)
-    error('epsilon must be a real positive number.');
+if Opts.tol<=0 || ~isreal(Opts.tol)
+    error('tol must be a real positive number.');
 end
 
 s0 = s0_vect(s0);
@@ -138,27 +138,27 @@ function [stop,stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts)
 switch Opts.stopCrit
     case 's0' %shift convergence
         stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
-        stop = stopCrit <= Opts.epsilon;
+        stop = stopCrit <= Opts.tol;
     case 'sysr' %reduced model convergence
         stopCrit = inf; %initialize in case the reduced model is unstable
         if all(real(eig(sysr))<0) && all(real(eig(sysr_old))<0)
                 stopCrit=norm(sysr-sysr_old)/norm(sysr);
         end
-        stop = stopCrit <= Opts.epsilon;
+        stop = stopCrit <= Opts.tol;
     case 'combAll'
         stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
         stopCrit = [stopCrit, inf]; 
         if all(real(eig(sysr))<0) && all(real(eig(sysr_old))<0)
                 stopCrit(2) = norm(sysr-sysr_old)/norm(sysr);
         end
-        stop = all(stopCrit <= Opts.epsilon);
+        stop = all(stopCrit <= Opts.tol);
     case 'combAny'
         stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
         stopCrit = [stopCrit, inf]; 
         if all(real(eig(sysr))<0) && all(real(eig(sysr_old))<0)
                 stopCrit(2) = norm(sysr-sysr_old)/norm(sysr);
         end
-        stop = any(stopCrit <= Opts.epsilon);
+        stop = any(stopCrit <= Opts.tol);
     otherwise
         error('The stopping criterion selected is incorrect or not implemented')
 end
