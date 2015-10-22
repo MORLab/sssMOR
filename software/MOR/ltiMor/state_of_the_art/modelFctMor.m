@@ -200,4 +200,52 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
             if nargout==3, Z(:,kNewCols) = Z(:,kNewCols)/h; end
         end
     end
+
+%% -------- old    
+%     function computeLU(s0)
+%         % compute new LU decompositions
+%         if real(s0(1))==real(s0(2))  % complex conjugated or double shift
+%             [L1,U1,P1,Q1] = lu(sparse(sys.A-s0(1)*sys.E));  L2=conj(L1);U2=conj(U1);P2=P1;Q2=Q1;
+%         else                         % two real shifts
+%             [L1,U1,P1,Q1] = lu(sparse(sys.A-s0(1)*sys.E));  [L2,U2,P2,Q2] = lu(sparse(sys.A-s0(2)*sys.E));
+%         end
+%     end
+%     function V = newColV(V, k)
+%         % add columns to input Krylov subspace
+%         for i=(size(V,2)+1):2:(size(V,2)+2*k)
+%             if i==1, x=sys.B; else x=sys.E*V(:,i-1); end
+%             r1  = Q1*(U1\(L1\(P1*x)));   tmp = Q2*(U2\(L2\(P2*x)));
+%             v1 = real(0.5*r1 + 0.5*tmp); v2  = real(Q2*(U2\(L2\(P2*(sys.E*r1)))));
+%             V = GramSchmidt([V,v1,v2],[],[],[i,i+1]);
+%         end
+%     end
+%     function W = newColW(W, k)
+%         % add columns to output Krylov subspace
+%         for i=(size(W,2)+1):2:(size(W,2)+2*k)
+%             if i==1, x=sys.C; else x=W(:,i-1)'*sys.E; end
+%             l1  = x*Q1/U1/L1*P1;          tmp = x*Q2/U2/L2*P2;
+%             w1 = real(0.5*l1 + 0.5*tmp);  w2  = real(l1*sys.E*Q2/U2/L2*P2);
+%             W = GramSchmidt([W,w1',w2'],[],[],[i,i+1]);
+%         end
+%     end
+%     function [X,Y,Z] = GramSchmidt(X,Y,Z,cols)
+%         % Gram-Schmidt orthonormalization
+%         %   Input:  X,[Y,[Z]]:  matrices in Sylvester eq.: V,S_V,Crt or W.',S_W.',Brt.'
+%         %           cols:       2-dim. vector: number of first and last column to be treated
+%         %   Output: X,[Y,[Z]]:  solution of Sylvester eq. with X.'*X = I
+%         % $\MatlabCopyright$
+% 
+%         if nargin<4, cols=[1 size(X,2)]; end
+%         for k=cols(1):cols(2)
+%             for j=1:(k-1)                       % orthogonalization
+%                 T = eye(size(X,2)); T(j,k)=-X(:,k)'*X(:,j);
+%                 X = X*T;
+%                 if nargout>=2, Y=T\Y*T; end
+%                 if nargout>=3, Z=Z*T; end
+%             end
+%             h = norm(X(:,k));  X(:,k)=X(:,k)/h; % normalization
+%             if nargout>=2, Y(:,k) = Y(:,k)/h; Y(k,:) = Y(k,:)*h; end
+%             if nargout==3, Z(:,k) = Z(:,k)/h; end
+%         end
+%     end
 end
