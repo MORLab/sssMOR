@@ -1,0 +1,86 @@
+\documentclass[12pt,a4paper]{article}
+%\documentclass[12pt,a4paper,fleqn]{scrreprt} %210 mm x 297 mm
+\title{Handbuch}
+%\documentclass{article}
+\usepackage{ngerman}
+\usepackage[ansinew]{inputenc} 
+\usepackage{graphicx} 
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[dvips]{color}
+%\setlength{\mathindent}{8cm}	% Einstellen der Einrücktiefe für linksgebundene Formeln
+%\usepackage[T1]{fontenc} % use T1-encoded fonts
+%\usepackage[bindingoffset=1cm,
+%						%total={16cm,23cm},
+%%						includeheadfoot,
+	%					left=20mm,
+	%					right=20mm,
+	%					bottom=30mm,
+	%					top=30mm]%,
+%	%					headheight=10mm,
+%	%					headsep=15mm,
+%	%					footskip=30mm]
+	%					{geometry} % leichte individuelle Gestaltung des Seitenformats
+
+\definecolor{pink}{RGB}{208,76,239}
+\renewcommand{\textfraction}{.15}
+	
+\begin{document}
+\begin{titlepage}
+\parbox[t][3cm][t]{1.1cm}{\includegraphics[scale=1]{Abbildungen/TUM_blau} \\}
+\hfill
+%
+\parbox[b][2.4cm][t]{3.6cm}{
+%
+\includegraphics[scale = 0.12]{Abbildungen/RT_Logo}\\
+}
+\\
+%
+\rule{\textwidth}{1pt}
+%
+\vspace{3em}
+\center
+	{\LARGE Handbuch}
+\vspace{2.5em}
+
+	{\bfseries \textsf{%
+	\LARGE MORLAB \\[1ex] GUI}}
+
+\vspace{5em}
+
+{\LARGE	Sylvia Cremer}\\
+
+	
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % Hier das Abgabedatum einfügen
+\vspace{2em}
+	{\large Stand 11. Januar 2011}
+	
+\vfill
+
+\vspace{4cm}
+
+\begin{tabular}{rl}
+
+%Matrikelnummer: & xy \\
+
+%Betreuer: & Prof. Dr.-Ing. habil. Boris Lohmann\\
+%          & Betreuer 1 \\
+%          & Betreuer 2 (ggf. Industrie) \\
+
+Institut: & Lehrstuhl für Regelungstechnik \\
+					& Technische Universität München
+\end{tabular}
+  
+\end{titlepage}
+
+\tableofcontents \clearpage
+
+\input Kapitel0
+\input Kapitel1
+\input Kapitel2
+\input Kapitel3
+\input Kapitel4
+
+\end{document}
+
