@@ -1,5 +1,5 @@
 # sssMORdoc
-A sparse state-space, model order reduction toolbox developed at the Chair of Automatic Control, Technische Universitaet Muenchen.
+Documentation for sssMOR, a sparse state-space, model order reduction toolbox developed at the Chair of Automatic Control, Technische Universitaet Muenchen.
 
 On your computer, the files in this repository should be in a **branch** of sssMOR. Include this repository as a **remote** and make sure to push changes to this remote (which you may call "doc").
 
