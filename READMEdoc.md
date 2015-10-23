@@ -11,3 +11,18 @@ In sssMOR, the **headerTemplate** should be written/commented such that develope
 
 ## Programmed and tested with:
 MATLAB R2015b
+
+# Project management
+Here is a list of important aspects for the development of the toolbox that should be kept available to everybody
+
+## Core questions/to dos
+Here is a list of **central** aspect/questions that have to be clarified asap
+- [ ] In what format (zip, MATLAB toolbox, app, ...) is the toolbox going to be available for download on the homepage?
+- [ ] What type of license should we use? (compare to tax license)
+
+## Team & Assignments
+
+- Lisa:     sss, sssMOR, unittests
+- Jorge:    sss, sssMOR, demos
+- Rodrigo:  documentation, release
+- Siyang:   documentation, release
