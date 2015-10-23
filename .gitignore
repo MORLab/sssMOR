@@ -93,5 +93,5 @@ Temporary Items
 _*.pdf
 
 # Complete directories
-#GUI/
+GUI/
 software/extras/errorTable.txt
