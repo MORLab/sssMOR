@@ -25,7 +25,7 @@ productName_ = 'sssMOR';
 
 % directories containing m-files with help comments
 % (m-files can also be specified directly)
-fun_files = { ['..' filesep 'toolbx_files' filesep], ['..' filesep 'toolbx_files' filesep 'classic'] };
+fun_files = { ['..' filesep 'software' filesep 'MOR' filesep 'ltiMor' filesep 'classic'] };
 
 
 % current directory
