@@ -1,48 +1,71 @@
 function [V,Ct,W,Bt] = arnoldi(E,A,b,varargin)
 % ARNOLDI - Arnoldi algorithm using multiple expansion points
-% ------------------------------------------------------------------
-% [V,Ct]        = ARNOLDI(E,A,b,s0,IP)
-% [V,Ct,W,Bt]   = ARNOLDI(E,A,b,c,s0,IP)
-% Inputs:       * E,A,b,c: System matrices
-%               * s0:    Vector of expansion points
-%               * IP:    (opt.) function handle for inner product
-% Outputs:      * V:    Orthonormal basis spanning the input Krylov subsp.
-%               * Ct:   Right tangential directions of Sylvester Eq.
-%               * W:    Orthonormal basis spanning the output Krylov subsp.
-%               * Bt:   Left tangential directions of Sylvester Eq.
-% ------------------------------------------------------------------
-% USAGE:  This function is used to compute the matrix V spanning the 
-% input Krylov subspace corresponding to E, A, b and s0 [1,2].
+% 
+% Syntax:
+%       [V,Ct]        = ARNOLDI(E,A,b,s0,IP)
+%       [V,Ct,W,Bt]   = ARNOLDI(E,A,b,c,s0,IP)
+% 
 %
-% The columns of V build an orthonormal basis of the input Krylov 
-% subspace. The orthogonalization is conducted using a reorthogonalized
-% modified Gram-Schmidt procedure [3] with respect to the inner product
-% defined in IP (optional). If no inner product is specified, then the
-% elliptic product corresponding to E is chosen by default:
-%                       IP=@(x,y) (x'*E*y)
-% which requires E to be a positive definite matrix.
+% Inputs:
+%       -E/A/b/c:  System matrices
+%       -s0:       Vector of expansion points
+%       -IP:       (opt.) function handle for inner product
 %
-% See also RK.
 %
-% ------------------------------------------------------------------
-% REFERENCES:
-% [1] Grimme (1997), Krylov projection methods for model reduction
-% [2] Antoulas (2005), Approximation of large-scale dynamical systems
-%TODO: Reference for the duality between Krylov and Sylvester 
-% [3] Giraud (2005), The loss of orthogonality in the Gram-Schmidt...
-% ------------------------------------------------------------------
-% This file is part of sssMOR, a Sparse State Space, Model Order
-% Reduction and System Analysis Toolbox developed at the Institute 
-% of Automatic Control, Technische Universitaet Muenchen.
-% For updates and further information please visit www.rt.mw.tum.de
-% For any suggestions, submission and/or bug reports, mail us at
-%                   -> sssMOR@rt.mw.tum.de <-
-% ------------------------------------------------------------------
+% Outputs:
+%       -V:        Orthonormal basis spanning the input Krylov subsp. 
+%       -Ct:       Right tangential directions of Sylvester Eq.
+%       -W:        Orthonormal basis spanning the output Krylov subsp.
+%       -Bt:       Left tangential directions of Sylvester Eq.
+%
+%
+% Examples:
+%       No examples
+% 
+% 
+% Description:
+%       This function is used to compute the matrix V spanning the 
+%       input Krylov subspace corresponding to E, A, b and s0 [1,2].
+% 
+%       The columns of V build an orthonormal basis of the input Krylov 
+%       subspace. The orthogonalization is conducted using a reorthogonalized
+%       modified Gram-Schmidt procedure [3] with respect to the inner product
+%       defined in IP (optional). If no inner product is specified, then the
+%       elliptic product corresponding to E is chosen by default:
+% 
+%                             IP=@(x,y) (x'*E*y)
+% 
+%       which requires E to be a positive definite matrix.
+% 
+%
+% See also: 
+%       rk
+%
+% 
+% References:
+%       * *[1] Grimme (1997)*, Krylov projection methods for model reduction
+%       * *[2] Antoulas (2005)*, Approximation of large-scale dynamical systems
+%       * *[3] Giraud (2005)*, The loss of orthogonality in the Gram-Schmidt...
+%
+%
+%------------------------------------------------------------------
+%   This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
+%   Reduction and System Analysis Toolbox developed at the Chair of 
+%   Automatic Control, Technische Universitaet Muenchen. For updates 
+%   and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+%   For any suggestions, submission and/or bug reports, mail us at
+%                     -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+%   More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto 
-%               (a.castagnotto@tum.de)
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
 % Last Change:  22 Jul 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 
 %%  Parse input
 

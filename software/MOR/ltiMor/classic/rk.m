@@ -1,44 +1,66 @@
 function [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sys, s0_inp, s0_out, IP)
 % RK - Model Order Reduction by Rational Krylov
-% ------------------------------------------------------------------
-% [sysr, V, W] = RK(sys, s0_inp, s0_out, IP)
-% Inputs:       * sys: an sss-object containing the LTI system
-%               * s0_inp: Expansion points for Input Krylov Subspace
-%               * s0_out: Expansion points for Output Krylov Subspace
-%               * IP: Inner product (optional)
-% Outputs:      * sysr: reduced system
-%               * V, W: Projection matrices spanning Krylov subspaces
-% ------------------------------------------------------------------
-% USAGE:  s0 may either be horizontal vectors containing the desired
-% expansion points, e.g. [1 2 3] matches one moment about 1, 2 and 3,
-% respectively. [1+1j 1-1j 5 5 5 5 inf inf] matches one moment about 1+1j,
-% 1-1j, 4 moments about 5 and 2 Markov parameters.
 %
-% An alternative notation for s0 is a two-row matrix, containing the
-% expansion points in the first row and their multiplicity in the second,
-% e.g. [4 pi inf; 1 20 10] matches one moment about 4, 20 moments about pi
-% and 10 Markov parameters.
+% Syntax:
+%       [sysr, V, W] = RK(sys, s0_inp, s0_out, IP)
 %
-% To perform one-sided RK, set s0_inp or s0_out to [], respectively.
 %
-% See also ARNOLDI, RK.
+% Inputs:
+%       -sys:       an sss-object containing the LTI system
+%       -s0_inp:    Expansion points for Input Krylov Subspace
+%       -s0_out:    Expansion points for Output Krylov Subspace
+%       -IP:        Inner product (optional)
 %
-% ------------------------------------------------------------------
-% REFERENCES:
-% [1] Grimme (1997), Krylov Projection Methods for Model Reduction
-% ------------------------------------------------------------------
-%   This file is part of sssMOR, a Sparse State Space, Model Order
-%   Reduction and System Analysis Toolbox developed at the Institute 
-%   of Automatic Control, Technische Universitaet Muenchen.
-%   For updates and further information please visit www.rt.mw.tum.de
+%
+% Outputs:
+%       -sysr:      reduced system
+%       -V,W:       Projection matrices spanning Krylov subspaces
+%
+%
+% Examples:
+%       No examples
+%
+%
+% Description:
+%       s0 may either be horizontal vectors containing the desired
+%       expansion points, e.g. [1 2 3] matches one moment about 1, 2 and 3,
+%       respectively. [1+1j 1-1j 5 5 5 5 inf inf] matches one moment about 1+1j,
+%       1-1j, 4 moments about 5 and 2 Markov parameters.
+% 
+%       An alternative notation for s0 is a two-row matrix, containing the
+%       expansion points in the first row and their multiplicity in the second,
+%       e.g. [4 pi inf; 1 20 10] matches one moment about 4, 20 moments about pi
+%       and 10 Markov parameters.
+% 
+%       To perform one-sided RK, set s0_inp or s0_out to [], respectively.
+%
+%
+% See also: 
+%       arnoldi, rk
+%
+%
+% References:
+%       * *[1] Grimme (1997)*, Krylov projection methods for model reduction
+%
+%
+%------------------------------------------------------------------
+%   This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
+%   Reduction and System Analysis Toolbox developed at the Chair of 
+%   Automatic Control, Technische Universitaet Muenchen. For updates 
+%   and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 %   For any suggestions, submission and/or bug reports, mail us at
-%                     -> sssMOR@rt.mw.tum.de <-
-% ------------------------------------------------------------------
+%                     -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+%   More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto 
-%               (a.castagnotto@tum.de)
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
 % Last Change:  23 Jul 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 
 %%  Parsing
 if ~exist('IP', 'var'), 

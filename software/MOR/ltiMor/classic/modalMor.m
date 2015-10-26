@@ -1,49 +1,70 @@
 function [sysr, V, W] = modalMor(sys, q, Opts)
 % MODALMOR - Modal model order reduction of LTI SISO systems
-% ------------------------------------------------------------------
-% [sysr, V, W] = MODALMOR(sys, q, Opts)
-% Inputs:       * sys: an sss-object containing the LTI system
-%               * q: order of reduced system
-%               * opts: a structure containing following options
-%                   * type: options to eigs command - {'SM','LM',...}
-%                       - 'SM' for eigenvalues of Smallest Magnitude
-%                       - 'LM' for eigenvalues of Largest Magnitude
-%                       - 'SA' for smallest algebraic
-%                       - 'LA' for largest algebraic
-%                       - 'SR' for smallest real part
-%                       - 'LR' for largest real part
-%                       - scalar number for eigenvalues next to it
-% Outputs:      * sysr: reduced system
-%               * V, W: projection matrices
-% ------------------------------------------------------------------
-% USAGE:  This function computes the reduced order system sysr and the 
-% projection matrices V and W by the modal reduction technique [1].
+% 
+% Syntax:
+%       [sysr, V, W] = MODALMOR(sys, q, Opts)
+% 
+% 
+% Inputs:
+%       -sys:   an sss-object containing the LTI system
+%       -q:     order of reduced system
+%       -opts:  a structure containing following options
+%           -type:  options to eigs command - {'SM','LM',...}
+%               -'SM':  for eigenvalues of Smallest Magnitude
+%               -'LM':  for eigenvalues of Largest Magnitude
+%               -'SA':  for smallest algebraic
+%               -'LA':  for largest algebraic
+%               -'SR':  for smallest real part
+%               -'LR':  for largest real part
+%               -scalar number: for eigenvalues next to it
 %
-% Only a few eigenvalues and left and right eigenvectors of the pair (A,E) 
-% are computed with the eigs command. The right eigenvectors build the
-% columns of V, while the left eigenvectors build the columns of W.
 %
-% See also TBR, RK, IRKA
+% Outputs:
+%       -sysr: reduced system
+%       -V,W:  projection matrices
 %
-% ------------------------------------------------------------------
-% REFERENCES:
-% [1] Antoulas (2005), Approximation of large-scale dynamical systems
-% [2] Lehoucq and Sorensen (1996), Deflation Techniques for an Implicitly 
-% Re-Started Arnoldi Iteration.
-% [3] Sorensen (1992), Implicit Application of Polynomial Filters in a 
-% k-Step Arnoldi Method.
-% ------------------------------------------------------------------
-% This file is part of sssMOR, a Sparse State Space, Model Order
-% Reduction and System Analysis Toolbox developed at the Institute 
-% of Automatic Control, Technische Universitaet Muenchen.
-% For updates and further information please visit www.rt.mw.tum.de
-% For any suggestions, submission and/or bug reports, mail us at
-%                   -> sssMOR@rt.mw.tum.de <-
-% ------------------------------------------------------------------
-% Authors:      Heiko Panzer (heiko@mytum.de), Sylvia Cremer, Rudy Eid
+%
+% Examples:
+%       No examples
+% 
+%
+% Description:
+%       This function computes the reduced order system sysr and the 
+%       projection matrices V and W by the modal reduction technique [1].
+% 
+%       Only a few eigenvalues and left and right eigenvectors of the pair (A,E) 
+%       are computed with the eigs command. The right eigenvectors build the
+%       columns of V, while the left eigenvectors build the columns of W.
+%
+%
+% See also: 
+%       tbr, rk, irka
+%
+%
+% References:
+%       * *[1] Antoulas (2005)*, Approximation of large-scale dynamical systems
+%       * *[2] Lehoucq and Sorensen (1996)*, Deflation Techniques for an Implicitly Re-Started Arnoldi Iteration.
+%       * *[3] Sorensen (1992)*, Implicit Application of Polynomial Filters in a k-Step Arnoldi Method
+%
+%
+%------------------------------------------------------------------
+%   This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
+%   Reduction and System Analysis Toolbox developed at the Chair of 
+%   Automatic Control, Technische Universitaet Muenchen. For updates 
+%   and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+%   For any suggestions, submission and/or bug reports, mail us at
+%                     -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+%   More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
+% Authors:      Heiko Panzer, Sylvia Cremer, Rudy Eid
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
 % Last Change:  11 Sep 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 
 % Default execution parameters
 Def.type = 'SM'; 
