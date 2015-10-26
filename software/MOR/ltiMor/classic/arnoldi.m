@@ -1,27 +1,34 @@
-function [V,Ct,W,Bt] = arnoldi(E,A,b,varargin)
+function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 % ARNOLDI - Arnoldi algorithm using multiple expansion points
 % -------------------------------------------------------------------------
-% [V,Ct]        = ARNOLDI(E,A,b,s0)
-% [V,Ct]        = ARNOLDI(E,A,b,s0,IP)
-% [V,Ct]        = ARNOLDI(E,A,b,s0,R)
-% [V,Ct]        = ARNOLDI(E,A,b,s0,R,IP)
-% [V,Ct,W,Bt]   = ARNOLDI(E,A,b,c,s0)
-% [V,Ct,W,Bt]   = ARNOLDI(E,A,b,c,s0,IP)
-% [V,Ct,W,Bt]   = ARNOLDI(E,A,b,c,s0,R,L)
-% [V,Ct,W,Bt]   = ARNOLDI(E,A,b,c,s0,R,L,IP)
+% [V,Ct]        = ARNOLDI(E,A,B,s0)
+% [V,Ct]        = ARNOLDI(E,A,B,s0,IP)
+% [V,Ct]        = ARNOLDI(E,A,B,s0,R)
+% [V,Ct]        = ARNOLDI(E,A,B,s0,R,IP)
+% [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0)
+% [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,IP)
+% [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,R,L)
+% [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,R,L,IP)
 %
-% Inputs:       * E,A,b,c: System matrices
+% Inputs:       * E,A,B,C: System matrices
 %               * s0:    Vector of expansion points
 %               * R,L:   (opt.) Matrix of right/left tangential directions
 %               * IP:    (opt.) function handle for inner product
 % Outputs:      * V:    Orthonormal basis spanning the input Krylov subsp.
 %               * TODO Change the name of tangential directions!
-%               * Ct:   Right tangential directions of Sylvester Eq.
+%               * Rsylv:   Right tangential directions of Sylvester Eq.
 %               * W:    Orthonormal basis spanning the output Krylov subsp.
-%               * Bt:   Left tangential directions of Sylvester Eq.
+%               * Lsylv:   Left tangential directions of Sylvester Eq.
 % -------------------------------------------------------------------------
 % USAGE:  This function is used to compute the matrix V spanning the 
 % input Krylov subspace corresponding to E, A, b and s0 [1,2].
+%
+% s0 must be a vector of complex frequencies closed under conjugation. In
+% case of MIMO systems, if matrices of tangential directions R (and L) are
+% defined, they must have the same number of columns as the shifts, so that
+% for each tangential direction it is clear to which shift it belongs. If
+% not tangential directions are specified, then block Krylov subspaces are
+% computed.
 %
 % The columns of V build an orthonormal basis of the input Krylov 
 % subspace. The orthogonalization is conducted using a reorthogonalized
@@ -56,40 +63,40 @@ function [V,Ct,W,Bt] = arnoldi(E,A,b,varargin)
 %%  Parse input
 
 if nargin == 4
-    % usage: ARNOLDI(E,A,b,s0)
+    % usage: ARNOLDI(E,A,B,s0)
     s0 = varargin{1};
     hermite = 0; % same shifts for input and output Krylov?
 elseif nargin > 4
     %   Do the classification depending on the properties of the objects
-    %   ARNOLDI(E,A,b,s0,...) or ARNOLDI(E,A,b,c,...)
+    %   ARNOLDI(E,A,B,s0,...) or ARNOLDI(E,A,B,C,...)
     if size(varargin{1},2) == size(A,1)
-        % usage: ARNOLDI(E,A,b,c,s0,...)
+        % usage: ARNOLDI(E,A,B,C,s0,...)
         hermite = 1;
-        c = varargin{1};
+        C = varargin{1};
         s0 = varargin{2};
         if nargin == 6
-            % usage: ARNOLDI(E,A,b,c,s0,IP)
+            % usage: ARNOLDI(E,A,B,C,s0,IP)
             IP = varargin{3};
         elseif nargin == 7
-            % usage: ARNOLDI(E,A,b,c,s0,R,L)
+            % usage: ARNOLDI(E,A,B,C,s0,R,L)
             R = varargin{3};
             L = varargin{4};
         elseif nargin == 8
-            % usage: ARNOLDI(E,A,b,c,s0,R,L,IP)
+            % usage: ARNOLDI(E,A,B,C,s0,R,L,IP)
             R = varargin{3};
             L = varargin{4};
             IP = varargin{5};
         end
     else
-        % usage: ARNOLDI(E,A,b,s0,...)
+        % usage: ARNOLDI(E,A,B,s0,...)
         hermite = 0;
         s0 = varargin{1};
         if nargin == 5
             if size(varargin{2},2) == size(s0,2)
-                % usage: ARNOLDI(E,A,b,s0,R)
+                % usage: ARNOLDI(E,A,B,s0,R)
                 R = varargin{2};
             else   
-                % usage: ARNOLDI(E,A,b,s0,IP)
+                % usage: ARNOLDI(E,A,B,s0,IP)
                 IP = varargin{2};
             end
         else
@@ -100,8 +107,30 @@ elseif nargin > 4
     end
 end
 
+if size(s0,1)>1
+    error('s0 must be a vector containing the expansion points.')
+end
+
+m = size(B,2);
+
+if exist('R','var')
+    if length(s0) ~= size(R,2),
+        error('R must have the same columns as s0')
+    end
+    %   The reduced order is equivalent to the number of shifts
+    q = length(s0);
+else
+    %   Block Krylov subspaces will be performed
+    q = length(s0)*m;
+end
+
+if exist('L','var')
+    if length(s0) ~= size(L,2),
+        error('L must have the same columns as s0')
+    end
+end
+
 %%  Define variables that might have not been passed to the function
-q=length(s0); % order of the reduced model
 
 %   IP
 if ~exist('IP', 'var') 
@@ -112,51 +141,8 @@ if ~exist('IP', 'var')
     end
 end
 
-%   Tangential directions
-if ~exist('R', 'var') 
-    %   Compute block Krylov subspaces
-    m = size(b,2);
-    if m == 1; %SISO -> tangential directions are scalars
-        R = ones(1,q);
-    else %MIMO -> fill up s0 and define tangential blocks
-        s0old = s0; s0 = [];
-        for iShift = 1:q
-            s0 = [s0, s0old(iShift)*ones(1,m)];
-        end
-        R = repmat(speye(m,m),1,q);
-    end
-    if hermite
-        p = size(c,1); 
-        if m ~=p 
-            error('Block Krylov for m~=p is not supported in arnoldi');
-        else
-            L = R;
-        end
-    end
-end
 
-if size(s0,1)>1
-    error('s0 must be a vector containing the expansion points.')
-end
-
-reorth = 'gs'; %0, 'gs','qr'
-% lseSol = 'lu'; %'lu', '\'
-
-
-% % default execution options
-% Def.reorth = 'gs'; %Orthogonalization algorithm (0, 'gs','qr')
-% Def.lseSol = 'lu'; %Solution of LSE ('lu', '\')
-% 
-% % create the options structure
-% if ~exist('Opts','var') || isempty(Opts)
-%     Opts = Def;
-% else
-%     Opts = parseOpts(Opts,Def);
-% end
-
-
-%%  Compute the Krylov subspaces
-% remove one element of complex pairs
+% remove one element of complex pairs (must be closed under conjugation)
 k=find(imag(s0));
 if ~isempty(k)
     s0c = cplxpair(s0(k));
@@ -164,22 +150,51 @@ if ~isempty(k)
     s0 = [s0 s0c(1:2:end)];
 end
 
-% preallocate memory
-V=zeros(length(b),q);
-Ct=eye(1,q); %**
-if hermite, W = zeros(length(b),q); Bt = eye(1,q)';end
+nS0 = length(s0); %number of shifts for the computations
 
-for jCol=1:length(s0)
+%   Tangential directions
+if ~exist('R', 'var') %   Compute block Krylov subspaces
+    if m == 1; %SISO -> tangential directions are scalars
+        R = ones(1,nS0);
+    else %MIMO -> fill up s0 and define tangential blocks
+        s0old = s0; s0 = [];
+        for iShift = 1:nS0
+            s0 = [s0, s0old(iShift)*ones(1,m)];
+        end
+        R = repmat(speye(m,m),1,nS0);
+    end
+    if hermite
+        p = size(C,1); 
+        if m ~=p 
+            error('Block Krylov for m~=p is not supported in arnoldi');
+        else
+            L = R;
+        end
+    end
+else % R (and L) were specified
+    % make sure they have the right length
+end
+
+reorth = 'gs'; %0, 'gs','qr'
+% lseSol = 'lu'; %'lu', '\'
+
+
+%%  Compute the Krylov subspaces
+% preallocate memory
+V=zeros(length(B),q);
+Rsylv=R;
+if hermite, W = zeros(length(B),q); Lsylv = L;end
+
+for jCol=1:ns0
     % new basis vector
-    tempV=b; newlu=1; 
-    Ct(jCol)=1; %**
-    if hermite, tempW = c'; Bt(jCol) = 1; end ;
+    tempV=B*R(:,jCol); newlu=1; 
+    if hermite, tempW = C'; Lsylv(jCol) = 1; end ;
     if jCol>1
         if s0(jCol)==s0(jCol-1)
             tempV=V(:,jCol-1);
             newlu=0;
-            Ct(jCol)=0; %**
-            if hermite, tempW = W(:,jCol-1); Bt(jCol)=0; end
+            Rsylv(jCol)=0; %**
+            if hermite, tempW = W(:,jCol-1); Lsylv(jCol)=0; end
         end
     end
     
@@ -232,22 +247,22 @@ for jCol=1:length(s0)
     for iCol=1:jCol-1
       h=IP(tempV,V(:,iCol));
       tempV=tempV-V(:,iCol)*h;
-      Ct(jCol)=Ct(jCol)-h*Ct(iCol);
+      Rsylv(jCol)=Rsylv(jCol)-h*Rsylv(iCol);
       if hermite
         h=IP(tempW,W(:,iCol));
         tempW=tempW-W(:,iCol)*h;
-        Bt(jCol)=Bt(jCol)-h*Bt(iCol);
+        Lsylv(jCol)=Lsylv(jCol)-h*Lsylv(iCol);
       end 
     end
 
     % normalize new basis vector
     h = sqrt(IP(tempV,tempV));
     V(:,jCol)=tempV/h;
-    Ct(jCol) = Ct(jCol)/h;
+    Rsylv(jCol) = Rsylv(jCol)/h;
     if hermite
         h = sqrt(IP(tempW,tempW));
         W(:,jCol)=tempW/h;
-        Bt(jCol) = Bt(jCol)/h;
+        Lsylv(jCol) = Lsylv(jCol)/h;
     end
    
 end
@@ -259,20 +274,20 @@ for jCol=length(s0)+1:q
     for iCol=1:jCol-1
       h=IP(tempV, V(:,iCol));
       tempV=tempV-h*V(:,iCol);
-      Ct(jCol) = Ct(jCol)-h*Ct(iCol);
+      Rsylv(jCol) = Rsylv(jCol)-h*Rsylv(iCol);
       if hermite        
         h=IP(tempW, W(:,iCol));
         tempW=tempW-h*W(:,iCol);
-        Bt(jCol) = Bt(jCol)-h*Bt(iCol);
+        Lsylv(jCol) = Lsylv(jCol)-h*Lsylv(iCol);
       end
     end
     h = sqrt(IP(tempV,tempV));
     V(:,jCol)=tempV/h;
-    Ct(jCol) = Ct(jCol)/h;
+    Rsylv(jCol) = Rsylv(jCol)/h;
     if hermite
         h = sqrt(IP(tempW,tempW));
         W(:,jCol)=tempW/h;
-        Bt(jCol) = Bt(jCol)/h;
+        Lsylv(jCol) = Lsylv(jCol)/h;
     end
 end
 
