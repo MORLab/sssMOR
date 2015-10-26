@@ -5,28 +5,25 @@ Copyright (c) 2015 Institute of Automatic Control,
 See LICENSE.txt for license information.
 web: https://www.rt.mw.tum.de/
 
-(This file has been modified automatically on 15 Oct 2015 02:19)
+(This file has been modified automatically on 26 Oct 2015 18:57)
 -->
 <toc version="2.0">
    <tocitem image="$toolbox/matlab/icons/book_mat.gif" target="test_product_page.html">sssMOR Toolbox
 <tocitem image="HelpIcon.GETTING_STARTED" target="getting_started_index.html">Getting Started
-    <tocitem target="whatis.html">What is sssMOR?</tocitem>
+            <tocitem target="whatis.html">What is sssMOR?</tocitem>
       </tocitem>
       <tocitem image="HelpIcon.EXAMPLES" target="examples_index.html">Examples
-    <tocitem target="example_test.html">Example Test</tocitem>
+            <tocitem target="example_test.html">Example Test</tocitem>
       </tocitem>
       <tocitem image="HelpIcon.FUNCTION" target="functions_index.html">Functions Reference
-    <tocitem target="functions_index.html">Test Functions
-<tocitem image="HelpIcon.FUNCTION" target="help_testhelp.html">help_test</tocitem>
-            <tocitem image="HelpIcon.FUNCTION" target="headerTemplatehelp.html">headerTemplate</tocitem>
-         </tocitem>
-         <tocitem target="functions_index.html">Classic LTI MOR
+            <tocitem target="functions_index.html">Classic LTI MOR
 <tocitem image="HelpIcon.FUNCTION" target="arnoldihelp.html">arnoldi</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="irkahelp.html">irka</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="modalMorhelp.html">modalMor</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="momentshelp.html">moments</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="rkhelp.html">rk</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="tbrhelp.html">tbr</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="isH2opthelp.html">isH2opt</tocitem>
          </tocitem>
       </tocitem>
       <tocitem image="HelpIcon.RELEASENOTES" target="./RELEASE.txt">Release Notes</tocitem>
