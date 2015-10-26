@@ -1,4 +1,4 @@
-function [mu, L_S, P_S] = NumericalAbscissa(A,E)
+function [mu, L_S, P_S] = numericalAbscissa(A,E)
 % Compute generalized numerical abscissa
 %   Input:  A, E:     HFM matrices
 %   Output: mu:       generalized numerical abscissa mu_E(A)
