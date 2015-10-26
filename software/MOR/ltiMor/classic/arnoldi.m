@@ -3,16 +3,16 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 % -------------------------------------------------------------------------
 % [V,Ct]        = ARNOLDI(E,A,B,s0)
 % [V,Ct]        = ARNOLDI(E,A,B,s0,IP)
-% [V,Ct]        = ARNOLDI(E,A,B,s0,R)
-% [V,Ct]        = ARNOLDI(E,A,B,s0,R,IP)
+% [V,Ct]        = ARNOLDI(E,A,B,s0,Rt)
+% [V,Ct]        = ARNOLDI(E,A,B,s0,Rt,IP)
 % [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0)
 % [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,IP)
-% [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,R,L)
-% [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,R,L,IP)
+% [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,Rt,Lt)
+% [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
 %
 % Inputs:       * E,A,B,C: System matrices
 %               * s0:    Vector of expansion points
-%               * R,L:   (opt.) Matrix of right/left tangential directions
+%               * Rt,Lt:   (opt.) Matrix of right/left tangential directions
 %               * IP:    (opt.) function handle for inner product
 % Outputs:      * V:    Orthonormal basis spanning the input Krylov subsp.
 %               * TODO Change the name of tangential directions!
@@ -24,11 +24,15 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 % input Krylov subspace corresponding to E, A, b and s0 [1,2].
 %
 % s0 must be a vector of complex frequencies closed under conjugation. In
-% case of MIMO systems, if matrices of tangential directions R (and L) are
+% case of MIMO systems, if matrices of tangential directions Rt (and Lt) are
 % defined, they must have the same number of columns as the shifts, so that
 % for each tangential direction it is clear to which shift it belongs. If
 % not tangential directions are specified, then block Krylov subspaces are
 % computed.
+%
+% NOTE that for MIMO systems, not all possible Krylov subspaces can be
+% build with this function. For example, block Krylov subpspaces with
+% multiplicities in the shifts are not supported so far.
 %
 % The columns of V build an orthonormal basis of the input Krylov 
 % subspace. The orthogonalization is conducted using a reorthogonalized
@@ -78,13 +82,13 @@ elseif nargin > 4
             % usage: ARNOLDI(E,A,B,C,s0,IP)
             IP = varargin{3};
         elseif nargin == 7
-            % usage: ARNOLDI(E,A,B,C,s0,R,L)
-            R = varargin{3};
-            L = varargin{4};
+            % usage: ARNOLDI(E,A,B,C,s0,Rt,Lt)
+            Rt = varargin{3};
+            Lt = varargin{4};
         elseif nargin == 8
-            % usage: ARNOLDI(E,A,B,C,s0,R,L,IP)
-            R = varargin{3};
-            L = varargin{4};
+            % usage: ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
+            Rt = varargin{3};
+            Lt = varargin{4};
             IP = varargin{5};
         end
     else
@@ -93,15 +97,15 @@ elseif nargin > 4
         s0 = varargin{1};
         if nargin == 5
             if size(varargin{2},2) == size(s0,2)
-                % usage: ARNOLDI(E,A,B,s0,R)
-                R = varargin{2};
+                % usage: ARNOLDI(E,A,B,s0,Rt)
+                Rt = varargin{2};
             else   
                 % usage: ARNOLDI(E,A,B,s0,IP)
                 IP = varargin{2};
             end
         else
-            % usage: ARNOLDI(E,A,b,s0,R,IP)
-            R = varargin{3};
+            % usage: ARNOLDI(E,A,b,s0,Rt,IP)
+            Rt = varargin{3};
             IP = varargin{4};
         end
     end
@@ -113,9 +117,9 @@ end
 
 m = size(B,2);
 
-if exist('R','var')
-    if length(s0) ~= size(R,2),
-        error('R must have the same columns as s0')
+if exist('Rt','var')
+    if length(s0) ~= size(Rt,2),
+        error('Rt must have the same columns as s0')
     end
     %   The reduced order is equivalent to the number of shifts
     q = length(s0);
@@ -124,9 +128,9 @@ else
     q = length(s0)*m;
 end
 
-if exist('L','var')
-    if length(s0) ~= size(L,2),
-        error('L must have the same columns as s0')
+if exist('Lt','var')
+    if length(s0) ~= size(Lt,2),
+        error('Lt must have the same columns as s0')
     end
 end
 
@@ -151,11 +155,12 @@ if ~isempty(k)
 end
 
 nS0 = length(s0); %number of shifts for the computations
+nS0c = length(s0c); %number of complex shifts
 
 %   Tangential directions
-if ~exist('R', 'var') %   Compute block Krylov subspaces
+if ~exist('Rt', 'var') %   Compute block Krylov subspaces
     if m == 1; %SISO -> tangential directions are scalars
-        R = ones(1,nS0);
+        Rt = ones(1,nS0);
     else %MIMO -> fill up s0 and define tangential blocks
         
         % tangential matching of higher order moments not implemented so
@@ -169,17 +174,22 @@ if ~exist('R', 'var') %   Compute block Krylov subspaces
         for iShift = 1:nS0
             s0 = [s0, s0old(iShift)*ones(1,m)];
         end
-        R = repmat(speye(m,m),1,nS0);
+        Rt = repmat(speye(m,m),1,nS0);
+        
+        %update the number of shifts
+        nS0     = length(s0);
+        nS0c    = m*nS0c; 
+        
     end
     if hermite
         p = size(C,1); 
         if m ~=p 
             error('Block Krylov for m~=p is not supported in arnoldi');
         else
-            L = R;
+            Lt = Rt;
         end
     end
-else % R (and L) were specified
+else % Rt (and Lt) were specified
     % make sure they have the right length
 end
 
@@ -190,17 +200,18 @@ reorth = 'gs'; %0, 'gs','qr'
 %%  Compute the Krylov subspaces
 % preallocate memory
 V=zeros(length(B),q);
-Rsylv=R;
-if hermite, W = zeros(length(B),q); Lsylv = L;end
+Rsylv=zeros(m,q);
+if hermite, W = zeros(length(B),q); Lsylv = zeros(p,q);end
 
-for jCol=1:ns0
+for jCol=1:nS0
     % new basis vector
-    tempV=B*R(:,jCol); newlu=1; 
-    if hermite, tempW = C'*L(:,jCol); end
+    tempV=B*Rt(:,jCol); newlu=1; 
+    Rsylv(:,jCol) = Rt(:,jCol);
+    if hermite, tempW = C'*Lt(:,jCol); Lsylv(:,jCol) = Lt(:,jCol); end
     if jCol>1
         if s0(jCol)==s0(jCol-1)
             newlu=0;
-            if R(:,jCol) == R(:,jCol-1)
+            if Rt(:,jCol) == Rt(:,jCol-1)
                 if m == 1 %SISO
                     tempV = V(:,jCol-1); %overwrite
                     Rsylv(:,jCol)=zeros(m,1);
@@ -208,7 +219,7 @@ for jCol=1:ns0
                     error('Higher order moments for MIMO Systems not implemented yet');
                 end
             end
-            if hermite, tempW = W(:,jCol-1); Lsylv(jCol)=0; end
+            if hermite, tempW = W(:,jCol-1); Lsylv(:,jCol)=zeros(p,1); end
         end
     end
     
@@ -225,14 +236,14 @@ for jCol=1:ns0
             catch err
                 if (strcmp(err.identifier,'MATLAB:posdef'))
                     % E is not pos. def -> use LU instead
-                    [L,U,p,o,S]=lu(sparse(E),'vector');
+                    [L,U,a,o,S]=lu(sparse(E),'vector');
                 else
                     rethrow(err);
                 end
             end
         end
         if exist('U', 'var')
-            tempV(o,:) = U\(L\(S(:,p)\tempV)); %LU x(o,:) = S(:,p)\b 
+            tempV(o,:) = U\(L\(S(:,a)\tempV)); %LU x(o,:) = S(:,a)\b 
         else
             tempV = S*(R\(R'\(S'*tempV)));
         end
@@ -247,18 +258,18 @@ for jCol=1:ns0
         end
         if newlu==1
             % vector LU for sparse matrices
-            [L,U,p,o,S]=lu(sparse(A-s0(jCol)*E),'vector');
+            [L,U,a,o,S]=lu(sparse(A-s0(jCol)*E),'vector');
         end
         % Solve the linear system of equations
-        tempV(o,:) = U\(L\(S(:,p)\tempV)); %LU x(o,:) = S(:,p)\b 
-        if hermite, tempW = (S(:,p)).'\(L.'\(U.'\(tempW(o,:)))); end %U'L'S(:,p) x = c'(o,:) 
+        tempV(o,:) = U\(L\(S(:,a)\tempV)); %LU x(o,:) = S(:,a)\b 
+        if hermite, tempW = (S(:,a)).'\(L.'\(U.'\(tempW(o,:)))); end %U'L'S(:,a) x = c'(o,:) 
     end 
 
     % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
     if ~isreal(s0(jCol))
-        V(:,jCol+length(s0c)/2)=imag(tempV); 
+        V(:,jCol+nS0c/2)=imag(tempV); 
         tempV=real(tempV);
-        if hermite, W(:,jCol+length(s0c)/2)=imag(tempW);tempW=real(tempW); end
+        if hermite, W(:,jCol+nS0c/2)=imag(tempW);tempW=real(tempW); end
     end
 
     % orthogonalize vectors
