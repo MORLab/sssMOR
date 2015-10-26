@@ -157,6 +157,14 @@ if ~exist('R', 'var') %   Compute block Krylov subspaces
     if m == 1; %SISO -> tangential directions are scalars
         R = ones(1,nS0);
     else %MIMO -> fill up s0 and define tangential blocks
+        
+        % tangential matching of higher order moments not implemented so
+        % far! Therefore, if two shifts are the same, give an error
+        if any(diff(s0)==0)
+            error(['tangential matching of higher order moments with block'...
+                'Krylov not implemented yet']);
+        end
+        
         s0old = s0; s0 = [];
         for iShift = 1:nS0
             s0 = [s0, s0old(iShift)*ones(1,m)];
@@ -188,12 +196,18 @@ if hermite, W = zeros(length(B),q); Lsylv = L;end
 for jCol=1:ns0
     % new basis vector
     tempV=B*R(:,jCol); newlu=1; 
-    if hermite, tempW = C'; Lsylv(jCol) = 1; end ;
+    if hermite, tempW = C'*L(:,jCol); end
     if jCol>1
         if s0(jCol)==s0(jCol-1)
-            tempV=V(:,jCol-1);
             newlu=0;
-            Rsylv(jCol)=0; %**
+            if R(:,jCol) == R(:,jCol-1)
+                if m == 1 %SISO
+                    tempV = V(:,jCol-1); %overwrite
+                    Rsylv(:,jCol)=zeros(m,1);
+                else
+                    error('Higher order moments for MIMO Systems not implemented yet');
+                end
+            end
             if hermite, tempW = W(:,jCol-1); Lsylv(jCol)=0; end
         end
     end
@@ -224,8 +238,12 @@ for jCol=1:ns0
         end
     else %Rational Krylov
         if newlu==0
-            tempV=E*tempV;
-            if hermite, tempW = E'*tempW; end
+            if m==1 %SISO
+                tempV=E*tempV;
+                if hermite, tempW = E'*tempW; end
+            else
+                % MIMO with different tangential direction: do nothing
+            end
         end
         if newlu==1
             % vector LU for sparse matrices
@@ -247,22 +265,22 @@ for jCol=1:ns0
     for iCol=1:jCol-1
       h=IP(tempV,V(:,iCol));
       tempV=tempV-V(:,iCol)*h;
-      Rsylv(jCol)=Rsylv(jCol)-h*Rsylv(iCol);
+      Rsylv(:,jCol)=Rsylv(:,jCol)-h*Rsylv(:,iCol);
       if hermite
         h=IP(tempW,W(:,iCol));
         tempW=tempW-W(:,iCol)*h;
-        Lsylv(jCol)=Lsylv(jCol)-h*Lsylv(iCol);
+        Lsylv(:,jCol)=Lsylv(:,jCol)-h*Lsylv(:,iCol);
       end 
     end
 
     % normalize new basis vector
     h = sqrt(IP(tempV,tempV));
     V(:,jCol)=tempV/h;
-    Rsylv(jCol) = Rsylv(jCol)/h;
+    Rsylv(:,jCol) = Rsylv(:,jCol)/h;
     if hermite
         h = sqrt(IP(tempW,tempW));
         W(:,jCol)=tempW/h;
-        Lsylv(jCol) = Lsylv(jCol)/h;
+        Lsylv(:,jCol) = Lsylv(:,jCol)/h;
     end
    
 end
@@ -274,20 +292,20 @@ for jCol=length(s0)+1:q
     for iCol=1:jCol-1
       h=IP(tempV, V(:,iCol));
       tempV=tempV-h*V(:,iCol);
-      Rsylv(jCol) = Rsylv(jCol)-h*Rsylv(iCol);
+      Rsylv(:,jCol) = Rsylv(:,jCol)-h*Rsylv(:,iCol);
       if hermite        
         h=IP(tempW, W(:,iCol));
         tempW=tempW-h*W(:,iCol);
-        Lsylv(jCol) = Lsylv(jCol)-h*Lsylv(iCol);
+        Lsylv(:,jCol) = Lsylv(:,jCol)-h*Lsylv(:,iCol);
       end
     end
     h = sqrt(IP(tempV,tempV));
     V(:,jCol)=tempV/h;
-    Rsylv(jCol) = Rsylv(jCol)/h;
+    Rsylv(:,jCol) = Rsylv(:,jCol)/h;
     if hermite
         h = sqrt(IP(tempW,tempW));
         W(:,jCol)=tempW/h;
-        Lsylv(jCol) = Lsylv(jCol)/h;
+        Lsylv(:,jCol) = Lsylv(:,jCol)/h;
     end
 end
 
