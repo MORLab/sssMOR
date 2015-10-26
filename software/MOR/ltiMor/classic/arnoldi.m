@@ -1,16 +1,25 @@
 function [V,Ct,W,Bt] = arnoldi(E,A,b,varargin)
 % ARNOLDI - Arnoldi algorithm using multiple expansion points
-% ------------------------------------------------------------------
+% -------------------------------------------------------------------------
+% [V,Ct]        = ARNOLDI(E,A,b,s0)
 % [V,Ct]        = ARNOLDI(E,A,b,s0,IP)
+% [V,Ct]        = ARNOLDI(E,A,b,s0,R)
+% [V,Ct]        = ARNOLDI(E,A,b,s0,R,IP)
+% [V,Ct,W,Bt]   = ARNOLDI(E,A,b,c,s0)
 % [V,Ct,W,Bt]   = ARNOLDI(E,A,b,c,s0,IP)
+% [V,Ct,W,Bt]   = ARNOLDI(E,A,b,c,s0,R,L)
+% [V,Ct,W,Bt]   = ARNOLDI(E,A,b,c,s0,R,L,IP)
+%
 % Inputs:       * E,A,b,c: System matrices
 %               * s0:    Vector of expansion points
+%               * R,L:   (opt.) Matrix of right/left tangential directions
 %               * IP:    (opt.) function handle for inner product
 % Outputs:      * V:    Orthonormal basis spanning the input Krylov subsp.
+%               * TODO Change the name of tangential directions!
 %               * Ct:   Right tangential directions of Sylvester Eq.
 %               * W:    Orthonormal basis spanning the output Krylov subsp.
 %               * Bt:   Left tangential directions of Sylvester Eq.
-% ------------------------------------------------------------------
+% -------------------------------------------------------------------------
 % USAGE:  This function is used to compute the matrix V spanning the 
 % input Krylov subspace corresponding to E, A, b and s0 [1,2].
 %
@@ -40,7 +49,7 @@ function [V,Ct,W,Bt] = arnoldi(E,A,b,varargin)
 % ------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto 
 %               (a.castagnotto@tum.de)
-% Last Change:  22 Jul 2015
+% Last Change:  26 Oct 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
@@ -50,28 +59,51 @@ if nargin == 4
     % usage: ARNOLDI(E,A,b,s0)
     s0 = varargin{1};
     hermite = 0; % same shifts for input and output Krylov?
-elseif nargin == 5
+elseif nargin > 4
+    %   Do the classification depending on the properties of the objects
+    %   ARNOLDI(E,A,b,s0,...) or ARNOLDI(E,A,b,c,...)
     if size(varargin{1},2) == size(A,1)
-        % usage: ARNOLDI(E,A,b,c,s0)
+        % usage: ARNOLDI(E,A,b,c,s0,...)
+        hermite = 1;
         c = varargin{1};
         s0 = varargin{2};
-        hermite = 1;
+        if nargin == 6
+            % usage: ARNOLDI(E,A,b,c,s0,IP)
+            IP = varargin{3};
+        elseif nargin == 7
+            % usage: ARNOLDI(E,A,b,c,s0,R,L)
+            R = varargin{3};
+            L = varargin{4};
+        elseif nargin == 8
+            % usage: ARNOLDI(E,A,b,c,s0,R,L,IP)
+            R = varargin{3};
+            L = varargin{4};
+            IP = varargin{5};
+        end
     else
-        % usage: ARNOLDI(E,A,b,s0,IP)
+        % usage: ARNOLDI(E,A,b,s0,...)
+        hermite = 0;
         s0 = varargin{1};
-        IP = varargin{2};
-        hermite = 0; % same shifts for input and output Krylov?
+        if nargin == 5
+            if size(varargin{2},2) == size(s0,2)
+                % usage: ARNOLDI(E,A,b,s0,R)
+                R = varargin{2};
+            else   
+                % usage: ARNOLDI(E,A,b,s0,IP)
+                IP = varargin{2};
+            end
+        else
+            % usage: ARNOLDI(E,A,b,s0,R,IP)
+            R = varargin{3};
+            IP = varargin{4};
+        end
     end
-elseif nargin == 6
-    % usage: ARNOLDI(E,A,b,c,s0,IP)
-    c = varargin{1};
-    s0 = varargin{2};
-    IP = varargin{3};
-    hermite = 1;
-else
-    error('Wrong number of inputs')
 end
-    
+
+%%  Define variables that might have not been passed to the function
+q=length(s0); % order of the reduced model
+
+%   IP
 if ~exist('IP', 'var') 
     if abs(condest(E))<Inf % 
         IP=@(x,y) (x'*E*y); 
@@ -80,11 +112,33 @@ if ~exist('IP', 'var')
     end
 end
 
+%   Tangential directions
+if ~exist('R', 'var') 
+    %   Compute block Krylov subspaces
+    m = size(b,2);
+    if m == 1; %SISO -> tangential directions are scalars
+        R = ones(1,q);
+    else %MIMO -> fill up s0 and define tangential blocks
+        s0old = s0; s0 = [];
+        for iShift = 1:q
+            s0 = [s0, s0old(iShift)*ones(1,m)];
+        end
+        R = repmat(speye(m,m),1,q);
+    end
+    if hermite
+        p = size(c,1); 
+        if m ~=p 
+            error('Block Krylov for m~=p is not supported in arnoldi');
+        else
+            L = R;
+        end
+    end
+end
+
 if size(s0,1)>1
     error('s0 must be a vector containing the expansion points.')
 end
 
-q=length(s0); % order of the reduced model
 reorth = 'gs'; %0, 'gs','qr'
 % lseSol = 'lu'; %'lu', '\'
 
