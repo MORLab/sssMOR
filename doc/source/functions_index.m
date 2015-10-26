@@ -18,7 +18,7 @@
 %%
 % <html>
 %   <hr>
-%   <p class="copy">&copy; 2015 RT Technische Universität München
+%   <p class="copy">&copy; 2015 RT Universit&auml;t M&uuml;nchen
 %        <tt class="minicdot">&#149;</tt>
 %        <a href="http://www.rt.mw.tum.de">Website</a>
 %        <tt class="minicdot">&#149;</tt>
