@@ -1,0 +1,357 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>irka</title><meta name="generator" content="MATLAB 8.5"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-10-26"><meta name="DC.source" content="irkahelp.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+
+
+
+table p  { padding:0px; margin:0px 0px 6px; }
+table.inner { border: 1px solid #d6d4d4; }
+
+
+th
+{
+background:green;
+color:white;
+}
+td, th
+{
+    text-align:left;
+	padding:7px 5px;
+	background:#f7f7f7;
+	border-top: 1px solid #d6d4d4;
+}
+tr:hover td {background: #f0f0f0;}
+
+div.info 
+{
+    text-align:left;
+	padding:7px 5px;
+	background:#D6EDFF;
+	border: 2px solid #d6d4d4;
+}
+div.syntax
+{
+    text-align:left;
+	padding:0px 25px;
+	background: white;
+    font-family:Monospace;
+}
+
+  </style></head><body><div class="content"><h1>irka</h1><!--introduction--><p>Iterative Rational Krylov Algorithm</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Syntax</a></li><li><a href="#2">Inputs</a></li><li><a href="#3">Outputs</a></li><li><a href="#4">Examples</a></li><li><a href="#5">Description</a></li><li><a href="#6">See also</a></li><li><a href="#7">References</a></li></ul></div><h2>Syntax<a name="1"></a></h2><p>
+       <div class="syntax">
+[sysr, V, W, s0, s0_traj] = irka(sys, s0, Opts) <br>
+       </div>
+</p><h2>Inputs<a name="2"></a></h2><p>
+<table cellspacing="0" cellpadding="4" width="" border="1" frame="box" rules="none" class="">
+<tbody valign="top">
+   <tr bgcolor="#F2F2F2">
+   <td>
+       <p class="table">
+           sys
+       </p>
+   </td>
+   <td>
+       <p class="table">
+           full oder model (sss)
+       </p>
+   </td>
+   </tr>
+   <tr bgcolor="#F2F2F2">
+   <td>
+       <p class="table">
+           s0
+       </p>
+   </td>
+   <td>
+       <p class="table">
+           vector of initial shifts
+       </p>
+   </td>
+   </tr>
+   <tr bgcolor="#F2F2F2">
+   <td>
+       <p class="table">
+           Opts
+       </p>
+   </td>
+   <td>
+       <p class="table">
+           (opt.) structure with execution parameters
+       </p>
+   </td>
+   </tr>
+</tbody>
+</table>
+</p><h2>Outputs<a name="3"></a></h2><p>
+<table cellspacing="0" cellpadding="4" width="" border="1" frame="box" rules="none" class="">
+<tbody valign="top">
+   <tr bgcolor="#F2F2F2">
+   <td>
+       <p class="table">
+           sysr
+       </p>
+   </td>
+   <td>
+       <p class="table">
+           reduced order model (sss)
+       </p>
+   </td>
+   </tr>
+   <tr bgcolor="#F2F2F2">
+   <td>
+       <p class="table">
+           V<br>W
+       </p>
+   </td>
+   <td>
+       <p class="table">
+           resulting projection matrices
+       </p>
+   </td>
+   </tr>
+   <tr bgcolor="#F2F2F2">
+   <td>
+       <p class="table">
+           s0
+       </p>
+   </td>
+   <td>
+       <p class="table">
+           final choice of shifts
+       </p>
+   </td>
+   </tr>
+   <tr bgcolor="#F2F2F2">
+   <td>
+       <p class="table">
+           s0_traj
+       </p>
+   </td>
+   <td>
+       <p class="table">
+           trajectory of all shifst for all iterations
+       </p>
+   </td>
+   </tr>
+</tbody>
+</table>
+</p><h2>Examples<a name="4"></a></h2><p>No examples</p><h2>Description<a name="5"></a></h2><p>This function executes the Iterative Rational Krylov Algorithm (<tt>irka</tt>) as proposed by Gugergin and Beattie in [1].</p><p>The <tt>irka</tt> iteration is conducted to search for an optimal set of shifts in Krylov subspace-based model reduction. If <tt>irka</tt> converges, then the reduced model is known to be a local optimum with respect to the H2 norm of the error.</p><h2>See also<a name="6"></a></h2><p><a href="arnoldihelp.html"><tt>arnoldi</tt></a>, <a href="rkhelp.html"><tt>rk</tt></a></p><h2>References<a name="7"></a></h2><div><ul><li><b>[1] Gugercin (2008)</b>, H2 model reduction for large-scale linear dynamical systems</li></ul></div><p>
+  <hr>
+  <p class="copy">&copy; 2015 RT Universit&auml;t M&uuml;nchen
+       <tt class="minicdot">&#149;</tt>
+       <a href="http://www.rt.mw.tum.de">Website</a>
+       <tt class="minicdot">&#149;</tt>
+       <a href="file:./LICENSE.txt">Terms of Use</a>
+       <tt class="minicdot">&#149;</tt>
+       <a href="file:./README.txt">Read me</a>
+  </p>
+</p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2015a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% irka
+% Iterative Rational Krylov Algorithm
+%
+%% Syntax
+%
+% <html>
+%        <div class="syntax">
+% [sysr, V, W, s0, s0_traj] = irka(sys, s0, Opts) <br>
+%        </div>
+% </html>
+%
+%% Inputs
+%
+% <html>
+% <table cellspacing="0" cellpadding="4" width="" border="1" frame="box" rules="none" class="">
+% <tbody valign="top">
+%    <tr bgcolor="#F2F2F2">
+%    <td>
+%        <p class="table">
+%            sys
+%        </p>
+%    </td>
+%    <td>
+%        <p class="table">
+%            full oder model (sss)
+%        </p>
+%    </td>
+%    </tr>
+%    <tr bgcolor="#F2F2F2">
+%    <td>
+%        <p class="table">
+%            s0
+%        </p>
+%    </td>
+%    <td>
+%        <p class="table">
+%            vector of initial shifts
+%        </p>
+%    </td>
+%    </tr>
+%    <tr bgcolor="#F2F2F2">
+%    <td>
+%        <p class="table">
+%            Opts
+%        </p>
+%    </td>
+%    <td>
+%        <p class="table">
+%            (opt.) structure with execution parameters
+%        </p>
+%    </td>
+%    </tr>
+% </tbody>
+% </table>
+% </html>
+%
+%% Outputs
+%
+% <html>
+% <table cellspacing="0" cellpadding="4" width="" border="1" frame="box" rules="none" class="">
+% <tbody valign="top">
+%    <tr bgcolor="#F2F2F2">
+%    <td>
+%        <p class="table">
+%            sysr
+%        </p>
+%    </td>
+%    <td>
+%        <p class="table">
+%            reduced order model (sss)
+%        </p>
+%    </td>
+%    </tr>
+%    <tr bgcolor="#F2F2F2">
+%    <td>
+%        <p class="table">
+%            V<br>W
+%        </p>
+%    </td>
+%    <td>
+%        <p class="table">
+%            resulting projection matrices
+%        </p>
+%    </td>
+%    </tr>
+%    <tr bgcolor="#F2F2F2">
+%    <td>
+%        <p class="table">
+%            s0
+%        </p>
+%    </td>
+%    <td>
+%        <p class="table">
+%            final choice of shifts
+%        </p>
+%    </td>
+%    </tr>
+%    <tr bgcolor="#F2F2F2">
+%    <td>
+%        <p class="table">
+%            s0_traj
+%        </p>
+%    </td>
+%    <td>
+%        <p class="table">
+%            trajectory of all shifst for all iterations
+%        </p>
+%    </td>
+%    </tr>
+% </tbody>
+% </table>
+% </html>
+%
+%% Examples
+% No examples
+%
+%
+%% Description
+% This function executes the Iterative Rational Krylov
+% Algorithm (|irka|) as proposed by Gugergin and Beattie in [1].
+%
+% The |irka| iteration is conducted to search for an optimal set of
+% shifts in Krylov subspace-based model reduction. If |irka| converges,
+% then the reduced model is known to be a local optimum with respect
+% to the H2 norm of the error.
+%
+%
+%% See also
+% <arnoldihelp.html |arnoldi|>, <rkhelp.html |rk|>
+%
+%
+%% References
+% * *[1] Gugercin (2008)*, H2 model reduction for large-scale linear dynamical systems
+%
+%
+
+%%
+% <html>
+%   <hr>
+%   <p class="copy">&copy; 2015 RT Universit&auml;t M&uuml;nchen
+%        <tt class="minicdot">&#149;</tt>
+%        <a href="http://www.rt.mw.tum.de">Website</a>
+%        <tt class="minicdot">&#149;</tt>
+%        <a href="file:./LICENSE.txt">Terms of Use</a>
+%        <tt class="minicdot">&#149;</tt>
+%        <a href="file:./README.txt">Read me</a>
+%   </p>
+% </html>
+
+##### SOURCE END #####
+--></body></html>

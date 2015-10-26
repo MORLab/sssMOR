@@ -27,7 +27,8 @@
 %   <h2><a href="examples_index.html">Examples</a></h2>
 % </html>
 % 
-% Examplary applications ...
+% Exemplary applications ...
+
 %%
 % <html>
 %   <hr>

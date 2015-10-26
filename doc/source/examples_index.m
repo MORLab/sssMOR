@@ -1,5 +1,5 @@
 %% Examples
-% Examplary applications of _SOMETHING_
+% Exemplary applications of _SOMETHING_
 %
 %% 
 % The |example| folder in the product path contains several examples which
@@ -7,6 +7,7 @@
 % 
 % * <example_test.html |example test|> - A simple example 
 %
+
 %%
 % <html>
 %   <hr>

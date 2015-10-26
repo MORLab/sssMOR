@@ -1,11 +1,6 @@
 %% Functions Reference
 % UI-functions of the sssMOR toolbox sorted by categories
 
-%% Test Functions
-%
-% * <.\help_testhelp.html |help_test|>  --  short description
-% * <.\headerTemplatehelp.html |headerTemplate|>  --  sssMOR toolbox header template
-
 %% Classic LTI MOR
 %
 % * <.\arnoldihelp.html |arnoldi|>  --  Arnoldi algorithm using multiple expansion points
@@ -14,6 +9,7 @@
 % * <.\momentshelp.html |moments|>  --  Returns the moments or Markov parameters of an LTI system
 % * <.\rkhelp.html |rk|>  --  Model Order Reduction by Rational Krylov
 % * <.\tbrhelp.html |tbr|>  --  Performs model order reduction by the Truncated Balanced Realization
+% * <.\isH2opthelp.html |isH2opt|>  --  evaluate Maier-Luenberger conditions for H2-optimality
 %
 %%
 % <html>
