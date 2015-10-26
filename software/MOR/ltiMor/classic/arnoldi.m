@@ -189,8 +189,6 @@ if ~exist('Rt', 'var') %   Compute block Krylov subspaces
             Lt = Rt;
         end
     end
-else % Rt (and Lt) were specified
-    % make sure they have the right length
 end
 
 reorth = 'gs'; %0, 'gs','qr'
@@ -215,11 +213,14 @@ for jCol=1:nS0
                 if m == 1 %SISO
                     tempV = V(:,jCol-1); %overwrite
                     Rsylv(:,jCol)=zeros(m,1);
+                    if hermite
+                        tempW = W(:,jCol-1); 
+                        Lsylv(:,jCol)=zeros(p,1); 
+                    end
                 else
                     error('Higher order moments for MIMO Systems not implemented yet');
                 end
             end
-            if hermite, tempW = W(:,jCol-1); Lsylv(:,jCol)=zeros(p,1); end
         end
     end
     
