@@ -95,3 +95,7 @@ _*.pdf
 # Complete directories
 /GUI/
 software/extras/errorTable.txt
+
+# Files generated automatically by running publishHelp.m
+doc/html/helpsearch-v3/
+doc/html/*.html
