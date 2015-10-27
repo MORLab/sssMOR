@@ -105,8 +105,8 @@ elseif nargin > 4
             end
         else
             % usage: ARNOLDI(E,A,b,s0,Rt,IP)
-            Rt = varargin{3};
-            IP = varargin{4};
+            Rt = varargin{2};
+            IP = varargin{3};
         end
     end
 end
@@ -117,7 +117,7 @@ end
 
 m = size(B,2); if hermite, p = size(C,1); end
 
-if exist('Rt','var')
+if exist('Rt','var') && ~isempty(Rt)
     if length(s0) ~= size(Rt,2),
         error('Rt must have the same columns as s0')
     end
@@ -128,7 +128,7 @@ else
     q = length(s0)*m;
 end
 
-if exist('Lt','var')
+if exist('Lt','var') && ~isempty(Lt)
     if length(s0) ~= size(Lt,2),
         error('Lt must have the same columns as s0')
     end
@@ -158,7 +158,7 @@ end
 nS0 = length(s0); %number of shifts for the computations
 
 %   Tangential directions
-if ~exist('Rt', 'var') %   Compute block Krylov subspaces
+if ~exist('Rt', 'var') || isempty(Rt)%   Compute block Krylov subspaces
     if m == 1; %SISO -> tangential directions are scalars
         Rt = ones(1,nS0);
         % note: these are NOT the SISO tangential directions used for the
