@@ -8,6 +8,10 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 %                   * type: options to eigs command - {'SM','LM',...}
 %                       - 'SM' for eigenvalues of Smallest Magnitude
 %                       - 'LM' for eigenvalues of Largest Magnitude
+%                       - 'SA' for smallest algebraic
+%                       - 'LA' for largest algebraic
+%                       - 'SR' for smallest real part
+%                       - 'LR' for largest real part
 %                       - scalar number for eigenvalues next to it
 % Outputs:      * sysr: reduced system
 %               * V, W: projection matrices
@@ -43,6 +47,8 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 
 % Default execution parameters
 Def.type = 'SM'; 
+Def.orth = '0'; %orthogonalization ('0','qr')
+Def.real = '0'; %real reduced system ('0', 'real')
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -51,68 +57,58 @@ else
     Opts = parseOpts(Opts,Def);
 end
 
-if sys.isdescriptor
-    E=sys.E;
-else
-    E=[];
-end
+%calculate right eigenvalues
+[V, rlambda] = eigs(sys.A, sys.E, q, Opts.type);
+rlambda=diag(rlambda);
 
-[V, p] = eigs(sys.A, E, q, Opts.type);
-p=diag(p);
-W=zeros(size(V));
-r=zeros(size(p));
-for i=1:q
-    warning off
-    sigma = p(i) - 1e-6; %eigs fails if sigma is equal to an eigenvalue
-    [wi, pi]=eigs(sys.A',sys.E', 1, sigma); %#ok<NASGU>
-    warning on
-    W(:,i) = wi;
-    r(i)=pi;
-end
-
-%sort eigenvalues and eigenvectors in descending/ascending order 
-%(complex conjugated pairs are sorted successively)
+%sort eigenvalues and right eigenvectors 
 V=V';
-tbl=table(p,V);
+tbl=table(rlambda,V);
 tbl=sortrows(tbl);
 V=tbl.V';
-p=tbl.p;
+rlambda=tbl.rlambda;
 
+%calculate left eigenvalues
+[W, llambda] = eigs(sys.A', sys.E', q, Opts.type);
+llambda=diag(llambda);
+
+%sort eigenvalues and left eigenvectors
 W=W';
-tbl=table(r,W);
+tbl=table(llambda,W);
 tbl=sortrows(tbl);
 W=tbl.W';
-r=tbl.r;
+llambda=tbl.llambda;
+
+%check if the same eigenvalues have been found
+for i=1:q
+    if abs(real(llambda)-real(rlambda(i)))+abs(imag(llambda)-imag(rlambda(i))) > 10e-6
+        error('Eigenvectors belong to different eigenvalues. Please try again.');
+    end
+end
 
 %split complex conjugated columns into real and imaginary
-k=find(imag(p));
-if ~isempty(k)
-     if mod(length(k),2)==0
-          for i=1:2:length(k)
-               temp=V(:,i);
-               V(:,i)=real(temp);
-               V(:,i+1)=imag(temp);
-          end
-     else
-          warning('Reduced system contains complex elements. Please try the reduction order q+1.');
-     end
+if strcmp(Opts.real,'real');
+    k=find(imag(rlambda));
+    if ~isempty(k)
+         if mod(length(k),2)==0
+              for i=1:2:length(k)
+                   temp=V(:,i);
+                   V(:,i)=real(temp);
+                   V(:,i+1)=imag(temp);
+                   temp=W(:,i);
+                   W(:,i)=real(temp);
+                   W(:,i+1)=imag(temp);
+              end
+         else
+              warning('Reduced system contains complex elements. Please try reduction order q+1.');
+         end
+    end
 end
 
-k=find(imag(r));
-if ~isempty(k)
-     if mod(length(k),2)==0
-          for i=1:2:length(k)
-               temp=W(:,i);
-               W(:,i)=real(temp);
-               W(:,i+1)=imag(temp);
-          end
-     else
-          warning('Reduced system contains complex elements. Please try the reduction order q+1.');
-     end
+%orthogonalize
+if strcmp(Opts.orth,'qr');
+    V=qr(V,0);
+    W=qr(W,0);
 end
 
-V=orth(V);
-W=orth(W);
-
-sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
-   
+sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);   
