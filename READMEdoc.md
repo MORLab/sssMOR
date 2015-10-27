@@ -9,6 +9,20 @@ The reason why the doc functions are not included in sssMOR is that they should 
 
 In sssMOR, the **headerTemplate** should be written/commented such that developers of sssMOR know how to format the header in order to produce the desired outcome.
 
+## How To
+In order to automatically generate the HTML documentation, go to the folder "doc" and run the publishHelp.m function.
+
+This will update the following files: 
+- doc/source/functions_index.m
+- doc/source/functions/*.m
+- doc/html/helptoc.xml
+- doc/html/*.html
+
+After running the publishHelp.m function, type "doc" in the Matlab Command Window (it is important to stay in the "doc" folder while doing this, because the "info.xml" file is also in that folder)
+
+You should now be able to see on the lower right corner (under "Supplemental Software") the "sssMOR Toolbox" documentation.
+
+
 ## Programmed and tested with:
 MATLAB R2015b
 
