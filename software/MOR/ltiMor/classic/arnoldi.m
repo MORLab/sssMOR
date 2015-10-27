@@ -115,7 +115,7 @@ if size(s0,1)>1
     error('s0 must be a vector containing the expansion points.')
 end
 
-m = size(B,2);
+m = size(B,2); if hermite, p = size(C,1); end
 
 if exist('Rt','var')
     if length(s0) ~= size(Rt,2),
@@ -149,25 +149,30 @@ end
 % remove one element of complex pairs (must be closed under conjugation)
 k=find(imag(s0));
 if ~isempty(k)
-    s0c = cplxpair(s0(k));
+    s0c = cplxpair(s0(k)); 
+    nS0c = length(s0c); %number of complex shifts
     s0(k) = [];
     s0 = [s0 s0c(1:2:end)];
 end
 
 nS0 = length(s0); %number of shifts for the computations
-nS0c = length(s0c); %number of complex shifts
 
 %   Tangential directions
 if ~exist('Rt', 'var') %   Compute block Krylov subspaces
     if m == 1; %SISO -> tangential directions are scalars
         Rt = ones(1,nS0);
+        % note: these are NOT the SISO tangential directions used for the
+        % Krylov subspace. This vector is just needed for the exact
+        % computation. If multiple shifts are given, this will be taken
+        % care of later on
     else %MIMO -> fill up s0 and define tangential blocks
         
         % tangential matching of higher order moments not implemented so
         % far! Therefore, if two shifts are the same, give an error
-        if any(diff(s0)==0)
-            error(['tangential matching of higher order moments with block'...
-                'Krylov not implemented yet']);
+        if any(diff(sort(s0))==0)
+            error(['Multiplicities in the shifts detected. Tangential '...
+                'matching of higher order moments with block'...
+                'Krylov not implemented (yet)!']);
         end
         
         s0old = s0; s0 = [];
@@ -178,11 +183,10 @@ if ~exist('Rt', 'var') %   Compute block Krylov subspaces
         
         %update the number of shifts
         nS0     = length(s0);
-        nS0c    = m*nS0c; 
+        if exist('nS0c','var'), nS0c = m*nS0c; end
         
     end
     if hermite
-        p = size(C,1); 
         if m ~=p 
             error('Block Krylov for m~=p is not supported in arnoldi');
         else
