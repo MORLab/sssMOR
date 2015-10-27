@@ -48,6 +48,8 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 % REFERENCES:
 % [1] Grimme (1997), Krylov projection methods for model reduction
 % [2] Antoulas (2005), Approximation of large-scale dynamical systems
+% [3] Antoulas et al. (2010) Interpolatory model reduction of large-
+%     scale dynamical systems.
 %TODO: Reference for the duality between Krylov and Sylvester 
 % [3] Giraud (2005), The loss of orthogonality in the Gram-Schmidt...
 % ------------------------------------------------------------------
@@ -214,15 +216,12 @@ for jCol=1:nS0
         if s0(jCol)==s0(jCol-1)
             newlu=0;
             if Rt(:,jCol) == Rt(:,jCol-1)
-                if m == 1 %SISO
-                    tempV = V(:,jCol-1); %overwrite
-                    Rsylv(:,jCol)=zeros(m,1);
-                    if hermite
-                        tempW = W(:,jCol-1); 
-                        Lsylv(:,jCol)=zeros(p,1); 
-                    end
-                else
-                    error('Higher order moments for MIMO Systems not implemented yet');
+                % Higher order moments, for the SISO and MIMO case
+                tempV = V(:,jCol-1); %overwrite
+                Rsylv(:,jCol)=zeros(m,1);
+                if hermite
+                    tempW = W(:,jCol-1); 
+                    Lsylv(:,jCol)=zeros(p,1); 
                 end
             end
         end
