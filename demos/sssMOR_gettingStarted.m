@@ -343,6 +343,7 @@ customPause
 
 rule
 demoEnd
+close all
 rule
 function rule
 fprintf('--------------------------------------------------------------\n');

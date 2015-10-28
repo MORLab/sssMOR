@@ -29,9 +29,10 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 % REFERENCES:
 % [1] Antoulas (2005), Approximation of large-scale dynamical systems
 % [2] Lehoucq and Sorensen (1996), Deflation Techniques for an Implicitly 
-% Re-Started Arnoldi Iteration.
+%       Re-Started Arnoldi Iteration.
 % [3] Sorensen (1992), Implicit Application of Polynomial Filters in a 
-% k-Step Arnoldi Method.
+%       k-Step Arnoldi Method.
+% [4] Foellinger (2013), Regelungstechnik (pp. 305-319)
 % ------------------------------------------------------------------
 % This file is part of sssMOR, a Sparse State Space, Model Order
 % Reduction and System Analysis Toolbox developed at the Institute 
