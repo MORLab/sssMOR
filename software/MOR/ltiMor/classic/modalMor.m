@@ -29,9 +29,10 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 % REFERENCES:
 % [1] Antoulas (2005), Approximation of large-scale dynamical systems
 % [2] Lehoucq and Sorensen (1996), Deflation Techniques for an Implicitly 
-% Re-Started Arnoldi Iteration.
+%       Re-Started Arnoldi Iteration.
 % [3] Sorensen (1992), Implicit Application of Polynomial Filters in a 
-% k-Step Arnoldi Method.
+%       k-Step Arnoldi Method.
+% [4] Foellinger (2013), Regelungstechnik (pp. 305-319)
 % ------------------------------------------------------------------
 % This file is part of sssMOR, a Sparse State Space, Model Order
 % Reduction and System Analysis Toolbox developed at the Institute 
@@ -88,16 +89,17 @@ end
 
 %split complex conjugated columns into real and imaginary
 if strcmp(Opts.real,'real');
+    fac = 2/sqrt(2); %factor needed to guarantee preservation of eig
     k=find(imag(rlambda));
     if ~isempty(k)
          if mod(length(k),2)==0
               for i=1:2:length(k)
                    temp=V(:,i);
-                   V(:,i)=real(temp);
-                   V(:,i+1)=imag(temp);
+                   V(:,i)=fac*real(temp);
+                   V(:,i+1)=fac*imag(temp);
                    temp=W(:,i);
-                   W(:,i)=real(temp);
-                   W(:,i+1)=imag(temp);
+                   W(:,i)=fac*real(temp);
+                   W(:,i+1)=fac*imag(temp);
               end
          else
               warning('Reduced system contains complex elements. Please try reduction order q+1.');

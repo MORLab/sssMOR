@@ -231,7 +231,8 @@ customPause
 
 fprintf('\nThe reduction is performed by calling:\n');
 fprintf('>> sysrModal = modalMor(sys,q)\n');
-    tic, sysrModal = modalMor(sys,q); tModal = toc;
+    Opts.real = 'real';
+    tic, sysrModal = modalMor(sys,q,Opts); tModal = toc;
 fprintf('(This reduction took %4.2fs. The results will be shown later.)\n',tModal);
     h2ErrorModal = norm(sys-sysrModal);
     hInfErrorModal = norm(sys-sysrModal,Inf);
@@ -343,6 +344,7 @@ customPause
 
 rule
 demoEnd
+close all
 rule
 function rule
 fprintf('--------------------------------------------------------------\n');
