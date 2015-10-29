@@ -12,13 +12,12 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %
 % Inputs:       * E,A,B,C: System matrices
 %               * s0:    Vector of expansion points
-%               * Rt,Lt:   (opt.) Matrix of right/left tangential directions
+%               * Rt,Lt: (opt.) Matrix of right/left tangential directions
 %               * IP:    (opt.) function handle for inner product
 % Outputs:      * V:    Orthonormal basis spanning the input Krylov subsp.
-%               * TODO Change the name of tangential directions!
-%               * Rsylv:   Right tangential directions of Sylvester Eq.
+%               * Rsylv:Right tangential directions of Sylvester Eq.
 %               * W:    Orthonormal basis spanning the output Krylov subsp.
-%               * Lsylv:   Left tangential directions of Sylvester Eq.
+%               * Lsylv:Left tangential directions of Sylvester Eq.
 % -------------------------------------------------------------------------
 % USAGE:  This function is used to compute the matrix V spanning the 
 % input Krylov subspace corresponding to E, A, b and s0 [1,2].
@@ -61,13 +60,11 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %                   -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto 
-%               (a.castagnotto@tum.de)
 % Last Change:  26 Oct 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
 %%  Parse input
-
 if nargin == 4
     % usage: ARNOLDI(E,A,B,s0)
     s0 = varargin{1};
@@ -118,7 +115,6 @@ if size(s0,1)>1
 end
 
 m = size(B,2); if hermite, p = size(C,1); end
-
 if exist('Rt','var') && ~isempty(Rt)
     if length(s0) ~= size(Rt,2),
         error('Rt must have the same columns as s0')
@@ -135,18 +131,6 @@ if exist('Lt','var') && ~isempty(Lt)
         error('Lt must have the same columns as s0')
     end
 end
-
-%%  Define variables that might have not been passed to the function
-
-%   IP
-if ~exist('IP', 'var') 
-    if abs(condest(E))<Inf % 
-        IP=@(x,y) (x'*E*y); 
-    else
-        IP=@(x,y) (x'*y); 
-    end
-end
-
 
 % remove one element of complex pairs (must be closed under conjugation)
 k=find(imag(s0));
@@ -212,17 +196,22 @@ if ~exist('Rt', 'var') || isempty(Rt)%   Compute block Krylov subspaces
         end
     end
 end
-
 reorth = 'gs'; %0, 'gs','qr'
 % lseSol = 'lu'; %'lu', '\'
-
-
+%%  Define variables that might have not been passed to the function
+%   IP
+if ~exist('IP', 'var') 
+    if abs(condest(E))<Inf % 
+        IP=@(x,y) (x'*E*y); 
+    else
+        IP=@(x,y) (x'*y); 
+    end
+end
 %%  Compute the Krylov subspaces
 % preallocate memory
 V=zeros(length(B),q);
 Rsylv=zeros(m,q);
 if hermite, W = zeros(length(B),q); Lsylv = zeros(p,q);end
-
 for jCol=1:nS0
     % new basis vector
     tempV=B*Rt(:,jCol); newlu=1; 

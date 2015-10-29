@@ -55,11 +55,7 @@ else
     Lt = varargin{2};
     Opts = varargin{1};
 end
-
-
-    
 %% Parse the inputs
-
 %   Default execution parameters
 Def.maxiter = 50; 
 Def.tol = 1e-3; 
@@ -90,39 +86,26 @@ s0_traj(1,:) = s0;
 %% IRKA iteration
 k=0;
 while true
-    k=k+1;
-    
-    sysr_old = sysr;
-    
+    k=k+1; sysr_old = sysr;
     %   Reduction
     if sys.isMimo
         [sysr, V, W] = rk(sys, s0, s0, Rt, Lt);
     else
         [sysr, V, W] = rk(sys, s0, s0);
     end
-    [isreal(V), isreal(V), isreal(sysr.A), isreal(sysr.E)]
-    
-    s0_old=s0;
-    
     %   Update of the reduction parameters
+    s0_old=s0;
     if sys.isMimo
         [X, D, Y] = eig(sysr);
         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X);
         s0 = full(-diag(D).');
     else
         s0 = -eig(sysr)';
-        
-        s0(isnan(s0)) = 0; 
-%         s0 = cplxpair(s0,Opts.cplxpairTol);
     end
-   
-%     plot(s0,'x');pause %TODO: remove this guy
-
     if strcmp(Opts.type,'stab')
         % mirror shifts with negative real part
         s0 = s0.*sign(real(s0));
     end
-
     s0_traj(k+1,:) = s0;
     
     [stop, stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts);
@@ -130,25 +113,20 @@ while true
         fprintf('IRKA step %03u - Convergence: %s \n', ...
             k, sprintf('% 3.1e', stopCrit));
     end
-    
     if stop || k>= Opts.maxiter
         s0 = s0_old; % function return value
         s0_traj = s0_traj(1:(k+1),:);
         break
     end      
 end
-
-
 if ~Opts.verbose %display at least the last value
     fprintf('IRKA step %03u - Convergence (%s): %s \n', ...
             k, Opts.stopCrit, sprintf('% 3.1e', stopCrit));
 end
-
 if k>=Opts.maxiter
     warning('IRKA:no_converged', ['IRKA has not converged after ' num2str(k) ' steps.']);
     return
 end
-
 
 %------------------ AUXILIARY FUNCTIONS -------------------
 function s0=s0_vect(s0)

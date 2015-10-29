@@ -73,14 +73,7 @@ if nargin > 2
     end
 end
 
-if ~exist('IP', 'var'), 
-    if ispd(sys.E) %assign IP to speed-up computations
-        IP=@(x,y) (x'*sys.E*y); 
-    else
-        IP=@(x,y) (x'*y);
-    end
-end
-
+%%  Check the inputs
 if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
     (~exist('s0_out', 'var') || isempty(s0_out))
     error('No expansion points assigned.');
@@ -114,11 +107,18 @@ if ~isempty(s0_inp) && ~isempty(s0_out)
         error('Inconsistent length of expansion point vectors.');
     end
 end
-
+%%  Define execution variables
+if ~exist('IP', 'var'), 
+    if ispd(sys.E) %assign IP to speed-up computations
+        IP=@(x,y) (x'*sys.E*y); 
+    else
+        IP=@(x,y) (x'*y);
+    end
+end
 %%  Computation
 if isempty(s0_out)
     % input Krylov subspace
-
+    
     % SISO Arnoldi
     [V,Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP);
     W = V;
