@@ -34,7 +34,7 @@ classdef testMoments < matlab.unittest.TestCase
             m = moments(sss(A,B,C), s0, 4);
             actSolution={m};
             
-            expm=zeros(1,4);
+            expm=zeros(1,1,4);
             expm(1)=C*(A-s0*eye(size(A)))^(-1)*B;
             expm(2)=C*(A-s0*eye(size(A)))^(-2)*B;
             expm(3)=C*(A-s0*eye(size(A)))^(-3)*B;
@@ -52,7 +52,7 @@ classdef testMoments < matlab.unittest.TestCase
             m = moments(sss(A,B,C), s0, 4);
             actSolution={m};
             
-            expm=zeros(1,4);
+            expm=zeros(1,1,4);
             expm(1)=C*(A-s0*eye(size(A)))^(-1)*B;
             expm(2)=C*(A-s0*eye(size(A)))^(-2)*B;
             expm(3)=C*(A-s0*eye(size(A)))^(-3)*B;
@@ -71,7 +71,7 @@ classdef testMoments < matlab.unittest.TestCase
             actSolution={m};
             
             %mi=c*A^i*b
-            expm=zeros(1,2);
+            expm=zeros(1,1,4);
             expm(1)=0; %m(1)=sys.D?
             expm(2)=C*B;
             expm(3)=C*A*B;
@@ -93,7 +93,7 @@ classdef testMoments < matlab.unittest.TestCase
             m = moments(sss(A,B,C,0,E), s0, 4);
             actSolution={m};
             
-            expm=zeros(1,4);
+            expm=zeros(1,1,4);
             expm(1)=C*(A-s0*E)^(-1)*B;
             expm(2)=C*(A-s0*E)^(-1)*E*(A-s0*E)^(-1)*B;
             expm(3)=C*(A-s0*E)^(-1)*E*(A-s0*E)^(-1)*E*(A-s0*E)^(-1)*B;
