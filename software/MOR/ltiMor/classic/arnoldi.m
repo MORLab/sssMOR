@@ -136,21 +136,34 @@ end
 k=find(imag(s0));
 if ~isempty(k)
     % make sure shift come in complex conjugate pairs
-    try 
-        cplxpair(s0(k)); 
-    catch 
-        error(['in order to keep projection matrices real, arnoldi works',...
-            ' only with complex conjugate pairs of shifts'])
+    if m==1
+        if ~hermite || p==1
+            % siso
+            s0c = cplxpair(s0(k)); 
+        end
+    end
+    if ~exist('s0c','var')
+        %mimo
+        % sorting of residues and eigenvalues is not as trivial as in the
+        % siso case due to the fact that cplxpair does not return sorting
+        % indices. For now, only sorted combinations of shifts are
+        % accepted.
+        try 
+            cplxpair(s0(k));
+            s0c = s0(k);
+        catch 
+            error(['For MIMO system, shifts and residues need to be sorted',...
+                ' before being passed to arnoldi.'])
+        end
     end
     
     % take only one shift per complex conjugate pair
-    s0c = s0(k); 
     nS0c = length(s0c); %number of complex shifts
     s0(k) = []; 
     s0 = [s0 s0c(1:2:end)];
     
     % take only one residue vector for each complex conjugate pair
-    if exist('Rt','var') 
+    if exist('Rt','var') && ~isempty(Rt)
         Rtc = Rt(:,k); Ltc = Lt(:,k); 
         Rt(:,k) = []; Lt(:,k) = [];
         Rt = [Rt,Rtc(:,1:2:end)]; Lt = [Lt,Ltc(:,1:2:end)];
@@ -239,7 +252,7 @@ for jCol=1:nS0
         if newlu==1
             try
                 % compute Cholesky factors of E
-                clear L U o p S
+                clear L U a o S
                 [R,~,S] = chol(sparse(E));
 %                 R = chol(sparse(E));
             catch err
@@ -361,7 +374,7 @@ if reorth
                 end
             end
        case 'qr' 
-           V = qr(V,0); if hermite, W = qr(W,0); end
+           [V,~] = qr(V,0); if hermite, [W,~] = qr(W,0); end
        otherwise
            error('The orthogonalization chosen is incorrect or not implemented')
    end

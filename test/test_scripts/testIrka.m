@@ -32,10 +32,10 @@ classdef testIrka < matlab.unittest.TestCase
         function testIrka1(testCase) 
              %s0: zero, real, imag, Inf
             load('build.mat');
-            opts=struct('epsilon',0.05,'maxiter',300,'type','stab','stopCrit','s0');
+            Opts=struct('epsilon',0.05,'maxiter',300,'type','stab','stopCrit','s0');
 
             [sysr, V, W, s0, s0_traj] = irka(sss(A,B,C), ...
-                 [0,0,50,100,Inf, Inf,1+5i,1-5i,14-0.2i,14+0.2i],opts);
+                 [0,0,50,100,Inf, Inf,1+5i,1-5i,14-0.2i,14+0.2i],Opts);
             actSolution={full(sysr.A),full(sysr.B),full(sysr.C),V,W};
             
             expV=arnoldi(eye(size(A)),A,B,s0);

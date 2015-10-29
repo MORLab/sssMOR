@@ -6,6 +6,7 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %   [sysr, V, W] = RK(sys, s0_inp)
 %   [sysr, V, W] = RK(sys, s0_inp, Rt)
 % 
+%   [sysr, V, W] = RK(sys, [], s0_out)
 %   [sysr, V, W] = RK(sys, s0_inp, s0_out)
 %   [sysr, V, W] = RK(sys, s0_inp, s0_out ,IP)
 %   [sysr, V, W] = RK(sys, s0_inp, s0_out, Rt, Lt)
@@ -50,7 +51,7 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 
 %%  Parsing
 if nargin > 2
-    if size(varargin{1}) == size(s0_inp);
+    if isempty(s0_inp) || all(size(varargin{1}) == size(s0_inp));
         %usage: RK(sys, s0_inp, s0_out)
         s0_out = varargin{1};
         if nargin == 4
