@@ -151,10 +151,26 @@ end
 % remove one element of complex pairs (must be closed under conjugation)
 k=find(imag(s0));
 if ~isempty(k)
-    s0c = cplxpair(s0(k)); 
+    % make sure shift come in complex conjugate pairs
+    try 
+        cplxpair(s0(k)); 
+    catch 
+        error(['in order to keep projection matrices real, arnoldi works',...
+            ' only with complex conjugate pairs of shifts'])
+    end
+    
+    % take only one shift per complex conjugate pair
+    s0c = s0(k); 
     nS0c = length(s0c); %number of complex shifts
-    s0(k) = [];
+    s0(k) = []; 
     s0 = [s0 s0c(1:2:end)];
+    
+    % take only one residue vector for each complex conjugate pair
+    if exist('Rt','var') 
+        Rtc = Rt(:,k); Ltc = Lt(:,k); 
+        Rt(:,k) = []; Lt(:,k) = [];
+        Rt = [Rt,Rtc(:,1:2:end)]; Lt = [Lt,Ltc(:,1:2:end)];
+    end
 end
 
 nS0 = length(s0); %number of shifts for the computations

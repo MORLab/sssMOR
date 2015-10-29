@@ -162,10 +162,11 @@ function s0=s0_vect(s0)
         end
         s0=temp;
     end
-    % sort expansion points
-    s0 = cplxpair(s0);
+
+%     s0 = cplxpair(s0);
     if size(s0,1)>size(s0,2)
         s0=transpose(s0);
     end
+
 
 
