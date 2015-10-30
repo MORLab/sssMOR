@@ -53,17 +53,22 @@ end
 %   Predefine variables
 isH2opt = 0; %initialize
 %%  Computations 
-if norm(setdiffVec(s0',-conj(eig(sysr))))/norm(s0)<=Opts.tol
-    %   reduced eigenvalues are mirror images of shifts
+if (norm(setdiffVec(s0',-conj(eig(sysr))))/norm(s0))/sysr.n <=Opts.tol
+    %   check Meier-Luenberger conditions
     for iShift = 1:length(s0)
         m   = moments(sys,s0(iShift),2);
         mr  = moments(sysr,s0(iShift),2);
-        if norm(m-mr)/norm(m)> Opts.tol
-            % moments do not match
-            if nargout == 0
-                fprintf('Reduced model is NOT locally H2-optimal\n');
+        if sys.isSiso
+            if norm(squeeze(m-mr))/norm(squeeze(m))> Opts.tol
+                % moments do not match
+                if nargout == 0
+                    fprintf('Reduced model is NOT locally H2-optimal\n');
+                end
+                return
             end
-            return
+        else
+            %MIMO
+            error('MIMO implementation of this is missing')
         end
     end
     %   if you reached this point, all verifications passed!

@@ -5,7 +5,7 @@ function M = moments(sys, s0, n)
 % Inputs:       * sys: an sss-object containing the LTI system
 %               * s0: expansion point (inf -> Markov parameters)
 %               * n: number of moments to be computed
-% Output:       * M: array of moments / Markov parameters
+% Output:       * M: 3D-array of moments / Markov parameters
 % ------------------------------------------------------------------
 % This file is part of the MORLAB_GUI, a Model Order Reduction and
 % System Analysis Toolbox developed at the
@@ -29,11 +29,11 @@ if nS0 > 1
     else
         error('combination of s0 and n is incompatible');
     end
+else %only one shift
+    nM = n;
 end
-
 %   Preallocate
 M=zeros(size(sys.C,1),size(sys.B,2),nM);
-
 %%  Compute the moments
 for iS0 = 1:nS0
     currIdx = sum(n(1:iS0-1));
