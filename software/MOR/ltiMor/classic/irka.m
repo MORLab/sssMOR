@@ -39,27 +39,31 @@ function [sysr, V, W, s0, s0_traj] = irka(sys, s0, varargin)
 % ------------------------------------------------------------------
 
 %% Parse input and load default parameters
-if nargin == 3
-    %usage irka(sys,s0,Opts)
-    Opts = varargin{1};
-    if sys.isMimo
-        error('specify initial tangential directions for MIMO systems');
+if nargin > 2
+    if nargin == 3
+        %usage irka(sys,s0,Opts)
+        Opts = varargin{1};
+    elseif nargin == 4
+        %usage irka(sys,s0,Rt,Lt)
+        Rt = varargin{1};
+        Lt = varargin{2};
+    else
+        %usage irka(sys,s0,Rt,Lt,Opts)
+        Rt = varargin{1};
+        Lt = varargin{2};
+        Opts = varargin{1};
     end
-elseif nargin == 4
-    %usage irka(sys,s0,Rt,Lt)
-    Rt = varargin{1};
-    Lt = varargin{2};
-else
-    %usage irka(sys,s0,Rt,Lt,Opts)
-    Rt = varargin{1};
-    Lt = varargin{2};
-    Opts = varargin{1};
 end
+if sys.isMimo && (~exist('Rt','var')|| isempty(Rt) ...
+        || ~exist('Lt','var')|| isempty(Lt))
+    error('specify initial tangential directions for MIMO systems');
+end
+    
 %% Parse the inputs
 %   Default execution parameters
 Def.maxiter = 50; 
 Def.tol = 1e-3; 
-Def.type = ''; %'stab', 'newton','restarted'
+Def.type = ''; %'stab', 'newton', 'restarted'
 Def.verbose = 0; % text output durint iteration?
 Def.stopCrit = 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
 Def.cplxpairTol = 1e-6;
