@@ -39,6 +39,7 @@ function [sysr, V, W, s0, s0_traj] = irka(sys, s0, varargin)
 % ------------------------------------------------------------------
 
 %% Parse input and load default parameters
+
 if nargin == 3
     %usage irka(sys,s0,Opts)
     Opts = varargin{1};
@@ -49,11 +50,12 @@ elseif nargin == 4
     %usage irka(sys,s0,Rt,Lt)
     Rt = varargin{1};
     Lt = varargin{2};
-else
+elseif nargin == 5
+    
     %usage irka(sys,s0,Rt,Lt,Opts)
     Rt = varargin{1};
     Lt = varargin{2};
-    Opts = varargin{1};
+    Opts = varargin{3};
 end
 %% Parse the inputs
 %   Default execution parameters
