@@ -112,43 +112,11 @@ if Opts.plot || nargout == 0
     legend(legName{:});
 
     if Opts.plotErr
-        %   Define variables
-        magErr = cell(length(redFct),1); phaseErr = cell(length(redFct),1);
-    
-        %   Compute frequency data
-        for iRedFct = 1:length(redFct)
-            [magErr{iRedFct},phaseErr{iRedFct}] = bode(sys-RedData.data(iRedFct).sysr,w);
+        % put all sysr into a cell array
+        sysr = cell(1,length(redFct));
+        for iSysr = 1:length(redFct)
+            sysr = [sysr, {RedData.data(iRedFct).sysr}];
         end
-        
-        %   Plotting
-        nicefigure('compareMor - results (error)');
-
-        %   Create axis
-        ax1 = axes;
-        ax1_pos = get(ax1,'Position'); % position of first axes
-        ax2 = axes('Position',ax1_pos,...
-            'XAxisLocation','bottom',...
-            'YAxisLocation','right',...
-            'Color','none');
-        set(ax2,'YColor','b');
-
-        % Bode plot of original on right y axis
-        lih(1) = line(w,mag2db(cell2mat(mag{1})),'Parent',ax2);
-        set(lih(1),'Color','b');
-        set(ax2,'XTick',[],'XScale','log')
-
-        % Error plots on left y axis
-        for iRedFct = 1:length(redFct)
-           lih(1+iRedFct) = line(w,cell2mat(magErr{iRedFct}),'Parent',ax1);hold on
-           set(lih(1+iRedFct),'Color',randColor{iRedFct},'LineStyle','--');
-        end
-        set(ax1,'XScale','log','YScale','log')
-
-        ylabel(ax1,'Error');
-        ylabel(ax2,'Magnitude /dB');
-
-        xlabel(ax1,'Frequency /rad/sec');
-        legend(lih,legName{:},'Location','SouthEast');
-
+        plotError(sys,sysr,w);
     end
 end
