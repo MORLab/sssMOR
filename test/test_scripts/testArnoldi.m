@@ -91,6 +91,7 @@ classdef testArnoldi < matlab.unittest.TestCase
             
             [expV,~]=qr([expV1, expV2, expV3, expV4, expV5, expV6]);
             expV=[expV(:,1), -expV(:,2), expV(:,3), -expV(:,4),expV(:,5), -expV(:,6)];
+            
             expSolution={expV};
 
             verification(testCase, actSolution,expSolution,V)
@@ -181,10 +182,13 @@ classdef testArnoldi < matlab.unittest.TestCase
 end
 
 function [] = verification(testCase, actSolution,expSolution,V)
-       verifyEqual(testCase, actSolution, expSolution,'RelTol',0.2,'AbsTol',0.000000001,...
-            'Difference between actual and expected exceeds relative tolerance');
-       verifyLessThanOrEqual(testCase, max(V'*V), 1.02,...
-            'Orthonormalization failed');
+%        verifyEqual(testCase, actSolution, expSolution,'RelTol',0.2,'AbsTol',0.000000001,...
+%             'Difference between actual and expected exceeds relative tolerance');
+       s = svd([actSolution{:},expSolution{:}]); s = s/s(1); 
+       verifyEqual(testCase, {sum(s>1e-6)}, {size(actSolution{:},2)},...
+           'Arnoldi failed to recreate the correct subspace')
+       verifyLessThanOrEqual(testCase, norm(V'*V-speye(size(V,2)),'fro'), ...
+           1e-12, 'Orthonormalization failed');
        verifyLessThanOrEqual(testCase, max(imag(V)), 0, ...
             'V is not purely real'); 
        verifyEqual(testCase, rank(V), size(V,2),...
@@ -193,4 +197,6 @@ function [] = verification(testCase, actSolution,expSolution,V)
             'V contains Inf');
        verifyEqual(testCase, nnz(isnan(V)), 0, ...
             'V contains Nan');
+        verifyEqual(testCase, size(actSolution), size(expSolution),...
+            'V is not of the correct size')
 end

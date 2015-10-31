@@ -34,10 +34,10 @@ classdef testModal < matlab.unittest.TestCase
 
             Opts.type='SM';
             [sysr] = modalMor(sss(A,B,C,0), 6, Opts);
-            actSolution={sort(eig(sysr))};
+            actSolution={full(sort(eig(sysr)))};
             
             [expsysr,~]=modreal(ss(full(A),full(B),full(C),0),6);
-            expSolution={sort(eig(expsysr))};
+            expSolution={full(sort(eig(expsysr)))};
                      
             verification(testCase, actSolution, expSolution, sysr);
         end
@@ -48,11 +48,11 @@ classdef testModal < matlab.unittest.TestCase
             Opts.type='SM';
             [sysr] = modalMor(sss(A,B,C,0), 6, Opts);
             actEig=sort(eig(sysr));
-            actSolution={real(actEig), abs(imag(actEig))};
+            actSolution={full(real(actEig)), full(abs(imag(actEig)))};
             
             [expsysr,~]=modreal(ss(full(A),full(B),full(C),0),6);
             expEig=sort(eig(expsysr));
-            expSolution={real(expEig), abs(imag(expEig))};
+            expSolution={full(real(expEig)), full(abs(imag(expEig)))};
                  
             verification(testCase, actSolution, expSolution, sysr);
         end
@@ -66,11 +66,11 @@ classdef testModal < matlab.unittest.TestCase
             
             Opts.type='SM';
             [sysr] = modalMor(sss(A,B,C,0,E), 9, Opts);
-            actSolution=sort(eig(sysr));
+            actSolution=full(sort(eig(sysr)));
 %             actSolution={real(actEig), abs(imag(actEig))};
             
             [expsysr,~]=modreal(ss(full(E\A),full(E\B),full(C),0),9);
-            expSolution=sort(eig(expsysr));
+            expSolution=full(sort(eig(expsysr)));
 %             expSolution={real(expEig), abs(imag(expEig))};
                  
             verification(testCase, actSolution, expSolution, sysr);

@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, s0_traj] = irka(sys, s0, Opts) 
+function [sysr, V, W, s0, s0_traj] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -38,6 +38,7 @@ function [sysr, V, W, s0, s0_traj] = irka(sys, s0, Opts)
 %
 % References:
 %       * *[1] Gugercin (2008)*, H2 model reduction for large-scale linear dynamical systems
+%       * *[2] Beattie (2014)*, Model reduction by rational interpolation
 %
 %
 %------------------------------------------------------------------
@@ -55,13 +56,29 @@ function [sysr, V, W, s0, s0_traj] = irka(sys, s0, Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  23 Jul 2015
+% Last Change:  28 Oct 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
-    % default values
+
+if nargin == 3
+    %usage irka(sys,s0,Opts)
+    Opts = varargin{1};
+    if sys.isMimo
+        error('specify initial tangential directions for MIMO systems');
+    end
+elseif nargin == 4
+    %usage irka(sys,s0,Rt,Lt)
+    Rt = varargin{1};
+    Lt = varargin{2};
+elseif nargin == 5
     
+    %usage irka(sys,s0,Rt,Lt,Opts)
+    Rt = varargin{1};
+    Lt = varargin{2};
+    Opts = varargin{3};
+end
 %% Parse the inputs
 %   Default execution parameters
 Def.maxiter = 50; 
@@ -93,22 +110,26 @@ s0_traj(1,:) = s0;
 %% IRKA iteration
 k=0;
 while true
-    k=k+1;
-    
-    sysr_old = sysr;
-    [sysr, V, W] = rk(sys, s0, s0);
-
+    k=k+1; sysr_old = sysr;
+    %   Reduction
+    if sys.isMimo
+        [sysr, V, W] = rk(sys, s0, s0, Rt, Lt);
+    else
+        [sysr, V, W] = rk(sys, s0, s0);
+    end
+    %   Update of the reduction parameters
     s0_old=s0;
-    s0 = -eig(sysr)';
-
-    s0(isnan(s0)) = 0;
-    s0 = cplxpair(s0,Opts.cplxpairTol);
-
+    if sys.isMimo
+        [X, D, Y] = eig(sysr);
+        Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X);
+        s0 = full(-diag(D).');
+    else
+        s0 = -eig(sysr)';
+    end
     if strcmp(Opts.type,'stab')
         % mirror shifts with negative real part
         s0 = s0.*sign(real(s0));
     end
-
     s0_traj(k+1,:) = s0;
     
     [stop, stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts);
@@ -116,25 +137,20 @@ while true
         fprintf('IRKA step %03u - Convergence: %s \n', ...
             k, sprintf('% 3.1e', stopCrit));
     end
-    
     if stop || k>= Opts.maxiter
         s0 = s0_old; % function return value
         s0_traj = s0_traj(1:(k+1),:);
         break
     end      
 end
-
-
 if ~Opts.verbose %display at least the last value
     fprintf('IRKA step %03u - Convergence (%s): %s \n', ...
             k, Opts.stopCrit, sprintf('% 3.1e', stopCrit));
 end
-
 if k>=Opts.maxiter
     warning('IRKA:no_converged', ['IRKA has not converged after ' num2str(k) ' steps.']);
     return
 end
-
 
 %------------------ AUXILIARY FUNCTIONS -------------------
 function s0=s0_vect(s0)
@@ -183,6 +199,10 @@ switch Opts.stopCrit
     otherwise
         error('The stopping criterion selected is incorrect or not implemented')
 end
+
+    
+    
+
 
 
 

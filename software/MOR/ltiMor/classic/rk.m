@@ -1,20 +1,30 @@
-function [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sys, s0_inp, s0_out, IP)
+function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 % RK - Model Order Reduction by Rational Krylov
 %
 % Syntax:
-%       [sysr, V, W] = RK(sys, s0_inp, s0_out, IP)
+%       [sysr, V, W] = RK(sys, s0_inp)
+%       [sysr, V, W] = RK(sys, s0_inp, Rt)
+% 
+%       [sysr, V, W] = RK(sys, [], s0_out)
+%       [sysr, V, W] = RK(sys, s0_inp, s0_out)
+%       [sysr, V, W] = RK(sys, s0_inp, s0_out ,IP)
+%       [sysr, V, W] = RK(sys, s0_inp, s0_out, Rt, Lt)
+%       [sysr, V, W] = RK(sys, s0_inp, s0_out, Rt, Lt, IP)
 %
 %
 % Inputs:
 %       -sys:       an sss-object containing the LTI system
-%       -s0_inp:    Expansion points for Input Krylov Subspace
-%       -s0_out:    Expansion points for Output Krylov Subspace
-%       -IP:        Inner product (optional)
+%       -s0_inp:    expansion points for input Krylov subspace
+%       -s0_out:    expansion points for output Krylov subspace
+%       -Rt/Lt:     right/left tangential directions
+%       -IP:        inner product (optional)
 %
 %
 % Outputs:
 %       -sysr:      reduced system
-%       -V,W:       Projection matrices spanning Krylov subspaces
+%       -V,W:       orojection matrices spanning Krylov subspaces
+%       -Bb,Rsylv   resulting matrices of the input Sylvester equation
+%       -Cb,Lsylv   resulting matrices of the output Sylvester equation
 %
 %
 % Examples:
@@ -58,19 +68,36 @@ function [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sys, s0_inp, s0_out, IP)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  23 Jul 2015
+% Last Change:  26 Oct 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %%  Parsing
-if ~exist('IP', 'var'), 
-    if ispd(sys.E) %assign IP to speed-up computations
-        IP=@(x,y) (x'*sys.E*y); 
+if nargin > 2
+    if isempty(s0_inp) || all(size(varargin{1}) == size(s0_inp));
+        %usage: RK(sys, s0_inp, s0_out)
+        s0_out = varargin{1};
+        if nargin == 4
+            %usage: RK(sys, s0_inp, s0_out ,IP)
+            IP = varargin{2};
+        elseif nargin > 4
+            %usage: RK(sys, s0_inp, s0_out, Rt, Lt)
+            Rt = varargin{2};
+            Lt = varargin{3};
+            if nargin == 6
+                %usage: RK(sys, s0_inp, s0_out, Rt, Lt, IP)
+                IP = varargin{4};
+            end
+        end
+    elseif size(varargin{1},1) == size(sys.B,2);
+        %usage: RK(sys, s0_inp, Rt)
+        Rt = varargin{1};
     else
-        IP=@(x,y) (x'*y);
+        error('Input not compatible with current rk implementation');
     end
 end
 
+%%  Check the inputs
 if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
     (~exist('s0_out', 'var') || isempty(s0_out))
     error('No expansion points assigned.');
@@ -87,52 +114,60 @@ else
     s0_out = [];
 end
 
+if exist('Rt', 'var')
+    if size(Rt,2) ~= length(s0_inp),error('Inconsistent size of Rt');end
+else
+    Rt = [];
+end
+if exist('Lt', 'var')
+    if size(Lt,2) ~= length(s0_out),error('Inconsistent size of Lt');end
+else
+    Lt = [];
+end
+
 if ~isempty(s0_inp) && ~isempty(s0_out)
     % check if number of input/output expansion points matches
     if length(s0_inp) ~= length(s0_inp)
         error('Inconsistent length of expansion point vectors.');
     end
 end
-
+%%  Define execution variables
+if ~exist('IP', 'var'), 
+    if ispd(sys.E) %assign IP to speed-up computations
+        IP=@(x,y) (x'*sys.E*y); 
+    else
+        IP=@(x,y) (x'*y);
+    end
+end
 %%  Computation
 if isempty(s0_out)
     % input Krylov subspace
-    if sys.m>1
-        % MIMO ***
-        error('RK is not available for MIMO systems, yet.')
-    end
+    
     % SISO Arnoldi
-    [V,Ct] = arnoldi(sys.E, sys.A, sys.B, s0_inp, IP);
+    [V,Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP);
     W = V;
     sysr = sss(V'*sys.A*V, V'*sys.B, sys.C*V, sys.D, V'*sys.E*V);
     Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
-    Cb = []; Bt = [];
-
-%     svd(sys.A*V-sys.E*V/sysr.E*sysr.A)    
+    Cb = []; Lsylv = [];  
     
 elseif isempty(s0_inp)
     % output Krylov subspace
-    if sys.p>1
-        % MIMO ***
-        error('RK is not available for MIMO systems, yet.')
-    end
+    
     % SISO Arnoldi
-    [W,Bt] = arnoldi(sys.E', sys.A', sys.C', s0_out, IP);
+    [W,Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP);
     V = W;
     sysr = sss(W'*sys.A*W, W'*sys.B, sys.C*W, sys.D, W'*sys.E*W);
-    Bt = Bt';
     Cb = sys.C - sysr.C/sysr.E*W'*sys.E;
-    Bb = []; Ct = [];
+    Bb = []; Rsylv = [];
 else
     if all(s0_inp == s0_out) %use only 1 LU decomposition for V and W
-        [V,Ct,W,Bt] = arnoldi(sys.E, sys.A, sys.B, sys.C, s0_inp, IP);
+        [V,Rsylv,W,Lsylv] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
+                            s0_inp,Rt, Lt, IP);
     else
-        [V,Ct] = arnoldi(sys.E, sys.A, sys.B, s0_inp, IP);
-        [W,Bt] = arnoldi(sys.E', sys.A', sys.C', s0_out, IP);
-        Bt = Bt';
+        [V,Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP);
+        [W,Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP);
     end
-%    [V,W]=lanczos(sys.E,sys.A,sys.B,sys.C,s0_inp,s0_out,IP);
-     sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+    sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
 
     if nargout > 3
         Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
@@ -151,10 +186,11 @@ function s0=s0_vect(s0)
         end
         s0=temp;
     end
-    % sort expansion points
-    s0 = cplxpair(s0);
+
+%     s0 = cplxpair(s0);
     if size(s0,1)>size(s0,2)
         s0=transpose(s0);
     end
+
 
 

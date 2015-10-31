@@ -2,7 +2,10 @@ function [sysr, varargout] = tbr(sys, varargin)
 % TBR - Performs model order reduction by the Truncated Balanced Realization
 %
 % Syntax:
-%       [sysr, varargout] = TBR(sys, varargin)
+%       sys = TBR(sys)
+%       sysr = TBR(sys,q)
+%       [sysr,V,W] = TBR(sys,q)
+%       [sysr,V,W,hsv] = TBR(sys,q)
 %
 %
 % Inputs:
@@ -38,51 +41,16 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  07 Feb 2011
+% Last Change:  30 Oct 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
-
-% if sys.is_dae
-% % if E-speye(size(E)) == sparse(size(E,1), size(E,1))
-%     %mit E^-1 durchmultipliziert
-% %     S = lyapchol(A,B,E);
-% %     R = lyapchol(transpose(E\A),C');
-%     %Zustandstrafo
-%     if ~isfield(sys,'P_chol')
-%         S = lyapchol(A,B,E);
-% %         S = lyapchol(A/E,B); % P=S'*S
-%         sys.P_chol=sparse(S);
-%     else
-%         S=full(sys.P_chol);
-%     end
-%     if ~isfield(sys,'Q_chol')
-%         R = lyapchol(transpose(E\A),C');
-% %         R = lyapchol(A',C',E'); % Q=R'*R
-%         sys.Q_chol=sparse(R);
-%     else
-%         R=full(sys.Q_chol);
-%     end
-% else
-%     if ~isfield(sys,'P_chol')
-%         S = lyapchol(A,B); % P=S'*S
-%         sys.P_chol=sparse(S);
-%     else
-%         S=full(sys.P_chol);
-%     end
-%     if ~isfield(sys,'Q_chol')
-%         R = lyapchol(A',C'); % Q=R'*R
-%         sys.Q_chol=sparse(R);
-%     else
-%         R=full(sys.Q_chol);
-%     end 
-% end
     
 % Is Controllability Gramian available?
 if isempty(sys.ConGramChol)
     if isempty(sys.ConGram)
         % No, it is not. Solve Lyapunov equation.
         try
-            if sys.isdescriptor
+            if sys.isDescriptor
                 sys.ConGramChol = lyapchol(sys.A,sys.B,sys.E);
             else
                 sys.ConGramChol = lyapchol(sys.A,sys.B);
@@ -90,7 +58,7 @@ if isempty(sys.ConGramChol)
             R = sys.ConGramChol;
         catch ex
             warning(ex.message, 'Error in lyapchol. Trying without Cholesky factorization...')
-            if sys.isdescriptor
+            if sys.isDescriptor
                 try
                     sys.ConGram = lyap(sys.A, sys.B*sys.B', [], sys.E);
                 catch ex2
@@ -121,7 +89,7 @@ if isempty(sys.ObsGramChol)
     if isempty(sys.ObsGram)
         % No, it is not. Solve Lyapunov equation. 
        try
-            if sys.isdescriptor
+            if sys.isDescriptor
                 L = lyapchol(sys.A'/sys.E', sys.C');
             else
                 L = lyapchol(sys.A',sys.C');
@@ -129,7 +97,7 @@ if isempty(sys.ObsGramChol)
             sys.ObsGramChol = sparse(L);
         catch ex
             warning(ex.message, 'Error in lyapchol. Trying without Cholesky factorization...')
-            if sys.isdescriptor
+            if sys.isDescriptor
                 sys.ObsGram = lyap(sys.A'/sys.E', sys.C'*sys.C);
             else
                 sys.ObsGram = lyap(full(sys.A'), full(sys.C'*sys.C));

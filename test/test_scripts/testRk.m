@@ -35,7 +35,7 @@ classdef testRk < matlab.unittest.TestCase
          function testRk1 (testCase) 
               %one-sided reduction isempty(s0_out), s0: real (multiple value)
               load('build.mat');
-              [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sss(A,B,C), ones(1,10)*100,[]);
+              [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sss(A,B,C), ones(1,10)*100);
               actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W, Ct, Bb};
               
               [expV,expCt] = arnoldi(speye(size(A)),A,B,ones(1,10)*100);
@@ -56,7 +56,7 @@ classdef testRk < matlab.unittest.TestCase
               actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W, Bt, Cb};
               
               [expW,expBt2] = arnoldi(speye(size(A)),A',C',[ones(1,5)*100*1i,-ones(1,5)*100*1i]);
-               expSolution={expW'*A*expW, expW'*B, C*expW, expW, expW, expBt2',...
+               expSolution={expW'*A*expW, expW'*B, C*expW, expW, expW, expBt2,...
                     C - (C*expW)/(expW'*eye(size(A))*expW)*expW'};
               verification(testCase, actSolution, expSolution, sysr);
               verifyEmpty(testCase, Bb, ...
@@ -65,8 +65,7 @@ classdef testRk < matlab.unittest.TestCase
                     'Ct is not empty');
               verifyEqual(testCase, V, W,...
                     'V is not equal W');
-         end
-         
+         end         
          function testRk3 (testCase) 
               %two-sided reduction without E-matrix, s0: zero, imag, real, Inf
               load('random.mat');
