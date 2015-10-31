@@ -98,4 +98,5 @@ _*.pdf
 # Files generated automatically by running publishHelp.m
 doc/html/helpsearch-v3/
 doc/html/*.html
-
+doc/source/functions/
+doc/source/functions_index.m
