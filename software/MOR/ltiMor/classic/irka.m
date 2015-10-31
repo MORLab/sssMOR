@@ -1,42 +1,64 @@
 function [sysr, V, W, s0, s0_traj] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
-% ------------------------------------------------------------------
-% [sysr, V, W, s0, s0_traj] = IRKA(sys, s0, Opts)
-% Inputs:       * sys: full oder model (sss)
-%               * s0:  vector of initial shifts
-%               * Opts (opt.) structure with execution parameters
-% Outputs:      * sysr: reduced order model (sss)
-%               * V,W:  resulting projection matrices
-%               * s0:   final choice of shifts
-%               * s0_traj: trajectory of all shifst for all iterations
-% ------------------------------------------------------------------
-% USAGE:  This function executes the Iterative Rational Krylov
-% Algorithm (IRKA) as proposed by Gugergin and Beattie in [1].
 %
-% The IRKA iteration is conducted to search for an optimal set of 
-% shifts in Krylov subspace-based model reduction. If IRKA converges,
-% then the reduced model is known to be a local optimum with respect
-% to the H2 norm of the error.
+% Syntax:
+%       [sysr, V, W, s0, s0_traj] = IRKA(sys, s0, Opts)
+% 
 %
-% See also ARNOLDI, RK.
+% Inputs:       
+%       -sys:       full oder model (sss)
+%       -s0:        vector of initial shifts
+%       -Opts:      (opt.) structure with execution parameters
 %
-% ------------------------------------------------------------------
-% REFERENCES:
-% [1] Gugercin (2008), H2 model reduction for large-scale linear
-%     dynamical systems
-% [2] Beattie (2014), Model reduction by rational interpolation
-% ------------------------------------------------------------------
-% This file is part of MORLab, a Sparse State Space, Model Order
-% Reduction and System Analysis Toolbox developed at the Institute 
-% of Automatic Control, Technische Universitaet Muenchen.
-% For updates and further information please visit www.rt.mw.tum.de
-% For any suggestions, submission and/or bug reports, mail us at
-%                   -> sssMOR@rt.mw.tum.de <-
-% ------------------------------------------------------------------
+%
+% Outputs:      
+%       -sysr:     reduced order model (sss)
+%       -V,W:      resulting projection matrices
+%       -s0:       final choice of shifts
+%       -s0_traj:  trajectory of all shifst for all iterations
+%
+%
+% Examples:
+%       No examples
+% 
+% 
+% Description:
+%       This function executes the Iterative Rational Krylov
+%       Algorithm (IRKA) as proposed by Gugergin and Beattie in [1].
+% 
+%       The IRKA iteration is conducted to search for an optimal set of 
+%       shifts in Krylov subspace-based model reduction. If IRKA converges,
+%       then the reduced model is known to be a local optimum with respect
+%       to the H2 norm of the error.
+%
+%
+% See also: 
+%       arnoldi, rk
+%
+%
+% References:
+%       * *[1] Gugercin (2008)*, H2 model reduction for large-scale linear dynamical systems
+%       * *[2] Beattie (2014)*, Model reduction by rational interpolation
+%
+%
+%------------------------------------------------------------------
+%   This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
+%   Reduction and System Analysis Toolbox developed at the Chair of 
+%   Automatic Control, Technische Universitaet Muenchen. For updates 
+%   and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+%   For any suggestions, submission and/or bug reports, mail us at
+%                     -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+%   More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
 % Last Change:  28 Oct 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 
 %% Parse input and load default parameters
 

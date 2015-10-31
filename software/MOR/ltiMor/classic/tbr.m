@@ -1,59 +1,49 @@
 function [sysr, varargout] = tbr(sys, varargin)
-% Performs model order reduction by the Truncated Balanced Realization
-% ------------------------------------------------------------------
-% [sysr, varargout] = TBR(sys, varargin)
-% Inputs:       * sys: an sss-object containing the LTI system
-%    [optional] * q: order of reduced system
-% Output:       * sysr: reduced system
-%    [optional] * V, W: projection matrices (only if q is given!)
-%               * hsv: Hankel singular values
-% ------------------------------------------------------------------
-% If no q is given, the balancing transformation and calculation of the
-% Hankel Singular Values is performed without subsequent model reduction.
-% ------------------------------------------------------------------
-% This file is part of the MORLAB_GUI, a Model Order Reduction and
-% System Analysis Toolbox developed at the
-% Institute of Automatic Control, Technische Universitaet Muenchen
-% For updates and further information please visit www.rt.mw.tum.de
-% ------------------------------------------------------------------
-% Authors:      Heiko Panzer (heiko@mytum.de), Sylvia Cremer, Rudy Eid
-% Last Change:  30 Out 2015
-% ------------------------------------------------------------------
-
-% if sys.is_dae
-% % if E-speye(size(E)) == sparse(size(E,1), size(E,1))
-%     %mit E^-1 durchmultipliziert
-% %     S = lyapchol(A,B,E);
-% %     R = lyapchol(transpose(E\A),C');
-%     %Zustandstrafo
-%     if ~isfield(sys,'P_chol')
-%         S = lyapchol(A,B,E);
-% %         S = lyapchol(A/E,B); % P=S'*S
-%         sys.P_chol=sparse(S);
-%     else
-%         S=full(sys.P_chol);
-%     end
-%     if ~isfield(sys,'Q_chol')
-%         R = lyapchol(transpose(E\A),C');
-% %         R = lyapchol(A',C',E'); % Q=R'*R
-%         sys.Q_chol=sparse(R);
-%     else
-%         R=full(sys.Q_chol);
-%     end
-% else
-%     if ~isfield(sys,'P_chol')
-%         S = lyapchol(A,B); % P=S'*S
-%         sys.P_chol=sparse(S);
-%     else
-%         S=full(sys.P_chol);
-%     end
-%     if ~isfield(sys,'Q_chol')
-%         R = lyapchol(A',C'); % Q=R'*R
-%         sys.Q_chol=sparse(R);
-%     else
-%         R=full(sys.Q_chol);
-%     end 
-% end
+% TBR - Performs model order reduction by the Truncated Balanced Realization
+%
+% Syntax:
+%       sys = TBR(sys)
+%       sysr = TBR(sys,q)
+%       [sysr,V,W] = TBR(sys,q)
+%       [sysr,V,W,hsv] = TBR(sys,q)
+%
+%
+% Inputs:
+%       -sys:   an sss-object containing the LTI system
+%       -q:     (opt.) order of reduced system
+%
+%
+% Outputs:
+%       -sysr:  reduced system
+%       -V,W:   (opt.) projection matrices (only if q is given!)
+%       -hsv:   Hankel singular values
+%
+%// Note: If no q is given, the balancing transformation and calculation of the
+%// Hankel Singular Values is performed without subsequent model reduction.
+%
+%
+% Examples:
+%       No examples
+%
+%
+%------------------------------------------------------------------
+%   This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
+%   Reduction and System Analysis Toolbox developed at the Chair of 
+%   Automatic Control, Technische Universitaet Muenchen. For updates 
+%   and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+%   For any suggestions, submission and/or bug reports, mail us at
+%                     -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+%   More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
+% Authors:      Heiko Panzer, Sylvia Cremer, Rudy Eid
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  30 Oct 2015
+% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
     
 % Is Controllability Gramian available?
 if isempty(sys.ConGramChol)
