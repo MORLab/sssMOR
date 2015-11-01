@@ -1,6 +1,5 @@
 function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 % ARNOLDI - Arnoldi algorithm using multiple expansion points
-<<<<<<< HEAD
 % 
 % Syntax:
 %       [V,Ct]        = ARNOLDI(E,A,B,s0)

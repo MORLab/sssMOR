@@ -1,21 +1,28 @@
-function [sysr, V, W, s0, s0_traj] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, s0Traj] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
-%       [sysr, V, W, s0, s0_traj] = IRKA(sys, s0, Opts)
+%       sysr = IRKA(sys, s0)
+%       [sysr, V, W] = IRKA(sys, s0)
+%       [sysr, V, W, s0] = IRKA(sys, s0)
+%       [sysr, V, W, s0, s0Traj] = IRKA(sys, s0)
+%       sysr = IRKA(sys, s0, Opts)
+%       sysr = IRKA(sys, s0, Rt, Lt)
+%       sysr = IRKA(sys, s0, Rt, Lt, Opts)
 % 
 %
 % Inputs:       
 %       -sys:       full oder model (sss)
 %       -s0:        vector of initial shifts
 %       -Opts:      (opt.) structure with execution parameters
+%       -Rt/Lt:     initial right/left tangential directions for MIMO
 %
 %
 % Outputs:      
 %       -sysr:     reduced order model (sss)
 %       -V,W:      resulting projection matrices
 %       -s0:       final choice of shifts
-%       -s0_traj:  trajectory of all shifst for all iterations
+%       -s0Traj:  trajectory of all shifst for all iterations
 %
 %
 % Examples:
@@ -56,28 +63,29 @@ function [sysr, V, W, s0, s0_traj] = irka(sys, s0, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  28 Oct 2015
+% Last Change:  31 Oct 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
+if nargin > 2
+    if nargin == 3
+        %usage irka(sys,s0,Opts)
+        Opts = varargin{1};
+        if sys.isMimo
+            error('specify initial tangential directions for MIMO systems');
+        end
+    elseif nargin == 4
+        %usage irka(sys,s0,Rt,Lt)
+        Rt = varargin{1};
+        Lt = varargin{2};
+    elseif nargin == 5
 
-if nargin == 3
-    %usage irka(sys,s0,Opts)
-    Opts = varargin{1};
-    if sys.isMimo
-        error('specify initial tangential directions for MIMO systems');
+        %usage irka(sys,s0,Rt,Lt,Opts)
+        Rt = varargin{1};
+        Lt = varargin{2};
+        Opts = varargin{3};
     end
-elseif nargin == 4
-    %usage irka(sys,s0,Rt,Lt)
-    Rt = varargin{1};
-    Lt = varargin{2};
-elseif nargin == 5
-    
-    %usage irka(sys,s0,Rt,Lt,Opts)
-    Rt = varargin{1};
-    Lt = varargin{2};
-    Opts = varargin{3};
 end
 %% Parse the inputs
 %   Default execution parameters
@@ -104,8 +112,8 @@ s0 = s0_vect(s0);
 
 % Initialize variables
 sysr = sss([],[],[]);
-s0_traj = zeros(Opts.maxiter+2, length(s0));
-s0_traj(1,:) = s0;
+s0Traj = zeros(Opts.maxiter+2, length(s0));
+s0Traj(1,:) = s0;
 
 %% IRKA iteration
 k=0;
@@ -130,7 +138,7 @@ while true
         % mirror shifts with negative real part
         s0 = s0.*sign(real(s0));
     end
-    s0_traj(k+1,:) = s0;
+    s0Traj(k+1,:) = s0;
     
     [stop, stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts);
     if Opts.verbose
@@ -139,7 +147,7 @@ while true
     end
     if stop || k>= Opts.maxiter
         s0 = s0_old; % function return value
-        s0_traj = s0_traj(1:(k+1),:);
+        s0Traj = s0Traj(1:(k+1),:);
         break
     end      
 end
