@@ -90,6 +90,6 @@ Temporary Items
 *.bib$
 
 # Pdf files beginning with "_"
-_*.pdf
+*.pdf
 
 # Complete directories
