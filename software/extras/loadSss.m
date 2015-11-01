@@ -60,6 +60,9 @@ end
 LoadData = load(fname);
 
 if isfield(LoadData,'A') %1st order form
+    if ~isfield(LoadData,'B'), 
+        error('This benchmark does not have a B matrix. Please load it manually'),
+    end
     if ~isfield(LoadData,'C'), LoadData.C = LoadData.B'; end
     if ~isfield(LoadData,'D'), 
         LoadData.D = zeros(size(LoadData.C,1),size(LoadData.B,2)); 
