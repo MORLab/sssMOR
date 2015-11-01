@@ -1,20 +1,43 @@
 function M = moments(sys, s0, n)
-% Returns the moments or Markov parameters of an LTI system
-% ------------------------------------------------------------------
-% m = moments(sys, s0, n)
-% Inputs:       * sys: an sss-object containing the LTI system
-%               * s0: expansion point (inf -> Markov parameters)
-%               * n: number of moments to be computed
-% Output:       * M: 3D-array of moments / Markov parameters
-% ------------------------------------------------------------------
-% This file is part of the MORLAB_GUI, a Model Order Reduction and
-% System Analysis Toolbox developed at the
-% Institute of Automatic Control, Technische Universitaet Muenchen
-% For updates and further information please visit www.rt.mw.tum.de
-% ------------------------------------------------------------------
+% MOMENTS - Returns the moments or Markov parameters of an LTI system
+%
+% Syntax:
+%       M = moments(sys, s0, n)
+%
+%
+% Inputs:
+%      -sys:    an sss-object containing the LTI system
+%      -s0:     (array of) expansion point (inf -> Markov parameters)
+%      -n:      (array of) number of moments to be computed
+%
+%
+% Output: 
+%      -M:     3D-array of moments / Markov parameters
+%
+%
+% Examples:
+%       No examples
+% 
+% 
+%------------------------------------------------------------------
+%   This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
+%   Reduction and System Analysis Toolbox developed at the Chair of 
+%   Automatic Control, Technische Universitaet Muenchen. For updates 
+%   and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+%   For any suggestions, submission and/or bug reports, mail us at
+%                     -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+%   More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
 % Last Change:  26 Oct 2015
-% ------------------------------------------------------------------
+% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
+
 
 %%  Defining execution parameters
 nS0 = length(s0);

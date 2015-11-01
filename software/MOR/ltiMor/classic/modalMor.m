@@ -70,22 +70,56 @@ V=tbl.V';
 rlambda=tbl.rlambda;
 
 %calculate left eigenvalues
-[W, llambda] = eigs(sys.A', sys.E', q, Opts.type);
-llambda=diag(llambda);
 
-%sort eigenvalues and left eigenvectors
-W=W';
-tbl=table(llambda,W);
-tbl=sortrows(tbl);
-W=tbl.W';
-llambda=tbl.llambda;
+% note: eigenvector direction corresponds to the nullspace of the shifted 
+%       pencil (sys.A-rlambda(iEig)*sys.E)
+%       Since the sparse algorithm does not allow to input the exact value,
+%       we will perturb it a little
+
+% W = zeros(size(V)); warning('off','MATLAB:nearlySingularMatrix');
+% tic
+% for iEig = 1:length(rlambda)
+%     [~,~,W(:,iEig)] = svds((sys.A-(rlambda(iEig)+1e2*eps)*sys.E).',1,0);
+% end
+% t = toc
+% warning('on','MATLAB:nearlySingularMatrix');
+
+% this following code should be a little more accurate (it looks for the
+% right eigenvalue at 0) and seems to be a little faster
+
+W = zeros(size(V)); llambda = zeros(size(rlambda));
+warning('off','MATLAB:nearlySingularMatrix');
+warning('off','MATLAB:eigs:SigmaNearExactEig');
+for iEig = 1:length(rlambda)
+    [W(:,iEig),llambda(iEig)] = eigs((sys.A-(rlambda(iEig))*sys.E).',1,1e3*eps);
+end
+warning('on','MATLAB:nearlySingularMatrix');
+warning('on','MATLAB:eigs:SigmaNearExactEig');
 
 %check if the same eigenvalues have been found
-for i=1:q
-    if abs(real(llambda)-real(rlambda(i)))+abs(imag(llambda)-imag(rlambda(i))) > 10e-6
-        error('Eigenvectors belong to different eigenvalues. Please try again.');
-    end
+% in this case it is equivalent to verifying that llambda is close to 0
+if norm(llambda)/length(llambda) > 1e3*eps
+     error('Eigenvectors belong to different eigenvalues. Please try again.');
 end
+
+
+%   OLD CODE
+% [W, llambda] = eigs(sys.A', sys.E', q, Opts.type);
+% llambda=diag(llambda);
+
+% %sort eigenvalues and left eigenvectors
+% W=W';
+% tbl=table(llambda,W);
+% tbl=sortrows(tbl);
+% W=tbl.W';
+% llambda=tbl.llambda;
+% 
+% %check if the same eigenvalues have been found
+% for i=1:q
+%     if abs(real(llambda(i))-real(rlambda(i)))+abs(imag(llambda(i))-imag(rlambda(i))) > 10e-6
+%         error('Eigenvectors belong to different eigenvalues. Please try again.');
+%     end
+% end
 
 %split complex conjugated columns into real and imaginary
 if strcmp(Opts.real,'real');

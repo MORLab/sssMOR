@@ -25,6 +25,18 @@ clear all;
 clc;
 import matlab.unittest.TestSuite;
 
+%%  Change to testScripts folder
+testCase.Path = pwd; %original
+            
+p = mfilename('fullpath'); k = strfind(p, '\test'); 
+testpath = p(1:k(end)-1);
+cd(testpath);
+%%
+% 
+% * ITEM1
+% * ITEM2
+% 
+
 %% Test all unittest-files in current folder
 % suite = TestSuite.fromFolder(pwd);
 
@@ -38,12 +50,16 @@ suite4=TestSuite.fromFile('testTbr.m');
 suite5=TestSuite.fromFile('testModal.m'); 
 suite6=TestSuite.fromFile('testMoments.m'); 
 suite7=TestSuite.fromFile('testIsH2opt.m');
+suite8=TestSuite.fromFile('testMomentsAll.m'); %testMoments using all benchmarks in a local folder
 % suite8=TestSuite.fromFile('testSSS.m'); %not yet
 
 % Add/remove suiteX (e.g. [suite1, suite3] to run testArnoldi and testIRKA)
-suite=[suite1, suite2, suite3, suite4, suite5, suite6, suite7];
+suite=[suite1,suite2,suite3,suite4,suite5,suite6,suite7,suite8];
 
 
 %% Run and show results
 result = run(suite);
 disp(result);
+
+%% Go back to original folder
+cd(testCase.Path);
