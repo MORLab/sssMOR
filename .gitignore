@@ -93,4 +93,10 @@ Temporary Items
 *.pdf
 
 # Complete directories
-software/extras/errorTable.txt
+
+
+# Files generated automatically by running publishHelp.m
+doc/html/helpsearch-v3/
+doc/html/*.html
+doc/source/functions/
+doc/source/functions_index.m
