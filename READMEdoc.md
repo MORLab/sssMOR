@@ -19,6 +19,27 @@ The reason why the doc functions are not included in sssMOR is that they should 
 In sssMOR, the **headerTemplate** should be written/commented such that developers of sssMOR know how to format the header in order to produce the desired outcome.
 
 ## How to create the documentation
+**Very important:** 
+
+Before using the publishHelp.m function, you should ensure that the filter for helptoc.xml is working (long description of the filter in commit 373d16ff).
+
+In order for the filter to work, you have to manually change the ".git/config" file (".git" is a hidden folder) in your local repository .
+
+To do this, type in the Git shell:
+
+```
+git config --local include.path "absolute/path/to/helptoc_filter"
+```
+
+Alternatively you can manually add the following lines to the ".git/config" file:
+
+```
+[include]
+    path = absolute/path/to/helptoc_filter
+```
+
+**Generate HTML files:** 
+
 In order to automatically generate the HTML documentation, go to the folder "doc" and run the publishHelp.m function.
 
 This will update the following files: 
