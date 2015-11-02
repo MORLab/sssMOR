@@ -23,7 +23,6 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 %       -sysr: reduced system
 %       -V,W:  projection matrices
 %
-<<<<<<< HEAD
 %
 % Examples:
 %       No examples
