@@ -23,6 +23,11 @@ productName_ = 'sssMOR';
 
 %% setup directories
 
+% make sure to be in the right directory (sssMOR/doc)
+oDir = pwd; %original/curren directory
+tDir = mfilename('fullpath'); tDir = strrep(tDir,[filesep 'publishHelp'],'');
+cd(tDir) %target directory
+
 % directories containing m-files with help comments
 % (m-files can also be specified directly)
 fun_files = { ['..' filesep 'software' filesep 'MOR' filesep 'ltiMor' filesep 'classic'] };
@@ -197,4 +202,7 @@ cd( cur_dir )
 fprintf('Building the search database ...')
 builddocsearchdb( html_dir );
 fprintf(' done.\n')
+
+%% Go back to original directory
+cd(oDir)
 
