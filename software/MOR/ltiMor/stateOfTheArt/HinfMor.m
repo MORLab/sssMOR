@@ -54,42 +54,147 @@ end
 %               results)
 % steadyStateOpt: optimize over the difference in between the magnitude of
 %                 the steady state error and Dr
-corrType = 'steadyStateOpt';
+% findGe0match: finds the feedthrough that best matches the steady-state
+%               error amplitude
+% normOpt:      Optimizes the actual inf norm of the error system!!
+% steadyStateOpt+normOpt: combines the two
+
+if nargin>2
+    corrType = varargin{1};
+else
+    corrType = 'normOpt';
+end
 
 switch corrType
     case 'steadyState'
+        warning(['This approach fails due to the same reasons stated for ',...
+            'the forAll case']);
+        %plus, Ge(0) changes depending on Dr
+        
         Lt = ones(1,sysr0.n);
         Rt = ones(1,sysr0.n);
         Dr = freqresp(sys,0)-freqresp(sysr0,0);
         sysr = sss(sysr0.A+Lt.'*Dr*Rt, sysr0.B-Lt.'*Dr, ...
                     sysr0.C-Dr*Rt, Dr, sysr0.E);
     case 'steadyStateOpt'
+        warning(['This approach fails due to the same reasons stated for ',...
+            'the forAll case']);
+        % however, is seems to work fine for build...
+        
         Lt = ones(1,sysr0.n);
         Rt = ones(1,sysr0.n);
         G0 = freqresp(sys,0); %the only costly part
         Dr0 = G0-freqresp(sysr0,0);
+        sysrfun = @(Dr) sss(sysr0.A+Lt.'*Dr*Rt, sysr0.B-Lt.'*Dr, ...
+                                 sysr0.C-Dr*Rt, Dr, sysr0.E);
         cost = @(Dr) abs(...
                     abs(G0-...
-                    freqresp(sss(sysr0.A+Lt.'*Dr*Rt, sysr0.B-Lt.'*Dr, ...
-                                 sysr0.C-Dr*Rt, Dr, sysr0.E),0)) - Dr);
-        [DrOpt,optCost] = fmincon(cost,Dr0)
+                    freqresp(sysrfun(Dr),0)) - abs(Dr));
+        DrOpt = fmincon(cost,Dr0)
         sysr = sss(sysr0.A+Lt.'*DrOpt*Rt, sysr0.B-Lt.'*DrOpt, ...
                    sysr0.C-DrOpt*Rt, Dr0, sysr0.E);
+        
+    case 'findGe0match'
+        warning(['This approach fails since there does not seem to be a ',...
+            'reduced order model that yields a completely flat magnitude',...
+            'response in the error']);
+        if sys.isSiso
+            Lt = ones(1,sysr0.n); %new input/output vectors (from IRKA)
+            Rt = ones(1,sysr0.n);
+        else
+            error('not for MIMO yet')
+        end
+        
+        G0 = freqresp(sys,0); %the only costly part
+        
+        Dr0 = G0 - freqresp(sysr0,0) %get an initial feedthrough
+        deltaDr = 100*abs(Dr0), nStep = 5000; DrSet = []; dSet = [];
+        syse0 = sys-sysr0;
+        Hinf0 = norm(syse0,Inf); d0 = abs(Dr0); dMin = d0; %initial error
+        drawnow
+        for Dr = Dr0-deltaDr:(2*deltaDr)/nStep:Dr0+deltaDr;
+            sysr = sss(sysr0.A+Lt.'*Dr*Rt, sysr0.B-Lt.'*Dr, ...
+                                 sysr0.C-Dr*Rt, Dr, sysr0.E);
+            
+            d = abs(abs(G0-freqresp(sysr,0)) - abs(Dr));
+            if d < dMin
+                dMin = d;
+                dSet = [dSet, d];
+                DrSet = [DrSet,Dr];
+%                 syse = sys-sysr; sigma(syse,'Color',rand(1,3));
+%                 drawnow, keyboard
+            end
+        end
+        %   best feedthrough in term of minimizing the error between the
+        %   response at 0 and Inf
+        Dr = DrSet(end), dMin
+        sysr = sss(sysr0.A+Lt.'*Dr*Rt, sysr0.B-Lt.'*Dr, ...
+                                 sysr0.C-Dr*Rt, Dr, sysr0.E);
+    case 'normOpt'
+        if sys.isSiso
+            Lt = ones(1,sysr0.n); %new input/output vectors (from IRKA)
+            Rt = ones(1,sysr0.n);
+        else
+            error('not for MIMO yet')
+        end
+        
+        sysrfun = @(Dr) sss(sysr0.A+Lt.'*Dr*Rt, sysr0.B-Lt.'*Dr, ...
+                                 sysr0.C-Dr*Rt, Dr, sysr0.E);
+        cost = @(Dr) norm(sys-sysrfun(Dr),Inf);
+        warning('optimizing over the actual error norm');
+        solver = 'fminsearch';
+        switch solver
+            case 'fminsearch'
+            % initialization at steady-state error amplitude response
+            % G0 = freqresp(sys,0); Dr0 = G0-freqresp(sysr0,0);
+            Dr0 = 0;
+            tic, [DrOpt, Hinf] = fminsearch(cost,Dr0), tOpt = toc
+            
+            case 'ga'
+                options = gaoptimset('Display','iter','TimeLimit',5*60,...
+                    'UseParallel',true, 'PopInitRange',[-1;1]);
+                tic, [DrOpt, Hinf] = ga(cost,1,[],[],[],[],[],[],[],options); tOpt = toc
+        end
+        
+        sysr = sss(sysr0.A+Lt.'*DrOpt*Rt, sysr0.B-Lt.'*DrOpt, ...
+                   sysr0.C-DrOpt*Rt, DrOpt, sysr0.E);
+               
+    case 'steadyStateOpt+normOpt'
+        if sys.isSiso
+            Lt = ones(1,sysr0.n); %new input/output vectors (from IRKA)
+            Rt = ones(1,sysr0.n);
+        else
+            error('not for MIMO yet')
+        end
+        
+        % initialization at steady-state error amplitude response
+        G0 = freqresp(sys,0); Dr0 = G0-freqresp(sysr0,0);
+        sysrfun = @(Dr) sss(sysr0.A+Lt.'*Dr*Rt, sysr0.B-Lt.'*Dr, ...
+                                 sysr0.C-Dr*Rt, Dr, sysr0.E);
+                             
+        cost = @(Dr) abs(...
+                    abs(G0-...
+                    freqresp(sysrfun(Dr),0)) - abs(Dr));
+        Dr0opt = fminsearch(cost,Dr0)
+        
+        cost = @(Dr) norm(sys-sysrfun(Dr),Inf);
+        warning('optimizing over the actual error norm');
+        tic, [DrOpt, Hinf] = fmincon(cost,Dr0opt), tOpt= toc
+        sysr = sss(sysr0.A+Lt.'*DrOpt*Rt, sysr0.B-Lt.'*DrOpt, ...
+                   sysr0.C-DrOpt*Rt, DrOpt, sysr0.E);
 end
         
 
 %%  developing code
+
+% display results
+syse0 = sys-sysr0; Hinf0 = norm(syse0,Inf);
+syse =  sys-sysr; if ~exist('Hinf','var'), Hinf = norm(syse,Inf); end
+figure; sigma(syse0); hold on, sigma(syse,'r--');
+HinfRatio = Hinf/Hinf0
+relHinfErr = Hinf/norm(sys,inf)
+
 %analyze results
-% figure; bode(sys); hold on; bode(sysr,'r--')
 isstable(sysr0)
 isstable(sysr)
-
-syse0 = sys-sysr0;
-Hinf0 = norm(syse0,Inf)/norm(sys,Inf)
-
-syse = sys-sysr;
-Hinf = norm(syse,Inf)/norm(sys,Inf)
-
-% figure; bode(sys-sysr0,'-.b'); hold on; bode(sys-sysr,'-r');
-errorPlot(sys,{sysr0,sysr});
 
