@@ -1,4 +1,4 @@
-function updateIndexFiles( helpSource_, productName_, footer_ )
+function updateIndexFiles( helpSource_, productName_, footer_, doc_dir )
 % read the existing helptoc file, check that the processed files match the
 % existing in the helptoc and modify it accordingly
 %
@@ -25,11 +25,11 @@ function updateIndexFiles( helpSource_, productName_, footer_ )
 % END ChangeLog
 %% Function Body
 
-
+helptoc_dir = [doc_dir filesep 'html' filesep 'helptoc.xml'];
 
 % check whether current helptoc file exists
-if exist('html/helptoc.xml', 'file') ~= 2
-    % RODRIGO: modified from 'helptoc.xml' to 'html/helptoc.xml', because 
+if exist(helptoc_dir, 'file') ~= 2
+    % RODRIGO: modified from 'helptoc.xml' to 'doc_dir/html/helptoc.xml', because 
     % builddocsearchdb only works if helptoc.xml is in the folder where the
     % html files are
 
@@ -40,8 +40,8 @@ end
 
 % read helptoc document
 % RODRIGO: xDoc = document node. xDoc.getNodeType == 9
-xDoc = xmlread( 'html/helptoc.xml' );
-% RODRIGO: modified from 'helptoc.xml' to 'html/helptoc.xml' (read previous
+xDoc = xmlread( helptoc_dir );
+% RODRIGO: modified from 'helptoc.xml' to 'doc_dir/html/helptoc.xml' (read previous
 % comment)
 
 % -------------------------------------------------------------------------
@@ -294,7 +294,7 @@ while k_ < tocItemList.getLength
             funIndexHtmlFile_ = char(thisListItem.getAttribute('target'));
             if isempty(funIndexHtmlFile_)
                 
-                funIndexFile_ = fullfile('.', 'source', 'functions_index.m');
+                funIndexFile_ = fullfile(doc_dir, filesep, 'source', 'functions_index.m');
                 
                 % RODRIGO: This was the old configuration, 
                 % now that helptoc.xml is in the html folder
@@ -307,7 +307,7 @@ while k_ < tocItemList.getLength
                 thisListItem.setAttribute('target',  funIndexHtmlFile_);
             else
                 [~, filename, ~] = fileparts(funIndexHtmlFile_);
-                funIndexFile_ = fullfile('.', 'source', [filename '.m']);
+                funIndexFile_ = fullfile(doc_dir, 'source', [filename '.m']);
             end
             
             % loop over child elements
@@ -566,7 +566,7 @@ while k_ < tocItemList.getLength
 end
 
 
-xmlwrite('html/helptoc.xml', xDoc);
+xmlwrite(helptoc_dir, xDoc);
 
 % str_ = xmlwrite(xDoc);
 % disp(str_)

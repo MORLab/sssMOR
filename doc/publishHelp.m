@@ -23,21 +23,20 @@ productName_ = 'sssMOR';
 
 %% setup directories
 
-% make sure to be in the right directory (sssMOR/doc)
-oDir = pwd; %original/curren directory
-tDir = mfilename('fullpath'); tDir = strrep(tDir,[filesep 'publishHelp'],'');
-cd(tDir) %target directory
-
 % directories containing m-files with help comments
+
+% doc directory
+[doc_dir,~,~] = fileparts(mfilename('fullpath'));
+
+% project directory
+[proj_dir,~,~] = fileparts(doc_dir);
+
 % (m-files can also be specified directly)
-fun_files = { ['..' filesep 'software' filesep 'MOR' filesep 'ltiMor' filesep 'classic'] };
+fun_files = { [proj_dir filesep 'software' filesep 'MOR' filesep 'ltiMor' filesep 'classic'] };
 
-
-% current directory
-cur_dir = pwd;
 
 % html directory, where all generated html-files are saved to
-html_dir = fullfile(pwd, 'html',filesep);
+html_dir = fullfile(doc_dir, 'html', filesep);
 
 if exist( html_dir, 'dir' ) ~= 7
     mkdir( html_dir )
@@ -49,7 +48,7 @@ else
 end
 
 % source directory, where all marked-up m-files are located
-source_dir = fullfile(pwd, 'source', filesep);
+source_dir = fullfile(doc_dir, 'source', filesep);
 
 if exist( source_dir, 'dir' ) ~= 7
     mkdir( source_dir )
@@ -68,7 +67,7 @@ footer_ = sprintf('%s\n', ...
     '%%', ...
     '% <html>', ...
     '%   <hr>', ...
-    [ '%   <p class="copy">&copy; ' year_ ' RT Universit&auml;t M&uuml;nchen'], ...
+    [ '%   <p class="copy">&copy; ' year_ ' RT Technische Universität München'], ...
     '%        <tt class="minicdot">&#149;</tt>', ...
     '%        <a href="http://www.rt.mw.tum.de">Website</a>', ...
     '%        <tt class="minicdot">&#149;</tt>', ...
@@ -149,14 +148,14 @@ for d_ = 1:size(mDirs_,1)
     
 end
 
-updateIndexFiles( helpSource_, productName_, footer_ );
+updateIndexFiles( helpSource_, productName_, footer_, doc_dir );
 
 %% Generate the html-files from the marked-up help m-files
 
 
 
 fprintf('Generating the html-helpfiles.\n');
-fprintf('\tSource directory:\n\t\t%s\n', pwd);
+fprintf('\tSource directory:\n\t\t%s\n', doc_dir);
 
 fprintf('\tOutput directory:\n\t\t%s\n', html_dir);
 fprintf('Start publishing.\n\n');
@@ -168,7 +167,7 @@ options.outputDir = html_dir;
 options.maxHeight = 800;
 options.maxWidth = 600;
 options.evalCode = false;
-options.stylesheet = [pwd filesep 'myStyleSheet.xsl'];
+options.stylesheet = [doc_dir filesep 'myStyleSheet.xsl'];
 
 
 fields_ = fieldnames( helpSource_ );
@@ -179,7 +178,8 @@ for f_ = 1:length( fields_ )
     % change to the source directory
     % this is necessary in order to be able to execute code if so wanted
     % alternatively, the path could be added to the search path
-    cd( curSource_.path )
+    % cd( curSource_.path ) % RODRIGO: code in path, no need for cd
+
     
     for iF_ = 1:length( curSource_.item )
         
@@ -194,7 +194,7 @@ end
 
 fprintf('\nFinished publishing.\n\n')
 
-cd( cur_dir )
+% cd( doc_dir )
 
 %% Build the docsearch database files
 % necessary to enable searching in the help browser for the created help
@@ -202,7 +202,4 @@ cd( cur_dir )
 fprintf('Building the search database ...')
 builddocsearchdb( html_dir );
 fprintf(' done.\n')
-
-%% Go back to original directory
-cd(oDir)
 
