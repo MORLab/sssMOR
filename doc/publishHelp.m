@@ -168,6 +168,8 @@ options.maxHeight = 800;
 options.maxWidth = 600;
 options.evalCode = false;
 options.stylesheet = [doc_dir filesep 'myStyleSheet.xsl'];
+options.createThumbnail = false;
+
 
 
 fields_ = fieldnames( helpSource_ );
