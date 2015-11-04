@@ -105,7 +105,7 @@ function [output1,output2] = headerTemplate(input1,input2,varargin)
 %		* *[3] Giraud (2005)*, The loss of orthogonality in the Gram-Schmidt...
 %
 %------------------------------------------------------------------
-% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
 % Reduction and System Analysis Toolbox developed at the Chair of 
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
