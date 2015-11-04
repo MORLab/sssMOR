@@ -9,7 +9,7 @@ function [output1,output2] = headerTemplate(input1,input2,varargin)
 % 
 % Description:
 %       This header file is to be copied and pasted at the beginning
-%       of every script and function within the MORLab toolbox for reference.
+%       of every script and function within the sssMORLab toolbox for reference.
 % 
 %       The description should be kept as short as possible but as long as
 %       required to give a good impression of what the function/script is 
