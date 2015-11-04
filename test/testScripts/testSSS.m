@@ -226,6 +226,13 @@ classdef testSSS < matlab.unittest.TestCase
               verifySize(testCase, h', size(exph), 'Size not matching');
               verifySize(testCase, t', size(expt), 'Size not matching');
          end
+         
+%          function testsim (testCase)       
+%          % Header fehlt
+% 
+%          load('build.mat');
+% %          TODO
+%          end
     end
 end
 
