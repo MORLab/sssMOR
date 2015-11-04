@@ -25,6 +25,10 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="tbrhelp.html">tbr</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="isH2opthelp.html">isH2opt</tocitem>
          </tocitem>
+         <tocitem target="functions_index.html">Not Categorized
+<tocitem image="HelpIcon.FUNCTION" target="headerTemplatehelp.html">headerTemplate</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="headerTemplateSsshelp.html">headerTemplateSss</tocitem>
+         </tocitem>
       </tocitem>
       <tocitem image="HelpIcon.RELEASENOTES" target="./RELEASE.txt">Release Notes</tocitem>
       <tocitem image="HelpIcon.RELEASENOTES" target="./LICENSE.txt">License</tocitem>

@@ -9,7 +9,7 @@
 
 %%
 %
-% <<../img/sparse_matrx.png>>
+% <<img/sparse_matrx.png>>
 %
 
 %%
