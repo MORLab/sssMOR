@@ -68,7 +68,7 @@ function [output1,output2] = headerTemplate(input1,input2,varargin)
 %       <<https://www.rt.mw.tum.de/fileadmin/w00bhf/www/_migrated_pics/Logo_blau_Homepage_01.gif>>
 %
 % Input Arguments:
-%		*Neccesary Input Arguments:*
+%		*Required Input Arguments:*
 %		-input1: 		Description of in1
 %		-input2: 		Description of in2
 %
