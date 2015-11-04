@@ -32,7 +32,7 @@ productName_ = 'sssMOR';
 [proj_dir,~,~] = fileparts(doc_dir);
 
 % (m-files can also be specified directly)
-fun_files = { [proj_dir filesep 'software' filesep 'MOR' filesep 'ltiMor' filesep 'classic'] };
+fun_files = { [proj_dir filesep 'software' filesep 'MOR' filesep 'ltiMor' filesep 'classic'] , [proj_dir filesep 'headerTemplate.m'] , [proj_dir filesep 'software' filesep 'sss' filesep 'headerTemplateSss.m'] };
 
 
 % html directory, where all generated html-files are saved to
