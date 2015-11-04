@@ -9,7 +9,7 @@ function [output1,output2] = headerTemplate(input1,input2,varargin)
 % 
 % Description:
 %       This header file is to be copied and pasted at the beginning
-%       of every script and function within the MORLab toolbox for reference.
+%       of every script and function within the sssMORLab toolbox for reference.
 % 
 %       The description should be kept as short as possible but as long as
 %       required to give a good impression of what the function/script is 
@@ -68,7 +68,7 @@ function [output1,output2] = headerTemplate(input1,input2,varargin)
 %       <<https://www.rt.mw.tum.de/fileadmin/w00bhf/www/_migrated_pics/Logo_blau_Homepage_01.gif>>
 %
 % Input Arguments:
-%		*Neccesary Input Arguments:*
+%		*Required Input Arguments:*
 %		-input1: 		Description of in1
 %		-input2: 		Description of in2
 %
@@ -105,7 +105,7 @@ function [output1,output2] = headerTemplate(input1,input2,varargin)
 %		* *[3] Giraud (2005)*, The loss of orthogonality in the Gram-Schmidt...
 %
 %------------------------------------------------------------------
-% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
 % Reduction and System Analysis Toolbox developed at the Chair of 
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
