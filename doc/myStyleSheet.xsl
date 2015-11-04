@@ -121,7 +121,7 @@ To make changes, update the MATLAB code and republish this document.
 
 <xsl:template name="stylesheet">
   <style type="text/css">
-html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}
 
 html { min-height:100%; margin-bottom:1px; }
 html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
@@ -172,40 +172,93 @@ span.syscmd { color:#B28C00 }
 .footer a:hover { color:#878787; text-decoration:underline; }
 .footer a:visited { color:#878787; }
 
-<!--table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold;}
-table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }-->
+<!--
+table th
+{
+    padding: 7px 5px;
+    text-align: left;
+    vertical-align: middle;
+    border: 1px solid #d6d4d4;
+    font-weight: bold;
+}
 
-<!--table { border-bottom: 1px solid #d6d4d4; }-->
-table p  { padding:0px; margin:0px 0px 6px; }
-table.inner { border: 1px solid #d6d4d4; }
+table td
+{
+    padding: 7px 5px;
+    text-align: left;
+    vertical-align: top;
+    border: 1px solid #d6d4d4;
+}
 
+table
+{
+    border-bottom: 1px solid #d6d4d4;
+}
+-->
+
+table
+{
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: 100%;
+    border: 0px solid #d6d4d4;
+}
+
+table p
+{ 
+    padding: 0px;
+    margin: 0px 0px 6px;
+}
 
 th
 {
-background:green;
-color:white;
+    background: green;
+    color: white;
 }
+
 td, th
 {
-    text-align:left;
-	padding:7px 5px;
-	background:#f7f7f7;
-	border-top: 1px solid #d6d4d4;
+    text-align: left;
+    padding: 7px 5px;
+    background: #f7f7f7;
+    border: 1px solid #d6d4d4;
 }
+
+<!--
+table.inner
+{
+    border: 0 px solid #d6d4d4;
+    /*border-top: 1px solid #d6d4d4;
+    border-bottom: 1px solid #d6d4d4;*/
+    border-collapse: collapse;
+    border-style: hidden;
+}
+
+table.inner td, th
+{
+    text-align: left;
+    padding: 7px 5px;
+    background: #f7f7f7;
+    border: 1px solid #d6d4d4;
+    /*border-top: 1px solid #d6d4d4;
+    border-bottom: 1px solid #d6d4d4;*/
+}
+-->
+
 tr:hover td {background: #f0f0f0;}
 
 div.info 
 {
     text-align:left;
-	padding:7px 5px;
-	background:#D6EDFF;
-	border: 2px solid #d6d4d4;
+    padding:7px 5px;
+    background:#D6EDFF;
+    border: 2px solid #d6d4d4;
 }
 div.syntax
 {
     text-align:left;
-	padding:0px 25px;
-	background: white;
+    padding:0px 25px;
+    background: white;
     font-family:Monospace;
 }
 
