@@ -60,12 +60,12 @@ fprintf('As a result, in the large scale setting, where the storing of \n');
 fprintf('system matrices as "full" is not possible and/or desirable,\n');
 fprintf('the basic system analysis functions such as bode, bodemag, eig \n');
 fprintf('freqresp etc., but even model reduction functions as balred, \n');
-fprintf('balancmr, modred etc. cannot be used \n')
+fprintf('balancmr, modred etc. cannot be used.\n')
 customPause
 
 fprintf('sssMOR includes the definition of sparse state space (sss) objects\n');
 fprintf('and the sparsity and large-scale-optimized implementation of some \n');
-fprintf('of the most common function for dynamic systems objects.\n');
+fprintf('of the most common functions for dynamic system objects.\n');
 customPause
 
 
@@ -158,7 +158,7 @@ fprintf('\trespective ss-object.)\n');
 customPause
 
 %*  Time domain analysis.
-fprintf('Often times we wish to analyze the dynamic response of the \n');
+fprintf('Often we wish to analyze the dynamic response of the \n');
 fprintf('system in time domain. For this purpose, the "step" function\n');
 fprintf('can be used by calling:\n');
 fprintf('>> step(sys)\n');
@@ -270,7 +270,7 @@ fprintf('is the same as before, we perform two-sided reduction, hence 2q \n');
 fprintf('moments of the original model are matched. \n');
 customPause
 
-fprintf('\nThe definition of s0 can be done either by listing all frequenceies \n');
+fprintf('\nThe definition of s0 can be done either by listing all frequencies \n');
 fprintf('in a row vector...\n');
 fprintf('>> s0 = [0 0 ... 0]\n');
 fprintf('...or in a matrix having frequencies in the 1st and multiplicity in the\n');
