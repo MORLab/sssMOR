@@ -196,11 +196,10 @@ nS0 = length(s0); %number of shifts for the computations
 %   Tangential directions
 if ~exist('Rt', 'var') || isempty(Rt)%   Compute block Krylov subspaces
     if m == 1; %SISO -> tangential directions are scalars
-        Rt = ones(1,nS0);
-        % note: these are NOT the SISO tangential directions used for the
-        % Krylov subspace. This vector is just needed for the exact
-        % computation. If multiple shifts are given, this will be taken
-        % care of later on
+        Rt = [1, ~diff(s0)==0];
+        % these siso "tangential directions" are not used for the
+        % computatoin of the Krylov subspaces but just for the computation
+        % of the transformed tangential directions
     else %MIMO -> fill up s0 and define tangential blocks
         
         % tangential matching of higher order moments not implemented so

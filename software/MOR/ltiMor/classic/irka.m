@@ -1,14 +1,15 @@
-function [sysr, V, W, s0, s0Traj] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, s0Traj, Rsylv, Lsylv] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
 %       sysr = IRKA(sys, s0)
-%       [sysr, V, W] = IRKA(sys, s0)
-%       [sysr, V, W, s0] = IRKA(sys, s0)
-%       [sysr, V, W, s0, s0Traj] = IRKA(sys, s0)
 %       sysr = IRKA(sys, s0, Opts)
 %       sysr = IRKA(sys, s0, Rt, Lt)
 %       sysr = IRKA(sys, s0, Rt, Lt, Opts)
+%       [sysr, V, W] = IRKA(sys, ... )
+%       [sysr, V, W, s0] = IRKA(sys, ... )
+%       [sysr, V, W, s0, s0Traj] = IRKA(sys, ... )
+%       [sysr, V, W, s0, s0Traj, Rsylv, Lsylv] = IRKA(sys, ... )
 % 
 %
 % Inputs:       
@@ -19,10 +20,11 @@ function [sysr, V, W, s0, s0Traj] = irka(sys, s0, varargin)
 %
 %
 % Outputs:      
-%       -sysr:     reduced order model (sss)
-%       -V,W:      resulting projection matrices
-%       -s0:       final choice of shifts
+%       -sysr:    reduced order model (sss)
+%       -V,W:     resulting projection matrices
+%       -s0:      final choice of shifts
 %       -s0Traj:  trajectory of all shifst for all iterations
+%       -Rt,Lt:   right/left tangential directions from arnoldi
 %
 %
 % Examples:
@@ -125,9 +127,9 @@ while true
     k=k+1; sysr_old = sysr;
     %   Reduction
     if sys.isMimo
-        [sysr, V, W] = rk(sys, s0, s0, Rt, Lt);
+        [sysr, V, W, Rsylv, Lsylv] = rk(sys, s0, s0, Rt, Lt);
     else
-        [sysr, V, W] = rk(sys, s0, s0);
+        [sysr, V, W, Rsylv, Lsylv] = rk(sys, s0, s0);
     end
     %   Update of the reduction parameters
     s0_old=s0;

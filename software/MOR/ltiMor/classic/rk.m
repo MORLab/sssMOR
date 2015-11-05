@@ -1,4 +1,4 @@
-function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
+function [sysr, V, W, Rsylv, Lsylv] = rk(sys, s0_inp, varargin)
 % RK - Model Order Reduction by Rational Krylov
 %
 % Syntax:
@@ -10,6 +10,8 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %       [sysr, V, W] = RK(sys, s0_inp, s0_out ,IP)
 %       [sysr, V, W] = RK(sys, s0_inp, s0_out, Rt, Lt)
 %       [sysr, V, W] = RK(sys, s0_inp, s0_out, Rt, Lt, IP)
+%
+%       [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = RK(sys, ... )
 %
 %
 % Inputs:
@@ -147,8 +149,7 @@ if isempty(s0_out)
     [V,Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP);
     W = V;
     sysr = sss(V'*sys.A*V, V'*sys.B, sys.C*V, sys.D, V'*sys.E*V);
-    Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
-    Cb = []; Lsylv = [];  
+    Lsylv = [];  
     
 elseif isempty(s0_inp)
     % output Krylov subspace
@@ -157,8 +158,7 @@ elseif isempty(s0_inp)
     [W,Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP);
     V = W;
     sysr = sss(W'*sys.A*W, W'*sys.B, sys.C*W, sys.D, W'*sys.E*W);
-    Cb = sys.C - sysr.C/sysr.E*W'*sys.E;
-    Bb = []; Rsylv = [];
+    Rsylv = [];
 else
     if all(s0_inp == s0_out) %use only 1 LU decomposition for V and W
         [V,Rsylv,W,Lsylv] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
@@ -168,11 +168,6 @@ else
         [W,Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP);
     end
     sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
-
-    if nargout > 3
-        Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
-        Cb = sys.C - sysr.C/sysr.E*W'*sys.E;
-    end
 end
 
 %----------- AUXILIARY --------------

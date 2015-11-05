@@ -1,4 +1,4 @@
-function [sysr, Hinf] = HinfMor(sys, n, varargin) 
+function [sysr, sysr0, Hinf] = HinfMor(sys, n, varargin) 
 % HINFMOR - H-infinity reduction by tangential interpolation
 % ------------------------------------------------------------------
 %
@@ -36,7 +36,7 @@ if sys.isSiso
     % initialize
     try s0 = -eigs(sys,n,'sm').'; catch , s0 = zeros(1,n); end
     % run IRKA
-    sysr0 = irka(sys,s0);
+    [sysr0, ~, ~, ~, ~, Rt, Lt] = irka(sys,s0);
 else %MIMO
     % initialize
     %   compute one step of tangential Krylov at 0 to get initial tangent 
@@ -45,7 +45,7 @@ else %MIMO
     sysr = rk(sys,s0,s0,Rt,Lt);  [X,D,Y] = eig(sysr);
     Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
     %run IRKA
-    sysr0 = irka(sys,s0,Rt,Lt);
+    [sysr0, ~, ~, ~, ~, Rt, Lt] = irka(sys,s0,Rt,Lt);
 end
 
 %%  Make Hinf correction
@@ -71,8 +71,6 @@ switch corrType
             'the forAll case']);
         %plus, Ge(0) changes depending on Dr
         
-        Lt = ones(1,sysr0.n);
-        Rt = ones(1,sysr0.n);
         Dr = freqresp(sys,0)-freqresp(sysr0,0);
         sysr = sss(sysr0.A+Lt.'*Dr*Rt, sysr0.B-Lt.'*Dr, ...
                     sysr0.C-Dr*Rt, Dr, sysr0.E);
@@ -81,8 +79,6 @@ switch corrType
             'the forAll case']);
         % however, is seems to work fine for build...
         
-        Lt = ones(1,sysr0.n);
-        Rt = ones(1,sysr0.n);
         G0 = freqresp(sys,0); %the only costly part
         Dr0 = G0-freqresp(sysr0,0);
         sysrfun = @(Dr) sss(sysr0.A+Lt.'*Dr*Rt, sysr0.B-Lt.'*Dr, ...
@@ -93,17 +89,10 @@ switch corrType
         DrOpt = fmincon(cost,Dr0)
         sysr = sss(sysr0.A+Lt.'*DrOpt*Rt, sysr0.B-Lt.'*DrOpt, ...
                    sysr0.C-DrOpt*Rt, Dr0, sysr0.E);
-        
     case 'findGe0match'
         warning(['This approach fails since there does not seem to be a ',...
             'reduced order model that yields a completely flat magnitude',...
             'response in the error']);
-        if sys.isSiso
-            Lt = ones(1,sysr0.n); %new input/output vectors (from IRKA)
-            Rt = ones(1,sysr0.n);
-        else
-            error('not for MIMO yet')
-        end
         
         G0 = freqresp(sys,0); %the only costly part
         
@@ -131,16 +120,10 @@ switch corrType
         sysr = sss(sysr0.A+Lt.'*Dr*Rt, sysr0.B-Lt.'*Dr, ...
                                  sysr0.C-Dr*Rt, Dr, sysr0.E);
     case 'normOpt'
-        if sys.isSiso
-            Lt = ones(1,sysr0.n); %new input/output vectors (from IRKA)
-            Rt = ones(1,sysr0.n);
-        else
-            error('not for MIMO yet')
-        end
         
         sysrfun = @(Dr) sss(sysr0.A+Lt.'*Dr*Rt, sysr0.B-Lt.'*Dr, ...
                                  sysr0.C-Dr*Rt, Dr, sysr0.E);
-        cost = @(Dr) norm(sys-sysrfun(Dr),Inf);
+        cost = @(Dr) norm(ss(sys-sysrfun(Dr)),Inf);
         warning('optimizing over the actual error norm');
         solver = 'fminsearch';
         switch solver
@@ -157,8 +140,7 @@ switch corrType
         end
         
         sysr = sss(sysr0.A+Lt.'*DrOpt*Rt, sysr0.B-Lt.'*DrOpt, ...
-                   sysr0.C-DrOpt*Rt, DrOpt, sysr0.E);
-               
+                   sysr0.C-DrOpt*Rt, DrOpt, sysr0.E);              
     case 'steadyStateOpt+normOpt'
         if sys.isSiso
             Lt = ones(1,sysr0.n); %new input/output vectors (from IRKA)
@@ -182,19 +164,34 @@ switch corrType
         tic, [DrOpt, Hinf] = fmincon(cost,Dr0opt), tOpt= toc
         sysr = sss(sysr0.A+Lt.'*DrOpt*Rt, sysr0.B-Lt.'*DrOpt, ...
                    sysr0.C-DrOpt*Rt, DrOpt, sysr0.E);
+    case 'DRange'
+       
+        G0 = freqresp(sys,0); %the only costly part
+        
+        Dr0 = abs(G0 - freqresp(sysr0,0)); %get an initial feedthrough
+        nStep = 50; DrSet = []; dSet = [];
+        
+        Dr = linspace(-Dr0/3,Dr0/3, nStep);
+        normVec = zeros(1,length(Dr));
+        minVal = inf; minDr = 0; %initializing
+        normO = norm(ss(sys),inf); 
+        for iDr = 1:length(Dr)
+            sysr = sss(sysr0.A+Lt.'*Dr(iDr)*Rt, sysr0.B-Lt.'*Dr(iDr), ...
+                   sysr0.C-Dr(iDr)*Rt, Dr(iDr), sysr0.E);
+            normVec(iDr) = norm(ss(sys-sysr),inf)/normO;
+            if normVec(iDr) < minVal
+                minDr = Dr(iDr); minVal = normVec(iDr);
+            end
+        end
+        figure; plot(Dr,normVec,'*-'); hold on; plot(minDr,minVal,'or');
+        drawnow
+    otherwise
+        error('Specified Hinf optimization type not valid');
 end
         
 
-%%  developing code
-
-% display results
-syse0 = sys-sysr0; Hinf0 = norm(syse0,Inf);
-syse =  sys-sysr; if ~exist('Hinf','var'), Hinf = norm(syse,Inf); end
-figure; sigma(syse0); hold on, sigma(syse,'r--');
-HinfRatio = Hinf/Hinf0
-relHinfErr = Hinf/norm(sys,inf)
-
-%analyze results
-isstable(sysr0)
-isstable(sysr)
+%% 
+if nargout == 3
+    Hinf = norm(sys-sysr,inf)/norm(sys,inf);
+end
 
