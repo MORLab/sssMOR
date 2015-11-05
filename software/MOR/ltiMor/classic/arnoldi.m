@@ -10,26 +10,7 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %       [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,IP)
 %       [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,Rt,Lt)
 %       [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
-% 
 %
-% Inputs:
-%       -E/A/B/C:  System matrices
-%       -s0:       Vector of expansion points
-%       -Rt,Lt:     (opt.) Matrix of right/left tangential directions
-%       -IP:       (opt.) function handle for inner product
-%
-%
-% Outputs:
-%       -V:        Orthonormal basis spanning the input Krylov subsp. 
-%       -Rsylv:    Right tangential directions of Sylvester Eq.
-%       -W:        Orthonormal basis spanning the output Krylov subsp.
-%       -Lsylv:    Left tangential directions of Sylvester Eq.
-%
-%
-% Examples:
-%       No examples
-% 
-% 
 % Description:
 %       This function is used to compute the matrix V spanning the 
 %       input Krylov subspace corresponding to E, A, b and s0 [1,2].
@@ -51,30 +32,48 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %       to the inner product  defined in IP (optional). If no inner product 
 %       is specified, then the elliptic product corresponding to E is 
 %       chosen by default:
+%
 %                       IP=@(x,y) (x'*E*y)
+%
 %       which requires E to be a positive definite matrix.
-% 
+%
+% Input Arguments:
+%       *Required Input Arguments:*
+%       -E/A/B:    System matrices
+%       -s0:       Vector of expansion points
+%
+%       *Optional Input Arguments:*
+%       -C:        System matrix
+%       -Rt,Lt:    Matrix of right/left tangential directions
+%       -IP:       function handle for inner product
+%
+% Output Arguments:
+%       -V:        Orthonormal basis spanning the input Krylov subsp. 
+%       -Rsylv:    Right tangential directions of Sylvester Eq.
+%       -W:        Orthonormal basis spanning the output Krylov subsp.
+%       -Lsylv:    Left tangential directions of Sylvester Eq.
+%
+% Examples:
+%       TODO
 %
 % See also: 
 %       rk
 %
-% 
 % References:
 %       * *[1] Grimme (1997)*, Krylov projection methods for model reduction
 %       * *[2] Antoulas (2005)*, Approximation of large-scale dynamical systems
 %       * *[3] Antoulas (2010)*, Interpolatory model reduction of large-scale...
 %       * *[4] Giraud (2005)*, The loss of orthogonality in the Gram-Schmidt...    
 %
-%
 %------------------------------------------------------------------
-%   This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
-%   Reduction and System Analysis Toolbox developed at the Chair of 
-%   Automatic Control, Technische Universitaet Muenchen. For updates 
-%   and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
-%   For any suggestions, submission and/or bug reports, mail us at
-%                     -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
 %
-%   More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto 
