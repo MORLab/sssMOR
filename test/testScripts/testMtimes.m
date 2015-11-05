@@ -2,7 +2,7 @@ classdef testMtimes < matlab.unittest.TestCase
     % testMtimes - testing of mtimes.m
 %
 % Description:
-%   The function rk.m is tested (3 tests) on:
+%   The function mtimes.m is tested (3 tests) on:
 %    + combination of two benchmark-systems.
 %    + combination of two random-systems that are equal.
 %    + combination of two random-systems that are different.

@@ -53,14 +53,16 @@ suite7=TestSuite.fromFile('testIsH2opt.m');
 suite8=TestSuite.fromFile('testMomentsAll.m'); %testMoments using all benchmarks in a local folder
 suite9=TestSuite.fromFile('testMtimes.m');
 suite10=TestSuite.fromFile('testNorm.m');
+suite11=TestSuite.fromFile('testPlus.m');
+suite12=TestSuite.fromFile('testPzmap.m');
 % suite11=TestSuite.fromFile('testSSS.m'); %not yet
 
 % Add/remove suiteX (e.g. [suite1, suite3] to run testArnoldi and testIRKA)
-suite=[suite1,suite2,suite3,suite4,suite5,suite6,suite7,suite8,suite9,suite10];
+suite=[suite1,suite2,suite3,suite4,suite5,suite6,suite7,suite8,suite9,suite10,suite11,suite12];
 
 
 %% Run and show results
-result = run(suite);
+result = run(suite12);
 disp(result);
 
 %% Go back to original folder
