@@ -1,43 +1,54 @@
 function [V,S_V,Crt,k] = spark(A,B,C,E,s0,Opts)
 % SPARK - Stability Preserving Adaptive Rational Krylov
-% ------------------------------------------------------------------
-% [V,S_V,Crt,k] = SPARK(A,B,C,E,s0,opts)
-% Inputs:       * A,B,C,E:   HFM matrices; 
-%               * s0:        Initial shifts
-%               * opts:      option structure (optional)
-% Outputs:      * V,S_V,Crt: Input Krylov subspace,  A*V - E*V*S_V - B*Crt = 0
-%               * k:         Number of iterations of MESPARK
-% ------------------------------------------------------------------
-% USAGE:  This function reduces a state-space, LTI model specified 
-% by the matrices A,B,C,E to a LTI model of order 2 using the trust
-% region optimization algorithm known as SPARK. 
-% "s0" represents the two initial shifts that are used to start the 
-% optimizer.
-% "opts" is an optional structure containing execution options. Here
-% are some examples:
-%   -opts.test: 1 or 0 (default), specifies weather the user desires to get 
-%               insight in what is happening. This is realized with a high 
-%               level of verbose and plotting during optimization.
-%   -opts.SPARK: 'standard' (default) or 'model', chooses between
-%                standard ESPARK, where the original model is reduced
-%                directly, or MESPARK, where a model function is created
-%                and updated after convergence.
-% ------------------------------------------------------------------
-% REFERENCES:
-% [1] Panzer (2014), Model Order Reduction by Krylov Subspace Methods
-%     with Global Error Bounds and Automatic Choice of Parameters
-% ------------------------------------------------------------------
-% This file is part of MORLab, a Sparse State Space, Model Order
-% Reduction and System Analysis Toolbox developed at the Institute 
-% of Automatic Control, Technische Universitaet Muenchen
-% For updates and further information please visit www.rt.mw.tum.de
+% 
+% Syntax:
+%       [V,S_V,Crt,k] = SPARK(A,B,C,E,s)
+%       [V,S_V,Crt,k] = SPARK(A,B,C,E,s0,Opts)
+%
+% Description:
+%       This function reduces a state-space, LTI model specified 
+%       by the matrices A,B,C,E to a LTI model of order 2 using the trust
+%       region optimization algorithm known as SPARK.
+%
+% Input Arguments:
+%       *Required Input Arguments:*
+%       -A,B,C,E:   HFM matrices; 
+%       -s0:        Initial shifts
+%       *Optional Input Arguments:*
+%       -opts:      Structure containing computation options
+%           -.opts.test:    1 or 0 (default), specifies weather the user desires to get 
+%                           insight in what is happening. This is realized with a high 
+%                           level of verbose and plotting during optimization.
+%           -.opts.SPARK:   'standard' (default) or 'model', chooses between
+%                           standard ESPARK, where the original model is reduced
+%                           directly, or MESPARK, where a model function is created
+%                           and updated after convergence.
+%
+% Output Arguments:      
+%       -V,S_V,Crt: Input Krylov subspace,  A*V - E*V*S_V - B*Crt = 0
+%       -k:         Number of iterations of MESPARK
+%
+% References:
+%       * *[1] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
+%              with Global Error Bounds and Automatic Choice of Parameters
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                        -> MORLab@tum.de <-
-% ------------------------------------------------------------------
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
 % Authors:      Heiko K.F. Panzer, Alessandro Castagnotto 
-%               (a.castagnotto@tum.de)
-% Last Change:  25 Jun 2015
-% ------------------------------------------------------------------
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  05 Nov 2015
+% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
 
 %% Parse input and load default parameters
     % default values

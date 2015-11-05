@@ -1,46 +1,61 @@
 function sysr = cure(sys,Opts)
-%CURE - CUmulative REduction framework
-% ------------------------------------------------------------------
-% sysr = CURE(sys, opts)
-% Inputs:       * sys: an sss-object containing the LTI system
-%               * opts: a structure containing following options
-%                   * cure.red:  reduction algorithm - {'rk','irka','spark',...}
-%                   * cure.nk:   reduced order at each iteration
-%                   * cure.fact: factorization mode - {'V','W'}
-%                   * cure.stop: stopping criterion - {'H2-error','HInf-error',...
-%                               'nmax'}
-%                   * cure.stopval: value according to which the stopping
-%                               criterion is evaluated (e.g. 'error'->tol, etc.)
-%                   * test:     produce plots and verbatim to analyze
-% Outputs:      * sysr: reduced system
-% ------------------------------------------------------------------
-% USAGE:  This function implements the CUmulative REduction framework
-% (cure) introduced by Panzer and Wolf (see [1,2]).
+% CURE - CUmulative REduction framework
 %
-% Using the duality between Sylvester equation and Krylov subspaces, the 
-% error is factorized at each step of CURE and only the high-dimensional
-% factor is reduced in a subsequent step of the iteration.
+% Syntax:
+%       sysr = CURE(sys)
+%       sysr = CURE(sys,Opts)
 %
-% See also SPARK, RK, IRKA, PORKV, PORKW.
+% Description:
+%       This function implements the CUmulative REduction framework
+%       (cure) introduced by Panzer and Wolf (see [1,2]).
 %
-% ------------------------------------------------------------------
-% REFERENCES:
-% [1] Panzer (2014): Model Order Reduction by Krylov Subspace Methods
-%     with Global Error Bounds and Automatic Choice of Parameters
-% [2] Wolf (2014): H2 Pseudo-Optimal Moder Order Reduction
-% ------------------------------------------------------------------
-% This file is part of sssMOR, a Sparse State Space, Model Order
-% Reduction and System Analysis Toolbox developed at the Institute 
-% of Automatic Control, Technische Universitaet Muenchen.
-% For updates and further information please visit www.rt.mw.tum.de
+%       Using the duality between Sylvester equation and Krylov subspaces, the 
+%       error is factorized at each step of CURE and only the high-dimensional
+%       factor is reduced in a subsequent step of the iteration.
+%
+% Input Arguments:
+%       *Required Input Arguments:*
+%       -sys: An sss-object containing the LTI system
+%       *Optional Input Arguments:*
+%       -Opts: A structure containing following options
+%           -.cure.red:     reduction algorithm - {'rk','irka','spark',...}
+%           -.cure.nk:      reduced order at each iteration
+%           -.cure.fact:    factorization mode - {'V','W'}
+%           -.cure.stop:    stopping criterion - {'H2-error','HInf-error',...
+%                           'nmax'}
+%           -.cure.stopval: value according to which the stopping
+%                           criterion is evaluated (e.g. 'error'->tol, etc.)
+%           -.test:         produce plots and verbatim to analyze
+%
+% Output Arguments:     
+%       -sysr: Reduced system
+% 
+% See also: 
+%       SPARK, RK, IRKA, PORKV, PORKW.
+%
+% References:
+%       * *[1] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
+%              with Global Error Bounds and Automatic Choice of Parameters
+%       * *[2] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> sssMOR@rt.mw.tum.de <-
-% ------------------------------------------------------------------
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
 % Authors:      Heiko K.F. Panzer, Alessandro Castagnotto, 
 %               Maria Cruz Varona
-% Last Change:  26 April 2015
-% Copyright 2015 Chair of Automatic Control, TU Muenchen
-% ------------------------------------------------------------------
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  05 Nov 2015
+% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
 
 %% Parse input and load default parameters
 
