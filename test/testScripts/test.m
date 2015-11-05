@@ -55,11 +55,13 @@ suite9=TestSuite.fromFile('testMtimes.m');
 suite10=TestSuite.fromFile('testNorm.m');
 suite11=TestSuite.fromFile('testPzmap.m');
 suite12=TestSuite.fromFile('testPlus.m');
+suite13=TestSuite.fromFile('testResidue.m');
+suite14=TestSuite.fromFile('testSigma.m');
 
 % suite11=TestSuite.fromFile('testSSS.m'); %not yet
 
 % Add/remove suiteX (e.g. [suite1, suite3] to run testArnoldi and testIRKA)
-suite=[suite1,suite2,suite3,suite4,suite5,suite6,suite7,suite8,suite9,suite10,suite11,suite12];
+suite=[suite1,suite2,suite3,suite4,suite5,suite6,suite7,suite8,suite9,suite10,suite11,suite12,suite13,suite14];
 
 
 %% Run and show results

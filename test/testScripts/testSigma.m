@@ -1,11 +1,16 @@
-classdef testPzmap < matlab.unittest.TestCase
-    % testPzmap - testing of pzmap.m
+classdef testSigma < matlab.unittest.TestCase
+    % testNorm - testing of norm.m
     %
     % Description:
-    %   The function pzmap.m is tested (3 tests) on:
-    %    + test with benchmark-systems.
-    %    + combination of two random-systems that are equal.
-    %    + combination of two random-systems that are different.
+    %   The function sigma.m is tested (3 tests) on:
+    %    + Norm of a SISO benchmark system.
+    %    + Norm of a SISO random system.
+    %    + Norm of a MISO random system.
+    %    + Norm of a SIMO random system.
+    %    + Norm of MIMO benchmark system.
+    %    + Norm of a MIMO random system.
+    %    + Verifies for every case just if it runs for the syntax
+    %    [mag,omega]=sigma(sys) and sigma(sys)
     %
     % ------------------------------------------------------------------
     %   This file is part of sssMOR, a Sparse State Space, Model Order
@@ -15,9 +20,9 @@ classdef testPzmap < matlab.unittest.TestCase
     %   For any suggestions, submission and/or bug reports, mail us at
     %                     -> sssMOR@rt.mw.tum.de <-
     % ------------------------------------------------------------------
-    % Authors:      Alessandro Castagnotto, Maria Cruz Varona
+    % Authors:      Alessandro Castagnotto
     %               Jorge Luiz Moreira Silva
-    % Last Change:  05 Nov 2015
+    % Last Change:  26 Out 2015
     % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
     % ------------------------------------------------------------------
     methods(Test)
@@ -25,63 +30,43 @@ classdef testPzmap < matlab.unittest.TestCase
             load('build.mat');
             sysSparse=sss(A,B,C);
             sys=ss(A,B,C,zeros(1,1));
-            [actP,actZ]=pzmap(sysSparse);
-            actPZ={sort(actP),sort(actZ)};
-            pzmap(sysSparse);
-            [expP,expZ]=pzmap(sys);
-            expPZ={sort(expP),sort(expZ)};
-            verification(testCase, actPZ, expPZ);
+            sigma(sysSparse);
+            [mag,omega]=sigma(sysSparse);
             close all;
         end
         function testSISOrandom(testCase)
             sys=rss(35);
             sysSparse=sss(sys);
-            [actP,actZ]=pzmap(sysSparse);
-            actPZ={sort(actP),sort(actZ)};
-            pzmap(sysSparse);
-            [expP,expZ]=pzmap(sys);
-            expPZ={sort(expP),sort(expZ)};
-            verification(testCase, actPZ, expPZ);
+            sigma(sysSparse);
+            [mag,omega]=sigma(sysSparse);
             close all;
         end
-        function testMISOrandom(testCase)
+        function testMISO(testCase)
             n=35;
             nInputs=5;
             sys=rss(n);
             sys=ss(sys.A,rand(n,nInputs),sys.C,rand(1,nInputs));
             sysSparse=sss(sys);
-            [actP,actZ]=pzmap(sysSparse);
-            actPZ={sort(actP),sort(actZ)};
-            pzmap(sysSparse);
-            [expP,expZ]=pzmap(sys);
-            expPZ={sort(expP),sort(expZ)};
-            verification(testCase, actPZ, expPZ);
+            sigma(sysSparse);
+            [mag,omega]=sigma(sysSparse);
             close all;
         end
-        function testSIMOrandom(testCase)
+        function testSIMO(testCase)
             n=35;
             nOutputs=5;
             sys=rss(n);
             sys=ss(sys.A,sys.B,rand(nOutputs,n),rand(nOutputs,1));
             sysSparse=sss(sys);
-            [actP,actZ]=pzmap(sysSparse);
-            actPZ={sort(actP),sort(actZ)};
-            pzmap(sysSparse);
-            [expP,expZ]=pzmap(sys);
-            expPZ={sort(expP),sort(expZ)};
-            verification(testCase, actPZ, expPZ);
+            sigma(sysSparse);
+            [mag,omega]=sigma(sysSparse);
             close all;
         end
         function testMIMObench(testCase)
             load('cdplayer.mat');
             sysSparse=sss(A,B,C);
             sys=ss(full(A),full(B),full(C),zeros(2,2));
-            [actP,actZ]=pzmap(sysSparse);
-            actPZ={sort(actP),sort(actZ)};
-            pzmap(sysSparse);
-            [expP,expZ]=pzmap(sys);
-            expPZ={sort(expP),sort(expZ)};
-            verification(testCase, actPZ, expPZ);
+            sigma(sysSparse);
+            [mag,omega]=sigma(sysSparse);
             close all;
         end
         function testMIMOrandom(testCase)
@@ -91,19 +76,14 @@ classdef testPzmap < matlab.unittest.TestCase
             sys=rss(n);
             sys=ss(sys.A,rand(n,nInputs),rand(nOutputs,n),rand(nOutputs,nInputs));
             sysSparse=sss(sys);
-            [actP,actZ]=pzmap(sysSparse);
-            actPZ={sort(actP),sort(actZ)};
-            pzmap(sysSparse);
-            [expP,expZ]=pzmap(sys);
-            expPZ={sort(expP),sort(expZ)};
-            verification(testCase, actPZ, expPZ);
+            sigma(sysSparse);
+            [mag,omega]=sigma(sysSparse);
             close all;
         end
-
     end
 end
 
 function [] = verification(testCase, actSolution, expSolution)
-verifyEqual(testCase, actSolution,  expSolution,'RelTol',0.1e-6,...
+verifyEqual(testCase, actSolution(1:4),  expSolution(1:4),'RelTol',1e-3,...
     'Difference between actual and expected exceeds relative tolerance');
 end
