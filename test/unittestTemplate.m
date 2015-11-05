@@ -27,43 +27,55 @@
 %Definition of a unittest class:
 classdef testName < matlab.unittest.TestCase
     
-    %Properties (optional)
-    properties
-          OriginalPath 
+       properties
+         sysCell;
     end
-    
-    %Constructor (optional)
-    methods(TestMethodSetup) 
-          function addSolverToPath(testCase)
-              testCase.OriginalPath = path;
-              addpath(fullfile(pwd,'code_to_test'));
-          end
-    end
-    
-    %Destructor (optional)
-    methods(TestMethodTeardown)
+ 
+    methods(TestMethodSetup)
+        function getBenchmarks(testCase)
+            % change path
+            Path = pwd; %original
+            
+            %insert path of local benchmark folder
+            %the directory "benchmark" is in sssMOR
+            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+            pathBenchmarks = [p(1:k-1),'benchmarks'];
+            cd(pathBenchmarks);
+
+            % load files
+            files = dir('*.mat'); 
+            testCase.sysCell=cell(1,length(files));
+
+            for i=1:length(files)
+                testCase.sysCell{i} = loadSss(files(i).name);
+            end
+
+            % change path back
+            cd(Path);
+        end
     end
     
     %Test functions
     methods (Test)  
         
         function testfunction1(testCase)
-            %load benchmark
-            load('build.mat');
+            %load all benchmark systems
+            for i=1:length(testCase.sysCell)
+            sys=testCase.sysCell{i};
             s0=5;
             q=2;
             
             %actual solution
-            actM = moments(sss(A,B,C), s0, q);
+            actM = moments(sys, s0, q);
             
             actSolution = actM; %multiple solutions -> cell: e.g {V,W,sysr.A}
             
             %expcected solution
             expM=zeros(1,q);
-            temp=(A-s0*eye(size(A))\B);
-            expM(1)=C*temp;
-            temp=(A-s0*eye(size(A))\temp);
-            expM(2)=C*temp;
+            temp=(sys.A-s0*eye(size(sys.A))\sys.B);
+            expM(1)=sys.C*temp;
+            temp=(sys.A-s0*eye(size(sys.A))\temp);
+            expM(2)=sys.C*temp;
             
             expSolution = expM;
             
@@ -75,6 +87,7 @@ classdef testName < matlab.unittest.TestCase
 
                 %add RelTol (relative tolerance) and/or AbsTol (absolute
                 %tolerance) and error message
+            end
         end
         
         function testfunction2 (testCase)       
