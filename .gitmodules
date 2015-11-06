@@ -1,0 +1,3 @@
+[submodule "sssMOR"]
+	path = sssMOR
+	url = git@gitlab.lrz.de:MORLab/sssMOR.git
