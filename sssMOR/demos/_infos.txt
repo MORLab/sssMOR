@@ -1,6 +1,0 @@
->> doc demo
-
-"demo type name" lists the examples for products other than MATLAB or Simulink®. Valid values for type include matlab, simulink, toolbox, or blockset.
-
-MATLAB - Display Custom Examples
-http://de.mathworks.com/help/matlab/matlab_prog/display-custom-examples.html
