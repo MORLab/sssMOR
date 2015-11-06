@@ -1,3 +1,0 @@
-[filter "timestamp_reset"]
-	clean = sed -r \"s/[[:digit:]]+ \\w+ [[:digit:]]+ [[:digit:]]+:[[:digit:]]+/31 Oct 2015 15:57/\"
-	smudge = sed -r \"s/[[:digit:]]+ \\w+ [[:digit:]]+ [[:digit:]]+:[[:digit:]]+/31 Oct 2015 15:57/\"
