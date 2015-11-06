@@ -1,0 +1,3 @@
+[submodule "software/sss"]
+	path = software/sss
+	url = https://gitlab.lrz.de/MORLab/sss.git
