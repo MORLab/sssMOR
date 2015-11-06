@@ -5,7 +5,7 @@ Copyright (c) 2015 Institute of Automatic Control,
 See LICENSE.txt for license information.
 web: https://www.rt.mw.tum.de/
 
-(This file has been modified automatically on 31 Oct 2015 15:57)
+(This file has been generated automatically)
 -->
 <toc version="2.0">
    <tocitem image="$toolbox/matlab/icons/book_mat.gif" target="test_product_page.html">sssMOR Toolbox
@@ -16,16 +16,56 @@ web: https://www.rt.mw.tum.de/
             <tocitem target="example_test.html">Example Test</tocitem>
       </tocitem>
       <tocitem image="HelpIcon.FUNCTION" target="functions_index.html">Functions Reference
-            <tocitem target="functions_index.html">Classic LTI MOR
+            <tocitem target="functions_index.html">LTI MOR Classic
 <tocitem image="HelpIcon.FUNCTION" target="arnoldihelp.html">arnoldi</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="irkahelp.html">irka</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="isH2opthelp.html">isH2opt</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="modalMorhelp.html">modalMor</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="momentshelp.html">moments</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="rkhelp.html">rk</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="tbrhelp.html">tbr</tocitem>
-            <tocitem image="HelpIcon.FUNCTION" target="isH2opthelp.html">isH2opt</tocitem>
          </tocitem>
-         <tocitem target="functions_index.html">Not Categorized
+         <tocitem target="functions_index.html">LTI MOR State of the Art
+<tocitem image="HelpIcon.FUNCTION" target="curehelp.html">cure</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="porkVhelp.html">porkV</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="porkWhelp.html">porkW</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="sparkhelp.html">spark</tocitem>
+         </tocitem>
+         <tocitem target="functions_index.html">Sparse State Space
+<tocitem image="HelpIcon.FUNCTION" target="appendhelp.html">append</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="bodehelp.html">bode</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="c2dhelp.html">c2d</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="clearhelp.html">clear</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="connecthelp.html">connect</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="connectSsshelp.html">connectSss</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="decayTimehelp.html">decayTime</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="diaghelp.html">diag</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="disphelp.html">disp</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="eighelp.html">eig</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="eigshelp.html">eigs</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="freqresphelp.html">freqresp</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="impulsehelp.html">impulse</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="issdhelp.html">issd</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="isstablehelp.html">isstable</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="normhelp.html">norm</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="plushelp.html">plus</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="pzmaphelp.html">pzmap</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="residuehelp.html">residue</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="sigmahelp.html">sigma</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="simhelp.html">sim</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="simBackwardEulerhelp.html">simBackwardEuler</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="simDiscretehelp.html">simDiscrete</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="simForwardEulerhelp.html">simForwardEuler</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="simRK4help.html">simRK4</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="sizehelp.html">size</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="spyhelp.html">spy</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="sshelp.html">ss</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="stephelp.html">step</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="truncatehelp.html">truncate</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="minushelp.html">minus</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="mtimeshelp.html">mtimes</tocitem>
+         </tocitem>
+         <tocitem target="functions_index.html">Header Templates
 <tocitem image="HelpIcon.FUNCTION" target="headerTemplatehelp.html">headerTemplate</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="headerTemplateSsshelp.html">headerTemplateSss</tocitem>
          </tocitem>
