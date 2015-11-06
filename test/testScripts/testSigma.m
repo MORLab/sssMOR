@@ -1,5 +1,5 @@
 classdef testSigma < matlab.unittest.TestCase
-    % testNorm - testing of norm.m
+    % testSigma - testing of signa.m
     %
     % Description:
     %   The function sigma.m is tested (3 tests) on:

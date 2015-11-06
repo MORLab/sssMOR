@@ -1,16 +1,15 @@
-classdef testResidue < matlab.unittest.TestCase
-    % testResidue - testing of residue.m
+classdef testSs < matlab.unittest.TestCase
+    % testSs - testing of ss.m
     %
     % Description:
-    %   The function residue.m is tested (3 tests) on:
+    %   The function norm.m is tested (3 tests) on:
     %    + Norm of a SISO benchmark system.
     %    + Norm of a SISO random system.
     %    + Norm of a MISO random system.
     %    + Norm of a SIMO random system.
     %    + Norm of MIMO benchmark system.
     %    + Norm of a MIMO random system.
-    %    + Verifies for every case just if it runs for the syntax
-    %    [r,p,d]=residue(sys) and RESIDUE(sys)
+    %    + Verifies for every case the following inputs/outputs: sys=ss(sysSparse)
     %
     % ------------------------------------------------------------------
     %   This file is part of sssMOR, a Sparse State Space, Model Order
@@ -29,74 +28,42 @@ classdef testResidue < matlab.unittest.TestCase
         function testSISObench(testCase)
             load('build.mat');
             sysSparse=sss(A,B,C);
-            sys=ss(A,B,C,zeros(1,1));
-            residue(sysSparse);
-            [r,p,d]=residue(sysSparse);
-            actNorm = {r,p,d};
-           % [r,p,d]=residue(sys);
-          %  expNorm = {r,p,d};
-         %   verification(testCase, actNorm, expNorm);
+            sys=ss(sysSparse);
         end
-        function testSISOrand(testCase)
+        function testSISOrandom(testCase)
             sys=rss(35);
             sysSparse=sss(sys);
-            residue(sysSparse);
-            [r,p,d]=residue(sysSparse);
-            actNorm = {r,p,d};
-            %[r,p,d]=residue(sys);
-          %  expNorm = {r,p,d};
-         %   verification(testCase, actNorm, expNorm);
+             sys=ss(sysSparse);
         end
-        function testMISO(testCase)
+        function testNormMISOrandom(testCase)
             n=35;
             nInputs=5;
             sys=rss(n);
             sys=ss(sys.A,rand(n,nInputs),sys.C,rand(1,nInputs));
             sysSparse=sss(sys);
-            residue(sysSparse);
-            [r,p,d]=residue(sysSparse);
-            actNorm = {r,p,d};
-            %[r,p,d]=residue(sys);
-          %  expNorm = {r,p,d};
-         %   verification(testCase, actNorm, expNorm);
+             sys=ss(sysSparse);
         end
-        function testSIMO(testCase)
+        function testSIMOrandom(testCase)
             n=35;
             nOutputs=5;
             sys=rss(n);
             sys=ss(sys.A,sys.B,rand(nOutputs,n),rand(nOutputs,1));
             sysSparse=sss(sys);
-            residue(sysSparse);
-            [r,p,d]=residue(sysSparse);
-            actNorm = {r,p,d};
-            %[r,p,d]=residue(sys);
-          %  expNorm = {r,p,d};
-         %   verification(testCase, actNorm, expNorm);
+             sys=ss(sysSparse);
         end
         function testMIMObench(testCase)
             load('cdplayer.mat');
             sysSparse=sss(A,B,C);
-            sys=ss(full(A),full(B),full(C),zeros(2,2));
-            residue(sysSparse);
-            [r,p,d]=residue(sysSparse);
-            actNorm = {r,p,d};
-          %  [r,p,d]=residue(sys);
-          %  expNorm = {r,p,d};
-         %   verification(testCase, actNorm, expNorm);
+             sys=ss(sysSparse);
         end
-        function testMIMOrandom(testCase)
+        function testMIMOrand(testCase)
             n=35;
             nInputs=7;
             nOutputs=5;
             sys=rss(n);
             sys=ss(sys.A,rand(n,nInputs),rand(nOutputs,n),rand(nOutputs,nInputs));
             sysSparse=sss(sys);
-            residue(sysSparse);
-            [r,p,d]=residue(sysSparse);
-            actNorm = {r,p,d};
-           % [r,p,d]=residue(sys);
-          %  expNorm = {r,p,d};
-         %   verification(testCase, actNorm, expNorm);
+            sys=ss(sysSparse);
         end
     end
 end

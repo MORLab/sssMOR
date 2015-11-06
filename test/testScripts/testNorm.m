@@ -2,7 +2,7 @@ classdef testNorm < matlab.unittest.TestCase
     % testNorm - testing of norm.m
     %
     % Description:
-    %   The function rk.m is tested (3 tests) on:
+    %   The function norm.m is tested (3 tests) on:
     %    + Norm of a SISO benchmark system.
     %    + Norm of a SISO random system.
     %    + Norm of a MISO random system.
@@ -26,7 +26,7 @@ classdef testNorm < matlab.unittest.TestCase
     % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
     % ------------------------------------------------------------------
     methods(Test)
-        function testNorm1(testCase)
+        function testSISObench(testCase)
             load('build.mat');
             sysSparse=sss(A,B,C);
             sys=ss(A,B,C,zeros(1,1));
@@ -42,7 +42,7 @@ classdef testNorm < matlab.unittest.TestCase
             expNorm = [expNorm1,expNorm2,expFreq,expNorm3];
             verification(testCase, actNorm, expNorm);
         end
-        function testNorm2(testCase)
+        function testSISOrandom(testCase)
             sys=rss(35);
             sysSparse=sss(sys);
             actNorm1=norm(sysSparse);
@@ -57,7 +57,7 @@ classdef testNorm < matlab.unittest.TestCase
             expNorm = [expNorm1,expNorm2,expFreq,expNorm3];
             verification(testCase, actNorm, expNorm);
         end
-        function testNorm3(testCase)
+        function testMISOrandom(testCase)
             n=35;
             nInputs=5;
             sys=rss(n);
@@ -75,7 +75,7 @@ classdef testNorm < matlab.unittest.TestCase
             expNorm = [expNorm1,expNorm2,expFreq,expNorm3];
             verification(testCase, actNorm, expNorm);
         end
-        function testNorm4(testCase)
+        function testSIMOrandom(testCase)
             n=35;
             nOutputs=5;
             sys=rss(n);
@@ -93,7 +93,7 @@ classdef testNorm < matlab.unittest.TestCase
             expNorm = [expNorm1,expNorm2,expFreq,expNorm3];
             verification(testCase, actNorm, expNorm);
         end
-        function testNorm5(testCase)
+        function testMIMObench(testCase)
             load('cdplayer.mat');
             sysSparse=sss(A,B,C);
             sys=ss(full(A),full(B),full(C),zeros(2,2));
@@ -109,7 +109,7 @@ classdef testNorm < matlab.unittest.TestCase
             expNorm = [expNorm1,expNorm2,expFreq,expNorm3];
             verification(testCase, actNorm, expNorm);
         end
-        function testNorm6(testCase)
+        function testMIMOrandom(testCase)
             n=35;
             nInputs=7;
             nOutputs=5;

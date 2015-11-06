@@ -3,9 +3,15 @@ classdef testPzmap < matlab.unittest.TestCase
     %
     % Description:
     %   The function pzmap.m is tested (3 tests) on:
-    %    + test with benchmark-systems.
-    %    + combination of two random-systems that are equal.
-    %    + combination of two random-systems that are different.
+    %    + Norm of a SISO benchmark system.
+    %    + Norm of a SISO random system.
+    %    + Norm of a MISO random system.
+    %    + Norm of a SIMO random system.
+    %    + Norm of MIMO benchmark system.
+    %    + Norm of a MIMO random system.
+    %    + Verifies for every case the following inputs/outputs:
+    %    pzmap(sys),[p,z]=pzmap(sys)
+    %
     %
     % ------------------------------------------------------------------
     %   This file is part of sssMOR, a Sparse State Space, Model Order
