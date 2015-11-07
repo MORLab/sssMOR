@@ -29,14 +29,18 @@ function sysr = cure(sys,Opts)
 %
 % Output Arguments:     
 %       -sysr: Reduced system
+%
+% Examples:
+%       TODO
 % 
-% See also: 
-%       SPARK, RK, IRKA, PORKV, PORKW.
+% See Also: 
+%       spark, rk, irka, porkV, porkW
 %
 % References:
 %       * *[1] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
 %              with Global Error Bounds and Automatic Choice of Parameters
 %       * *[2] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
+%
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
 % Reduction and System Analysis Toolbox developed at the Chair of 
@@ -48,8 +52,7 @@ function sysr = cure(sys,Opts)
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      Heiko K.F. Panzer, Alessandro Castagnotto, 
-%               Maria Cruz Varona
+% Authors:      Heiko Panzer, Alessandro Castagnotto, Maria Cruz Varona
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen

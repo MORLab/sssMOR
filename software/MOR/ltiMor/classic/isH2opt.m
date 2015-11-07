@@ -1,5 +1,5 @@
 function isH2opt = isH2opt(sys,sysr,s0,Opts)
-% ISH2OPT - evaluate Maier-Luenberger conditions for H2-optimality
+% ISH2OPT - Evaluate Maier-Luenberger conditions for H2-optimality
 %
 % Syntax:
 %       ISH2OPT(sys,sysr,s0)

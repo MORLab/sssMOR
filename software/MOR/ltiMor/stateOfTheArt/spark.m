@@ -28,9 +28,16 @@ function [V,S_V,Crt,k] = spark(A,B,C,E,s0,Opts)
 %       -V,S_V,Crt: Input Krylov subspace,  A*V - E*V*S_V - B*Crt = 0
 %       -k:         Number of iterations of MESPARK
 %
+% Examples:
+%       TODO
+% 
+% See Also: 
+%       cure, porkV, porkW, rk
+%
 % References:
 %       * *[1] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
 %              with Global Error Bounds and Automatic Choice of Parameters
+%
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
 % Reduction and System Analysis Toolbox developed at the Chair of 
