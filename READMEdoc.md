@@ -1,58 +1,73 @@
 # sssMORdoc
-Documentation for sssMOR, a sparse state-space, model order reduction toolbox developed at the Chair of Automatic Control, Technische Universitaet Muenchen.
+Documentation for sssMOR, a sparse state-space, model order reduction toolbox developed at the Chair of Automatic
+Control, Technische Universitaet Muenchen.
 
 *Programmed and tested with: MATLAB R2015b*
 
-___
+_________
 
-**Table of contents**
+### Table of contents
 
 [TOC]
 
 ## sssMORdoc on GitLab
-On your computer, the files in this repository should be in a **branch** of sssMOR. Include this repository as a **remote** and make sure to push changes to this remote (which you may call "doc").
+On your computer, clone the sssMORdoc repository with SourceTree. The sssMORdoc repository includes the sssMOR
+repository as a submodule  and the sssMOR repository includes the sss repository as submodule. That means that when you
+clone the sssMORdoc repository you automatically  also clone the sssMOR and the sss repository!
 
-In this way, you will have **only one** folder on your computer named "sssMOR", and depending what branch you are in you will see the documentation as as folder "doc" or not.
+The submodule repositories (sssMOR and sss) will be inside the working directory of the sssMORdoc and you can treat them
+as normal repositories: You can change the files in the submodule repositories, and when you are happy with the results,
+you can commit and push those changes. You can also pull the newest version of the repositories.
 
-The reason why the doc functions are not included in sssMOR is that they should be kept private (many functions are based on code from Simtech in Stuttgart). Using this branch, it will be possible to work on the documentation **in the same directory** and generate the toolbox to be put for download on the homepage.
+Keep in mind that if you update a submodule (e.g. you pull changes or you make changes to it), the "parent" repository
+will see this as a change  and has to be updated by commiting them. Please don't forget push commited changes. :)
 
-In sssMOR, the **headerTemplate** should be written/commented such that developers of sssMOR know how to format the header in order to produce the desired outcome.
+The reason why the doc functions are not included in sssMOR is that they should be kept private (many functions are
+based on code from Simtech  in Stuttgart). Using this structure, it will be possible to work on the documentation  and
+on the toolbox **in the same directory**.
+
+In sssMOR, the **headerTemplate** should be written/commented such that developers of sssMOR know how to format the
+header in order to produce the desired outcome.
 
 ## How to create the documentation
-**Very important:** 
+After having cloned the sssMORdoc repository, add it (and all of its subfolders) to the Matlab Path. You can do this
+from the Current Folder Window in Matlab by doing a right-click on the repository folder and selecting 
+"Add to the path > Selected Folders and Subfolders". Alternatively, you can do the same from  "Home > Set Path".
 
-Before using the publishHelp.m function, you should ensure that the filter for helptoc.xml is working (long description of the filter in commit 373d16ff).
+After having added sssMORdoc to your path, run "publishHelp" from the Command Window. This will generate automatically
+the HTML documentation. Go to the Matlab Documentation (type "doc" in the Command Window) and you should now be able to
+see, on the lower right corner (under "Supplemental Software"), the "sssMOR Toolbox" documentation.
 
-In order for the filter to work, you have to manually change the ".git/config" file (".git" is a hidden folder) in your local repository .
-
-To do this, type in the Git shell:
-
-```
-git config --local include.path "absolute/path/to/helptoc_filter"
-```
-
-Alternatively you can manually add the following lines to the ".git/config" file:
-
-```
-[include]
-    path = absolute/path/to/helptoc_filter
-```
-
-**Generate HTML files:** 
-
-In order to automatically generate the HTML documentation, go to the folder "doc" and run the publishHelp.m function.
-
-This will update the following files: 
+The "publishHelp.m" function will update the following files everytime it is run: 
 - doc/source/functions_index.m
 - doc/source/functions/*.m
 - doc/html/helptoc.xml
 - doc/html/*.html
 
-After running the publishHelp.m function, type "doc" in the Matlab Command Window (it is important to stay in the "doc" folder while doing this, because the "info.xml" file is also in that folder)
 
-You should now be able to see on the lower right corner (under "Supplemental Software") the "sssMOR Toolbox" documentation.
+## Documentation Workflow
+If you want to make changes to the **any** documentation file (e.g. the header of a function) then do the following
+steps:
 
+1. Open the Matlab Documentation ("doc" in Command Window) and search for the HTML page of the file that you want to
+change.
 
+2. Switch to the Command Window and run "publishHelp".
+
+3. Switch back to the Matlab Documentation Window and then press F5 on your Keyboard (if you are on a Mac, you might
+have to press Command + R). This will refresh the page in the Matlab Documentation Window. This way you see to
+actualized version of the page.
+
+4. Make changes to the file you want to change (e.g. header of a function)
+
+5. Repeat steps 2, 3 and 4 iteratively until you are happy with the results.
+
+6. Commit and push changes to the corresponding repositories ;)
+
+This workflow ensures that you are always aware of how the changes you make are going to look when we publish them.
+
+#Release Workflow
+ToDo
 
 ## Project management
 Here is a list of important aspects for the development of the toolbox that should be kept available to everybody
