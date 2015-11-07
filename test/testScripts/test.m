@@ -59,12 +59,18 @@ suite13=TestSuite.fromFile('testResidue.m');
 suite14=TestSuite.fromFile('testSigma.m');
 suite15=TestSuite.fromFile('testStep.m');
 suite16=TestSuite.fromFile('testSs.m');
+suite17=TestSuite.fromFile('testAppend.m');
+suite18=TestSuite.fromFile('testBode.m');
+suite19=TestSuite.fromFile('testEig.m');
+suite20=TestSuite.fromFile('testEigs.m');
+suite21=TestSuite.fromFile('testFreqresp.m');
 
 % suite11=TestSuite.fromFile('testSSS.m'); %not yet
 
 % Add/remove suiteX (e.g. [suite1, suite3] to run testArnoldi and testIRKA)
 suite=[suite1,suite2,suite3,suite4,suite5,suite6,suite7,suite8,suite9,suite10,...
-suite11,suite12,suite13,suite14,suite15,suite16];
+suite11,suite12,suite13,suite14,suite15,suite16, suite17, suite18, suite19,...
+suite20, suite21];
 
 
 %% Run and show results
