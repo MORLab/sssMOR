@@ -158,8 +158,8 @@ end
 %% if MOR is to be performed, calculate V, W and reduced system
 q=varargin{1};
 
-V = sys.T_bal_inv(:,1:q);
-W = sys.T_bal(1:q,:)';
+V = sys.TBalInv(:,1:q);
+W = sys.TBal(1:q,:)';
 
 sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
 varargout{1} = V;
