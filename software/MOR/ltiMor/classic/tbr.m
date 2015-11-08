@@ -7,6 +7,19 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       [sysr,V,W] = TBR(sys,q)
 %       [sysr,V,W,hsv] = TBR(sys,q)
 %
+% Description:
+%       Computes a reduced model of order q by balancing and truncation,
+%       i.e. by transforming the system to a balanced realization where all
+%       states are equally controllable and observable and selecting only
+%       the first q modes responsible for the highest energy transfer in
+%       system [1]. 
+%
+%       If q is not specified, then TBR computes only a balanced
+%       realization of the system without truncation.
+%
+%       Hankel singular values and the matrices for transformation to
+%       balanced realization are stored in the sss object sys.
+%
 %
 % Inputs:
 %       -sys:   an sss-object containing the LTI system
@@ -19,12 +32,15 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       -hsv:   Hankel singular values
 %
 %// Note: If no q is given, the balancing transformation and calculation of the
-%// Hankel Singular Values is performed without subsequent model reduction.
+%// Hankel singular values is performed without subsequent model reduction.
 %
 %
 % Examples:
 %       No examples
 %
+%
+% References:
+%       * * Antoulas (2005)*, Approximation of large-scale dynamical systems
 %
 %------------------------------------------------------------------
 %   This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
@@ -117,18 +133,12 @@ else
 end
 
 % calculate balancing transformation and Hankel Singular Values
-% M = L*R';
-% [K,S] = svd(M*M');
-% hsv = sqrt(diag(S));
-% sys.HankelSingularValues = real(hsv);
-% sys.T_bal = diag(sqrt(hsv))\K'*L/sys.E;
-% sys.T_bal_inv = L\K*diag(sqrt(hsv));
 
 [K,S,M]=svd(R*L');
 hsv = diag(S);
 sys.HankelSingularValues = real(hsv);
-sys.T_bal_inv = R'*K/diag(sqrt(hsv));
-sys.T_bal = diag(sqrt(hsv))\M'*L/sys.E;
+sys.TBalInv = R'*K/diag(sqrt(hsv));
+sys.TBal = diag(sqrt(hsv))\M'*L/sys.E;
 
 
 % store system
