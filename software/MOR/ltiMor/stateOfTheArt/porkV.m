@@ -1,10 +1,11 @@
 function [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
-% porkV - Pseudo-Optimal Rational (Input) Krylov PORK [Wolf et al. 2013]
+% porkV - Pseudo-Optimal Rational Krylov (Input)
 %
 % Syntax: 
 %       [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
 %
 % Description:
+%       TODO
 % 
 % Input Arguments:
 %       *Required Input Arguments:*
@@ -14,7 +15,16 @@ function [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
 % Output Arguments: 
 %       -Ar,Br,Cr,Er:    ROM matrices
 % 
+% Examples:
+%       TODO
+% 
+% See Also: 
+%       porkW, spark, rk
+%
 % References:
+%       * *[1] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
+%       * *[2] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
+%              with Global Error Bounds and Automatic Choice of Parameters
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
@@ -27,7 +37,7 @@ function [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      
+% Authors:      Thomas Wolf, Heiko Panzer
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen

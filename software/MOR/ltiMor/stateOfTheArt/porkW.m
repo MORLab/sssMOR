@@ -1,5 +1,5 @@
 function [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
-% porkW - Pseudo-Optimal Rational (Output) Krylov PORK [Wolf et al. 2013]
+% porkW - Pseudo-Optimal Rational Krylov (Output)
 %
 % Syntax: 
 %       [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
@@ -14,7 +14,16 @@ function [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
 % Output Arguments: 
 %       -Ar,Br,Cr,Er:    ROM matrices
 %
+% Examples:
+%       TODO
+% 
+% See Also: 
+%       porkV, spark, rk
+%
 % References:
+%       * *[1] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
+%       * *[2] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
+%              with Global Error Bounds and Automatic Choice of Parameters
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
@@ -27,7 +36,7 @@ function [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      
+% Authors:      Thomas Wolf, Heiko Panzer
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen

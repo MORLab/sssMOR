@@ -47,9 +47,12 @@ function sysr = cure(sys,Opts)
 %
 % Output Arguments:     
 %       -sysr: Reduced system
+%
+% Examples:
+%       TODO
 % 
-% See also: 
-%       spark, rk, irka, porkV, porkW.
+% See Also: 
+%       spark, rk, irka, porkV, porkW
 %
 % References:
 %       * *[1] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
@@ -68,8 +71,7 @@ function sysr = cure(sys,Opts)
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      Heiko K.F. Panzer, Alessandro Castagnotto, 
-%               Maria Cruz Varona
+% Authors:      Heiko Panzer, Alessandro Castagnotto, Maria Cruz Varona
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
@@ -402,17 +404,11 @@ function writeGif(gifMode)
         otherwise
             error('Invalid gifMode')
     end   
-function [Crt, Sv, B_] = getSylvMat(sys,sysr,V,varargin)
+function [Crt, Sv, B_] = getSylvMat(sys,sysr,V)
     % this function gets the matrices of the Sylvester equation
     % AV- EVSv - BCrt = 0
     % AV - EVEr^-1Ar - B_Crt = 0
-    
-    if nargin <= 3
-        type = 'V';
-    else
-        type = varargin{1};
-    end
-    
+
     if strcmp(type,'V');
         B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
         Crt = (B_.*B_)\(sys.A*V - sys.E*V*(sysr.E\sysr.A));
@@ -420,11 +416,6 @@ function [Crt, Sv, B_] = getSylvMat(sys,sysr,V,varargin)
             Sv = sysr.E\(sysr.A - sysr.B*Crt);
         end
     else
-%         B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
-%         Crt = (B_.*B_)\(sys.A*V - sys.E*V*(sysr.E\sysr.A));
-%         if nargout > 1
-%             Sv = sysr.E\(sysr.A - sysr.B*Crt);
-%         end
     end
 function isEven = isEven(a)
     isEven = round(a/2)== a/2;
