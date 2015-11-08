@@ -13,30 +13,50 @@ function sysr = cure(sys,Opts)
 %       error is factorized at each step of CURE and only the high-dimensional
 %       factor is reduced in a subsequent step of the iteration.
 %
+%       Currently, this function supports following reduction strategies at
+%       each step of CURE:
+%       spark (def.), irka, rk+pork (pseudo-optimal reduction)
+%
+%       You can reduce index 1 DAEs in semiexplicit form by selecting the
+%       appropriate option. See [3] for more details.
+%
 % Input Arguments:
 %       *Required Input Arguments:*
 %       -sys: An sss-object containing the LTI system
 %       *Optional Input Arguments:*
-%       -Opts: A structure containing following options
-%           -.cure.red:     reduction algorithm - {'rk','irka','spark',...}
-%           -.cure.nk:      reduced order at each iteration
-%           -.cure.fact:    factorization mode - {'V','W'}
-%           -.cure.stop:    stopping criterion - {'H2-error','HInf-error',...
-%                           'nmax'}
+%       -Opts: A structure containing following fields
+%           -.cure.redfun:  reduction algorithm
+%                          {'spark' (def) | 'irka' | 'rk+pork'}
+%           -.cure.nk:      reduced order at each iteration - {2 (def)}
+%           -.cure.fact:    factorization mode - {'V' (def) | 'W'}
+%           -.cure.init:    shift initialization mode 
+%                          {'sm' (def) | 'zero' | 'lm' | 'slm'}
+%           -.cure.stop:    stopping criterion - {'nmax' (def) | 'h2Error'}
 %           -.cure.stopval: value according to which the stopping
-%                           criterion is evaluated (e.g. 'error'->tol, etc.)
-%           -.test:         produce plots and verbatim to analyze
+%                           criterion is evaluated - {sqrt(sys.n) (def)}
+%           -.cure.verbose: display text during cure {0 (def) | 1}
+%           -.cure.SE_DAE:  reduction of index 1 semiexplicit DAE 
+%                          {0 (def) | 1}
+%           -.cure.test:    execute analysis code {0 (def) | 1}
+%           -.cure.gif:     produce a .gif file of the CURE iteration
+%                          {0 (def) | 1}
+%           -.warn:         show warnings - {0 (def) | 1}
+%           -.w:            frequencies for analysis plots - {[] (def)}
+%           -.zeroThers:    value that can be used to replace 0 
+%                          {1e-4 (def)}
 %
 % Output Arguments:     
 %       -sysr: Reduced system
 % 
 % See also: 
-%       SPARK, RK, IRKA, PORKV, PORKW.
+%       spark, rk, irka, porkV, porkW.
 %
 % References:
 %       * *[1] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
 %              with Global Error Bounds and Automatic Choice of Parameters
 %       * *[2] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
+%       * *[3] Castagnotto et al. (2015)*, Stability-preserving, adaptive
+%              model order reduction of DAEs by Krylov subspace methods
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
 % Reduction and System Analysis Toolbox developed at the Chair of 
@@ -53,22 +73,20 @@ function sysr = cure(sys,Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  05 Nov 2015
+% Last Change:  07 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
-
     % default values
     Def.warn = 0;%show warnings?
     Def.cure.verbose = 0; %show progress text?
     Def.w = []; %frequencies for bode plot
-    
     Def.zeroThres = 1e-4; % define the threshold to replace "0" by
-        Def.cure.red = 'spark'; %reduction algorithm
+        Def.cure.redfun = 'spark'; %reduction algorithm
         Def.cure.nk = 2; % reduced order at each step
         Def.cure.stop = 'nmax'; %type of stopping criterion
-        Def.cure.stopval = round(sqrt(size(sys.a,1))); %default reduced order
+        Def.cure.stopval = round(sqrt(sys.n)); %default reduced order
             if ~isEven(Def.cure.stopval), Def.cure.stopval = Def.cure.stopval +1;end
         Def.cure.init = 'sm'; %shift initialization type
         Def.cure.fact = 'V'; %error factorization
@@ -86,13 +104,12 @@ function sysr = cure(sys,Opts)
 if Opts.cure.test
     fhOriginalSystem = nicefigure('CURE - Reduction of the original model');
     fhSystemBeingReduced = fhOriginalSystem; %the two coincide for the moment
-    [mag,phase,w] = bode(sys,Opts.w); bodeOpts = {'Color',TUM_Blau,'LineWidth',2};
-    redo_bodeplot(mag,phase,w,bodeOpts), hold on
+    [m,w] = freqresp(sys,Opts.w); bodeOpts = {'Color',TUM_Blau,'LineWidth',2};
+    bode(frd(m,w),bodeOpts), hold on
     magHandle = subplot(2,1,1); magLim = ylim;
     phHandle  = subplot(2,1,2); phLim  = ylim;
     if Opts.cure.gif, writeGif('create'); end
 end
-
 %%   Initialize some variables
 [~,m] = size(sys.b);  p = size(sys.c,1);
 Er_tot = []; Ar_tot = []; Br_tot = []; Cr_tot = []; B_ = sys.b; C_ = sys.c;
@@ -100,13 +117,12 @@ BrL_tot = zeros(0,p); CrL_tot = zeros(p,0);
 BrR_tot = zeros(0,m); CrR_tot = zeros(m,0);
 
 sysr = sss(Ar_tot,Br_tot,Cr_tot,zeros(p,m),Er_tot);
-
-%   Computation for semiexplicit index 1 DAEs (SE DAEs)
+%%   Computation for semiexplicit index 1 DAEs (SE DAEs)
 if Opts.cure.SE_DAE
     [DrImp,A22InvB22] = implicitFeedthrough(sys,Opts.cure.SE_DAE);
     
     % if we inted to used spark, the DAE has to be modified if DrImp~=0
-    if DrImp && strcmp(Opts.cure.red,'spark')
+    if DrImp && strcmp(Opts.cure.redfun,'spark')
         B_ = adaptDaeForSpark(sys,Opts.cure.SE_DAE,A22InvB22);
         
         % if Opts.cure.test, add a new plot for the modified system
@@ -114,12 +130,15 @@ if Opts.cure.SE_DAE
             %switch the plot to be updated in the loop
             fhSystemBeingReduced = nicefigure('CURE - modified DAE (strictly proper)');
             sys = sss(sys.a,B_,C_,0,sys.e);
-            [mag,phase,w] = bode(sys,Opts.w); bodeOpts = {'Color',TUM_Blau,'LineWidth',2};
-            redo_bodeplot(mag,phase,w,bodeOpts)  
+            [m,w] = freqresp(sys,Opts.w); bodeOpts = {'Color',TUM_Blau,'LineWidth',2};
+            bode(frd(m,w),bodeOpts)  
             magHandle = subplot(2,1,1); magLim = ylim;
             phHandle  = subplot(2,1,2); phLim  = ylim;
             if Opts.cure.gif, writeGif('create'); end
         end 
+    elseif DrImp
+        error(['Cumulative reduction of non strictly proper index 1 DAEs ' ...
+                'in semiexplicit form is currently supported only for spark'])
     end
 else
     DrImp = zeros(size(sys.d));
@@ -139,26 +158,25 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
     sys = sss(sys.a,B_,C_,0,sys.e);
     
     %   Initializations
-    [s0,Opts] = initializeShifts(sys,Opts,iCure);
-        
+    [s0,Opts] = initializeShifts(sys,Opts,iCure);        
 	% 1) Reduction
     switch Opts.cure.fact
         case 'V'
             % V-based decomposition, if A*V - E*V*S - B*Crt = 0
-            switch Opts.cure.red
+            switch Opts.cure.redfun
                 case 'spark'               
                     [V,S_V,Crt] = spark(sys.a,sys.b,sys.c,sys.e,s0,Opts); 
                     
                     [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C_);                   
                 case 'irka'
-                    [sysr_temp,V,W] = irka(sys,s0);
+                    [sysrTemp,V,W] = irka(sys,s0);
                     
-                    Ar = sysr_temp.a;
-                    Br = sysr_temp.b;
-                    Cr = sysr_temp.c;
-                    Er = sysr_temp.e;
+                    Ar = sysrTemp.a;
+                    Br = sysrTemp.b;
+                    Cr = sysrTemp.c;
+                    Er = sysrTemp.e;
                     
-                    Crt = [eye(m), zeros(m)]; 
+                    Crt = getSylvMat(sys,sysr,V); 
                 case 'rk+pork'
                     [sysRedRK, V, ~, ~, Crt] = rk(sys,s0); 
                     S_V = sysRedRK.E\(sysRedRK.A-sysRedRK.B*Crt);
@@ -173,18 +191,27 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
                             DrImp*CrR_tot(:,end-n+1:end);
                     end
                 otherwise 
-                    error('The selected reduction scheme (Opts.cure.red) is not availabe in cure');
+                    error('The selected reduction scheme (Opts.cure.redfun) is not availabe in cure');
             end
             n = size(V,2);
         case 'W'
         % W-based decomposition, if A'*W - E'*W*SW' - C'*Brt' = 0
-            switch Opts.cure.red
+            switch Opts.cure.redfun
                 case 'spark'               
                     [W,S_W,Brt] = spark(sys.a',sys.c',sys.b',sys.e',s0,Opts);
                     Brt = Brt';
                     S_W = S_W';
                     
                     [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B_);
+                case 'irka'
+                    [sysrTemp,V,W] = irka(sys,s0);
+                    
+                    Ar = sysrTemp.a;
+                    Br = sysrTemp.b;
+                    Cr = sysrTemp.c;
+                    Er = sysrTemp.e;
+                    
+                    Brt = (getSylvMat(sys.',sysr.',W))';               
                 case 'rk+pork'
                     [sysRedRK, ~, W, ~, ~, ~, Brt] = rk(sys,[],s0);
                     S_W = sysRedRK.E'\(sysRedRK.A'-Brt*sysRedRK.C);
@@ -197,13 +224,11 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
                     if ~isempty(Br_tot)
                         Br_tot(end-n+1:end,:) = Br_tot(end-n+1:end,:) + ...
                             BrR_tot(end-n+1:end,:)*DrImp;
-                    end
-                    
+                    end  
             end
             n = size(W,2);
     end
-
-    
+    %%  Cumulate the matrices and define sysr
 	%Er = W.'*E*V;  Ar = W.'*A*V;  Br = W.'*B_;  Cr = C_*V;
     Er_tot = blkdiag(Er_tot, Er);
     Ar_tot = [Ar_tot, BrL_tot*Cr; Br*CrR_tot, Ar]; %#ok<*AGROW>
@@ -221,8 +246,9 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
 
     sysr    = sss(Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot);
     
+    % display
     if Opts.cure.test
-        sysr_bode = sysr; %sysr_bode = sss(sysr);
+        sysr_bode = sysr; 
         figure(fhSystemBeingReduced);
         bode(sysr_bode,w,'--','Color',TUM_Orange);
         subplot(2,1,1)
@@ -231,8 +257,7 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
         if Opts.cure.gif, writeGif('append'); end
     end
 end
-
-%   Add the feedthrough term before returning the reduced system
+%%   Add the feedthrough term before returning the reduced system
 sysr.D = Dr_tot;
 
 %%  Finishing execution
@@ -247,12 +272,12 @@ if Opts.cure.test
         if Opts.cure.gif, writeGif('append'), end
 end
 
-%--------------------------AUXILIARY FUNCTIONS---------------------------
+%% --------------------------AUXILIARY FUNCTIONS---------------------------
 function stop = stopCrit(sys,sysr,opts)
 %   computes the stopping criterion for CURE iteration
 switch opts.cure.stop
-    case 'H2-error'
-        if size(sys,1)>500
+    case 'h2Error'
+        if isBig
             warning('System size might be to large for stopping criterion');
         end
         stop = (norm(sys-sysr,2)<= opts.cure.stopval);
@@ -262,7 +287,6 @@ switch opts.cure.stop
         error('The stopping criterion chosen does not exist or is not yet implemented');
 end
 function [s0,Opts] = initializeShifts(sys,Opts,iCure)
-
  %%   parse
  if Opts.cure.init ==0, Opts.cure.init = 'zero'; end
  
@@ -282,16 +306,14 @@ function [s0,Opts] = initializeShifts(sys,Opts,iCure)
          error('The initial vector of shifts s0 passed to CURE is invalid');
      end
      
- else %choose initialization option
-     
+ else %choose initialization option     
      %  choose the number of shifts to compute
      if strcmp(Opts.cure.stop,'nmax')
          ns0 = Opts.cure.stopval; %just as many as needed
      else %another stopping criterion was chosen
          ns0 = min([20,round(size(sys.A,1)/4)]);
          if ~isEven(ns0), ns0 = ns0+1; end
-     end
-     
+     end     
      %  compute the shifts
      try
          switch Opts.cure.init
@@ -327,22 +349,17 @@ function [s0,Opts] = initializeShifts(sys,Opts,iCure)
          Opts.cure.init = Opts.zeroThres*ones(1,ns0);
      end
      s0 = Opts.cure.init(1:Opts.cure.nk);
- end
- 
+ end 
     %   make sure the initial values for the shifts are complex conjugated
     if mod(nnz(imag(s0)),2)~=0 %if there are complex valued shifts...
         % find the s0 which has no compl.conj. partner
         % (assumes that only one shifts has no partner)
         s0(imag(s0) == imag(sum(s0))) = 0;
     end
-    cplxpair(s0); %for debugging
-    
+    cplxpair(s0); %only checking
     %   replace 0 with thresh, where threshold is a small number
     %   (sometimes the optimizer complaints about cost function @0)
-    s0(s0==0)=Opts.zeroThres;
-    
-    
-    
+    s0(s0==0)=Opts.zeroThres;  
 function [DrImp,A22InvB22] = implicitFeedthrough(sys,dynamicOrder)
 %   compute the implicit feedthrough of a SE DAE
 
@@ -364,16 +381,13 @@ function [DrImp,A22InvB22] = implicitFeedthrough(sys,dynamicOrder)
     end
 function Bnew = adaptDaeForSpark(sys,dynamicOrder,A22InvB22)
 % adapt B if the system is SE-DAE with Dr,imp ~=0
+% analogously, the same effect could be achieved by modifying C
 
     [~,A12] = partition(sys.a,dynamicOrder);
     B11 = sys.b(1:dynamicOrder);
     
     Bnew = [ B11 - A12*A22InvB22;
-          zeros(size(sys.a,1)-dynamicOrder,size(B11,2))];
-%         Alternatively, the same can be done with C
-%         C11 = sys.c(1:opts.cure.SE_DAE);
-%         C22 = sys.c(opts.cure.SE_DAE+1:end);
-%         sysCURE.C = [ C11- C22*(A22\A21),zeros(size(C22))];
+          zeros(size(sys.a,1)-dynamicOrder,size(B11,2))]; 
 function writeGif(gifMode)
     filename = 'CURE.gif';
     dt = 1.5;
@@ -388,7 +402,33 @@ function writeGif(gifMode)
         otherwise
             error('Invalid gifMode')
     end   
+function [Crt, Sv, B_] = getSylvMat(sys,sysr,V,varargin)
+    % this function gets the matrices of the Sylvester equation
+    % AV- EVSv - BCrt = 0
+    % AV - EVEr^-1Ar - B_Crt = 0
+    
+    if nargin <= 3
+        type = 'V';
+    else
+        type = varargin{1};
+    end
+    
+    if strcmp(type,'V');
+        B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
+        Crt = (B_.*B_)\(sys.A*V - sys.E*V*(sysr.E\sysr.A));
+        if nargout > 1
+            Sv = sysr.E\(sysr.A - sysr.B*Crt);
+        end
+    else
+%         B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
+%         Crt = (B_.*B_)\(sys.A*V - sys.E*V*(sysr.E\sysr.A));
+%         if nargout > 1
+%             Sv = sysr.E\(sysr.A - sysr.B*Crt);
+%         end
+    end
 function isEven = isEven(a)
     isEven = round(a/2)== a/2;
-    
-        
+function y = TUM_Blau()
+    y = [0 101 189]/255;
+function y = TUM_Gruen()
+    y = [162 173 0]/255;
