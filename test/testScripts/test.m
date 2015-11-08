@@ -64,9 +64,12 @@ suite22=TestSuite.fromFile('testImpulse.m');
 % suite11=TestSuite.fromFile('testSSS.m'); %not yet
 
 % Add/remove suiteX (e.g. [suite1, suite3] to run testArnoldi and testIRKA)
+% suite=[suite1,suite2,suite3,suite4,suite5,suite6,suite7,suite8,suite9,suite10,...
+% suite11,suite12,suite13,suite14,suite15,suite16, suite17, suite18, suite19,...
+% suite20, suite21, suite22];
+
 suite=[suite1,suite2,suite3,suite4,suite5,suite6,suite7,suite8,suite9,suite10,...
-suite11,suite12,suite13,suite14,suite15,suite16, suite17, suite18, suite19,...
-suite20, suite21, suite22];
+suite11,suite12,suite13,suite14,suite15,suite16];
 
 
 %% Run and show results
