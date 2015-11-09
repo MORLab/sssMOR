@@ -19,9 +19,11 @@ classdef testSylvester< matlab.unittest.TestCase
             files = dir('*.mat'); 
             testCase.sysCell=cell(1,length(files));
 %             warning('off','sssMOR:loadSss:2ndOrder')
+            warning off
             for i=1:length(files)
                 testCase.sysCell{i} = loadSss(files(i).name);
             end
+            warning on
 %             warning('on','loadSss:2ndOrder')
 
             % change path back
@@ -34,12 +36,17 @@ classdef testSylvester< matlab.unittest.TestCase
         function testSylvesterV(testCase)
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
+                badBenchmarks = {'LF10.mat','beam.mat','random.mat'};
+                if ~any(strcmp(sys.Name,badBenchmarks))
                 
-                n = 10; r = ones(sys.m,n);
-                [~, ~, ~, s0] = irka(sys, zeros(1,n),r,r);
-                s0 = cplxpair(s0);
+                % get irka shifts and tangential directions
+                n = 10; r = ones(sys.m,n); l = ones(sys.p,n);
+                sysrIrka = irka(sys, zeros(1,n),r,l);
                 
-                [sysr, V, ~, Bb, Rsylv] = rk(sys,s0,s0,r,r);
+                Opts.rType = 'dir';[r,p] = residue (sysrIrka,Opts);
+                s0 = -(conj(p)); l = r{1}; r = r{2}.';         
+                
+                [sysr, V, ~, Bb, Rsylv] = rk(sys,s0,s0,r,l);
                 [R, S, B_] = getSylvester(sys, sysr, V);
                 
                 %   compute the residuals
@@ -58,6 +65,46 @@ classdef testSylvester< matlab.unittest.TestCase
                 expSolution={Bb, Rsylv, 0, 0, 0, 0};
                 
                 verification (testCase, actSolution,expSolution);
+                end
+            end
+        end
+        
+        function testSylvesterW(testCase)
+            for i=1:length(testCase.sysCell)
+                sys=testCase.sysCell{i};
+                badBenchmarks = {'LF10.mat','beam.mat','random.mat'};
+                if ~any(strcmp(sys.Name,badBenchmarks))
+                
+                % get irka shifts and tangential directions
+                n = 10; r = ones(sys.m,n); l = ones(sys.p,n);
+                sysrIrka = irka(sys, zeros(1,n),r,l);
+                
+                Opts.rType = 'dir';[r,p] = residue (sysrIrka,Opts);
+                s0 = -(conj(p)); l = r{1}; r = r{2}.';         
+                
+                [sysr, ~, W, ~, ~, Cb, Lsylv] = rk(sys,s0,s0,r,l);
+                [L, S, C_] = getSylvester(sys, sysr, W, 'W');
+                
+                %   get dual system
+                sys = sys.'; sysr = sysr.';
+                
+                %   compute the residuals
+                res0 = norm(sysr.A - sysr.E*S.' - sysr.B*L);
+                res1 = norm(sys.A*W - sys.E*W*S.' - sys.B*L);
+                res2 = norm(sys.A*W - sys.E*W*(sysr.E\sysr.A)-C_.'*L);
+                eigdiff = norm(cplxpair(eig(S))-cplxpair(s0.'));
+                
+%                 S2 = sysr.e\(sysr.a - sysr.b*Rsylv);
+%                 eigdiff = norm(cplxpair(eig(S2))-cplxpair(s0.'))
+%                 res0 = norm(sysr.A - sysr.E*S2 - sysr.B*Rsylv)
+%                 res1 = norm(sys.A*V - sys.E*V*S2 - sys.B*Rsylv)
+%                 res2 = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-Bb*Rsylv)
+                
+                actSolution={C_, L, res0, res1, res2,eigdiff};
+                expSolution={Cb, Lsylv, 0, 0, 0, 0};
+                
+                verification (testCase, actSolution,expSolution);
+                end
             end
         end
     end

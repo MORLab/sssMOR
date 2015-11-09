@@ -14,8 +14,8 @@ function [R, S, B_] = getSylvester(sys,sysr,V,type)
 %
 %       If the type is set to 'W', then the matrices are given for the
 %       output Krylov Sylvester equation
-%           A.' W - E.' W S.' - C.' R = 0           (3)
-%           A.' W - E.' V Er^-T Ar.' - C_.' R = 0   (4)
+%           A.' W - E.' W S.' - C.' L = 0           (3)
+%           A.' W - E.' V Er^-T Ar.' - C_.' L = 0   (4)
 %
 % 
 % Input Arguments:
@@ -73,6 +73,7 @@ end
 %%  computations
 B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
 R = (B_.'*B_)\(B_.'*(sys.A*V - sys.E*V*(sysr.E\sysr.A)));
+
 if nargout > 1
     S = sysr.E\(sysr.A - sysr.B*R);
     if strcmp(type,'W')
@@ -89,3 +90,7 @@ res(3) = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-B_*R);
 if any( res > 1e-6 )
     warning('careful, the problem might be ill conditioned and the results of getSylvester inaccurate');
 end
+
+%%  Change shape of C_
+
+if strcmp(type,'W'), B_ = B_.'; end
