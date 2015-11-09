@@ -10,7 +10,7 @@ classdef testArnoldi < matlab.unittest.TestCase
 %    + rank(V) full
 %    + Neither Inf nor NaN in V
 %    + s0: purely real, purely imaginary, zero, Inf (Markov-parameter)
-%    + test systems: build, beam, fom, random, LF10 (with E-matrix)
+%    + test systems: build, iss, fom, eady, rail_1357 (with E-matrix)
 %
 % ------------------------------------------------------------------
 %   This file is part of sssMOR, a Sparse State Space, Model Order
@@ -26,6 +26,34 @@ classdef testArnoldi < matlab.unittest.TestCase
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
     properties
+        sysCell;
+    end
+    
+    methods(TestMethodSetup)
+        function getBenchmarks(testCase)
+            % change path
+            Path = pwd; %original
+            
+            %insert path of local benchmark folder
+            %the directory "benchmark" is in sssMOR
+            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+            pathBenchmarks = [p(1:k-1),'benchmarks'];
+            cd(pathBenchmarks);
+
+            % load files
+            files = dir('*.mat'); 
+            testCase.sysCell=cell(1,length(files));
+%             warning('off','sssMOR:loadSss:2ndOrder')
+            warning off
+            for i=1:length(files)
+                testCase.sysCell{i} = loadSss(files(i).name);
+            end
+            warning on
+%             warning('on','loadSss:2ndOrder')
+
+            % change path back
+            cd(Path);
+        end
     end
     
     methods(Test)        
@@ -66,27 +94,28 @@ classdef testArnoldi < matlab.unittest.TestCase
         
         function testArnoldi2(testCase) 
             %s0: only imag (multiple value)
-            load('beam.mat');
+            sys = loadSss('iss.mat');
+            sys = sys(1,1);
 
-            [V] = arnoldi(speye(size(A)),A,B,[1-1i, 1-1i, 1-1i, 1+1i, 1+1i, 1+1i]);
+            [V] = arnoldi(speye(size(sys.A)),sys.A,sys.B,[1-1i, 1-1i, 1-1i, 1+1i, 1+1i, 1+1i]);
             actSolution={V};
             
-            temp=real((A-(1-1i)*eye(size(A)))\B);
+            temp=real((sys.A-(1-1i)*eye(size(sys.A)))\sys.B);
             expV1=temp/norm(temp);
  
-            temp=real((A-(1-1i)*eye(size(A)))\expV1);
+            temp=real((sys.A-(1-1i)*eye(size(sys.A)))\expV1);
             expV2=temp/norm(temp);
             
-            temp=real((A-(1-1i)*eye(size(A)))\expV2);
+            temp=real((sys.A-(1-1i)*eye(size(sys.A)))\expV2);
             expV3=temp/norm(temp);
             
-            temp=imag((A-(1-1i)*eye(size(A)))\B);
+            temp=imag((sys.A-(1-1i)*eye(size(sys.A)))\sys.B);
             expV4=temp/norm(temp);
             
-            temp=imag((A-(1-1i)*eye(size(A)))\expV1);
+            temp=imag((sys.A-(1-1i)*eye(size(sys.A)))\expV1);
             expV5=temp/norm(temp);
             
-            temp=imag((A-(1-1i)*eye(size(A)))\expV2);
+            temp=imag((sys.A-(1-1i)*eye(size(sys.A)))\expV2);
             expV6=temp/norm(temp);
             
             [expV,~]=qr([expV1, expV2, expV3, expV4, expV5, expV6]);
@@ -98,7 +127,7 @@ classdef testArnoldi < matlab.unittest.TestCase
         end
         function testArnoldi3(testCase) 
             %s0: only real (multiple value)
-            load('random.mat');
+            load('eady.mat');
 
             [V] = arnoldi(speye(size(A)),A,B,[50,50,50,50]);
             actSolution={V};
@@ -149,11 +178,9 @@ classdef testArnoldi < matlab.unittest.TestCase
         end
         function testArnoldi5(testCase) 
             %s0=Inf, real, imag, zero with E-matrix
-            load('LF10.mat');
-            E=blkdiag(speye(size(M)), M);
-            A=[zeros(size(M)),speye(size(M)); -K, -D];
-            B=[zeros(size(M,1),1); B];
-
+            sys = loadSss('rail_1357.mat');
+            sys = sys(1,1); E = sys.E; A = sys.A; B = sys.B;
+            
             [V] = arnoldi(E,A,B,[Inf, 0, 100, 4+13i, 4-13i], @(x,y) (x'*y));
             actSolution={V};
              
@@ -178,6 +205,53 @@ classdef testArnoldi < matlab.unittest.TestCase
 
             verification(testCase, actSolution,expSolution,V)
         end
+        
+        function testArnoldi6(testCase) 
+            %test Hermite arnoldi for SISO and MIMO systems
+            for i=1:length(testCase.sysCell)
+                %  test system
+                sys=testCase.sysCell{i};
+               
+                %  get good shifts
+                n = 5; r = ones(sys.m,n); l = ones(sys.p,n);
+                sysrIrka = irka(sys, zeros(1,n),r, l);
+                Opts.rType = 'dir';
+                [r,p] = residue (sysrIrka,Opts);
+                s0 = -(conj(p)); Lt = r{1}; Rt = r{2}.';         
+                
+                %   run Hermite arnoldi
+                [V,Rsylv,W,Lsylv] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0, Rt, Lt,@(x,y) (x'*y));
+                actSolution={W};
+                
+                %   run output arnoldi
+                [Wexp,LsylvExp] = arnoldi(sys.E.',sys.A.',sys.C.',s0, Lt, @(x,y) (x'*y));
+                expSolution= {Wexp};
+                
+                %   Verify W
+                verification(testCase, actSolution,expSolution,W)
+                
+                %   Verify Lsylv equality
+                verifyEqual(testCase, Lsylv, LsylvExp, 'RelTol', 1e-7,...
+                    'Generalized tangential directions do not match');
+                
+               %   Verify solution of Sylvester EQ
+               %       AV - EV(Er\Ar) - B_R = 0
+               %       A.'W - E.'W (Er.'\Ar.') - C_ L = 0
+               sysr = sss(W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V);
+               B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
+               res1 = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A) - B_*Rsylv);
+               
+               % Rexp = (B_.'*B_)\B_.'*(sys.A*V - sys.E*V*(sysr.E\sysr.A));
+               % res = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A) - B_*Rexp)
+               
+               sysd = sys.'; sysrd = sysr.'; %dual systems
+               C_ = sysd.B - sysd.E*W*(sysrd.E\sysrd.B);
+               res2 = norm(sysd.A*W - sysd.E*W*(sysrd.E\sysrd.A) - C_*Lsylv);
+               
+               verifyEqual(testCase, [res1, res2] , [0, 0], 'AbsTol', 1e-7,...
+                    'Sylvester EQ is not satisfied');
+            end
+        end  
     end
 end
 
@@ -189,7 +263,7 @@ function [] = verification(testCase, actSolution,expSolution,V)
            'Arnoldi failed to recreate the correct subspace')
        verifyLessThanOrEqual(testCase, norm(V'*V-speye(size(V,2)),'fro'), ...
            1e-12, 'Orthonormalization failed');
-       verifyLessThanOrEqual(testCase, max(imag(V)), 0, ...
+       verifyLessThanOrEqual(testCase, isreal(V), 1, ...
             'V is not purely real'); 
        verifyEqual(testCase, rank(V), size(V,2),...
             'Rank(V) is not full');
@@ -199,4 +273,5 @@ function [] = verification(testCase, actSolution,expSolution,V)
             'V contains Nan');
         verifyEqual(testCase, size(actSolution), size(expSolution),...
             'V is not of the correct size')
+        
 end
