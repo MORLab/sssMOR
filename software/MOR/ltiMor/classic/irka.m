@@ -113,10 +113,10 @@ k=0;
 while true
     k=k+1; sysr_old = sysr;
     %   Reduction
-    if sys.isMimo
-        [sysr, V, W] = rk(sys, s0, s0, Rt, Lt);
-    else
+    if sys.isSiso
         [sysr, V, W] = rk(sys, s0, s0);
+    else
+        [sysr, V, W] = rk(sys, s0, s0, Rt, Lt);
     end
     %   Update of the reduction parameters
     s0_old=s0;
