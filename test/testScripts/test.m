@@ -60,6 +60,9 @@ suite20=TestSuite.fromFile('testEigs.m');
 suite21=TestSuite.fromFile('testFreqresp.m');
 suite22=TestSuite.fromFile('testImpulse.m');
 suite23=TestSuite.fromFile('testIsstable.m');
+suite24=TestSuite.fromFile('testDiag.m');
+suite25=TestSuite.fromFile('testDecayTime.m');
+suite26=TestSuite.fromFile('testIssd.m');
 % suite24=TestSuite.fromFile('testSim.m');
 
 % Add/remove suiteX (e.g. [suite1, suite3] to run testArnoldi and testIRKA)
