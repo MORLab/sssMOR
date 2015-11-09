@@ -1,5 +1,5 @@
 function [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
-% porkV - Pseudo-Optimal Rational Krylov (Input)
+% PORKV - Pseudo-Optimal Rational Krylov (Input)
 %
 % Syntax: 
 %       [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)

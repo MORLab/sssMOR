@@ -178,7 +178,7 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
                     Cr = sysrTemp.c;
                     Er = sysrTemp.e;
                     
-                    Crt = getSylvMat(sys,sysr,V); 
+                    Crt = getSylvester(sys,sysr,V); 
                 case 'rk+pork'
                     [sysRedRK, V, ~, ~, Crt] = rk(sys,s0); 
                     S_V = sysRedRK.E\(sysRedRK.A-sysRedRK.B*Crt);
@@ -213,7 +213,7 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
                     Cr = sysrTemp.c;
                     Er = sysrTemp.e;
                     
-                    Brt = (getSylvMat(sys.',sysr.',W))';               
+                    Brt = (getSylvester(sys,sysr,W,'W')).';               
                 case 'rk+pork'
                     [sysRedRK, ~, W, ~, ~, ~, Brt] = rk(sys,[],s0);
                     S_W = sysRedRK.E'\(sysRedRK.A'-Brt*sysRedRK.C);
@@ -404,19 +404,6 @@ function writeGif(gifMode)
         otherwise
             error('Invalid gifMode')
     end   
-function [Crt, Sv, B_] = getSylvMat(sys,sysr,V)
-    % this function gets the matrices of the Sylvester equation
-    % AV- EVSv - BCrt = 0
-    % AV - EVEr^-1Ar - B_Crt = 0
-
-    if strcmp(type,'V');
-        B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
-        Crt = (B_.*B_)\(sys.A*V - sys.E*V*(sysr.E\sysr.A));
-        if nargout > 1
-            Sv = sysr.E\(sysr.A - sysr.B*Crt);
-        end
-    else
-    end
 function isEven = isEven(a)
     isEven = round(a/2)== a/2;
 function y = TUM_Blau()

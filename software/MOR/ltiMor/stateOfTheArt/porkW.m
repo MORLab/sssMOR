@@ -1,5 +1,5 @@
 function [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
-% porkW - Pseudo-Optimal Rational Krylov (Output)
+% PORKW - Pseudo-Optimal Rational Krylov (Output)
 %
 % Syntax: 
 %       [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
