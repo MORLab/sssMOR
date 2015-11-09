@@ -7,7 +7,7 @@ function sysr = cure(sys,Opts)
 %
 % Description:
 %       This function implements the CUmulative REduction framework
-%       (cure) introduced by Panzer and Wolf (see [1,2]).
+%       (CURE) introduced by Panzer and Wolf (see [1,2]).
 %
 %       Using the duality between Sylvester equation and Krylov subspaces, the 
 %       error is factorized at each step of CURE and only the high-dimensional

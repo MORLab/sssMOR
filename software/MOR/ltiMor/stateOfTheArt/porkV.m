@@ -5,12 +5,21 @@ function [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
 %       [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
 %
 % Description:
-%       TODO
+%       This function implements the pseudo-optimal rational Krylov
+%       algorithm introduced by Wolf and Panzer [1,2].
+%
+%       Given a projection matrix V spanning an input Krylov subspace and
+%       the respective matrices from the Sylvester equation
+%           A V - E V S_V - B Crt = 0
+%       this function computes the reduced order matrices corresponding to
+%       the H2-pseudo-optimal reduced order model, i.e. a model
+%       interpolating the original according to (V,S_V,Crt) and having
+%       eigenvalues as mirror images of the shifts.
 % 
 % Input Arguments:
 %       *Required Input Arguments:*
 %       -V,S_V,Crt:      solution of  A*V - E*V*S_V - B*Crt = 0
-%       -C:              HFM output matrix
+%       -C:              output matrix of original model
 %
 % Output Arguments: 
 %       -Ar,Br,Cr,Er:    ROM matrices
@@ -41,7 +50,7 @@ function [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  05 Nov 2015
+% Last Change:  08 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 

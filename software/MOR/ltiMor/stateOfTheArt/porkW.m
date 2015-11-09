@@ -5,11 +5,21 @@ function [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
 %       [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
 %
 % Description:
+%       This function implements the pseudo-optimal rational Krylov
+%       algorithm introduced by Wolf and Panzer [1,2].
+%
+%       Given a projection matrix W spanning an output Krylov subspace and
+%       the respective matrices from the Sylvester equation
+%           A.' W - E.' W S_W.' - C.' Brt.' = 0
+%       this function computes the reduced order matrices corresponding to
+%       the H2-pseudo-optimal reduced order model, i.e. a model
+%       interpolating the original according to (W,S_W,Brt) and having
+%       eigenvalues as mirror images of the shifts.
 %
 % Input Arguments:
 %       *Required Input  Arguments:* 
 %       -W,S_W,Brt:      solution of  W.'*A - S_W*W.'*E - Brt*C = 0
-%       -B:              HFM input matrix
+%       -B:              input matrix of the original model
 %
 % Output Arguments: 
 %       -Ar,Br,Cr,Er:    ROM matrices
