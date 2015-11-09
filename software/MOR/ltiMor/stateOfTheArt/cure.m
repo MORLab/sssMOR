@@ -167,7 +167,7 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
             % V-based decomposition, if A*V - E*V*S - B*Crt = 0
             switch Opts.cure.redfun
                 case 'spark'               
-                    [V,S_V,Crt] = spark(sys.a,sys.b,sys.c,sys.e,s0,Opts); 
+                    [V,S_V,Crt] = spark(sys,s0,Opts); 
                     
                     [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C_);                   
                 case 'irka'
@@ -200,7 +200,7 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
         % W-based decomposition, if A'*W - E'*W*SW' - C'*Brt' = 0
             switch Opts.cure.redfun
                 case 'spark'               
-                    [W,S_W,Brt] = spark(sys.a',sys.c',sys.b',sys.e',s0,Opts);
+                    [W,S_W,Brt] = spark(sys.',s0,Opts);
                     Brt = Brt';
                     S_W = S_W';
                     

@@ -1,28 +1,43 @@
-function [V,S_V,Crt,k] = spark(A,B,C,E,s0,Opts)
+function [V,S_V,Crt,k] = spark(sys,s0,Opts)
 % SPARK - Stability Preserving Adaptive Rational Krylov
 % 
 % Syntax:
-%       [V,S_V,Crt,k] = SPARK(A,B,C,E,s)
-%       [V,S_V,Crt,k] = SPARK(A,B,C,E,s0,Opts)
+%       [V,S_V,Crt,k] = SPARK(sys,s)
+%       [V,S_V,Crt,k] = SPARK(sys,s0,Opts)
 %
 % Description:
 %       This function reduces a state-space, LTI model specified 
 %       by the matrices A,B,C,E to a LTI model of order 2 using the trust
-%       region optimization algorithm known as SPARK.
+%       region optimization algorithm known as stability-preserving 
+%       adaptive rational Krylov (SPARK).
 %
 % Input Arguments:
 %       *Required Input Arguments:*
-%       -A,B,C,E:   HFM matrices; 
+%       -sys:       original full order model; 
 %       -s0:        Initial shifts
 %       *Optional Input Arguments:*
-%       -opts:      Structure containing computation options
-%           -.opts.test:    1 or 0 (default), specifies weather the user desires to get 
-%                           insight in what is happening. This is realized with a high 
-%                           level of verbose and plotting during optimization.
-%           -.opts.SPARK:   'standard' (default) or 'model', chooses between
-%                           standard ESPARK, where the original model is reduced
-%                           directly, or MESPARK, where a model function is created
-%                           and updated after convergence.
+%       -Opts:      Structure containing computation options
+%           -.spark.type:   chooses between standard SPARK, where the original 
+%                           model is reduced directly, or MESPARK, where a 
+%                           model function is created and updated after convergence.
+%                           { 'model' (def.) | 'standard' }
+%           -.spark.test:   specifies weather the user desires to get insight 
+%                           in what is happening. This is realized by  
+%                           plotting intermediate results during optimization.
+%                           { 0 (def.) | 1 }
+%           -.spark.verbose: text output during the optimization
+%                           { 0 (def.) | 1 }
+%           -.spark.mfe:    maximum functions evaluations - {5e3}
+%           -.spark.mi:     maximum iterations in solver - {150}
+%           -.spark.xTol:   step tolerance in solver - {1e-10}
+%           -.spark.fTol:   function value tolerance - {1e-10}
+%           -.spark.modelTol: convergence tolerance for model funciton - {1e-5}
+%           -.mespark.ritz: use eigenvalues of model function to initialize
+%                           the shifts { 1 (def.) | 0 }
+%           -.mespark.pertIter: number of iterations after which a
+%                           pertubation of the shifts starts to avoid
+%                           stagnation of the model function - {5}
+%           -.mespark.maxIter: maximum number of model function updates - {20}
 %
 % Output Arguments:      
 %       -V,S_V,Crt: Input Krylov subspace,  A*V - E*V*S_V - B*Crt = 0
@@ -53,25 +68,28 @@ function [V,S_V,Crt,k] = spark(A,B,C,E,s0,Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  05 Nov 2015
+% Last Change:  08 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
-    % default values
-    Def.spark.type = 'model'; %SPARK type, 'model' or 'standard'
-    Def.spark.test = 0; %execute analysis code
-    Def.spark.verbose = 0; %show text?
-    Def.spark.mfe = 5e3;
-    Def.spark.mi = 150; %5e3
-    Def.spark.xTol = 1e-10;
-    Def.spark.fTol = 1e-10;
-    Def.spark.modelTol = 1e-5;
-        Def.mespark.ritz = 1;
-        Def.mespark.pertIter = 5; % # iteration at which perturbation begins
-        Def.mespark.maxIter = 20; %maximum number of model function updates
-    
-    % create the options structure
+% default values
+Def.spark.type = 'model'; %SPARK type, 'model' or 'standard'
+Def.spark.test = 0; %execute analysis code
+Def.spark.verbose = 0; %show text?
+Def.spark.mfe = 5e3;
+Def.spark.mi = 150; %5e3
+Def.spark.xTol = 1e-10;
+Def.spark.fTol = 1e-10;
+Def.spark.modelTol = 1e-5;
+    Def.mespark.ritz = 1;
+    Def.mespark.pertIter = 5; % # iteration at which perturbation begins
+    Def.mespark.maxIter = 20; %maximum number of model function updates
+
+% create the options structure
+if ~exist('Opts','var') || isempty(Opts)
+        Opts = Def;
+else
     if ~isfield(Opts,'spark') || isempty(Opts.spark)
         Opts.spark = Def.spark;
     else
@@ -81,22 +99,16 @@ function [V,S_V,Crt,k] = spark(A,B,C,E,s0,Opts)
         Opts.mespark = Def.mespark;
     else
         Opts.mespark = parseOpts(Opts.mespark,Def.mespark);
-    end  
-    
-%------------------------- PARSE INPUT ---------------------------
-if size(B,2)>1 || size(C,1)>1, error('System must be SISO.'), end
-
-%   Definition of defauls options
-%   (ensures also compatibility to previous versions)
-if ~isfield(Opts.spark,'type') || isempty(Opts.spark.type)
-    Opts.spark = 'standard';
+    end
 end
-if ~isfield(Opts.mespark,'pertIter'), Opts.mespark.pertIter=18;end
-if ~isfield(Opts.mespark,'maxIter'), Opts.mespark.maxIter=35;end
+    
+%   Check input size 
+if size(sys.B,2)>1 || size(sys.C,1)>1, error('System must be SISO.'), end
+
 %let all functions have access to the figure window created in ESPARK
 global fh  
-%---------------------------- CODE -------------------------------
-% if opts.test, warning('off','MATLAB:nearlySingularMatrix'), end
+
+%% ---------------------------- CODE -------------------------------
 warning('off','MATLAB:nearlySingularMatrix')
     % 
     p0 = [(s0(1)+s0(2))/2, s0(1)*s0(2)];   
@@ -110,13 +122,12 @@ warning('off','MATLAB:nearlySingularMatrix')
         Opts.fmincon = optimset(Opts.fmincon,...
         'OutputFcn', @OuputFcn,...
         'PlotFcns',{@optimplotx, @optimplotfval, @optimplotfirstorderopt});
-%     opts.fmincon = optimset(opts.fmincon,'Diagnostics','on','Display','iter-detailed');
     end
     
     switch Opts.spark.type
         case 'standard'
             %definition of "mock model function" for consistency in CostFunction
-            Am=A; Bm=B; Cm=C; Em=E;
+            Am=sys.A; Bm=sys.B; Cm=sys.C; Em=sys.E;
             
             p_opt = ESPARK(p0);
             k = [];
@@ -125,16 +136,18 @@ warning('off','MATLAB:nearlySingularMatrix')
     end
     
     % supply output variables
-    v1  = Q1*(U1\(L1\(P1*B))); v12= Q2*(U2\(L2\(P2*B))); v2 = Q2*(U2\(L2\(P2*(E*v1))));
+    v1  = Q1*(U1\(L1\(P1*sys.B))); v12= Q2*(U2\(L2\(P2*sys.B))); 
+    v2 = Q2*(U2\(L2\(P2*(sys.E*v1))));
     V   = full(real([v1/2 + (v12/2+p_opt(1)*v2), v2*sqrt(p_opt(2))]));
     S_V = [2*p_opt(1), sqrt(p_opt(2)); -sqrt(p_opt(2)), 0]; Crt = [1 0];
-%     disp(['spark required ca. ' num2str(2*(k+1)) ' LUs ', ...
-%         ' and converged in ' num2str(toc(t),'%.1f') 'sec.'])
+    if Opts.spark.verbose
+    disp(['spark required ca. ' num2str(2*(k+1)) ' LUs ', ...
+        ' and converged in ' num2str(toc(t),'%.1f') 'sec.'])
+    end
   
     warning('on','MATLAB:nearlySingularMatrix')
-%     if opts.test, warning('on','MATLAB:nearlySingularMatrix'), end
     
-    %------------------ AUXILIARY FUNCTIONS --------------------------
+    %% ------------------ AUXILIARY FUNCTIONS --------------------------
     % a) PRIMARY
     function p_opt = ESPARK(p0)
         
@@ -162,7 +175,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         k = 0;
         % compute initial model function and cost function at p0
         computeLU(s0);  V = newColV([],3);  W = newColW([],3);
-        Am=W'*A*V; Bm=W'*B; Cm=C*V; Em=W'*E*V;
+        Am=W'*sys.A*V; Bm=W'*sys.B; Cm=sys.C*V; Em=W'*sys.E*V;
         J_old = CostFunction(p0);
         
         if Opts.mespark.ritz
@@ -180,14 +193,17 @@ warning('off','MATLAB:nearlySingularMatrix')
             p_opt = ESPARK(p0);
     
             % update model function by two-sided (Hermite) projection
-            V = newColV(V, 2);  W = newColW(W, 2);  Am=W'*A*V; Bm=W'*B; Cm=C*V; Em=W'*E*V;
+            V = newColV(V, 2);  W = newColW(W, 2);  
+            Am=W'*sys.A*V; Bm=W'*sys.B; Cm=sys.C*V; Em=W'*sys.E*V;
             % evaluate cost functional at new parameter point
             J = CostFunction(p_opt);
 
-%             disp(['  relative change:      ' num2str(norm((p0-p_opt)./p0), '%1.2e')]);
-%             disp(['  relative improvement: ' num2str((J-J_old)/J, '%1.2e')]);
-%             disp(['  absolute J = ' num2str(J, '%1.12e')]);
-
+            if Opts.spark.verbose
+            disp(['  relative change:      ' num2str(norm((p0-p_opt)./p0), '%1.2e')]);
+            disp(['  relative improvement: ' num2str((J-J_old)/J, '%1.2e')]);
+            disp(['  absolute J = ' num2str(J, '%1.12e')]);
+            end
+ 
             % decide how to proceed
             if abs((J-J_old)/J) < Opts.spark.modelTol || ...
                     norm((p0-p_opt)./p0) < Opts.spark.modelTol %|| size(Am,1)>=20
@@ -285,26 +301,27 @@ warning('off','MATLAB:nearlySingularMatrix')
     function computeLU(s0)
         % compute new LU decompositions
         if real(s0(1))==real(s0(2))  % complex conjugated or double shift
-            [L1,U1,P1,Q1] = lu(sparse(A-s0(1)*E));  L2=conj(L1);U2=conj(U1);P2=P1;Q2=Q1;
+            [L1,U1,P1,Q1] = lu(sparse(sys.A-s0(1)*sys.E));  L2=conj(L1);U2=conj(U1);P2=P1;Q2=Q1;
         else                         % two real shifts
-            [L1,U1,P1,Q1] = lu(sparse(A-s0(1)*E));  [L2,U2,P2,Q2] = lu(sparse(A-s0(2)*E));
+            [L1,U1,P1,Q1] = lu(sparse(sys.A-s0(1)*sys.E));  
+            [L2,U2,P2,Q2] = lu(sparse(sys.A-s0(2)*sys.E));
         end
     end
     function V = newColV(V, k)
         % add columns to input Krylov subspace
         for i=(size(V,2)+1):2:(size(V,2)+2*k)
-            if i==1, x=B; else x=E*V(:,i-1); end
+            if i==1, x=sys.B; else x=sys.E*V(:,i-1); end
             r1  = Q1*(U1\(L1\(P1*x)));   tmp = Q2*(U2\(L2\(P2*x)));
-            v1 = real(0.5*r1 + 0.5*tmp); v2  = real(Q2*(U2\(L2\(P2*(E*r1)))));
+            v1 = real(0.5*r1 + 0.5*tmp); v2  = real(Q2*(U2\(L2\(P2*(sys.E*r1)))));
             V = GramSchmidt([V,v1,v2],[],[],[i,i+1]);
         end
     end
     function W = newColW(W, k)
         % add columns to output Krylov subspace
         for i=(size(W,2)+1):2:(size(W,2)+2*k)
-            if i==1, x=C; else x=W(:,i-1)'*E; end
+            if i==1, x=sys.C; else x=W(:,i-1)'*sys.E; end
             l1  = x*Q1/U1/L1*P1;          tmp = x*Q2/U2/L2*P2;
-            w1 = real(0.5*l1 + 0.5*tmp);  w2  = real(l1*E*Q2/U2/L2*P2);
+            w1 = real(0.5*l1 + 0.5*tmp);  w2  = real(l1*sys.E*Q2/U2/L2*P2);
             W = GramSchmidt([W,w1',w2'],[],[],[i,i+1]);
         end
     end
@@ -425,18 +442,12 @@ warning('off','MATLAB:nearlySingularMatrix')
         g = (g/norm(g,2)); %normalize, we care only about direction
         x_next = x - g';
         plot([x(1),x_next(1)],[x(2),x_next(2)],'-k');
-        
-%         %   plot the trust region
-%         r = optimValues.trustregionradius;
-%         viscircles([x(1),x(2)],r,'LineWidth',1,'EdgeColor','k');
-%         
-
-%         pause
+          
     end
     end
     function fh = plotCost(p0)
         
-fh = nicefigure('Cost function for optimization');
+    fh = nicefigure('Cost function for optimization');
     
     npoints = 100;
     nlines = 500;
@@ -447,15 +458,6 @@ fh = nicefigure('Cost function for optimization');
     
     x = logspace(pLog(1)-Delta(1)/2,pLog(1)+Delta(1)/2,npoints);
     y = logspace(pLog(2)-Delta(2)/2,pLog(2)+Delta(2)/2,npoints);
-    
-
-%     % extended logarithmic
-%     x = logspace(-4,max([2,ceil(log10(p0(1)))+2]),npoints);
-%     y = logspace(-3,max([4,ceil(log10(p0(2)))+2]),npoints);
-
-    % extended logarithmic
-% x = logspace(-4,max([10,ceil(log10(p0(1)))+2]),npoints);
-% y = logspace(-3,max([16,ceil(log10(p0(2)))+2]),npoints);
     
     [X,Y] = meshgrid(x,y);
     Z = zeros(size(X));
@@ -473,5 +475,11 @@ fh = nicefigure('Cost function for optimization');
     % plot separatrix between complex and real shifts
     plot(x,x.^2,'--k')
 
+    end
+    function y = TUM_Gruen()
+        y = [162 173 0]/255;
+    end
+    function y = TUM_Rot()
+        y = [196 7 27]/255;
     end
 end
