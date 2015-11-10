@@ -22,13 +22,27 @@ classdef testMomentsAll < matlab.unittest.TestCase
 % ------------------------------------------------------------------ 
     properties
          sysCell;
-         Path;
+         testPath;
     end
  
     methods(TestMethodSetup)
         function getBenchmarks(testCase)
-            load('benchmarksSysCell.mat');
-            testCase.sysCell=benchmarksSysCell;
+            testCase.testPath=pwd;
+            if exist('benchmarksSysCell.mat','file')
+                load('benchmarksSysCell.mat');
+                testCase.sysCell=benchmarksSysCell;
+            end
+            
+            %the directory "benchmark" is in sssMOR
+            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+            pathBenchmarks = [p(1:k-1),'benchmarks'];
+            cd(pathBenchmarks);
+        end
+    end
+    
+    methods(TestMethodTeardown)
+        function changePath(testCase)
+            cd(testCase.testPath);
         end
     end
     
