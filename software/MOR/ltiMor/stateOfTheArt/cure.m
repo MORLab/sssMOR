@@ -40,6 +40,7 @@ function sysr = cure(sys,Opts)
 %           -.cure.test:    execute analysis code {0 (def) | 1}
 %           -.cure.gif:     produce a .gif file of the CURE iteration
 %                          {0 (def) | 1}
+%           -.cure.maxIter: maximum number of CURE iterations - {20 (def)}
 %           -.warn:         show warnings - {0 (def) | 1}
 %           -.w:            frequencies for analysis plots - {[] (def)}
 %           -.zeroThers:    value that can be used to replace 0 
@@ -95,6 +96,7 @@ function sysr = cure(sys,Opts)
         Def.cure.SE_DAE = 0; %SE-DAE reduction
         Def.cure.test = 0; %execute analysis code?
         Def.cure.gif = 0; %produce a .gif of the CURE iteration
+        Def.cure.maxIter = 20; %maximum number of iterations
         
     % create the options structure
     if ~exist('Opts','var') || isempty(Opts)
@@ -102,14 +104,20 @@ function sysr = cure(sys,Opts)
     else
         Opts = parseOpts(Opts,Def);
     end              
+    
+    % make sure reduced order does not exceed original
+    if Opts.cure.maxIter > sys.n/Opts.cure.nk
+        Opts.cure.maxIter = floor(sys.n/Opts.cure.nk);
+    end
 %%  Plot for testing
 if Opts.cure.test
-    fhOriginalSystem = nicefigure('CURE - Reduction of the original model');
+    fhOriginalSystem = figure('Name','CURE - Reduction of the original model');
     fhSystemBeingReduced = fhOriginalSystem; %the two coincide for the moment
-    [m,w] = freqresp(sys,Opts.w); bodeOpts = {'Color',TUM_Blau,'LineWidth',2};
-    bode(frd(m,w),bodeOpts), hold on
-    magHandle = subplot(2,1,1); magLim = ylim;
-    phHandle  = subplot(2,1,2); phLim  = ylim;
+    [m,w] = freqresp(sys,Opts.w);
+    bode(frd(m,w),'-b'), hold on
+    axH = findall(gcf,'type','axes');
+    magHandle = axH(3); magLim = get(magHandle,'YLim');
+    phHandle = axH(2); phLim  = get(phHandle,'YLim');
     if Opts.cure.gif, writeGif('create'); end
 end
 %%   Initialize some variables
@@ -130,12 +138,13 @@ if Opts.cure.SE_DAE
         % if Opts.cure.test, add a new plot for the modified system
         if Opts.cure.test
             %switch the plot to be updated in the loop
-            fhSystemBeingReduced = nicefigure('CURE - modified DAE (strictly proper)');
+            fhSystemBeingReduced = figure('Name', 'CURE - modified DAE (strictly proper)');
             sys = sss(sys.a,B_,C_,0,sys.e);
-            [m,w] = freqresp(sys,Opts.w); bodeOpts = {'Color',TUM_Blau,'LineWidth',2};
+            [m,w] = freqresp(sys,Opts.w);
             bode(frd(m,w),bodeOpts)  
-            magHandle = subplot(2,1,1); magLim = ylim;
-            phHandle  = subplot(2,1,2); phLim  = ylim;
+            axH = findall(gcf,'type','axes');
+            magHandle = axH(3); magLim = get(magHandle,'YLim');
+            phHandle = axH(2); phLim  = get(phHandle,'YLim');
             if Opts.cure.gif, writeGif('create'); end
         end 
     elseif DrImp
@@ -153,7 +162,7 @@ Dr_tot = sys.d + DrImp;
 if Opts.cure.verbose, fprintf('\nBeginning CURE iteration...\n'); end
 
 iCure = 0; %iteration counter
-while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
+while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     iCure = iCure + 1;
     if Opts.cure.verbose, fprintf('\tCURE iteration %03i\n',iCure');end
     %   Redefine the G_ system at each iteration
@@ -178,7 +187,7 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
                     Cr = sysrTemp.c;
                     Er = sysrTemp.e;
                     
-                    Crt = getSylvester(sys,sysr,V); 
+                    Crt = getSylvester(sys,sysrTemp,V); 
                 case 'rk+pork'
                     [sysRedRK, V, ~, ~, Crt] = rk(sys,s0); 
                     S_V = sysRedRK.E\(sysRedRK.A-sysRedRK.B*Crt);
@@ -213,10 +222,11 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
                     Cr = sysrTemp.c;
                     Er = sysrTemp.e;
                     
-                    Brt = (getSylvester(sys,sysr,W,'W')).';               
+                    Brt = (getSylvester(sys,sysrTemp,W,'W')).';               
                 case 'rk+pork'
                     [sysRedRK, ~, W, ~, ~, ~, Brt] = rk(sys,[],s0);
-                    S_W = sysRedRK.E'\(sysRedRK.A'-Brt*sysRedRK.C);
+                    Brt = Brt.'; %make it column matrix
+                    [~, S_W] = getSylvester(sys,sysRedRK,W,'W');
                     
                     [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B_);  
                     
@@ -252,12 +262,17 @@ while ~stopCrit(sys,sysr,Opts) && size(sysr.a,1)<=size(sys.a,1)
     if Opts.cure.test
         sysr_bode = sysr; 
         figure(fhSystemBeingReduced);
-        bode(sysr_bode,w,'--','Color',TUM_Orange);
-        subplot(2,1,1)
+        bode(sysr_bode,w,'--r');
+        magHandle;
         title(sprintf('n_{red} = %i',size(sysr.a,1)));
         set(magHandle,'YLim', magLim); set(phHandle,'YLim', phLim);
         if Opts.cure.gif, writeGif('append'); end
     end
+end
+
+%%   Was maxIter achieved?
+if iCure >= Opts.cure.maxIter
+    warning('Iterations count reached maxIter. You might want to increase maxIter or the convergence criterion')
 end
 %%   Add the feedthrough term before returning the reduced system
 sysr.D = Dr_tot;
@@ -267,7 +282,7 @@ if Opts.cure.verbose,fprintf('Stopping criterion satisfied. Exiting cure...\n\n'
 if Opts.cure.test
         sysr_bode = sysr;
         figure(fhOriginalSystem);
-        bode(sysr_bode,w,'-','Color',TUM_Gruen,'LineWidth',2);
+        bode(sysr_bode,w,'-g');
         subplot(2,1,1)
         title(sprintf('n_{red} = %i',size(sysr.a,1)));
         
@@ -279,7 +294,7 @@ function stop = stopCrit(sys,sysr,opts)
 %   computes the stopping criterion for CURE iteration
 switch opts.cure.stop
     case 'h2Error'
-        if isBig
+        if sys.isBig
             warning('System size might be to large for stopping criterion');
         end
         stop = (norm(sys-sysr,2)<= opts.cure.stopval);
@@ -313,7 +328,7 @@ function [s0,Opts] = initializeShifts(sys,Opts,iCure)
      if strcmp(Opts.cure.stop,'nmax')
          ns0 = Opts.cure.stopval; %just as many as needed
      else %another stopping criterion was chosen
-         ns0 = min([20,round(size(sys.A,1)/4)]);
+         ns0 = round(sqrt(sys.n));
          if ~isEven(ns0), ns0 = ns0+1; end
      end     
      %  compute the shifts
@@ -358,7 +373,7 @@ function [s0,Opts] = initializeShifts(sys,Opts,iCure)
         % (assumes that only one shifts has no partner)
         s0(imag(s0) == imag(sum(s0))) = 0;
     end
-    cplxpair(s0); %only checking
+    %     cplxpair(s0); %only checking
     %   replace 0 with thresh, where threshold is a small number
     %   (sometimes the optimizer complaints about cost function @0)
     s0(s0==0)=Opts.zeroThres;  
@@ -410,3 +425,5 @@ function y = TUM_Blau()
     y = [0 101 189]/255;
 function y = TUM_Gruen()
     y = [162 173 0]/255;
+function y = TUM_Orange()
+    y = [227 114 34]/255;
