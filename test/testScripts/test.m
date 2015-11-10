@@ -61,9 +61,11 @@ suite21=TestSuite.fromFile('testFreqresp.m');
 suite22=TestSuite.fromFile('testImpulse.m');
 suite23=TestSuite.fromFile('testIsstable.m');
 % suite24=TestSuite.fromFile('testSim.m');
-suite25=TestSuite.fromFile('testPork.m');
-suite26=TestSuite.fromFile('testCure.m');
+suite25=TestSuite.fromFile('testSylvester.m');
+suite26=TestSuite.fromFile('testPork.m');
 suite27=TestSuite.fromFile('testSpark.m');
+suite28=TestSuite.fromFile('testCure.m');
+
 
 
 % Add/remove suiteX (e.g. [suite1, suite3] to run testArnoldi and testIRKA)
@@ -73,7 +75,8 @@ suite27=TestSuite.fromFile('testSpark.m');
 % suite20, suite21, suite22, suite23];
 
 suite=[suite1,suite2,suite3,suite4,suite5,suite6,suite7,suite8,suite9,suite10,...
-suite11,suite12,suite13,suite14,suite15,suite16];
+suite11,suite12,suite13,suite14,suite15,suite16, suite17,...
+suite20, suite21, suite22, suite25, suite26, suite27, suite28];
 
 %% Run and show results
 result = run(suite);
