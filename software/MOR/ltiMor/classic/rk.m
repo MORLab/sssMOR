@@ -6,10 +6,15 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %       [sysr, V, W] = RK(sys, s0_inp, Rt)
 % 
 %       [sysr, V, W] = RK(sys, [], s0_out)
+%       [sysr, V, W] = RK(sys, [], s0_out, [], Lt)
+%
 %       [sysr, V, W] = RK(sys, s0_inp, s0_out)
 %       [sysr, V, W] = RK(sys, s0_inp, s0_out ,IP)
 %       [sysr, V, W] = RK(sys, s0_inp, s0_out, Rt, Lt)
 %       [sysr, V, W] = RK(sys, s0_inp, s0_out, Rt, Lt, IP)
+%
+%       [sysr, V, W, Bb, Rsylv] = RK(sys,s0_inp,...)
+%       [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = RK(sys,s0_inp, s0_out, ...)
 %
 % Description:
 %       s0 may either be horizontal vectors containing the desired
@@ -63,7 +68,7 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  26 Oct 2015
+% Last Change:  09 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
