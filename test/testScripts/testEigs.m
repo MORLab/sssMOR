@@ -2,30 +2,27 @@ classdef testEigs < matlab.unittest.TestCase
     
     properties
          sysCell;
+         testPath;
     end
  
     methods(TestMethodSetup)
         function getBenchmarks(testCase)
-            % change path
-            Path = pwd; %original
+            testCase.testPath=pwd;
+            if exist('benchmarksSysCell.mat','file')
+                load('benchmarksSysCell.mat');
+                testCase.sysCell=benchmarksSysCell;
+            end
             
-            %insert path of local benchmark folder
             %the directory "benchmark" is in sssMOR
             p = mfilename('fullpath'); k = strfind(p, 'test\'); 
             pathBenchmarks = [p(1:k-1),'benchmarks'];
             cd(pathBenchmarks);
-
-            % load files
-            files = dir('*.mat'); 
-            testCase.sysCell=cell(1,length(files));
-            warning off
-            for i=1:length(files)
-                testCase.sysCell{i} = loadSss(files(i).name);
-            end
-            warning on
-
-            % change path back
-            cd(Path);
+        end
+    end
+    
+    methods(TestMethodTeardown)
+        function changePath(testCase)
+            cd(testCase.testPath);
         end
     end
     
@@ -53,8 +50,8 @@ classdef testEigs < matlab.unittest.TestCase
                 expD_real=tbl.expD_real;
                 expD_imag=tbl.expD_imag;
                 
-                actSolution={full(actD_real), full(actD_imag)};
-                expSolution={expD_real, expD_imag};
+                actSolution={full(actD_real), sort(full(actD_imag))};
+                expSolution={expD_real, sort(expD_imag)};
                 
                 verification (testCase, actSolution, expSolution);
                 verifyInstanceOf(testCase, actD , 'double', 'Instances not matching');
