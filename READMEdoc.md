@@ -6,9 +6,11 @@ Control, Technische Universitaet Muenchen.
 
 _________
 
+
 ### Table of contents
 
 [TOC]
+
 
 ## sssMORdoc on GitLab
 On your computer, clone the sssMORdoc repository with SourceTree. The sssMORdoc repository includes the sssMOR
@@ -29,6 +31,7 @@ on the toolbox **in the same directory**.
 In sssMOR, the **headerTemplate** should be written/commented such that developers of sssMOR know how to format the
 header in order to produce the desired outcome.
 
+
 ## How to create the documentation
 After having cloned the sssMORdoc repository, add it (and all of its subfolders) to the Matlab Path. You can do this
 from the Current Folder Window in Matlab by doing a right-click on the repository folder and selecting 
@@ -46,8 +49,7 @@ The "publishHelp.m" function will update the following files everytime it is run
 
 
 ## Documentation Workflow
-If you want to make changes to the **any** documentation file (e.g. the header of a function) then do the following
-steps:
+If you want to make changes to the **any** documentation file (e.g. the header of a function) then follow this steps:
 
 1. Open the Matlab Documentation ("doc" in Command Window) and search for the HTML page of the file that you want to
 change.
@@ -64,9 +66,21 @@ actualized version of the page.
 
 6. Commit and push changes to the corresponding repositories ;)
 
+(7. Update, commit and push parent repositories in case the changes where made to a submodule)
+
 This workflow ensures that you are always aware of how the changes you make are going to look when we publish them.
 
-#Release Workflow
+So for example if you edit the header of a function in the sss repository and you are already happy with the results
+after having checked the published HTML (steps 2-4), then you have to:
+
+1. Commit and push the changes of the sss function header to the sss repository
+
+2. Commit and push the update changes of the sss submodule to the sssMOR repository
+
+3. Commit and push the update changes of the sssMOR submodule to the sssMORdoc repository
+
+
+## Release Workflow
 ToDo
 
 ## Project management
