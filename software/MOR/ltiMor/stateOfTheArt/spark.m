@@ -2,7 +2,7 @@ function [V,S_V,Crt,k] = spark(sys,s0,Opts)
 % SPARK - Stability Preserving Adaptive Rational Krylov
 % 
 % Syntax:
-%       [V,S_V,Crt,k] = SPARK(sys,s)
+%       [V,S_V,Crt,k] = SPARK(sys,s0)
 %       [V,S_V,Crt,k] = SPARK(sys,s0,Opts)
 %
 % Description:
@@ -344,7 +344,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         end
         
         if Opts.spark.test
-            bla=nicefigure('Ritz Values for Initialization');plot(real(l),imag(l),'b*');hold on
+            bla=figure('Name','Ritz Values for Initialization');plot(real(l),imag(l),'b*');hold on
             plot(real(l_ritz),imag(l_ritz),'ro');
             legend('Ritz Values','initialization')
         end
@@ -447,10 +447,10 @@ warning('off','MATLAB:nearlySingularMatrix')
     end
     function fh = plotCost(p0)
         
-    fh = nicefigure('Cost function for optimization');
+    fh = figure('Name','Cost function for optimization');
     
-    npoints = 100;
-    nlines = 500;
+    npoints = 25;
+    nlines = 100;
 
     %     [DeltaA, DeltaB] = initialization_region(p0); %TBD
     Delta = [10,10]; %[DeltaA, DeltaB]
@@ -473,8 +473,8 @@ warning('off','MATLAB:nearlySingularMatrix')
     'MarkerFaceColor',TUM_Rot,'MarkerEdgeColor','k');
     
     % plot separatrix between complex and real shifts
-    plot(x,x.^2,'--k')
-
+    plot(x,x.^2,'--k');
+    xlim([x(1),x(end)]); ylim([y(1),y(end)]);
     end
     function y = TUM_Gruen()
         y = [162 173 0]/255;
