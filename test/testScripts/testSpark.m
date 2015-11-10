@@ -72,7 +72,7 @@ classdef testSpark < matlab.unittest.TestCase
                           'modelTol',1e-3);
 
             [V,S,R] = spark(sys,s0,Opts);
-
+            close all
             % check Sylvester equation
             res = norm(sys.A*V - sys.E*V*S - sys.B*R);
 

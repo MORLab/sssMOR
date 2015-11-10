@@ -89,7 +89,9 @@ classdef testPork < matlab.unittest.TestCase
                 end              
                 
                 % get (S,L)
+                warning off
                 [L, S] = getSylvester(sys, sysr, W, 'W');
+                warning on
                 
                 % perform pseudo-optimal reduction
                 [Ar,Br,Cr,Er] = porkW(W,S,L.',sys.B);

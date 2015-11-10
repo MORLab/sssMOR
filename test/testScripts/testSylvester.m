@@ -47,7 +47,9 @@ classdef testSylvester< matlab.unittest.TestCase
                 s0 = -(conj(p)); l = r{1}; r = r{2}.';         
                 
                 [sysr, V, ~, Bb, Rsylv] = rk(sys,s0,s0,r,l);
+                warning off
                 [R, S, B_] = getSylvester(sys, sysr, V);
+                warning on
                 
                 %   compute the residuals
                 res0 = norm(sysr.A - sysr.E*S - sysr.B*R);
@@ -83,7 +85,9 @@ classdef testSylvester< matlab.unittest.TestCase
                 s0 = -(conj(p)); l = r{1}; r = r{2}.';         
                 
                 [sysr, ~, W, ~, ~, Cb, Lsylv] = rk(sys,s0,s0,r,l);
+                warning off
                 [L, S, C_] = getSylvester(sys, sysr, W, 'W');
+                warning on
                 
                 %   get dual system
                 sys = sys.'; sysr = sysr.';

@@ -18,10 +18,11 @@ classdef testEig < matlab.unittest.TestCase
             % load files
             files = dir('*.mat'); 
             testCase.sysCell=cell(1,length(files));
-
+            warning off
             for i=1:length(files)
                 testCase.sysCell{i} = loadSss(files(i).name);
             end
+            warning on
 
             % change path back
             cd(Path);
