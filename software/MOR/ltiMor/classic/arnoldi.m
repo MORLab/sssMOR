@@ -2,33 +2,15 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 % ARNOLDI - Arnoldi algorithm using multiple expansion points
 % 
 % Syntax:
-%       [V,Ct]        = ARNOLDI(E,A,B,s0)
-%       [V,Ct]        = ARNOLDI(E,A,B,s0,IP)
-%       [V,Ct]        = ARNOLDI(E,A,B,s0,Rt)
-%       [V,Ct]        = ARNOLDI(E,A,B,s0,Rt,IP)
-%       [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0)
-%       [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,IP)
-%       [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,Rt,Lt)
-%       [V,Ct,W,Bt]   = ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
-% 
-%
-% Inputs:
-%       -E/A/B/C:  System matrices
-%       -s0:       Vector of expansion points
-%       -Rt,Lt:     (opt.) Matrix of right/left tangential directions
-%       -IP:       (opt.) function handle for inner product
-%
-%
-% Outputs:
-%       -V:        Orthonormal basis spanning the input Krylov subsp. 
-%       -Rsylv:    Right tangential directions of Sylvester Eq.
-%       -W:        Orthonormal basis spanning the output Krylov subsp.
-%       -Lsylv:    Left tangential directions of Sylvester Eq.
-%
-%
-% Examples:
-%       No examples
-% 
+%       V                = ARNOLDI(E,A,B,s0)
+%       [V,Rsylv]        = ARNOLDI(E,A,B,s0)
+%       [V,Rsylv]        = ARNOLDI(E,A,B,s0,IP)
+%       [V,Rsylv]        = ARNOLDI(E,A,B,s0,Rt)
+%       [V,Rsylv]        = ARNOLDI(E,A,B,s0,Rt,IP)
+%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0)
+%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0,IP)
+%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0,Rt,Lt)
+%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
 % 
 % Description:
 %       This function is used to compute the matrix V spanning the 
@@ -53,28 +35,40 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %       chosen by default:
 %                       IP=@(x,y) (x'*E*y)
 %       which requires E to be a positive definite matrix.
-% 
 %
-% See also: 
+% Input Arguments:
+%       -E/A/B/C:  System matrices
+%       -s0:       Vector of expansion points
+%       -Rt,Lt:     (opt.) Matrix of right/left tangential directions
+%       -IP:       (opt.) function handle for inner product
+%
+% Output Arguments:
+%       -V:        Orthonormal basis spanning the input Krylov subsp. 
+%       -Rsylv:    Right tangential directions of Sylvester Eq.
+%       -W:        Orthonormal basis spanning the output Krylov subsp.
+%       -Lsylv:    Left tangential directions of Sylvester Eq.
+%
+% Examples:
+%       TODO
+%
+% See Also: 
 %       rk
 %
-% 
 % References:
 %       * *[1] Grimme (1997)*, Krylov projection methods for model reduction
 %       * *[2] Antoulas (2005)*, Approximation of large-scale dynamical systems
 %       * *[3] Antoulas (2010)*, Interpolatory model reduction of large-scale...
 %       * *[4] Giraud (2005)*, The loss of orthogonality in the Gram-Schmidt...    
 %
-%
 %------------------------------------------------------------------
-%   This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
-%   Reduction and System Analysis Toolbox developed at the Chair of 
-%   Automatic Control, Technische Universitaet Muenchen. For updates 
-%   and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
-%   For any suggestions, submission and/or bug reports, mail us at
-%                     -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
 %
-%   More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto 
@@ -156,26 +150,15 @@ end
 % remove one element of complex pairs (must be closed under conjugation)
 k=find(imag(s0));
 if ~isempty(k)
-    % make sure shift come in complex conjugate pairs
-    if m==1
-        if ~hermite || p==1
-            % siso
-            s0c = cplxpair(s0(k)); 
-        end
-    end
-    if ~exist('s0c','var')
-        %mimo
-        % sorting of residues and eigenvalues is not as trivial as in the
-        % siso case due to the fact that cplxpair does not return sorting
-        % indices. For now, only sorted combinations of shifts are
-        % accepted.
-        try 
-            cplxpair(s0(k));
-            s0c = s0(k);
-        catch 
-            error(['For MIMO system, shifts and residues need to be sorted',...
-                ' before being passed to arnoldi.'])
-        end
+    % make sure shift are sorted and come in complex conjugate pairs
+    try 
+        s0cUnsrt = s0(k);
+        s0c = cplxpair(s0cUnsrt);
+        % get permutation indices, since cplxpair does not do it for you
+        [~,cplxSorting] = ismember(s0c,s0cUnsrt); %B(idx) = A
+    catch 
+        error(['Shifts must come in complex conjugated pairs and be sorted',...
+            ' before being passed to arnoldi.'])
     end
     
     % take only one shift per complex conjugate pair
@@ -185,9 +168,16 @@ if ~isempty(k)
     
     % take only one residue vector for each complex conjugate pair
     if exist('Rt','var') && ~isempty(Rt)
-        Rtc = Rt(:,k); Ltc = Lt(:,k); 
-        Rt(:,k) = []; Lt(:,k) = [];
-        Rt = [Rt,Rtc(:,1:2:end)]; Lt = [Lt,Ltc(:,1:2:end)];
+        RtcUnsrt = Rt(:,k); 
+        Rtc = RtcUnsrt(:,cplxSorting);
+        Rt(:,k) = []; 
+        Rt = [Rt,Rtc(:,1:2:end)]; 
+        if exist('Lt','var') && ~isempty(Lt)
+            LtcUnsrt = Lt(:,k);
+            Ltc = LtcUnsrt(:,cplxSorting);
+            Lt(:,k) = [];
+            Lt = [Lt,Ltc(:,1:2:end)];
+        end
     end
 end
 
@@ -196,7 +186,7 @@ nS0 = length(s0); %number of shifts for the computations
 %   Tangential directions
 if ~exist('Rt', 'var') || isempty(Rt)%   Compute block Krylov subspaces
     if m == 1; %SISO -> tangential directions are scalars
-        Rt = [1, ~diff(s0)==0];
+        Rt = ones(1,length(s0));
         % these siso "tangential directions" are not used for the
         % computatoin of the Krylov subspaces but just for the computation
         % of the transformed tangential directions
@@ -229,6 +219,7 @@ if ~exist('Rt', 'var') || isempty(Rt)%   Compute block Krylov subspaces
         end
     end
 end
+
 reorth = 'gs'; %0, 'gs','qr'
 % lseSol = 'lu'; %'lu', '\'
 %%  Define variables that might have not been passed to the function
@@ -311,7 +302,13 @@ for jCol=1:nS0
     if ~isreal(s0(jCol))
         V(:,jCol+nS0c/2)=imag(tempV); 
         tempV=real(tempV);
-        if hermite, W(:,jCol+nS0c/2)=imag(tempW);tempW=real(tempW); end
+        Rsylv(:,jCol+nS0c/2) = imag(Rsylv(:,jCol));
+        Rsylv(:,jCol) = real(Rsylv(:,jCol));
+        if hermite, 
+            W(:,jCol+nS0c/2)=imag(tempW);tempW=real(tempW); 
+            Lsylv(:,jCol+nS0c/2) = imag(Lsylv(:,jCol));
+            Lsylv(:,jCol) = real(Lsylv(:,jCol));
+        end
     end
 
     % orthogonalize vectors
@@ -381,16 +378,20 @@ if reorth
                 for iCol = 1:jCol-1
                      h=IP(tempV, V(:,iCol));
                      tempV=tempV-h*V(:,iCol);
+                     Rsylv(:,jCol)=Rsylv(:,jCol)-h*Rsylv(:,iCol);
                      if hermite
                         h=IP(tempW, W(:,iCol));
                         tempW=tempW-h*W(:,iCol);
+                        Lsylv(:,jCol)=Lsylv(:,jCol)-h*Lsylv(:,iCol);
                      end
                 end
                 h = sqrt(IP(tempV,tempV));
                 V(:,jCol)=tempV/h;
+                Rsylv(:,jCol) = Rsylv(:,jCol)/h;
                 if hermite
                     h = sqrt(IP(tempW,tempW));
                     W(:,jCol)=tempW/h;
+                    Lsylv(:,jCol) = Lsylv(:,jCol)/h;
                 end
             end
        case 'qr' 

@@ -7,34 +7,55 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       [sysr,V,W] = TBR(sys,q)
 %       [sysr,V,W,hsv] = TBR(sys,q)
 %
+% Description:
+%       Computes a reduced model of order q by balancing and truncation,
+%       i.e. by transforming the system to a balanced realization where all
+%       states are equally controllable and observable and selecting only
+%       the first q modes responsible for the highest energy transfer in
+%       system [1]. 
 %
-% Inputs:
+%       If q is not specified, then TBR computes only a balanced
+%       realization of the system without truncation.
+%
+%       Hankel singular values and the matrices for transformation to
+%       balanced realization are stored in the sss object sys.
+%
+%
+% Input Arguments:
 %       -sys:   an sss-object containing the LTI system
 %       -q:     (opt.) order of reduced system
 %
-%
-% Outputs:
+% Output Arguments:
 %       -sysr:  reduced system
 %       -V,W:   (opt.) projection matrices (only if q is given!)
 %       -hsv:   Hankel singular values
 %
 %// Note: If no q is given, the balancing transformation and calculation of the
-%// Hankel Singular Values is performed without subsequent model reduction.
-%
+%// Hankel singular values is performed without subsequent model reduction.
 %
 % Examples:
-%       No examples
+%       TODO
 %
+% See Also:
+%       rk, modalMor
+%
+% References:
+%       * *[1] B. C. Moore (1981)*, Principal component analysis in linear systems: controllability,
+%       observability and model reduction
+%       * *[2] Antoulas (2005)*, Approximation of large-scale dynamical systems
+%
+% References:
+%       * * Antoulas (2005)*, Approximation of large-scale dynamical systems
 %
 %------------------------------------------------------------------
-%   This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
-%   Reduction and System Analysis Toolbox developed at the Chair of 
-%   Automatic Control, Technische Universitaet Muenchen. For updates 
-%   and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
-%   For any suggestions, submission and/or bug reports, mail us at
-%                     -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
 %
-%   More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Sylvia Cremer, Rudy Eid
@@ -45,7 +66,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
-% Is Controllability Gramian available?
+%% Is Controllability Gramian available?
 if isempty(sys.ConGramChol)
     if isempty(sys.ConGram)
         % No, it is not. Solve Lyapunov equation.
@@ -84,7 +105,7 @@ else
 end
 
 
-% Is Observability Gramian available?
+%% Is Observability Gramian available?
 if isempty(sys.ObsGramChol)
     if isempty(sys.ObsGram)
         % No, it is not. Solve Lyapunov equation. 
@@ -116,19 +137,13 @@ else
     L = sys.ObsGramChol;
 end
 
-% calculate balancing transformation and Hankel Singular Values
-% M = L*R';
-% [K,S] = svd(M*M');
-% hsv = sqrt(diag(S));
-% sys.HankelSingularValues = real(hsv);
-% sys.T_bal = diag(sqrt(hsv))\K'*L/sys.E;
-% sys.T_bal_inv = L\K*diag(sqrt(hsv));
 
+% calculate balancing transformation and Hankel Singular Values
 [K,S,M]=svd(R*L');
 hsv = diag(S);
 sys.HankelSingularValues = real(hsv);
-sys.T_bal_inv = R'*K/diag(sqrt(hsv));
-sys.T_bal = diag(sqrt(hsv))\M'*L/sys.E;
+sys.TBalInv = R'*K/diag(sqrt(hsv));
+sys.TBal = diag(sqrt(hsv))\M'*L/sys.E;
 
 
 % store system
@@ -140,11 +155,11 @@ if nargin==1
     return
 end
 
-% if MOR is to be performed, calculate V, W and reduced system
+%% if MOR is to be performed, calculate V, W and reduced system
 q=varargin{1};
 
-V = sys.T_bal_inv(:,1:q);
-W = sys.T_bal(1:q,:)';
+V = sys.TBalInv(:,1:q);
+W = sys.TBal(1:q,:)';
 
 sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
 varargout{1} = V;

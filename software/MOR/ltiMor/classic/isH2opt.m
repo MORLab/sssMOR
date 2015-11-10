@@ -1,44 +1,63 @@
 function isH2opt = isH2opt(sys,sysr,s0,Opts)
-% ISH2OPT - evaluate Maier-Luenberger conditions for H2-optimality
+% ISH2OPT - Evaluate Maier-Luenberger conditions for H2-optimality
 %
 % Syntax:
-%   ISH2OPT(sys,sysr,s0)
-%   ISH2OPT(sys,sysr,s0,Opts)
-%   isH2opt = ISH2OPT(sys,sysr,s0)
+%       ISH2OPT(sys,sysr,s0)
+%       ISH2OPT(sys,sysr,s0,Opts)
+%       isH2opt = ISH2OPT(sys,sysr,s0)
 %
 % Description:
-%   This function evaluates the Maier-Luenberger conditions for
-%   H2-optimality according to the input data, i.e. 
-%   - sys, the high fidelity model
-%   - sysr, the reduced order model
-%   - s0,  the shifts at which sysr interpolates sys
+%       This function evaluates the Maier-Luenberger conditions for
+%       H2-optimality according to the input data, i.e. 
 %
-%   Following conditions must be met:
-%   a) the reduced eigenvalues are the mirror images of the shifts
-%   b) two moments are matched at each shift
+%       * sys, the high fidelity model
+%       * sysr, the reduced order model
+%       * s0,  the shifts at which sysr interpolates sys
+% 
+%       Following conditions must be met:
 %
-%   Then sysr is said to be a locally H2-optimal approximation of sys
+%       * a) the reduced eigenvalues are the mirror images of the shifts
+%       * b) two moments are matched at each shift
+% 
+%       Then sysr is said to be a locally H2-optimal approximation of sys
 %
+% Input Arguments:
+%		*Required Input Arguments:*
+%		TODO
 %
-% See also:
-%   MOMENTS, IRKA, SPARK, EIG
+%		*Optional Input Arguments:*
+%		TODO
+%
+% Output Arguments:
+%       TODO
+%
+% Examples:
+%		TODO
+%
+% See Also: 
+%		moments, irka, spark, eig
 %
 % References:
-%   [1] Gugercin et al. (2008), H2 model reduction for large-scale linear
-%       dynamical systems
+%		* *[1] Gugercin et al. (2008)*, H2 model reduction for large-scale linear dynamical systems
 %
-% ------------------------------------------------------------------
-%   This file is part of sssMOR, a Sparse State Space, Model Order
-%   Reduction and System Analysis Toolbox developed at the Institute 
-%   of Automatic Control, Technische Universitaet Muenchen.
-%   For updates and further information please visit www.rt.mw.tum.de
-%   For any suggestions, submission and/or bug reports, mail us at
-%                     -> sssMOR@rt.mw.tum.de <-
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
 % Last Change:  31 Aug 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 
 %%  Parse input and initialize
 

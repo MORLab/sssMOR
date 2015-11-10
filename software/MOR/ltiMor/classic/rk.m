@@ -6,32 +6,16 @@ function [sysr, V, W, Rsylv, Lsylv] = rk(sys, s0_inp, varargin)
 %       [sysr, V, W] = RK(sys, s0_inp, Rt)
 % 
 %       [sysr, V, W] = RK(sys, [], s0_out)
+%       [sysr, V, W] = RK(sys, [], s0_out, [], Lt)
+%
 %       [sysr, V, W] = RK(sys, s0_inp, s0_out)
 %       [sysr, V, W] = RK(sys, s0_inp, s0_out ,IP)
 %       [sysr, V, W] = RK(sys, s0_inp, s0_out, Rt, Lt)
 %       [sysr, V, W] = RK(sys, s0_inp, s0_out, Rt, Lt, IP)
 %
 %       [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = RK(sys, ... )
-%
-%
-% Inputs:
-%       -sys:       an sss-object containing the LTI system
-%       -s0_inp:    expansion points for input Krylov subspace
-%       -s0_out:    expansion points for output Krylov subspace
-%       -Rt/Lt:     right/left tangential directions
-%       -IP:        inner product (optional)
-%
-%
-% Outputs:
-%       -sysr:      reduced system
-%       -V,W:       orojection matrices spanning Krylov subspaces
-%       -Bb,Rsylv   resulting matrices of the input Sylvester equation
-%       -Cb,Lsylv   resulting matrices of the output Sylvester equation
-%
-%
-% Examples:
-%       No examples
-%
+%       [sysr, V, W, Bb, Rsylv] = RK(sys,s0_inp,...)
+%       [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = RK(sys,s0_inp, s0_out, ...)
 %
 % Description:
 %       s0 may either be horizontal vectors containing the desired
@@ -46,31 +30,46 @@ function [sysr, V, W, Rsylv, Lsylv] = rk(sys, s0_inp, varargin)
 % 
 %       To perform one-sided RK, set s0_inp or s0_out to [], respectively.
 %
+% Input Arguments:
+%       -sys:       an sss-object containing the LTI system
+%       -s0_inp:    expansion points for input Krylov subspace
+%       -s0_out:    expansion points for output Krylov subspace
+%       -Rt/Lt:     right/left tangential directions
+%       -IP:        inner product (optional)
 %
-% See also: 
-%       arnoldi, rk
+% Output Arguments:
+%       -sysr:      reduced system
+%       -V,W:       projection matrices spanning Krylov subspaces
+%       -Bb,Rsylv   resulting matrices of the input Sylvester equation
+%       -Cb,Lsylv   resulting matrices of the output Sylvester equation
 %
+% Examples:
+%       No examples
+%
+%
+% See Also: 
+%       arnoldi, irka
 %
 % References:
 %       * *[1] Grimme (1997)*, Krylov projection methods for model reduction
-%
+%       * *[2] Antoulas (2010)*, Interpolatory model reduction of large-scale...
 %
 %------------------------------------------------------------------
-%   This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
-%   Reduction and System Analysis Toolbox developed at the Chair of 
-%   Automatic Control, Technische Universitaet Muenchen. For updates 
-%   and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
-%   For any suggestions, submission and/or bug reports, mail us at
-%                     -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
 %
-%   More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto 
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  26 Oct 2015
+% Last Change:  09 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -186,6 +185,3 @@ function s0=s0_vect(s0)
     if size(s0,1)>size(s0,2)
         s0=transpose(s0);
     end
-
-
-

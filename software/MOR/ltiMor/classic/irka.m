@@ -10,27 +10,7 @@ function [sysr, V, W, s0, s0Traj, Rsylv, Lsylv] = irka(sys, s0, varargin)
 %       [sysr, V, W, s0] = IRKA(sys, ... )
 %       [sysr, V, W, s0, s0Traj] = IRKA(sys, ... )
 %       [sysr, V, W, s0, s0Traj, Rsylv, Lsylv] = IRKA(sys, ... )
-% 
 %
-% Inputs:       
-%       -sys:       full oder model (sss)
-%       -s0:        vector of initial shifts
-%       -Opts:      (opt.) structure with execution parameters
-%       -Rt/Lt:     initial right/left tangential directions for MIMO
-%
-%
-% Outputs:      
-%       -sysr:    reduced order model (sss)
-%       -V,W:     resulting projection matrices
-%       -s0:      final choice of shifts
-%       -s0Traj:  trajectory of all shifst for all iterations
-%       -Rt,Lt:   right/left tangential directions from arnoldi
-%
-%
-% Examples:
-%       No examples
-% 
-% 
 % Description:
 %       This function executes the Iterative Rational Krylov
 %       Algorithm (IRKA) as proposed by Gugergin and Beattie in [1].
@@ -40,25 +20,38 @@ function [sysr, V, W, s0, s0Traj, Rsylv, Lsylv] = irka(sys, s0, varargin)
 %       then the reduced model is known to be a local optimum with respect
 %       to the H2 norm of the error.
 %
+% Input Arguments:       
+%       -sys:       full oder model (sss)
+%       -s0:        vector of initial shifts
+%       -Opts:      (opt.) structure with execution parameters
+%       -Rt/Lt:     initial right/left tangential directions for MIMO
 %
-% See also: 
+% Output Arguments:      
+%       -sysr:     reduced order model (sss)
+%       -V,W:      resulting projection matrices
+%       -s0:       final choice of shifts
+%       -s0Traj:  trajectory of all shifst for all iterations
+%       -Rt,Lt:   right/left tangential directions from arnoldi
+%
+% Examples:
+%       TODO
+%
+% See Also: 
 %       arnoldi, rk
-%
 %
 % References:
 %       * *[1] Gugercin (2008)*, H2 model reduction for large-scale linear dynamical systems
 %       * *[2] Beattie (2014)*, Model reduction by rational interpolation
 %
-%
 %------------------------------------------------------------------
-%   This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State Space, Model Order 
-%   Reduction and System Analysis Toolbox developed at the Chair of 
-%   Automatic Control, Technische Universitaet Muenchen. For updates 
-%   and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
-%   For any suggestions, submission and/or bug reports, mail us at
-%                     -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
 %
-%   More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto
@@ -126,10 +119,10 @@ k=0;
 while true
     k=k+1; sysr_old = sysr;
     %   Reduction
-    if sys.isMimo
-        [sysr, V, W, Rsylv, Lsylv] = rk(sys, s0, s0, Rt, Lt);
+    if sys.isSiso
+        [sysr, V, W] = rk(sys, s0, s0);
     else
-        [sysr, V, W, Rsylv, Lsylv] = rk(sys, s0, s0);
+        [sysr, V, W] = rk(sys, s0, s0, Rt, Lt);
     end
     %   Update of the reduction parameters
     s0_old=s0;
