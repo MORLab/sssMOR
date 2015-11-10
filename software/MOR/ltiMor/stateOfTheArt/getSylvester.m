@@ -83,9 +83,11 @@ end
 
 %% control the accuracy by computing the residual
 res = zeros(1,3);
-res(1) = norm(sysr.A - sysr.E*S - sysr.B*R);
-res(2) = norm(sys.A*V - sys.E*V*S - sys.B*R);
-res(3) = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-B_*R);
+res(1) = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-B_*R);
+if nargout > 1
+    res(2) = norm(sysr.A - sysr.E*S - sysr.B*R);
+    res(3) = norm(sys.A*V - sys.E*V*S - sys.B*R);
+end
 
 if any( res > 1e-6 )
     warning('careful, the problem might be ill conditioned and the results of getSylvester inaccurate');
