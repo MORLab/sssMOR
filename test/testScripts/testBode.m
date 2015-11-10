@@ -6,25 +6,8 @@ classdef testBode < matlab.unittest.TestCase
  
     methods(TestMethodSetup)
         function getBenchmarks(testCase)
-            % change path
-            Path = pwd; %original
-            
-            %insert path of local benchmark folder
-            %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
-            pathBenchmarks = [p(1:k-1),'benchmarks'];
-            cd(pathBenchmarks);
-
-            % load files
-            files = dir('*.mat'); 
-            testCase.sysCell=cell(1,length(files));
-
-            for i=1:length(files)
-                testCase.sysCell{i} = loadSss(files(i).name);
-            end
-
-            % change path back
-            cd(Path);
+            load('benchmarksSysCell.mat');
+            testCase.sysCell=benchmarksSysCell;
         end
     end
     
@@ -38,7 +21,7 @@ classdef testBode < matlab.unittest.TestCase
                 
                 [actMag, actPhase, actOmega]=bode(sys_sss,t);
                 [expMag, expPhase, expOmega]=bode(ss(sys_ss),t);
-                    
+                
                 %Phase between 0° to 360°
                 for j=1:length(actPhase)
                     if actPhase(:,:,j)<0

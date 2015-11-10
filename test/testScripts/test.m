@@ -1,4 +1,4 @@
-function result = test()
+function result = test(Opts)
 % TEST - testing of sssMOR functionality
 %
 % Description:
@@ -17,7 +17,7 @@ function result = test()
 %                   -> sssMOR@rt.mw.tum.de <-
 %------------------------------------------------------------------
 % Authors:      Lisa Jeschek, Jorge Luiz Moreira Silva
-% Last Change:  07 Sep 2015
+% Last Change:  10 Oct 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
@@ -30,6 +30,67 @@ testCase.Path = pwd; %original
 p = mfilename('fullpath'); k = strfind(p, '\test'); 
 testpath = p(1:k(end)-1);
 cd(testpath);
+
+%% Choose benchmarks
+% Default benchmarks
+Def.option = 'light'; %'light','full','heavy'
+Def.size =200'; %'light': only benchmarks with sys.n<=Opts.size are tested
+                %'heavy': only benchmarks with sys.n>Opts.size are tested
+Def.number = 3; %choose maximum number of tested benchmarks
+
+% create the options structure
+if ~exist('Opts','var') || isempty(Opts)
+    Opts = Def;
+else
+    Opts = parseOpts(Opts,Def);
+end
+
+%% Load benchmarks
+%the directory "benchmark" is in sssMOR
+p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+pathBenchmarks = [p(1:k-1),'benchmarks'];
+cd(pathBenchmarks);
+badBenchmarks = {'LF10.mat','beam.mat','random.mat',...
+    'SpiralInductorPeec.mat'};  
+
+% load files
+files = dir('*.mat'); 
+benchmarksSysCell=cell(1,Opts.number);
+nLoaded=1; %count of loaded benchmarks
+disp('Loaded systems:');
+
+warning('off');
+for i=1:length(files)
+    if nLoaded<Opts.number+1
+        switch(Opts.option)
+            case 'light'
+                sys = loadSss(files(i).name);
+                if ~any(strcmp(files(i).name,badBenchmarks)) && size(sys.A,1)<=Opts.size
+                    benchmarksSysCell{nLoaded}=sys;
+                    nLoaded=nLoaded+1;
+                    disp(files(i).name);
+                end
+            case 'full' 
+                benchmarksSysCell{nLoaded} = loadSss(files(i).name);
+                nLoaded=nLoaded+1;
+                disp(files(i).name);
+            case 'heavy'
+                sys = loadSss(files(i).name);
+                if any(strcmp(files(i).name,badBenchmarks)) || size(sys.A,1)>Opts.size
+                    benchmarksSysCell{nLoaded}=sys;
+                    nLoaded=nLoaded+1;
+                    disp(files(i).name);
+                end
+            otherwise
+                error('Benchmark option is wrong.');
+        end
+    end
+end
+warning('on');
+
+% change path back and save loaded systems
+cd(testpath);
+save('benchmarksSysCell.mat');
 
 %% Test all unittest-files in current folder
 % suite = TestSuite.fromFolder(pwd);
@@ -84,6 +145,7 @@ suite20, suite21, suite22, suite25, suite26, suite27, suite28];
 %% Run and show results
 result = run(suite);
 disp(result);
+delete('benchmarksSysCell.mat');
 
 %% Go back to original folder
 cd(testCase.Path);

@@ -6,28 +6,8 @@ classdef testCure < matlab.unittest.TestCase
  
     methods(TestMethodSetup)
         function getBenchmarks(testCase)
-            % change path
-            Path = pwd; %original
-            
-            %insert path of local benchmark folder
-            %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
-            pathBenchmarks = [p(1:k-1),'benchmarks'];
-            cd(pathBenchmarks);
-
-            % load files
-            files = dir('*.mat'); 
-            testCase.sysCell=cell(1,length(files));
-%             warning('off','sssMOR:loadSss:2ndOrder')
-            warning off
-            for i=1:length(files)
-                testCase.sysCell{i} = loadSss(files(i).name);
-            end
-            warning on
-%             warning('on','loadSss:2ndOrder')
-
-            % change path back
-            cd(Path);
+            load('benchmarksSysCell.mat');
+            testCase.sysCell=benchmarksSysCell;
         end
     end
     

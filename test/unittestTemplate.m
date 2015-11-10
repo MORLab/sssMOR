@@ -33,11 +33,11 @@ classdef testName < matlab.unittest.TestCase
     end
     
     %Constructor (optional)
-    methods(TestMethodSetup) 
-          function addSolverToPath(testCase)
-              testCase.OriginalPath = path;
-              addpath(fullfile(pwd,'code_to_test'));
-          end
+    methods(TestMethodSetup)
+        function getBenchmarks(testCase)
+            load('benchmarksSysCell.mat');
+            testCase.sysCell=benchmarksSysCell;
+        end
     end
     
     %Destructor (optional)
