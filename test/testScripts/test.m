@@ -21,6 +21,7 @@ function result = test(Opts)
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
+clear;
 clc;
 import matlab.unittest.TestSuite;
 
@@ -34,7 +35,7 @@ cd(testpath);
 %% Choose benchmarks
 % Default benchmarks
 Def.option = 'light'; %'light','full','heavy'
-Def.size =200'; %'light': only benchmarks with sys.n<=Opts.size are tested
+Def.size =400'; %'light': only benchmarks with sys.n<=Opts.size are tested
                 %'heavy': only benchmarks with sys.n>Opts.size are tested
 Def.number = 3; %choose maximum number of tested benchmarks
 
@@ -86,6 +87,7 @@ for i=1:length(files)
         end
     end
 end
+benchmarksSysCell(nLoaded:end)=[];
 warning('on');
 
 % change path back and save loaded systems
@@ -105,31 +107,30 @@ suite4=TestSuite.fromFile('testTbr.m');
 suite5=TestSuite.fromFile('testModal.m'); 
 suite6=TestSuite.fromFile('testMoments.m'); 
 suite7=TestSuite.fromFile('testIsH2opt.m');
-suite8=TestSuite.fromFile('testMomentsAll.m'); %testMoments using all benchmarks in a local folder
-suite9=TestSuite.fromFile('testMtimes.m');
-suite10=TestSuite.fromFile('testNorm.m');
-suite11=TestSuite.fromFile('testPzmap.m');
-suite12=TestSuite.fromFile('testPlus.m');
-suite13=TestSuite.fromFile('testResidue.m');
-suite14=TestSuite.fromFile('testSigma.m');
-suite15=TestSuite.fromFile('testStep.m');
-suite16=TestSuite.fromFile('testSs.m');
-suite17=TestSuite.fromFile('testAppend.m');
-suite18=TestSuite.fromFile('testBode.m');
-suite19=TestSuite.fromFile('testEig.m');
-suite20=TestSuite.fromFile('testEigs.m');
-suite21=TestSuite.fromFile('testFreqresp.m');
-suite22=TestSuite.fromFile('testImpulse.m');
-suite23=TestSuite.fromFile('testIsstable.m');
-suite24=TestSuite.fromFile('testDiag.m');
-suite25=TestSuite.fromFile('testDecayTime.m');
-suite26=TestSuite.fromFile('testIssd.m');
-% suite24=TestSuite.fromFile('testSim.m');
-suite25=TestSuite.fromFile('testSylvester.m');
-suite26=TestSuite.fromFile('testPork.m');
-suite27=TestSuite.fromFile('testSpark.m');
-suite28=TestSuite.fromFile('testCure.m');
-
+suite8=TestSuite.fromFile('testMtimes.m');
+suite9=TestSuite.fromFile('testNorm.m');
+suite10=TestSuite.fromFile('testPzmap.m');
+suite11=TestSuite.fromFile('testPlus.m');
+suite12=TestSuite.fromFile('testResidue.m');
+suite13=TestSuite.fromFile('testSigma.m');
+suite14=TestSuite.fromFile('testStep.m');
+suite15=TestSuite.fromFile('testSs.m');
+suite16=TestSuite.fromFile('testAppend.m');
+suite17=TestSuite.fromFile('testBode.m');
+suite18=TestSuite.fromFile('testEig.m');
+suite19=TestSuite.fromFile('testEigs.m');
+suite20=TestSuite.fromFile('testFreqresp.m');
+suite21=TestSuite.fromFile('testImpulse.m');
+suite22=TestSuite.fromFile('testIsstable.m');
+suite23=TestSuite.fromFile('testDiag.m');
+suite24=TestSuite.fromFile('testDecayTime.m');
+suite25=TestSuite.fromFile('testIssd.m');
+% suite26=TestSuite.fromFile('testSim.m');
+suite27=TestSuite.fromFile('testSylvester.m');
+suite28=TestSuite.fromFile('testPork.m');
+suite29=TestSuite.fromFile('testSpark.m');
+suite30=TestSuite.fromFile('testCure.m');
+suite31=TestSuite.fromFile('testConnectSss.m');
 
 
 % Add/remove suiteX (e.g. [suite1, suite3] to run testArnoldi and testIRKA)
@@ -140,7 +141,7 @@ suite28=TestSuite.fromFile('testCure.m');
 
 suite=[suite1,suite2,suite3,suite4,suite5,suite6,suite7,suite8,suite9,suite10,...
 suite11,suite12,suite13,suite14,suite15,suite16, suite17,...
-suite20, suite21, suite22, suite25, suite26, suite27, suite28];
+suite20, suite21, suite22, suite25, suite27, suite28, suite29, suite30];
 
 %% Run and show results
 result = run(suite);

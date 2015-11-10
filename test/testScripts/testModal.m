@@ -20,19 +20,19 @@ classdef testModal < matlab.unittest.TestCase
 % Last Change:  07 Sep 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
-    properties
-         sysCell;
-         testPath;
+    properties 
+        path
+        sysCell
     end
- 
-    methods(TestMethodSetup)
+
+    methods(TestClassSetup)
         function getBenchmarks(testCase)
-            testCase.testPath=pwd;
+            testCase.path=pwd;
             if exist('benchmarksSysCell.mat','file')
-                load('benchmarksSysCell.mat');
-                testCase.sysCell=benchmarksSysCell;
+                temp=load('benchmarksSysCell.mat');
+                testCase.sysCell=temp.benchmarksSysCell;
             end
-            
+
             %the directory "benchmark" is in sssMOR
             p = mfilename('fullpath'); k = strfind(p, 'test\'); 
             pathBenchmarks = [p(1:k-1),'benchmarks'];
@@ -40,9 +40,9 @@ classdef testModal < matlab.unittest.TestCase
         end
     end
     
-    methods(TestMethodTeardown)
+    methods(TestClassTeardown)
         function changePath(testCase)
-            cd(testCase.testPath);
+            cd(testCase.path);
         end
     end
  

@@ -1,18 +1,18 @@
 classdef testImpulse < matlab.unittest.TestCase
     
-    properties
-         sysCell;
-         testPath;
+    properties 
+        path
+        sysCell
     end
- 
-    methods(TestMethodSetup)
+
+    methods(TestClassSetup)
         function getBenchmarks(testCase)
-            testCase.testPath=pwd;
+            testCase.path=pwd;
             if exist('benchmarksSysCell.mat','file')
-                load('benchmarksSysCell.mat');
-                testCase.sysCell=benchmarksSysCell;
+                temp=load('benchmarksSysCell.mat');
+                testCase.sysCell=temp.benchmarksSysCell;
             end
-            
+
             %the directory "benchmark" is in sssMOR
             p = mfilename('fullpath'); k = strfind(p, 'test\'); 
             pathBenchmarks = [p(1:k-1),'benchmarks'];
@@ -20,9 +20,9 @@ classdef testImpulse < matlab.unittest.TestCase
         end
     end
     
-    methods(TestMethodTeardown)
+    methods(TestClassTeardown)
         function changePath(testCase)
-            cd(testCase.testPath);
+            cd(testCase.path);
         end
     end
     
@@ -35,16 +35,13 @@ classdef testImpulse < matlab.unittest.TestCase
                 
                 [actH]=impulse(sys,t); 
                 [expH]=impulse(ss(sys),t);
-                         
-                
+                           
                 actSolution={actH};
                 expSolution={expH};
                 
                 verification (testCase, actSolution, expSolution);
-                verifyInstanceOf(testCase, actT , 'double', 'Instances not matching');
                 verifyInstanceOf(testCase, actH , 'double', 'Instances not matching');
                 verifySize(testCase, actH, size(expH), 'Size not matching');
-                verifySize(testCase, actT, size(t), 'Size not matching');
             end
         end
     end
