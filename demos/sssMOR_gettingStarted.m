@@ -24,6 +24,7 @@ function sssMOR_gettingStarted
 
 %%  Initialization
 clear, clc
+warning('off','all');
 fprintf('Starting demo execution: sssMOR_gettingStarted...\n\n'); 
 
 rule
@@ -107,10 +108,10 @@ disp(sys)
 customPause
 
 fprintf('The sparsity pattern of E and A can be plotted by calling\n');
-fprintf('>> spysys(sys)\n');
+fprintf('>> spy(sys)\n');
 fprintf('\t\tor\n');
-fprintf('>> spysys(sys.E, sys.A)\n');
-spysys(sys);
+fprintf('>> spy(sys.E, sys.A)\n');
+spy(sys);
 customPause
 
 %*  Bode plot
@@ -208,7 +209,7 @@ fprintf('>> spysys(sys)\n');
 fprintf('>> bode(sys)\n');
     sys = sss(A,B,C,D,E); clear A B C D E
     disp(sys);
-    spysys(sys);
+    spy(sys);
     [~,~,w] = bode(sys);%get frequency range
     figure;bode(sys);%plot
 customPause
@@ -232,7 +233,13 @@ customPause
 fprintf('\nThe reduction is performed by calling:\n');
 fprintf('>> sysrModal = modalMor(sys,q)\n');
     Opts.real = 'real';
-    tic, sysrModal = modalMor(sys,q,Opts); tModal = toc;
+    %modalMor can fail with build, q=16 to find matching eigenvalues at the
+    %first try (eigs in initialized randomly)
+    try
+        tic, sysrModal = modalMor(sys,q,Opts); tModal = toc;
+    catch
+        tic, sysrModal = modalMor(sys,q,Opts); tModal = toc;
+    end
 fprintf('(This reduction took %4.2fs. The results will be shown later.)\n',tModal);
     h2ErrorModal = norm(sys-sysrModal);
     hInfErrorModal = norm(sys-sysrModal,Inf);
