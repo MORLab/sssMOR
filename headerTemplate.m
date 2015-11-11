@@ -1,11 +1,10 @@
-function [output1,output2] = headerTemplate(input1,input2,varargin)
+function [output1,output2] = headerTemplate(input1,varargin)
 % HEADERTEMPLATE - sssMOR toolbox header template
 % 
 % Syntax:
-%       HEADERTEMPLATE
-%       HEADERTEMPLATE(input1)
-%       HEADERTEMPLATE(input1,input2)
-%       [output1,output2] = HEADERTEMPLATE(input1,input2,input3,Opts)
+%		output1				= HEADERTEMPLATE(input1)
+%		output1				= HEADERTEMPLATE(input1,input2)
+%		[output1,output2]	= HEADERTEMPLATE(input1,input2,Opts)
 % 
 % Description:
 %       This header file is to be copied and pasted at the beginning
@@ -75,10 +74,13 @@ function [output1,output2] = headerTemplate(input1,input2,varargin)
 %		*Optional Input Arguments:*
 %		-input3:   		Description of in3
 %						// Note: note inside a table must be on new line
-%		-Opts:	 		Description e.g.: Structure containing computation options
-%			-.field1:  	description of Opts.field1 function
-%			-.field2:  	description of Opts.field2 function
-%			-.field3:  	description of Opts.field3 function; line break inline;
+%		-Opts:	 		Description e.g.: A structure containing following fields
+%			-.field1:  	description of Opts.field1 function;
+% 						[opt1 / opt2 / {default opt}]
+%			-.field2:  	description of Opts.field2 function;
+% 						[opt1 / {opt2} / opt3]
+%			-.field3:  	description of Opts.field3 function;
+% 						[{opt1} / opt2 / opt3]
 %						or line break on a new line
 %						// Note: note inside a table must be on new line
 %
