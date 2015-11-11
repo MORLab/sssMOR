@@ -19,11 +19,24 @@ function [sysr, V, W, s0, s0Traj] = irka(sys, s0, varargin)
 %       then the reduced model is known to be a local optimum with respect
 %       to the H2 norm of the error.
 %
-% Input Arguments:       
+%       Convergence is determined by observing the shifts and norm of the
+%       reduced model over the iterations. This behavior can be changed
+%       with the optional Opts structure.
+%
+% Input Arguments:  
+%       *Required Input Arguments:*
 %       -sys:       full oder model (sss)
 %       -s0:        vector of initial shifts
-%       -Opts:      (opt.) structure with execution parameters
+%       *Optional Input Arguments:*
 %       -Rt/Lt:     initial right/left tangential directions for MIMO
+%       -Opts:      structure with execution parameters
+%           -.maxiter: maximum number of iterations {50 (def)}
+%           -.tol:     convergence tolerange  {1e-3 (def)}
+%           -.type:    choose between different irka modifications
+%                      {' ' (def) | 'stab'}
+%           -.verbose: show text output during iterations {0 (def)}
+%           -.stopCrit: stopping criterion
+%                      {'combAny' (def) | 's0' | 'sysr' | 'combAll'}
 %
 % Output Arguments:      
 %       -sysr:     reduced order model (sss)
@@ -32,14 +45,20 @@ function [sysr, V, W, s0, s0Traj] = irka(sys, s0, varargin)
 %       -s0Traj:  trajectory of all shifst for all iterations
 %
 % Examples:
-%       TODO
+%       This code computes an H2-optimal approximation of order 8 to
+%       the benchmark model 'fom'. One can use the function isH2opt to
+%       verify if the necessary conditions for optimality are satisfied.
+%> sys = loadSss('fom')
+%> [sysr, ~, ~, s0opt] = irka(sys, -eigs(sys,8).');
+%> bode(sys,'-',sysr,'--r');
+%> isH2opt(sys, sysr, s0opt)
 %
 % See Also: 
-%       arnoldi, rk
+%       arnoldi, rk, isH2opt
 %
 % References:
-%       * *[1] Gugercin (2008)*, H2 model reduction for large-scale linear dynamical systems
-%       * *[2] Beattie (2014)*, Model reduction by rational interpolation
+%       * *[1] Gugercin et al. (2008)*, H2 model reduction for large-scale linear dynamical systems
+%       * *[2] Beattie et al. (2014)*, Model reduction by rational interpolation
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
@@ -73,7 +92,6 @@ if nargin > 2
         Rt = varargin{1};
         Lt = varargin{2};
     elseif nargin == 5
-
         %usage irka(sys,s0,Rt,Lt,Opts)
         Rt = varargin{1};
         Lt = varargin{2};
@@ -87,7 +105,6 @@ Def.tol = 1e-3;
 Def.type = ''; %'stab', 'newton','restarted'
 Def.verbose = 0; % text output durint iteration?
 Def.stopCrit = 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
-Def.cplxpairTol = 1e-6;
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -102,6 +119,16 @@ if Opts.tol<=0 || ~isreal(Opts.tol)
 end
 
 s0 = s0_vect(s0);
+
+% sort expansion points & tangential directions
+s0old = s0;
+s0 = cplxpair(s0);
+if exist('Rt','var') && ~isempty(Rt)
+    [~,cplxSorting] = ismember(s0old,s0); 
+    Rt = Rt(:,cplxSorting);
+    Lt = Lt(:,cplxSorting);
+end
+clear s0old
 
 % Initialize variables
 sysr = sss([],[],[]);
@@ -164,8 +191,6 @@ function s0=s0_vect(s0)
         end
         s0=temp;
     end
-    % sort expansion points
-    s0 = cplxpair(s0);
     if size(s0,1)>size(s0,2)
         s0=transpose(s0);
     end
