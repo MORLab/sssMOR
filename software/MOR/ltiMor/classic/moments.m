@@ -16,7 +16,6 @@ function M = moments(sys, s0, n)
 %       The ouput is a 3D array with the moments ordered according to the
 %       shifts.
 %       
-%
 % Input Arguments:
 %      -sys:    an sss-object containing the LTI system
 %      -s0:     (array of) expansion point (inf -> Markov parameters)
@@ -26,7 +25,7 @@ function M = moments(sys, s0, n)
 %      -M:     3D-array of moments / Markov parameters
 %
 % Examples:
-%      This code computes 3 moments of the transfer function of th
+%      This code computes 3 moments of the transfer function of the
 %      benchmark model 'build' about the frequencies 1, 1+i and 1-i
 %> sys = loadSss('build');
 %> M = moments(sys,[1,1+i,1-i], 3)
