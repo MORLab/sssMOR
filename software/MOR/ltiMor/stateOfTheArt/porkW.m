@@ -1,4 +1,4 @@
-function [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
+function varargout = porkW(W,S_W,Brt,B)
 % PORKW - Pseudo-Optimal Rational Krylov (Output)
 %
 % Syntax: 
@@ -10,7 +10,9 @@ function [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
 %
 %       Given a projection matrix W spanning an output Krylov subspace and
 %       the respective matrices from the Sylvester equation
-%           A.' W - E.' W S_W.' - C.' Brt.' = 0
+%
+%          $ A^T W - E^T W S_W^T - C^T Brt^T = 0$
+%
 %       this function computes the reduced order matrices corresponding to
 %       the H2-pseudo-optimal reduced order model, i.e. a model
 %       interpolating the original according to (W,S_W,Brt) and having
@@ -22,13 +24,20 @@ function [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
 %       -B:              input matrix of the original model
 %
 % Output Arguments: 
-%       -Ar,Br,Cr,Er:    ROM matrices
+%       - sysrPO:         Pseudo-optimal reduced order model 
+%       - Ar,Br,Cr,Er:    ROM matrices
 %
 % Examples:
-%       TODO
+%       Following code computes an H2-pseudo-optimal reduced order model
+%       with an output Krylov subspace
+%> sys = loadSss('build');
+%> s0 = -eigs(sys,4,'sm').';
+%> [sysr, ~, W] = rk(sys,[],s0);
+%> [Brt, S] = getSylvester(sys, sysr, W, 'W');
+%> sysrPO = porkW(V,S,Brt',sys.B)
 % 
 % See Also: 
-%       porkV, spark, rk
+%       porkV, spark, rk, getSylvester
 %
 % References:
 %       * *[1] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
@@ -54,8 +63,19 @@ function [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
+%%  Computation
 Pr_c = lyapchol(-S_W, Brt);
 Cr = -Brt.'/Pr_c/Pr_c.';
 Ar = S_W+Brt*Cr;
 Br = W.'*B;
 Er = eye(size(Ar));
+
+%% Preparing output
+if nargout == 1
+    varargout{1} = sss(Ar,Br,Cr,zeros(size(Cr,1),size(Br,2)),Er);
+else
+    varargout{1} = Ar;
+    varargout{2} = Br;
+    varargout{3} = Cr;
+    varargout{4} = Er;
+end

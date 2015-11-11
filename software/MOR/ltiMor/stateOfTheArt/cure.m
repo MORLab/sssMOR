@@ -20,6 +20,8 @@ function sysr = cure(sys,Opts)
 %       You can reduce index 1 DAEs in semiexplicit form by selecting the
 %       appropriate option. See [3] for more details.
 %
+%//     Note: currently CUREd SPARK works only for SISO systems
+%
 % Input Arguments:
 %       *Required Input Arguments:*
 %       -sys: An sss-object containing the LTI system
@@ -50,10 +52,20 @@ function sysr = cure(sys,Opts)
 %       -sysr: Reduced system
 %
 % Examples:
-%       TODO
+%       By default, cure reduces a given model sys to a reduced order of
+%       sqrt(sys.n) by steps of nk = 2 using mespark (model function based
+%       spark)
+%> sys = loadSss('build');
+%> sysr = cure(sys);
+%
+%       The behavior of the function can be highly customized using the
+%       option structure Opts
+%
+%> Opts.cure = struct('nk',4, 'redfun', 'irka', 'verbose', 1, 'stopval',12);
+%> sysr = cure(sys,Opts)
 % 
 % See Also: 
-%       spark, rk, irka, porkV, porkW
+%       spark, rk, irka, porkV, porkW, getSylvester
 %
 % References:
 %       * *[1] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
