@@ -19,7 +19,7 @@
 % * <.\porkWhelp.html |porkW|>  --  Pseudo-Optimal Rational Krylov (Output)
 % * <.\sparkhelp.html |spark|>  --  Stability Preserving Adaptive Rational Krylov
 
-%% Sparse State Space
+%% Sparse State-Space
 %
 % * <.\appendhelp.html |append|>  --  Appends a set of sparse LTI systems (sss)
 % * <.\bodehelp.html |bode|>  --  Plots the bode diagram of an LTI system
@@ -36,9 +36,9 @@
 % * <.\impulsehelp.html |impulse|>  --  Computes and/or plots the impulse response of a sparse LTI system
 % * <.\issdhelp.html |issd|>  --  Check strict dissipativity of LTI sss system
 % * <.\isstablehelp.html |isstable|>  --  Check stability of LTI sss system
-% * <.\normhelp.html |norm|>  --  Computes the p-norm of an sss LTI system
 % * <.\minushelp.html |minus|>  --  Computes difference of two LTI systems: u-->(sys1-sys2)-->y
 % * <.\mtimeshelp.html |mtimes|>  --  Computes the product of two LTI systems: u-->sys2-->sys1-->y
+% * <.\normhelp.html |norm|>  --  Computes the p-norm of an sss LTI system
 % * <.\plushelp.html |plus|>  --  Computes sum of two LTI systems: u-->(sys1+sys2)-->y
 % * <.\pzmaphelp.html |pzmap|>  --  Pole-zero plot of sparse state-space system
 % * <.\residuehelp.html |residue|>  --  Computes residues, poles and feedthrough of an LTI system
@@ -53,6 +53,10 @@
 % * <.\sshelp.html |ss|>  --  Converts sparse LTI system (sss) to Matlab\control\ss
 % * <.\stephelp.html |step|>  --  Computes and/or plots the step response of a sparse LTI system
 % * <.\truncatehelp.html |truncate|>  --  Truncates a sparse LTI system (sss)
+
+%% Extras
+%
+% * <.\setdiffVechelp.html |setdiffVec|>  --  compute difference between two unsorted vectors
 %
 %%
 % <html>

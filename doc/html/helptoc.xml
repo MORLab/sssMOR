@@ -10,13 +10,13 @@ web: https://www.rt.mw.tum.de/
 <toc version="2.0">
    <tocitem image="$toolbox/matlab/icons/book_mat.gif" target="test_product_page.html">sssMOR Toolbox
 <tocitem image="HelpIcon.GETTING_STARTED" target="getting_started_index.html">Getting Started
-            <tocitem target="whatis.html">What is sssMOR?</tocitem>
+			<tocitem target="whatis.html">What is sssMOR?</tocitem>
       </tocitem>
       <tocitem image="HelpIcon.EXAMPLES" target="examples_index.html">Examples
-            <tocitem target="example_test.html">Example Test</tocitem>
+			<tocitem target="example_test.html">Example Test</tocitem>
       </tocitem>
       <tocitem image="HelpIcon.FUNCTION" target="functions_index.html">Functions Reference
-            <tocitem target="functions_index.html">LTI MOR Classic
+			<tocitem target="functions_index.html">LTI MOR Classic
 <tocitem image="HelpIcon.FUNCTION" target="arnoldihelp.html">arnoldi</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="irkahelp.html">irka</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="isH2opthelp.html">isH2opt</tocitem>
@@ -32,7 +32,7 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="porkWhelp.html">porkW</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="sparkhelp.html">spark</tocitem>
          </tocitem>
-         <tocitem target="functions_index.html">Sparse State Space
+         <tocitem target="functions_index.html">Sparse State-Space
 <tocitem image="HelpIcon.FUNCTION" target="appendhelp.html">append</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="bodehelp.html">bode</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="c2dhelp.html">c2d</tocitem>
@@ -48,9 +48,9 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="impulsehelp.html">impulse</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="issdhelp.html">issd</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="isstablehelp.html">isstable</tocitem>
-            <tocitem image="HelpIcon.FUNCTION" target="normhelp.html">norm</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="minushelp.html">minus</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="mtimeshelp.html">mtimes</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="normhelp.html">norm</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="plushelp.html">plus</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="pzmaphelp.html">pzmap</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="residuehelp.html">residue</tocitem>
@@ -65,6 +65,9 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="sshelp.html">ss</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="stephelp.html">step</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="truncatehelp.html">truncate</tocitem>
+         </tocitem>
+         <tocitem target="functions_index.html">Extras
+<tocitem image="HelpIcon.FUNCTION" target="setdiffVechelp.html">setdiffVec</tocitem>
          </tocitem>
       </tocitem>
       <tocitem image="HelpIcon.RELEASENOTES" target="./RELEASE.txt">Release Notes</tocitem>
