@@ -43,7 +43,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %> bode(sys,'-b',sysr,'--r')
 %
 % See Also:
-%       rk, modalMor, gram
+%       rk, modalMor, gram, balancmr
 %
 % References:
 %       * *[1] B. C. Moore (1981)*, Principal component analysis in linear systems: controllability,
