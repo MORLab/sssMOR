@@ -14,6 +14,7 @@
 %% LTI MOR State of the Art
 %
 % * <.\curehelp.html |cure|>  --  CUmulative REduction framework
+% * <.\getSylvesterhelp.html |getSylvester|>  --  Get matrices of Sylvester's equation for Krylov subspaces
 % * <.\porkVhelp.html |porkV|>  --  Pseudo-Optimal Rational Krylov (Input)
 % * <.\porkWhelp.html |porkW|>  --  Pseudo-Optimal Rational Krylov (Output)
 % * <.\sparkhelp.html |spark|>  --  Stability Preserving Adaptive Rational Krylov
@@ -36,6 +37,8 @@
 % * <.\issdhelp.html |issd|>  --  Check strict dissipativity of LTI sss system
 % * <.\isstablehelp.html |isstable|>  --  Check stability of LTI sss system
 % * <.\normhelp.html |norm|>  --  Computes the p-norm of an sss LTI system
+% * <.\minushelp.html |minus|>  --  Computes difference of two LTI systems: u-->(sys1-sys2)-->y
+% * <.\mtimeshelp.html |mtimes|>  --  Computes the product of two LTI systems: u-->sys2-->sys1-->y
 % * <.\plushelp.html |plus|>  --  Computes sum of two LTI systems: u-->(sys1+sys2)-->y
 % * <.\pzmaphelp.html |pzmap|>  --  Pole-zero plot of sparse state-space system
 % * <.\residuehelp.html |residue|>  --  Computes residues, poles and feedthrough of an LTI system
@@ -50,8 +53,6 @@
 % * <.\sshelp.html |ss|>  --  Converts sparse LTI system (sss) to Matlab\control\ss
 % * <.\stephelp.html |step|>  --  Computes and/or plots the step response of a sparse LTI system
 % * <.\truncatehelp.html |truncate|>  --  Truncates a sparse LTI system (sss)
-% * <.\minushelp.html |minus|>  --  Computes difference of two LTI systems: u-->(sys1-sys2)-->y
-% * <.\mtimeshelp.html |mtimes|>  --  Computes the product of two LTI systems: u-->sys2-->sys1-->y
 
 %% Not Categorized
 %
@@ -60,7 +61,7 @@
 %%
 % <html>
 %   <hr>
-%   <p class="copy">&copy; 2015 RT Technische Universität München
+%   <p class="copy">&copy; 2015 RT Technische Universit&auml;t M&uuml;nchen
 %        <tt class="minicdot">&#149;</tt>
 %        <a href="http://www.rt.mw.tum.de">Website</a>
 %        <tt class="minicdot">&#149;</tt>
@@ -68,4 +69,18 @@
 %        <tt class="minicdot">&#149;</tt>
 %        <a href="file:./README.txt">Read me</a>
 %   </p>
+%   <div style="position: relative; width:100%; height: 100px;">
+%        <div style="position: absolute; left:0%;">
+%             <img src="img/logo_sssMOR_long.png" alt="sssMOR_Logo" height="40px">
+%        </div>
+%        <div style="position: absolute; left:25%;">
+%             <img src="img/MORLAB_Logo.jpg" alt="MORLAB_Logo" height="40px">
+%        </div>
+%        <div style="position: absolute; left:60%;">
+%             <img src="img/Logo_Textzusatz_rechts_engl_Chair.png" alt="RT_Logo" height="40px">
+%        </div>
+%        <div style="position: absolute; right:0%;">
+%             <img src="img/TUM-logo.png" alt="TUM_Logo" height="40px">
+%        </div>
+%   </div>
 % </html>
