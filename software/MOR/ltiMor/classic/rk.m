@@ -2,21 +2,27 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 % RK - Model Order Reduction by Rational Krylov
 %
 % Syntax:
-%       [sysr, V, W] = RK(sys, s0_inp)
-%       [sysr, V, W] = RK(sys, s0_inp, Rt)
-% 
-%       [sysr, V, W] = RK(sys, [], s0_out)
-%       [sysr, V, W] = RK(sys, [], s0_out, [], Lt)
+%       sysr = RK(sys, s0_inp)
+%       sysr = RK(sys, s0_inp, Rt)
+%       sysr = RK(sys, [], s0_out)
+%       sysr = RK(sys, [], s0_out, [], Lt)
+%       sysr = RK(sys, s0_inp, s0_out)
+%       sysr = RK(sys, s0_inp, s0_out ,IP)
+%       sysr = RK(sys, s0_inp, s0_out, Rt, Lt)
+%       sysr = RK(sys, s0_inp, s0_out, Rt, Lt, IP)
 %
-%       [sysr, V, W] = RK(sys, s0_inp, s0_out)
-%       [sysr, V, W] = RK(sys, s0_inp, s0_out ,IP)
-%       [sysr, V, W] = RK(sys, s0_inp, s0_out, Rt, Lt)
-%       [sysr, V, W] = RK(sys, s0_inp, s0_out, Rt, Lt, IP)
-%
+%       [sysr, V, W] = RK(sys,s0_inp,...)
 %       [sysr, V, W, Bb, Rsylv] = RK(sys,s0_inp,...)
 %       [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = RK(sys,s0_inp, s0_out, ...)
 %
 % Description:
+%       Reduction by Rational Krylov subspace methods. 
+%
+%       This function computes input (and output) Krylov subspaces
+%       corresponding to the shifts s0_inp and s0_out. For MIMO systems,
+%       tangential directions Rt and Lt can be defined. Otherwise, block
+%       Krylov subspaces will be computed.
+%
 %       s0 may either be horizontal vectors containing the desired
 %       expansion points, e.g. [1 2 3] matches one moment about 1, 2 and 3,
 %       respectively. [1+1j 1-1j 5 5 5 5 inf inf] matches one moment about 1+1j,
@@ -30,8 +36,10 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %       To perform one-sided RK, set s0_inp or s0_out to [], respectively.
 %
 % Input Arguments:
+%       *Required Input Arguments:*
 %       -sys:       an sss-object containing the LTI system
 %       -s0_inp:    expansion points for input Krylov subspace
+%       *Optional Input Arguments:*
 %       -s0_out:    expansion points for output Krylov subspace
 %       -Rt/Lt:     right/left tangential directions
 %       -IP:        inner product (optional)
@@ -39,11 +47,42 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 % Output Arguments:
 %       -sysr:      reduced system
 %       -V,W:       projection matrices spanning Krylov subspaces
-%       -Bb,Rsylv   resulting matrices of the input Sylvester equation
-%       -Cb,Lsylv   resulting matrices of the output Sylvester equation
+%       -Bb,Rsylv:   resulting matrices of the input Sylvester equation
+%       -Cb,Lsylv:   resulting matrices of the output Sylvester equation
 %
 % Examples:
-%       No examples
+%       This code reduces the benchmark model build by orthogonal
+%       projection using the input Krylov subspace corresponding to the
+%       shifts s0 = [1 1 2 2 2] (i.e. matching two moments about 1 and
+%       three moments about 2)
+%> sys = loadSss('build');
+%> s0  = [1 1 2 2 2];
+%> sysr = rk(sys,s0);
+%
+%       The same result can be achieved by specyfing the shifts as a matrix
+%       with two rows:
+%> s0 = [1 2; 2 3];
+%> sysr = rk(sys,s0);
+%
+%       For two-sided reduction, specify shifts for the output Krylov
+%       subspace
+%> sysr = rk(sys,s0,s0);
+%
+%       To compute an orthogonal projection by output Krylov subspace, set
+%       the input shifts to []
+%> sysr = rk(sys,[],s0);
+%
+%       For MIMO systems, specify tangential directions
+%> sys = loadSss('CDplayer'); n = 5;
+%> s0 = rand(1,n); Rt = rand(sys.m,n); Lt = rand(sys.p,n);
+%> sysr = rk(sys, s0, s0, Rt, Lt);
+%
+%       If no tangential directions are specified, block Krylov reduction
+%       is conducted.
+%> sysr = rk(sys, s0, s0); 
+%
+%// Note: In the block Krylov case, the reduced order is in general higher 
+%// than the lenght of s0
 %
 %
 % See Also: 
@@ -51,7 +90,9 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %
 % References:
 %       * *[1] Grimme (1997)*, Krylov projection methods for model reduction
-%       * *[2] Antoulas (2010)*, Interpolatory model reduction of large-scale...
+%       * *[2] Antoulas (2010)*, Interpolatory model reduction of
+%              large-scale dynamical Systems
+%       * *[3] Beattie et al. (2014)*, Model reduction by rational interpolation 
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
