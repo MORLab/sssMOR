@@ -81,6 +81,25 @@ after having checked the published HTML (steps 2-4), then you have to:
 
 
 ## Release Workflow
+
+If you want to generate a release folder of the sssMOR Toolbox, in order to package it as a Matlab Toolbox, then 
+follow this steps:
+
+TODO:
+1. open sssMOR.prj - template
+
+2. version
+
+3. put sssMOR logo
+
+4. add description + short desc + email
+
+5. ignore files
+
+6. check which path is added
+
+7. package
+
 ToDo
 
 ## Project management
