@@ -66,9 +66,6 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="stephelp.html">step</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="truncatehelp.html">truncate</tocitem>
          </tocitem>
-         <tocitem target="functions_index.html">Not Categorized
-<tocitem image="HelpIcon.FUNCTION" target="getSylvesterhelp.html">getSylvester</tocitem>
-         </tocitem>
       </tocitem>
       <tocitem image="HelpIcon.RELEASENOTES" target="./RELEASE.txt">Release Notes</tocitem>
       <tocitem image="HelpIcon.RELEASENOTES" target="./LICENSE.txt">License</tocitem>

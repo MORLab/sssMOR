@@ -17,10 +17,10 @@
 %        <div style="position: absolute; left:0%;">
 %             <img src="img/logo_sssMOR_long.png" alt="sssMOR_Logo" height="40px">
 %        </div>
-%        <div style="position: absolute; left:25%;">
+%        <div style="position: absolute; left:20%;">
 %             <img src="img/MORLAB_Logo.jpg" alt="MORLAB_Logo" height="40px">
 %        </div>
-%        <div style="position: absolute; left:60%;">
+%        <div style="position: absolute; right:25%;">
 %             <img src="img/Logo_Textzusatz_rechts_engl_Chair.png" alt="RT_Logo" height="40px">
 %        </div>
 %        <div style="position: absolute; right:0%;">
