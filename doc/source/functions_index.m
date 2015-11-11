@@ -3,7 +3,7 @@
 
 %% LTI MOR Classic
 %
-% * <.\arnoldihelp.html |arnoldi|>  --  Arnoldi algorithm using multiple expansion points
+% * <.\arnoldihelp.html |arnoldi|>  --  Arnoldi algorithm for Krylov subspaces with multiple shifts
 % * <.\irkahelp.html |irka|>  --  Iterative Rational Krylov Algorithm
 % * <.\isH2opthelp.html |isH2opt|>  --  Evaluate Maier-Luenberger conditions for H2-optimality
 % * <.\modalMorhelp.html |modalMor|>  --  Modal model order reduction of LTI SISO systems
@@ -60,7 +60,7 @@
 
 %% Not Categorized
 %
-% * <.\getSylvesterhelp.html |getSylvester|>  --  get matrices of Sylvester equation
+% * <.\getSylvesterhelp.html |getSylvester|>  --  Get matrices of Sylvester's equation for Krylov subspaces
 %
 %%
 % <html>
