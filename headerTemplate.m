@@ -21,6 +21,9 @@ function [output1,output2] = headerTemplate(input1,varargin)
 %       Matlab Markup doesn't 
 %       recognize line breaks.
 %
+%		//Note: the build.mat file for the example can be found in the
+%		benchmarks folder or you can download them from the SLICOT website
+%
 %       It only recognizes a new paragraph when theres is an empty line in
 %       between.
 %
@@ -73,7 +76,7 @@ function [output1,output2] = headerTemplate(input1,varargin)
 %
 %		*Optional Input Arguments:*
 %		-input3:   		Description of in3
-%						// Note: note inside a table must be on new line
+%						//Note: note inside a table must be on new line
 %		-Opts:	 		Description e.g.: A structure containing following fields
 %			-.field1:  	description of Opts.field1 function;
 % 						[opt1 / opt2 / {default opt}]
@@ -82,7 +85,7 @@ function [output1,output2] = headerTemplate(input1,varargin)
 %			-.field3:  	description of Opts.field3 function;
 % 						[{opt1} / opt2 / opt3]
 %						or line break on a new line
-%						// Note: note inside a table must be on new line
+%						//Note: note inside a table must be on new line
 %
 % Output Arguments:
 %       -output1: Description 
@@ -96,7 +99,8 @@ function [output1,output2] = headerTemplate(input1,varargin)
 %> sys = sss(A,B,C);
 %> bode(sys);
 %
-%// 	Note: the build.mat file for the example can be found in the benchmarks folder
+%//Note: the build.mat file for the example can be found in the benchmarks
+%		folder or you can download them from the SLICOT website
 %
 % See Also: 
 %		arnoldi
