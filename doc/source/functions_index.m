@@ -5,11 +5,11 @@
 %
 % * <.\arnoldihelp.html |arnoldi|>  --  Arnoldi algorithm for Krylov subspaces with multiple shifts
 % * <.\irkahelp.html |irka|>  --  Iterative Rational Krylov Algorithm
-% * <.\isH2opthelp.html |isH2opt|>  --  Evaluate Maier-Luenberger conditions for H2-optimality
-% * <.\modalMorhelp.html |modalMor|>  --  Modal model order reduction of LTI SISO systems
+% * <.\isH2opthelp.html |isH2opt|>  --  Evaluate Maier-Luenberger necessary conditions for H2-optimality
+% * <.\modalMorhelp.html |modalMor|>  --  Modal model order reduction of LTI systems
 % * <.\momentshelp.html |moments|>  --  Returns the moments or Markov parameters of an LTI system
 % * <.\rkhelp.html |rk|>  --  Model Order Reduction by Rational Krylov
-% * <.\tbrhelp.html |tbr|>  --  Performs model order reduction by the Truncated Balanced Realization
+% * <.\tbrhelp.html |tbr|>  --  Performs model order reduction by Truncated Balanced Realization
 
 %% LTI MOR State of the Art
 %
