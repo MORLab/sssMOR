@@ -27,6 +27,7 @@ web: https://www.rt.mw.tum.de/
          </tocitem>
          <tocitem target="functions_index.html">LTI MOR State of the Art
 <tocitem image="HelpIcon.FUNCTION" target="curehelp.html">cure</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="getSylvesterhelp.html">getSylvester</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="porkVhelp.html">porkV</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="porkWhelp.html">porkW</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="sparkhelp.html">spark</tocitem>
@@ -48,6 +49,8 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="issdhelp.html">issd</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="isstablehelp.html">isstable</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="normhelp.html">norm</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="minushelp.html">minus</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="mtimeshelp.html">mtimes</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="plushelp.html">plus</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="pzmaphelp.html">pzmap</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="residuehelp.html">residue</tocitem>
@@ -62,8 +65,6 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="sshelp.html">ss</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="stephelp.html">step</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="truncatehelp.html">truncate</tocitem>
-            <tocitem image="HelpIcon.FUNCTION" target="minushelp.html">minus</tocitem>
-            <tocitem image="HelpIcon.FUNCTION" target="mtimeshelp.html">mtimes</tocitem>
          </tocitem>
          <tocitem target="functions_index.html">Header Templates
 <tocitem image="HelpIcon.FUNCTION" target="headerTemplatehelp.html">headerTemplate</tocitem>
@@ -72,9 +73,6 @@ web: https://www.rt.mw.tum.de/
       </tocitem>
       <tocitem image="HelpIcon.RELEASENOTES" target="./RELEASE.txt">Release Notes</tocitem>
       <tocitem image="HelpIcon.RELEASENOTES" target="./LICENSE.txt">License</tocitem>
-      <tocitem target="references.html">References</tocitem><!--<tocitem target="famous.html#printable_pdf" image="$toolbox/matlab/icons/pdficon.gif">
-        Printable Documentation (PDF)
-        </tocitem>
--->
+      <tocitem target="references.html">References</tocitem>
    </tocitem>
 </toc>
