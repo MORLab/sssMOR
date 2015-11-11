@@ -1,5 +1,5 @@
 classdef testMoments < matlab.unittest.TestCase
-% testMoments - testing of moments.m
+% testMoments - testing of moments.m using all benchmarks in local folder
 %
 % Description:
 %   The function moments.m is tested (4 tests) on:
@@ -16,93 +16,106 @@ classdef testMoments < matlab.unittest.TestCase
 %   For any suggestions, submission and/or bug reports, mail us at
 %                     -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
-% Authors:      Alessandro Castagnotto
-%               Lisa Jeschek
-% Last Change:  28 Sep 2015
+% Authors:      Alessandro Castagnotto, Lisa Jeschek
+% Last Change:  31 Oct 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------ 
-    properties
+    properties 
+        path
+        sysCell
     end
- 
+
+    methods(TestClassSetup)
+        function getBenchmarks(testCase)
+            testCase.path=pwd;
+            if exist('benchmarksSysCell.mat','file')
+                temp=load('benchmarksSysCell.mat');
+                testCase.sysCell=temp.benchmarksSysCell;
+            end
+
+            %the directory "benchmark" is in sssMOR
+            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+            pathBenchmarks = [p(1:k-1),'benchmarks'];
+            cd(pathBenchmarks);
+        end
+    end
+    
+    methods(TestClassTeardown)
+        function changePath(testCase)
+            cd(testCase.path);
+        end
+    end
     
     methods(Test)
         function testMoments1(testCase) 
-            %s0: real
-            load('build.mat');      
-            s0=5;
-            
-            m = moments(sss(A,B,C), s0, 4);
-            actSolution={m};
-            
-            expm=zeros(1,1,4);
-            expm(1)=C*(A-s0*eye(size(A)))^(-1)*B;
-            expm(2)=C*(A-s0*eye(size(A)))^(-2)*B;
-            expm(3)=C*(A-s0*eye(size(A)))^(-3)*B;
-            expm(4)=C*(A-s0*eye(size(A)))^(-4)*B;
-            
-            expSolution={expm};
-            verification(testCase, actSolution, expSolution, m);
+            for i=1:length(testCase.sysCell)  
+                if testCase.sysCell{i}.isDescriptor==0
+                    sys=testCase.sysCell{i};
+                    s0=5;
+
+                    m = moments(sys, s0, 4);
+                    actSolution={m};
+                    
+                    expm = expmoments(sys,s0,4);
+                    expSolution={expm};
+                    
+                    verification(testCase, actSolution, expSolution, m);
+                end
+            end
         end
         
         function testMoments2(testCase) 
             %s0: imag
-            load('beam.mat');      
-            s0=5+7i;
-            
-            m = moments(sss(A,B,C), s0, 4);
-            actSolution={m};
-            
-            expm=zeros(1,1,4);
-            expm(1)=C*(A-s0*eye(size(A)))^(-1)*B;
-            expm(2)=C*(A-s0*eye(size(A)))^(-2)*B;
-            expm(3)=C*(A-s0*eye(size(A)))^(-3)*B;
-            expm(4)=C*(A-s0*eye(size(A)))^(-4)*B;
-            
-            expSolution={expm};
-            verification(testCase, actSolution, expSolution, m);
+            for i=1:length(testCase.sysCell)  
+                if testCase.sysCell{i}.isDescriptor==0
+                    sys=testCase.sysCell{i};  
+                    s0=5+7i;
+
+                    m = moments(sys, s0, 4);
+                    actSolution={m};
+
+                    expm = expmoments(sys,s0,4);
+                    expSolution={expm};
+                    verification(testCase, actSolution, expSolution, m);
+                end
+            end
         end
         
         function testMoments3(testCase) 
             %s0: Inf
-            load('random.mat');      
-            s0=Inf;
-            
-            m = moments(sss(A,B,C,0), s0, 4);
-            actSolution={m};
-            
-            %mi=c*A^i*b
-            expm=zeros(1,1,4);
-            expm(1)=0; %m(1)=sys.D?
-            expm(2)=C*B;
-            expm(3)=C*A*B;
-            expm(4)=C*A^2*B;
+            for i=1:length(testCase.sysCell)  
+                if testCase.sysCell{i}.isDescriptor==0
+                    sys=testCase.sysCell{i};    
+                    s0=Inf;
 
-            expSolution={expm};
-            verification(testCase, actSolution, expSolution, m);
+                    m = moments(sys, s0, 4);
+                    actSolution={m};
+                    
+                    
+                    expm = expmoments(sys,s0,4);
+                    expSolution={expm};
+                    verification(testCase, actSolution, expSolution, m);
+                end
+            end
         end
         
-        function testMoments4(testCase) 
+         function testMoments4(testCase) 
             %with E-matrix, s0 real
-            load('LF10.mat');
-            E=blkdiag(speye(size(M)), M);
-            A=[zeros(size(M)),speye(size(M)); -K, -D];
-            B=[zeros(size(M,1),1); B];
-            C=[C, zeros(1,size(M,1))];     
-            s0=50;
-            
-            m = moments(sss(A,B,C,0,E), s0, 4);
-            actSolution={m};
-            
-            expm=zeros(1,1,4);
-            expm(1)=C*(A-s0*E)^(-1)*B;
-            expm(2)=C*(A-s0*E)^(-1)*E*(A-s0*E)^(-1)*B;
-            expm(3)=C*(A-s0*E)^(-1)*E*(A-s0*E)^(-1)*E*(A-s0*E)^(-1)*B;
-            expm(4)=C*(A-s0*E)^(-1)*E*(A-s0*E)^(-1)*E*(A-s0*E)^(-1)*E*(A-s0*E)^(-1)*B;
-   
-            expSolution={expm};
-            verification(testCase, actSolution, expSolution, m);
-        end
-    end
+            for i=1:length(testCase.sysCell)  
+                if testCase.sysCell{i}.isDescriptor==1
+                    sys=testCase.sysCell{i};    
+                    s0=50;
+
+                    m = moments(sys, s0, 4);
+                    actSolution={m};
+
+                    expm = expmoments(sys, s0, 4);
+                    expSolution={expm};
+                    verification(testCase, actSolution, expSolution, m);
+                end  
+            end
+         end
+    end 
 end
 
 function [] = verification(testCase, actSolution, expSolution, m)
@@ -112,4 +125,21 @@ function [] = verification(testCase, actSolution, expSolution, m)
             'm contains Inf');
        verifyEqual(testCase, nnz(isnan(m)), 0, ...
             'm contains Nan');
+end
+
+function expm = expmoments(sys,s0,n)
+        expm=zeros(size(sys.C,1),size(sys.B,2),n);        
+        if isinf(s0) && ~sys.isDescriptor
+            %mi=c*A^i*b
+            expm(:,:,1)=0; 
+            expm(:,:,2)=sys.C*sys.B;
+            expm(:,:,3)=sys.C*sys.A*sys.B;
+            expm(:,:,4)=sys.C*sys.A^2*sys.B;
+        else
+            [L,U] = lu(sys.A-s0*sys.E); temp = (U\(L\sys.B));
+            for iMoment = 1:n
+                expm(:,:,iMoment)=sys.C*temp;
+                temp = (U\(L\(sys.E*temp)));
+            end
+        end
 end

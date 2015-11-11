@@ -1,33 +1,28 @@
 classdef testSylvester< matlab.unittest.TestCase
     
-    properties
-         sysCell;
+    properties 
+        path
+        sysCell
     end
- 
-    methods(TestMethodSetup)
+
+    methods(TestClassSetup)
         function getBenchmarks(testCase)
-            % change path
-            Path = pwd; %original
-            
-            %insert path of local benchmark folder
+            testCase.path=pwd;
+            if exist('benchmarksSysCell.mat','file')
+                temp=load('benchmarksSysCell.mat');
+                testCase.sysCell=temp.benchmarksSysCell;
+            end
+
             %the directory "benchmark" is in sssMOR
             p = mfilename('fullpath'); k = strfind(p, 'test\'); 
             pathBenchmarks = [p(1:k-1),'benchmarks'];
             cd(pathBenchmarks);
-
-            % load files
-            files = dir('*.mat'); 
-            testCase.sysCell=cell(1,length(files));
-%             warning('off','sssMOR:loadSss:2ndOrder')
-            warning off
-            for i=1:length(files)
-                testCase.sysCell{i} = loadSss(files(i).name);
-            end
-            warning on
-%             warning('on','loadSss:2ndOrder')
-
-            % change path back
-            cd(Path);
+        end
+    end
+    
+    methods(TestClassTeardown)
+        function changePath(testCase)
+            cd(testCase.path);
         end
     end
     

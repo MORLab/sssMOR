@@ -27,21 +27,30 @@
 %Definition of a unittest class:
 classdef testName < matlab.unittest.TestCase
     
-    %Properties (optional)
-    properties
-          OriginalPath 
+    properties 
+        path
+        sysCell
+    end
+
+    methods(TestClassSetup)
+        function getBenchmarks(testCase)
+            testCase.path=pwd;
+            if exist('benchmarksSysCell.mat','file')
+                temp=load('benchmarksSysCell.mat');
+                testCase.sysCell=temp.benchmarksSysCell;
+            end
+
+            %the directory "benchmark" is in sssMOR
+            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+            pathBenchmarks = [p(1:k-1),'benchmarks'];
+            cd(pathBenchmarks);
+        end
     end
     
-    %Constructor (optional)
-    methods(TestMethodSetup) 
-          function addSolverToPath(testCase)
-              testCase.OriginalPath = path;
-              addpath(fullfile(pwd,'code_to_test'));
-          end
-    end
-    
-    %Destructor (optional)
-    methods(TestMethodTeardown)
+    methods(TestClassTeardown)
+        function changePath(testCase)
+            cd(testCase.path);
+        end
     end
     
     %Test functions

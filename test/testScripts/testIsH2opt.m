@@ -18,7 +18,30 @@ classdef testIsH2opt < matlab.unittest.TestCase
 % Last Change:  28 Sep 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------ 
-    properties
+    properties 
+        path
+        sysCell
+    end
+
+    methods(TestClassSetup)
+        function getBenchmarks(testCase)
+            testCase.path=pwd;
+            if exist('benchmarksSysCell.mat','file')
+                temp=load('benchmarksSysCell.mat');
+                testCase.sysCell=temp.benchmarksSysCell;
+            end
+
+            %the directory "benchmark" is in sssMOR
+            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+            pathBenchmarks = [p(1:k-1),'benchmarks'];
+            cd(pathBenchmarks);
+        end
+    end
+    
+    methods(TestClassTeardown)
+        function changePath(testCase)
+            cd(testCase.path);
+        end
     end
  
     
