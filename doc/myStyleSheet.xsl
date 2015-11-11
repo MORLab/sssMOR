@@ -210,6 +210,11 @@ table p
     margin: 0px 0px 6px;
 }
 
+td:first-child
+{
+    width: 100px;
+}
+
 th
 {
     background: green;
