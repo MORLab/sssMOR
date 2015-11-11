@@ -2,9 +2,9 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 % MODALMOR - Modal model order reduction of LTI systems
 %
 % Syntax:
-%       sysr = MODALMOR(sys, q)
-%       sysr = MODALMOR(sys, q, Opts)
-%       [sysr, V, W] = MODALMOR(sys,... )
+%       sysr			= MODALMOR(sys, q)
+%       sysr			= MODALMOR(sys, q, Opts)
+%       [sysr, V, W]	= MODALMOR(sys,... )
 %
 % Description:
 %       This function computes the reduced order system sysr and the 
@@ -21,8 +21,8 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 %
 % Input Arguments:
 %		*Required Input Arguments:*
-%		-sys:           an sss-object containing the LTI system
-%		-q:             order of reduced system
+%		-sys:			an sss-object containing the LTI system
+%		-q:				order of reduced system
 %
 %		*Optional Input Arguments:*
 %		-Opts:			a structure containing following options
@@ -41,6 +41,7 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 %		This code loads the MIMO benchmark model 'CDplayer' and produces a
 %		reduced model that preserves the 10 eigenvalues with smallest
 %		magnitude
+%
 %> sys = loadSss('CDplayer');
 %> sysr = modalMor(sys,10);
 %> norm(cplxpair(eig(sysr))-cplxpair(eigs(sys,10,'sm')))

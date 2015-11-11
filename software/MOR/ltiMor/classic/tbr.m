@@ -2,10 +2,10 @@ function [sysr, varargout] = tbr(sys, varargin)
 % TBR - Performs model order reduction by Truncated Balanced Realization
 %
 % Syntax:
-%       sys = TBR(sys)
-%       sysr = TBR(sys,q)
-%       [sysr,V,W] = TBR(sys,q)
-%       [sysr,V,W,hsv] = TBR(sys,q)
+%       sys				= TBR(sys)
+%       sysr			= TBR(sys,q)
+%       [sysr,V,W]		= TBR(sys,q)
+%       [sysr,V,W,hsv]	= TBR(sys,q)
 %
 % Description:
 %       Computes a reduced model of order q by balancing and truncation,
@@ -30,15 +30,18 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       -V,W:   (opt.) projection matrices (only if q is given!)
 %       -hsv:   Hankel singular values
 %
-%// Note: If no q is given, the balancing transformation and calculation of the
-%// Hankel singular values is performed without subsequent model reduction.
+%//Note: If no q is given, the balancing transformation and calculation of
+%		the Hankel singular values is performed without subsequent model
+%		reduction.
 %
 % Examples:
 %       To compute a balanced realization, use
+%
 %> sys = loadSss('build');
 %> sysBal = tbr(sys)
 %
 %       To performe balanced reduction, specify a reduced order q
+%
 %> sysr = tbr(sys,10);
 %> bode(sys,'-b',sysr,'--r')
 %

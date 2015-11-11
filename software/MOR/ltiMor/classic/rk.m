@@ -11,9 +11,9 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %       sysr = RK(sys, s0_inp, s0_out, Rt, Lt)
 %       sysr = RK(sys, s0_inp, s0_out, Rt, Lt, IP)
 %
-%       [sysr, V, W] = RK(sys,s0_inp,...)
-%       [sysr, V, W, Bb, Rsylv] = RK(sys,s0_inp,...)
-%       [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = RK(sys,s0_inp, s0_out, ...)
+%       [sysr, V, W]						= RK(sys,s0_inp,...)
+%       [sysr, V, W, Bb, Rsylv]				= RK(sys,s0_inp,...)
+%       [sysr, V, W, Bb, Rsylv, Cb, Lsylv]	= RK(sys,s0_inp, s0_out, ...)
 %
 % Description:
 %       Reduction by Rational Krylov subspace methods. 
@@ -39,6 +39,7 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %       *Required Input Arguments:*
 %       -sys:       an sss-object containing the LTI system
 %       -s0_inp:    expansion points for input Krylov subspace
+%
 %       *Optional Input Arguments:*
 %       -s0_out:    expansion points for output Krylov subspace
 %       -Rt/Lt:     right/left tangential directions
@@ -47,42 +48,48 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 % Output Arguments:
 %       -sysr:      reduced system
 %       -V,W:       projection matrices spanning Krylov subspaces
-%       -Bb,Rsylv:   resulting matrices of the input Sylvester equation
-%       -Cb,Lsylv:   resulting matrices of the output Sylvester equation
+%       -Bb,Rsylv:	resulting matrices of the input Sylvester equation
+%       -Cb,Lsylv:  resulting matrices of the output Sylvester equation
 %
 % Examples:
 %       This code reduces the benchmark model build by orthogonal
 %       projection using the input Krylov subspace corresponding to the
 %       shifts s0 = [1 1 2 2 2] (i.e. matching two moments about 1 and
 %       three moments about 2)
+%
 %> sys = loadSss('build');
 %> s0  = [1 1 2 2 2];
 %> sysr = rk(sys,s0);
 %
 %       The same result can be achieved by specyfing the shifts as a matrix
 %       with two rows:
+%
 %> s0 = [1 2; 2 3];
 %> sysr = rk(sys,s0);
 %
 %       For two-sided reduction, specify shifts for the output Krylov
 %       subspace
+%
 %> sysr = rk(sys,s0,s0);
 %
 %       To compute an orthogonal projection by output Krylov subspace, set
 %       the input shifts to []
+%
 %> sysr = rk(sys,[],s0);
 %
 %       For MIMO systems, specify tangential directions
+%
 %> sys = loadSss('CDplayer'); n = 5;
 %> s0 = rand(1,n); Rt = rand(sys.m,n); Lt = rand(sys.p,n);
 %> sysr = rk(sys, s0, s0, Rt, Lt);
 %
 %       If no tangential directions are specified, block Krylov reduction
 %       is conducted.
+%
 %> sysr = rk(sys, s0, s0); 
 %
-%// Note: In the block Krylov case, the reduced order is in general higher 
-%// than the lenght of s0
+%//Note: In the block Krylov case, the reduced order is in general higher
+%		than the lenght of s0
 %
 %
 % See Also: 
