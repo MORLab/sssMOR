@@ -69,6 +69,13 @@ web: https://www.rt.mw.tum.de/
          <tocitem target="functions_index.html">Extras
 <tocitem image="HelpIcon.FUNCTION" target="setdiffVechelp.html">setdiffVec</tocitem>
          </tocitem>
+         <tocitem target="functions_index.html">Not Categorized
+<tocitem image="HelpIcon.FUNCTION" target="bodeToFighelp.html">bodeToFig</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="ispdhelp.html">ispd</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="loadSsshelp.html">loadSss</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="parseOptshelp.html">parseOpts</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="partitionhelp.html">partition</tocitem>
+         </tocitem>
       </tocitem>
       <tocitem image="HelpIcon.RELEASENOTES" target="./RELEASE.txt">Release Notes</tocitem>
       <tocitem image="HelpIcon.RELEASENOTES" target="./LICENSE.txt">License</tocitem>
