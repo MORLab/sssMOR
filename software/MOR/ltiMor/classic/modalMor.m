@@ -1,16 +1,23 @@
 function [sysr, V, W] = modalMor(sys, q, Opts)
-% MODALMOR - Modal model order reduction of LTI SISO systems
+% MODALMOR - Modal model order reduction of LTI systems
 %
 % Syntax:
-%       [sysr, V, W] = MODALMOR(sys, q, Opts)
+%       sysr = MODALMOR(sys, q)
+%       sysr = MODALMOR(sys, q, Opts)
+%       [sysr, V, W] = MODALMOR(sys,... )
 %
 % Description:
 %       This function computes the reduced order system sysr and the 
-%       projection matrices V and W by the modal reduction technique [1].
+%       projection matrices V and W by the modal reduction technique [1,4].
 %         
 %       Only a few eigenvalues and left and right eigenvectors of the pair (A,E) 
 %       are computed with the eigs command. The right eigenvectors build the
 %       columns of V, while the left eigenvectors build the columns of W.
+%
+%       Depending on the options, the vectors composing the projection
+%       matrices are not the left and right eigenvectors but linear
+%       combinations to keep i.e. the reduced system matrices real and/or
+%       orthogonalize the projection matrices.
 %
 % Input Arguments:
 %		*Required Input Arguments:*
@@ -28,15 +35,22 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 %       -V, W:          projection matrices
 %
 % Examples:
-%		TODO
+%		This code loads the MIMO benchmark model 'CDplayer' and produces a
+%		reduced model that preserves the 10 eigenvalues with smallest
+%		magnitude
+%> sys = loadSss('CDplayer');
+%> sysr = modalMor(sys,10);
+%> norm(cplxpair(eig(sysr))-cplxpair(eigs(sys,10,'sm')))
 %
 % See Also: 
-%		tbr, rk, irka
+%		tbr, rk, irka, eigs
 %
 % References:
 %		* *[1] Antoulas (2005)*, Approximation of large-scale dynamical systems
-%		* *[2] Lehoucq and Sorensen (1996)*, Deflation Techniques for an Implicitly Re-Started Arnoldi Iteration.
-%		* *[3] Sorensen (1992)*, Implicit Application of Polynomial Filters in a k-Step Arnoldi Method.
+%		* *[2] Lehoucq and Sorensen (1996)*, Deflation Techniques for an 
+%              Implicitly Re-Started Arnoldi Iteration.
+%		* *[3] Sorensen (1992)*, Implicit Application of Polynomial Filters 
+%              in a k-Step Arnoldi Method.
 %		* *[4] Foellinger (2013)*, Regelungstechnik (pp. 305-319)
 %
 %------------------------------------------------------------------
@@ -50,7 +64,8 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      Heiko Panzer, Sylvia Cremer, Rudy Eid
+% Authors:      Heiko Panzer, Sylvia Cremer, Rudy Eid, Alessandro
+%               Castagnotto, Lisa Jeschek
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
@@ -83,22 +98,6 @@ rlambda=tbl.rlambda;
 
 %calculate left eigenvalues
 
-% note: eigenvector direction corresponds to the nullspace of the shifted 
-%       pencil (sys.A-rlambda(iEig)*sys.E)
-%       Since the sparse algorithm does not allow to input the exact value,
-%       we will perturb it a little
-
-% W = zeros(size(V)); warning('off','MATLAB:nearlySingularMatrix');
-% tic
-% for iEig = 1:length(rlambda)
-%     [~,~,W(:,iEig)] = svds((sys.A-(rlambda(iEig)+1e2*eps)*sys.E).',1,0);
-% end
-% t = toc
-% warning('on','MATLAB:nearlySingularMatrix');
-
-% this following code should be a little more accurate (it looks for the
-% right eigenvalue at 0) and seems to be a little faster
-
 W = zeros(size(V)); llambda = zeros(size(rlambda));
 warning('off','MATLAB:nearlySingularMatrix');
 warning('off','MATLAB:eigs:SigmaNearExactEig');
@@ -113,25 +112,6 @@ warning('on','MATLAB:eigs:SigmaNearExactEig');
 if norm(llambda)/length(llambda) > 1e3*eps
      error('Eigenvectors belong to different eigenvalues. Please try again.');
 end
-
-
-%   OLD CODE
-% [W, llambda] = eigs(sys.A', sys.E', q, Opts.type);
-% llambda=diag(llambda);
-
-% %sort eigenvalues and left eigenvectors
-% W=W';
-% tbl=table(llambda,W);
-% tbl=sortrows(tbl);
-% W=tbl.W';
-% llambda=tbl.llambda;
-% 
-% %check if the same eigenvalues have been found
-% for i=1:q
-%     if abs(real(llambda(i))-real(rlambda(i)))+abs(imag(llambda(i))-imag(rlambda(i))) > 10e-6
-%         error('Eigenvectors belong to different eigenvalues. Please try again.');
-%     end
-% end
 
 %split complex conjugated columns into real and imaginary
 if strcmp(Opts.real,'real');
