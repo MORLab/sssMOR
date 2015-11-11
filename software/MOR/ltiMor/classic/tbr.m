@@ -1,5 +1,5 @@
 function [sysr, varargout] = tbr(sys, varargin)
-% TBR - Performs model order reduction by the Truncated Balanced Realization
+% TBR - Performs model order reduction by Truncated Balanced Realization
 %
 % Syntax:
 %       sys = TBR(sys)
@@ -34,18 +34,21 @@ function [sysr, varargout] = tbr(sys, varargin)
 %// Hankel singular values is performed without subsequent model reduction.
 %
 % Examples:
-%       TODO
+%       To compute a balanced realization, use
+%> sys = loadSss('build');
+%> sysBal = tbr(sys)
+%
+%       To performe balanced reduction, specify a reduced order q
+%> sysr = tbr(sys,10);
+%> bode(sys,'-b',sysr,'--r')
 %
 % See Also:
-%       rk, modalMor
+%       rk, modalMor, gram
 %
 % References:
 %       * *[1] B. C. Moore (1981)*, Principal component analysis in linear systems: controllability,
 %       observability and model reduction
 %       * *[2] Antoulas (2005)*, Approximation of large-scale dynamical systems
-%
-% References:
-%       * * Antoulas (2005)*, Approximation of large-scale dynamical systems
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
@@ -58,11 +61,12 @@ function [sysr, varargout] = tbr(sys, varargin)
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      Heiko Panzer, Sylvia Cremer, Rudy Eid
+% Authors:      Heiko Panzer, Sylvia Cremer, Rudy Eid, 
+%               Alessandro Castagnotto
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  30 Oct 2015
+% Last Change:  11 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
@@ -151,17 +155,19 @@ if inputname(1)
     assignin('caller', inputname(1), sys);
 end
 
-if nargin==1
-    return
-end
-
 %% if MOR is to be performed, calculate V, W and reduced system
-q=varargin{1};
+if nargin == 1
+    q = sys.n;
+else
+    q=varargin{1};
+end
 
 V = sys.TBalInv(:,1:q);
 W = sys.TBal(1:q,:)';
 
 sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
-varargout{1} = V;
-varargout{2} = W;
-varargout{3} = real(hsv);
+if nargout>1
+    varargout{1} = V;
+    varargout{2} = W;
+    varargout{3} = real(hsv);
+end
