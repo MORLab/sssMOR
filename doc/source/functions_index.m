@@ -53,11 +53,6 @@
 % * <.\minushelp.html |minus|>  --  Computes difference of two LTI systems: u-->(sys1-sys2)-->y
 % * <.\mtimeshelp.html |mtimes|>  --  Computes the product of two LTI systems: u-->sys2-->sys1-->y
 
-%% Header Templates
-%
-% * <.\headerTemplatehelp.html |headerTemplate|>  --  sssMOR toolbox header template
-% * <.\headerTemplateSsshelp.html |headerTemplateSss|>  --  sss toolbox header template
-
 %% Not Categorized
 %
 % * <.\getSylvesterhelp.html |getSylvester|>  --  Get matrices of Sylvester's equation for Krylov subspaces

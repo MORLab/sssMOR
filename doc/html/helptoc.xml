@@ -65,10 +65,6 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="minushelp.html">minus</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="mtimeshelp.html">mtimes</tocitem>
          </tocitem>
-         <tocitem target="functions_index.html">Header Templates
-<tocitem image="HelpIcon.FUNCTION" target="headerTemplatehelp.html">headerTemplate</tocitem>
-            <tocitem image="HelpIcon.FUNCTION" target="headerTemplateSsshelp.html">headerTemplateSss</tocitem>
-         </tocitem>
          <tocitem target="functions_index.html">Not Categorized
 <tocitem image="HelpIcon.FUNCTION" target="getSylvesterhelp.html">getSylvester</tocitem>
          </tocitem>
