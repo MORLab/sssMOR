@@ -1,21 +1,26 @@
 function [R, S, B_] = getSylvester(sys,sysr,V,type)
-% GETSYLVESTER - get matrices of Sylvester equation
+% GETSYLVESTER - Get matrices of Sylvester's equation for Krylov subspaces
 %
 % Syntax: 
-%       [R, S, B_] = GETSYLVESTER(sys, sysr, V, type)
+%       [R, S, B_] = GETSYLVESTER(sys, sysr, V)
+%       [L, S, C_] = GETSYLVESTER(sys, sysr, W, 'W')
 %
 % Description:
 %       Given the full order model sys and a reduced order model sysr
 %       obtained through a projection with V being an input Krylov
 %       subspace, this function reconstructs the matrices of the Sylvester
 %       equation for the Krylov subspace
-%           A V - E V S - B R = 0           (1)
-%           A V - E V Er^-1 Ar - B_ R = 0   (2)
+%
+%           $A V - E V S - B R = 0 \quad          (1)$
+%
+%           $A V - E V E_r^{-1} A_r - B\_ R = 0\quad   (2)$
 %
 %       If the type is set to 'W', then the matrices are given for the
 %       output Krylov Sylvester equation
-%           A.' W - E.' W S.' - C.' L = 0           (3)
-%           A.' W - E.' V Er^-T Ar.' - C_.' L = 0   (4)
+%
+%           $A^T W - E^T W S^T - C^T L = 0 \quad   (3)$
+%
+%           $A^T W - E^T V E_r^{-T} A_r^T - C\_^T L = 0 \quad  (4)$
 %
 % 
 % Input Arguments:
@@ -24,22 +29,31 @@ function [R, S, B_] = getSylvester(sys,sysr,V,type)
 %       -sysr:     reduced order model
 %       -V:        input Krylov subspace
 %       *Optional Input Arguments:*
-%       -type:     {'V' (def), 'W'} specifies if V spans an input (def) or 
-%                  output Krylov subspace
+%       -type:     specifies if V spans an input (def) or output Krylov 
+%                   subspace {'V' (def), 'W'} 
 %
 % Output Arguments: 
 %       -R,S:      matrices of Sylvester equation (1) or (3)
 %       -B_:       matrix of Sylvester equation (2) or (4)
 % 
 % Examples:
-%       TODO
+%       This code computes the input Krylov subspace for a benchmark model
+%       and reconstructs the matrices of the corresponding Sylvester
+%       equation
+%
+%> sys = loadSss('build');
+%> [sysr, V] = rk(sys,-eigs(sys,4).');
+%> [R, S, B_] = getSylvester(sys, sysr, V);
+%// note that rk can return some matrices of the Sylvester equation directly
 % 
 % See Also: 
-%       porkV, porkW, cure, spark
+%       rk, porkV, porkW, cure, spark
 %
 % References:
-%       * *[1] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
-%       * *[2] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
+%       * *[1] Gallivan et al. (2002)*, Sylvester equations and projection
+%              based model reduction
+%       * *[2] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
+%       * *[3] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
 %              with Global Error Bounds and Automatic Choice of Parameters
 %
 %------------------------------------------------------------------
@@ -57,7 +71,7 @@ function [R, S, B_] = getSylvester(sys,sysr,V,type)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  08 Nov 2015
+% Last Change:  11 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
