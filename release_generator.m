@@ -28,7 +28,7 @@ function release_generator
 
 %% configuration
 product_name = 'sssMOR';
-release_version = '1.2';
+release_version = '0.01';
 ver_str = strrep(release_version, '.', '_');
 out_dir_name = [product_name '_Toolbox' '_release_' ver_str];
 
@@ -87,7 +87,6 @@ src_root_sssMOR = [proj_dir filesep 'sssMOR' filesep];
 
 dir_benchmarks = ['benchmarks'];
 dir_demos =  ['demos'];
-dir_test = ['test'];
 dir_MOR_readme = ['README.md'];
 dir_MOR_extras = ['software' filesep 'extras'];
 dir_MOR = ['software' filesep 'MOR'];
@@ -95,7 +94,7 @@ dir_sss_readme = ['software' filesep 'sss' filesep 'README.md'];
 dir_sss_class = ['software' filesep 'sss' filesep 'src' filesep '@sss'];
 dir_sss_extras = ['software' filesep 'sss' filesep 'src' filesep 'extras'];
 
-sssMOR_cell = {dir_benchmarks , dir_demos , dir_test , dir_MOR_readme...
+sssMOR_cell = {dir_benchmarks , dir_demos , dir_MOR_readme...
     dir_MOR_extras , dir_MOR , dir_sss_readme , dir_sss_class , dir_sss_extras};
 
 %% source

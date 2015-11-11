@@ -57,6 +57,10 @@
 %
 % * <.\headerTemplatehelp.html |headerTemplate|>  --  sssMOR toolbox header template
 % * <.\headerTemplateSsshelp.html |headerTemplateSss|>  --  sss toolbox header template
+
+%% Not Categorized
+%
+% * <.\getSylvesterhelp.html |getSylvester|>  --  get matrices of Sylvester equation
 %
 %%
 % <html>
