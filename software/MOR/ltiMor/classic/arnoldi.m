@@ -79,6 +79,12 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
+
+%%  Define execution parameters
+makeOrth = 1; %create an orthonormal basis?
+makeReal = 1; %keep the projection matrices real?
+
+reorth = 'gs'; %0, 'gs','qr'
 %%  Parse input
 if nargin == 4
     % usage: ARNOLDI(E,A,B,s0)
@@ -147,36 +153,39 @@ if exist('Lt','var') && ~isempty(Lt)
     end
 end
 
-% remove one element of complex pairs (must be closed under conjugation)
-k=find(imag(s0));
-if ~isempty(k)
-    % make sure shift are sorted and come in complex conjugate pairs
-    try 
-        s0cUnsrt = s0(k);
-        s0c = cplxpair(s0cUnsrt);
-        % get permutation indices, since cplxpair does not do it for you
-        [~,cplxSorting] = ismember(s0c,s0cUnsrt); %B(idx) = A
-    catch 
-        error(['Shifts must come in complex conjugated pairs and be sorted',...
-            ' before being passed to arnoldi.'])
-    end
-    
-    % take only one shift per complex conjugate pair
-    nS0c = length(s0c); %number of complex shifts
-    s0(k) = []; 
-    s0 = [s0 s0c(1:2:end)];
-    
-    % take only one residue vector for each complex conjugate pair
-    if exist('Rt','var') && ~isempty(Rt)
-        RtcUnsrt = Rt(:,k); 
-        Rtc = RtcUnsrt(:,cplxSorting);
-        Rt(:,k) = []; 
-        Rt = [Rt,Rtc(:,1:2:end)]; 
-        if exist('Lt','var') && ~isempty(Lt)
-            LtcUnsrt = Lt(:,k);
-            Ltc = LtcUnsrt(:,cplxSorting);
-            Lt(:,k) = [];
-            Lt = [Lt,Ltc(:,1:2:end)];
+if makeReal
+    % remove one element of complex pairs (must be closed under conjugation)
+    k=find(imag(s0)); idx = 1:length(s0); %keep track of permutations
+    if ~isempty(k)
+        % make sure shift are sorted and come in complex conjugate pairs
+        try 
+            s0cUnsrt = s0(k); idxUnsrt = idx(k);
+            s0c = cplxpair(s0cUnsrt);
+            % get permutation indices, since cplxpair does not do it for you
+            [~,cplxSorting] = ismember(s0c,s0cUnsrt); %B(idx) = A
+            idxc = idxUnsrt(cplxSorting);
+        catch 
+            error(['Shifts must come in complex conjugated pairs and be sorted',...
+                ' before being passed to arnoldi.'])
+        end
+
+        % take only one shift per complex conjugate pair
+        nS0c = length(s0c); %number of complex shifts
+        s0(k) = []; idx(k) = [];
+        s0 = [s0 s0c(1:2:end)]; idx = [idx idxc(1:2:end) idxc(2:2:end)];
+
+        % take only one residue vector for each complex conjugate pair
+        if exist('Rt','var') && ~isempty(Rt)
+            RtcUnsrt = Rt(:,k); 
+            Rtc = RtcUnsrt(:,cplxSorting);
+            Rt(:,k) = []; 
+            Rt = [Rt,Rtc(:,1:2:end)]; 
+            if exist('Lt','var') && ~isempty(Lt)
+                LtcUnsrt = Lt(:,k);
+                Ltc = LtcUnsrt(:,cplxSorting);
+                Lt(:,k) = [];
+                Lt = [Lt,Ltc(:,1:2:end)];
+            end
         end
     end
 end
@@ -220,7 +229,6 @@ if ~exist('Rt', 'var') || isempty(Rt)%   Compute block Krylov subspaces
     end
 end
 
-reorth = 'gs'; %0, 'gs','qr'
 % lseSol = 'lu'; %'lu', '\'
 %%  Define variables that might have not been passed to the function
 %   IP
@@ -245,6 +253,7 @@ for jCol=1:nS0
         if s0(jCol)==s0(jCol-1)
             newlu=0;
             if Rt(:,jCol) == Rt(:,jCol-1)
+                newrt=0;
                 % Higher order moments, for the SISO and MIMO case
                 tempV = V(:,jCol-1); %overwrite
                 Rsylv(:,jCol)=zeros(m,1);
@@ -281,13 +290,9 @@ for jCol=1:nS0
             tempV = S*(R\(R'\(S'*tempV)));
         end
     else %Rational Krylov
-        if newlu==0
-            if m==1 %SISO
-                tempV=E*tempV;
-                if hermite, tempW = E'*tempW; end
-            else
-                % MIMO with different tangential direction: do nothing
-            end
+        if newlu==0 && newrt ==0
+            tempV=E*tempV;
+            if hermite, tempW = E'*tempW; end
         end
         if newlu==1
             % vector LU for sparse matrices
@@ -299,63 +304,70 @@ for jCol=1:nS0
     end 
 
     % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
-    if ~isreal(s0(jCol))
-        V(:,jCol+nS0c/2)=imag(tempV); 
-        tempV=real(tempV);
-        Rsylv(:,jCol+nS0c/2) = imag(Rsylv(:,jCol));
-        Rsylv(:,jCol) = real(Rsylv(:,jCol));
-        if hermite, 
-            W(:,jCol+nS0c/2)=imag(tempW);tempW=real(tempW); 
-            Lsylv(:,jCol+nS0c/2) = imag(Lsylv(:,jCol));
-            Lsylv(:,jCol) = real(Lsylv(:,jCol));
+    if makeReal
+        if ~isreal(s0(jCol))
+            V(:,jCol+nS0c/2)=imag(tempV); 
+            tempV=real(tempV);
+            Rsylv(:,jCol+nS0c/2) = imag(Rsylv(:,jCol));
+            Rsylv(:,jCol) = real(Rsylv(:,jCol));
+            if hermite, 
+                W(:,jCol+nS0c/2)=imag(tempW);tempW=real(tempW); 
+                Lsylv(:,jCol+nS0c/2) = imag(Lsylv(:,jCol));
+                Lsylv(:,jCol) = real(Lsylv(:,jCol));
+            end
         end
     end
 
-    % orthogonalize vectors
-    for iCol=1:jCol-1
-      h=IP(tempV,V(:,iCol));
-      tempV=tempV-V(:,iCol)*h;
-      Rsylv(:,jCol)=Rsylv(:,jCol)-h*Rsylv(:,iCol);
-      if hermite
-        h=IP(tempW,W(:,iCol));
-        tempW=tempW-W(:,iCol)*h;
-        Lsylv(:,jCol)=Lsylv(:,jCol)-h*Lsylv(:,iCol);
-      end 
-    end
+    if makeOrth
+        % orthogonalize vectors
+        for iCol=1:jCol-1
+          h=IP(tempV,V(:,iCol));
+          tempV=tempV-V(:,iCol)*h;
+          Rsylv(:,jCol)=Rsylv(:,jCol)-h*Rsylv(:,iCol);
+          if hermite
+            h=IP(tempW,W(:,iCol));
+            tempW=tempW-W(:,iCol)*h;
+            Lsylv(:,jCol)=Lsylv(:,jCol)-h*Lsylv(:,iCol);
+          end 
+        end
 
-    % normalize new basis vector
-    h = sqrt(IP(tempV,tempV));
-    V(:,jCol)=tempV/h;
-    Rsylv(:,jCol) = Rsylv(:,jCol)/h;
-    if hermite
-        h = sqrt(IP(tempW,tempW));
-        W(:,jCol)=tempW/h;
-        Lsylv(:,jCol) = Lsylv(:,jCol)/h;
+        % normalize new basis vector
+        h = sqrt(IP(tempV,tempV));
+        V(:,jCol)=tempV/h;
+        Rsylv(:,jCol) = Rsylv(:,jCol)/h;
+        if hermite
+            h = sqrt(IP(tempW,tempW));
+            W(:,jCol)=tempW/h;
+            Lsylv(:,jCol) = Lsylv(:,jCol)/h;
+        end
+    else
+        V(:,jCol) = tempV; W(:,jCol) = tempW;
     end
-   
 end
 
 %orthogonalize columns from imaginary components
-for jCol=length(s0)+1:q
-    tempV=V(:,jCol);
-    if hermite, tempW=W(:,jCol);end
-    for iCol=1:jCol-1
-      h=IP(tempV, V(:,iCol));
-      tempV=tempV-h*V(:,iCol);
-      Rsylv(:,jCol) = Rsylv(:,jCol)-h*Rsylv(:,iCol);
-      if hermite        
-        h=IP(tempW, W(:,iCol));
-        tempW=tempW-h*W(:,iCol);
-        Lsylv(:,jCol) = Lsylv(:,jCol)-h*Lsylv(:,iCol);
-      end
-    end
-    h = sqrt(IP(tempV,tempV));
-    V(:,jCol)=tempV/h;
-    Rsylv(:,jCol) = Rsylv(:,jCol)/h;
-    if hermite
-        h = sqrt(IP(tempW,tempW));
-        W(:,jCol)=tempW/h;
-        Lsylv(:,jCol) = Lsylv(:,jCol)/h;
+if makeOrth
+    for jCol=length(s0)+1:q
+        tempV=V(:,jCol);
+        if hermite, tempW=W(:,jCol);end
+        for iCol=1:jCol-1
+          h=IP(tempV, V(:,iCol));
+          tempV=tempV-h*V(:,iCol);
+          Rsylv(:,jCol) = Rsylv(:,jCol)-h*Rsylv(:,iCol);
+          if hermite        
+            h=IP(tempW, W(:,iCol));
+            tempW=tempW-h*W(:,iCol);
+            Lsylv(:,jCol) = Lsylv(:,jCol)-h*Lsylv(:,iCol);
+          end
+        end
+        h = sqrt(IP(tempV,tempV));
+        V(:,jCol)=tempV/h;
+        Rsylv(:,jCol) = Rsylv(:,jCol)/h;
+        if hermite
+            h = sqrt(IP(tempW,tempW));
+            W(:,jCol)=tempW/h;
+            Lsylv(:,jCol) = Lsylv(:,jCol)/h;
+        end
     end
 end
 
@@ -400,4 +412,11 @@ if reorth
            error('The orthogonalization chosen is incorrect or not implemented')
    end
 end
+
+%%  Sort everything back in terms of the original order
+% (this is needed i.e. when checking if tangential interpolation is
+% achieved)
+
+V(:,idx) = V; Rsylv(:,idx)= Rsylv;
+if hermite, W(:,idx) = W; Lsylv(:,idx)=Lsylv; end
 

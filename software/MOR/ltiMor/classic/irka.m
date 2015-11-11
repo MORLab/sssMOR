@@ -120,10 +120,25 @@ while true
     k=k+1; sysr_old = sysr;
     %   Reduction
     if sys.isSiso
-        [sysr, V, W, Rsylv, Lsylv] = rk(sys, s0, s0);
+        [sysr, V, W, ~ , Rsylv, ~ , Lsylv] = rk(sys, s0, s0);
     else
-        [sysr, V, W, Rsylv, Lsylv] = rk(sys, s0, s0, Rt, Lt);
-    end
+        [sysr, V, W, ~, Rsylv, ~ , Lsylv] = rk(sys, s0, s0, Rt, Lt);
+    end 
+    %--
+%     warning off
+%     rMatching = zeros(1,sysr.n); lMatching = zeros(1,sysr.n);
+%     for iS = 1:length(s0)
+%         rMatching(iS) = (norm(moments(sys-sysr,s0(iS),1)*Rt(:,iS)));
+%         lMatching(iS) = (norm(Lt(:,iS).'*moments(sys-sysr,s0(iS),1)));
+%     end
+%     all([rMatching, lMatching]< 1e-5)
+%     for iS = 1:length(s0)
+%         rMatching(iS) = (norm(moments(sys-sysr,s0(iS),1)*Rsylv(:,iS)));
+%         lMatching(iS) = (norm(Lsylv(:,iS).'*moments(sys-sysr,s0(iS),1)));
+%     end
+%     all([rMatching, lMatching]< 1e-5)
+%     warning on
+    %--
     %   Update of the reduction parameters
     s0_old=s0;
     if sys.isMimo
@@ -169,11 +184,6 @@ function s0=s0_vect(s0)
             temp(k)=s0(1,j)*ones(1,s0(2,j));
         end
         s0=temp;
-    end
-    % sort expansion points
-    s0 = cplxpair(s0);
-    if size(s0,1)>size(s0,2)
-        s0=transpose(s0);
     end
 function [stop,stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts)
 %   Computes the stopping criterion(s) for IRKA
