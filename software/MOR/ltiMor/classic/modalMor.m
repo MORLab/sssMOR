@@ -2,30 +2,33 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 % MODALMOR - Modal model order reduction of LTI SISO systems
 %
 % Syntax:
-%       [sysr, V, W] = MODALMOR(sys, q, Opts)
+%		[sysr, V, W] = MODALMOR(sys, q, Opts)
 %
 % Description:
-%       This function computes the reduced order system sysr and the 
-%       projection matrices V and W by the modal reduction technique [1].
-%         
-%       Only a few eigenvalues and left and right eigenvectors of the pair (A,E) 
-%       are computed with the eigs command. The right eigenvectors build the
-%       columns of V, while the left eigenvectors build the columns of W.
-%
+% 		This function computes the reduced order system sysr and the 
+% 		projection matrices V and W by the modal reduction technique [1].
+% 
+% 		Only a few eigenvalues and left and right eigenvectors of the pair (A,E) 
+% 		are computed with the eigs command. The right eigenvectors build the
+% 		columns of V, while the left eigenvectors build the columns of W.
+% 
 % Input Arguments:
 %		*Required Input Arguments:*
-%		-sys:           an sss-object containing the LTI system
-%		-q:             order of reduced system
+%		-sys:			an sss-object containing the LTI system
+%		-q:				order of reduced system
 %
 %		*Optional Input Arguments:*
-%		-Opts:	 		a structure containing following options
-%			-.type:  	option to eigs command; [{'SM'} / 'LM' / 'SA' / 'LA' / 'SR' / 'LR' / real or complex scalar]
-%			-.orth:  	orhtogonalization; [{'0'} / 'qr']
-%			-.real:  	real reduced system; [{'0'} / 'real']
+%		-Opts:			a structure containing following options
+%			-.type:		option to eigs command;
+%						[{'SM'} / 'LM' / 'SA' / 'LA' / 'SR' / 'LR' / real or complex scalar]
+%			-.orth:		orhtogonalization;
+%						[{'0'} / 'qr']
+%			-.real:		real reduced system;
+% 						[{'0'} / 'real']
 %
 % Output Arguments:
-%       -sysr:          reduced system
-%       -V, W:          projection matrices
+%		-sysr:          reduced system
+%		-V, W:          projection matrices
 %
 % Examples:
 %		TODO

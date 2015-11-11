@@ -2,15 +2,15 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 % ARNOLDI - Arnoldi algorithm using multiple expansion points
 % 
 % Syntax:
-%       V                = ARNOLDI(E,A,B,s0)
-%       [V,Rsylv]        = ARNOLDI(E,A,B,s0)
-%       [V,Rsylv]        = ARNOLDI(E,A,B,s0,IP)
-%       [V,Rsylv]        = ARNOLDI(E,A,B,s0,Rt)
-%       [V,Rsylv]        = ARNOLDI(E,A,B,s0,Rt,IP)
-%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0)
-%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0,IP)
-%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0,Rt,Lt)
-%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
+%       V					= ARNOLDI(E,A,B,s0)
+%       [V,Rsylv]			= ARNOLDI(E,A,B,s0)
+%       [V,Rsylv]			= ARNOLDI(E,A,B,s0,IP)
+%       [V,Rsylv]			= ARNOLDI(E,A,B,s0,Rt)
+%       [V,Rsylv]			= ARNOLDI(E,A,B,s0,Rt,IP)
+%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0)
+%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0,IP)
+%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0,Rt,Lt)
+%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
 % 
 % Description:
 %       This function is used to compute the matrix V spanning the 
