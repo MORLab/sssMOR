@@ -1,5 +1,5 @@
 function setdiffVec = setdiffVec(v1,v2)
-% SETDIFFVEC - compute difference between two unsorted vectors
+% SETDIFFVEC - Computes the difference between two unsorted vectors
 %
 % Syntax:
 % 		setdiffVec = SETDIFFVEC(v1,v2)
@@ -34,7 +34,7 @@ function setdiffVec = setdiffVec(v1,v2)
 %> diff2 = setdiffVec(v1,v2)
 %> norm(diff1),norm(diff2)
 %
-% See also:
+% See Also:
 %		setdiff, cplxpair
 %
 %------------------------------------------------------------------
