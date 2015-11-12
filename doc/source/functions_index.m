@@ -11,7 +11,7 @@
 % * <.\rkhelp.html |rk|>  --  Model Order Reduction by Rational Krylov
 % * <.\tbrhelp.html |tbr|>  --  Performs model order reduction by Truncated Balanced Realization
 
-%% LTI MOR State of the Art
+%% LTI MOR State-of-the-Art
 %
 % * <.\curehelp.html |cure|>  --  CUmulative REduction framework
 % * <.\getSylvesterhelp.html |getSylvester|>  --  Get matrices of Sylvester's equation for Krylov subspaces
@@ -57,9 +57,6 @@
 %% Extras
 %
 % * <.\setdiffVechelp.html |setdiffVec|>  --  compute difference between two unsorted vectors
-
-%% Not Categorized
-%
 % * <.\bodeToFighelp.html |bodeToFig|>  --  Transforms MATLAB bode/step/impulse plot into normal figure
 % * <.\ispdhelp.html |ispd|>  --  Determines if a matrix is positive definite
 % * <.\loadSsshelp.html |loadSss|>  --  Creates an sss object from .mat file data

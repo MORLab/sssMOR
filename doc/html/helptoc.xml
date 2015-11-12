@@ -29,7 +29,7 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="rkhelp.html">rk</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="tbrhelp.html">tbr</tocitem>
          </tocitem>
-         <tocitem target="functions_index.html">LTI MOR State of the Art
+         <tocitem target="functions_index.html">LTI MOR State-of-the-Art
 <tocitem image="HelpIcon.FUNCTION" target="curehelp.html">cure</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="getSylvesterhelp.html">getSylvester</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="porkVhelp.html">porkV</tocitem>
@@ -72,9 +72,7 @@ web: https://www.rt.mw.tum.de/
          </tocitem>
          <tocitem target="functions_index.html">Extras
 <tocitem image="HelpIcon.FUNCTION" target="setdiffVechelp.html">setdiffVec</tocitem>
-         </tocitem>
-         <tocitem target="functions_index.html">Not Categorized
-<tocitem image="HelpIcon.FUNCTION" target="bodeToFighelp.html">bodeToFig</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="bodeToFighelp.html">bodeToFig</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="ispdhelp.html">ispd</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="loadSsshelp.html">loadSss</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="parseOptshelp.html">parseOpts</tocitem>
