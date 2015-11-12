@@ -9,11 +9,11 @@
 % In fact, the large-scale dynamical system we could not define in the example above 
 % can now find place in your workspace
 %
-%> N = 10^8; A = speye(N); b = rand(N,1);
-%> sys = sss(A,b,b'); whos sys
-%	
-%	Further, many functions control engineers use on a daily basis to analyze and manipulate dynamic system objects, such as bode, step, pzmap, eig, isstable etc.
-%	are included in the *sss* toolbox to work with *sss* objects and exploit sparsity, avoiding dense computations, whenever this is possibile.
+N = 10^8; A = speye(N); b = rand(N,1);
+sys = sss(A,b,b'); whos sys
+%%	
+% Further, many functions control engineers use on a daily basis to analyze and manipulate dynamic system objects, such as bode, step, pzmap, eig, isstable etc.
+% are included in the *sss* toolbox to work with *sss* objects and exploit sparsity, avoiding dense computations, whenever this is possibile.
 
 %%
 % <html>
