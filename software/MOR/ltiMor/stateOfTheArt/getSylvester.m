@@ -100,10 +100,12 @@ if nargout > 2
     res(3) = norm(sys.A*V - sys.E*V*S - sys.B*R);
 end
 
-%%  Change shape of Sw and C_
+%%  Change shape of C_ and Sw 
 if strcmp(type,'W'),
-    S = S.';
     B_ = B_.'; 
+    if nargout > 2
+        S = S.';
+    end
 end
 
 %%  Check residuals
