@@ -4,7 +4,6 @@ classdef testRk < matlab.unittest.TestCase
 % Description:
 %   The function rk.m is tested (5 tests) on:
 %    + comparing sysr to a directly calculated solution based on arnoldi.m
-%    + TO DO: Ct, Bt, Cb, Bb (?)
 %    + one-sided (V=W), double-sided 
 %    + Ar, Er purely real
 %    + rank(Ar), rank(Er) full
@@ -12,6 +11,8 @@ classdef testRk < matlab.unittest.TestCase
 %    + s0: purely real, purely imaginary, zero, Inf 
 %    + test systems: build, beam, random, SpiralInductorPeec 
 %      (with E-matrix), LF10 (with E-matrix).
+%    + is moment matching achieved
+%    + are the matrices of Sylvester equation correct (Bb, Rsylv, Cb, Lsylv)
 %
 %    + TO DO: Error in testRk5
 % ------------------------------------------------------------------
@@ -24,7 +25,7 @@ classdef testRk < matlab.unittest.TestCase
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 %               Lisa Jeschek
-% Last Change:  05 Sep 2015
+% Last Change:  12 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
     properties 
@@ -56,68 +57,100 @@ classdef testRk < matlab.unittest.TestCase
     methods(Test)
          function testRk1 (testCase) 
               %one-sided reduction isempty(s0_out), s0: real (multiple value)
-              load('build.mat');
-              [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sss(A,B,C), ones(1,10)*100);
-              actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W, Ct, Bb};
+              load('build.mat'); sys = sss(A,B,C);
+              n = 10; s0val = 100; s0 = ones(1,n)*s0val; 
               
-              [expV,expCt] = arnoldi(speye(size(A)),A,B,ones(1,10)*100);
-              expSolution={expV'*A*expV, expV'*B, C*expV, expV, expV, expCt,...
-                   B - speye(size(A))*expV*(speye(size(sysr.A))\sysr.B)}; 
+              [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0);
+              actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W, ...
+                  Rsylv, Bb};
+              
+              expV = arnoldi(speye(size(A)),A,B, s0);
+              [expRsylv,expBb] = getSylvester(sys,sysr,V);
+              expSolution={expV'*A*expV, expV'*B, C*expV, expV, expV,...
+                   expRsylv, expBb}; 
+               
+              % check for moment matching as well
+              actM = moments(sysr,s0val,n); actSolution = [actSolution,{actM}];
+              expM = moments(sys,s0val,n); expSolution = [expSolution,{expM}];
+               
               verification(testCase, actSolution, expSolution, sysr);
               verifyEmpty(testCase, Cb, ...
                     'Cb is not empty');
-              verifyEmpty(testCase, Bt,...
+              verifyEmpty(testCase, Lsylv,...
                     'Bt is not empty');
               verifyEqual(testCase, V, W,...
                     'V is not equal W');
          end
          function testRk2 (testCase) 
               %one-sided reduction isempty(s0_in), s0: imag (multiple value)
-              load('beam.mat');
-              [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sss(A,B,C), [], [ones(1,5)*100*1i,-ones(1,5)*100*1i]);
-              actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W, Bt, Cb};
+              load('beam.mat'); sys = sss(A,B,C);
+              n = 5; s0val = 100; s0 = [ones(1,n)*s0val*1i,-ones(1,n)*s0val*1i]; 
               
-              [expW,expBt2] = arnoldi(speye(size(A)),A',C',[ones(1,5)*100*1i,-ones(1,5)*100*1i]);
-               expSolution={expW'*A*expW, expW'*B, C*expW, expW, expW, expBt2,...
-                    C - (C*expW)/(expW'*eye(size(A))*expW)*expW'};
+              [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, [], s0);
+              actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W, Lsylv, Cb};
+              
+              expW = arnoldi(speye(size(A)),A',C',s0);
+              [expLsylv,expCb] = getSylvester(sys,sysr,W,'W');
+              expSolution={expW'*A*expW, expW'*B, C*expW, expW, expW, expLsylv,...
+                    expCb};
+                
+              % check for moment matching as well
+              actM = moments(sysr,[s0(1),s0(end)], [n,n]); actSolution = [actSolution,{actM}];
+              expM = moments(sys,[s0(1),s0(end)], [n,n]); expSolution = [expSolution,{expM}];
+                
               verification(testCase, actSolution, expSolution, sysr);
               verifyEmpty(testCase, Bb, ...
                     'Bb is not empty');
-              verifyEmpty(testCase, Ct,...
+              verifyEmpty(testCase, Rsylv,...
                     'Ct is not empty');
               verifyEqual(testCase, V, W,...
                     'V is not equal W');
          end         
          function testRk3 (testCase) 
               %two-sided reduction without E-matrix, s0: zero, imag, real, Inf
-              load('random.mat');
-              [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sss(A,B,C),[1+4i, 1-4i,4+4i, 4-4i, 0, 0, 5, 300, Inf,  Inf] ,...
-                   [1+4i, 1-4i,4+4i, 4-4i, 0, 0, 5, 300, Inf,  Inf]);
-              actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W, Bt, Ct};
+              load('random.mat'); sys = sss(A,B,C);
+              s0 = [1+4i, 1-4i,4+4i, 4-4i, 0, 0, 5, 300, Inf,  Inf];
+              s0moment = s0([1,3,5,7:9]); n = [2, 2, 4, 2, 2, 4];
               
-%               [expV,~,~,expCt5] = arnoldi(speye(size(A)),A,B,[1+4i, 1-4i,4+4i, 4-4i, 0, 0, 5, 300, Inf,  Inf]);
-              [expV,expCt5,expW,expBt5] = arnoldi(speye(size(A)),A,B, C,[1+4i, 1-4i,4+4i, 4-4i, 0, 0, 5, 300, Inf,  Inf]);
-              expSolution={expW'*A*expV, expW'*B, C*expV, expV, expW, expBt5,expCt5};
+              % careful: Sylvester EQ probably does not hold for shifts at
+              %         Infinity!!
+              [sysr, V, W] = rk(sys,s0 , s0);
+              actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W};
+              
+              [expV,~,expW,~] = arnoldi(speye(size(A)),A,B, C, s0);
+              expSolution={expW'*A*expV, expW'*B, C*expV, expV, expW};
+              
+              % check for moment matching as well
+              actM = moments(sysr,s0moment, n); actSolution = [actSolution,{actM}];
+              expM = moments(sys,s0moment, n); expSolution = [expSolution,{expM}];
 
               verification(testCase, actSolution, expSolution, sysr);
-              verifyEqual(testCase, {Cb, Bb}, {C - (C*expV)/(expW'*eye(size(A))*expV)*expW',  ...
-                   B - eye(size(A))*expV*((expW'*eye(size(A))*expV)\(expW'*B))},'AbsTol',0.000001,'RelTol',0.3,...
-                   'Cb or Bb failed');
+              
          end 
          function testRk4 (testCase) 
-              %two-sided reduction with E-matrix, s0: zero, imag, real
-              load('LF10.mat');
-              E=blkdiag(speye(size(M)), M);
-              A=[zeros(size(M)),speye(size(M)); -K, -D];
-              B=[zeros(size(M,1),1); B];
-              C=[C, zeros(1,size(M,1))];
+              %two-sided reduction with E-matrix SISO, s0: zero, imag, real
+              load('rail_1357');
+              sys = sss(A,B,C,[],E); sys = sys(1,1);
+              s0 = [1+4i, 1-4i,4+4i, 4-4i, 0, 0, 5, 300];
+              s0moment = s0([1,3,5,7,8]); n = [2, 2, 4, 2, 2];
               
-              [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sss(A,B,C,0,E),[1+4i, 1-4i,4+4i, 4-4i, 0, 0, 5, 300] ,...
-                   [1+4i, 1-4i,4+4i, 4-4i, 0, 0, 5, 300]);
-              actSolution={full(sysr.A), full(sysr.B), full(sysr.C), full(sysr.E), V, W, Bt, Ct};
+              [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys,s0,s0);
+              actSolution={full(sysr.A), full(sysr.B), full(sysr.C), full(sysr.E), V, W,...
+                  Rsylv, Bb, Lsylv, Cb};
               
-              [expV,expCt5,expW,expBt5] = arnoldi(E,A,B,C,[1+4i, 1-4i,4+4i, 4-4i, 0, 0, 5, 300]);
-              expSolution={expW'*A*expV, expW'*B, C*expV, expW'*E*expV,expV, expW, expBt5,expCt5};
+              [expV,~,expW,~] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0);
+              
+              [expRsylv,expBb] = getSylvester(sys,sysr,V);
+              [expLsylv,expCb] = getSylvester(sys,sysr,W,'W');
+              expSolution={expW'*A*expV, expW'*B, C*expV, expW'*E*expV,expV, expW,...
+                  expRsylv,expBb,expLsylv,expCb};
+             
+              % res = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-Bb*Rsylv);
+              % res = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-expBb*expRsylv);
+              
+              % check for moment matching as well
+              actM = moments(sysr,s0moment, n); actSolution = [actSolution,{actM}];
+              expM = moments(sys,s0moment, n); expSolution = [expSolution,{expM}];
 
               verification(testCase, actSolution, expSolution, sysr);
 
@@ -146,7 +179,7 @@ classdef testRk < matlab.unittest.TestCase
 end
 
 function [] = verification(testCase, actSolution, expSolution, sysr)
-       verifyEqual(testCase, actSolution, expSolution,'RelTol',0.2,'AbsTol',0.00000001,...
+       verifyEqual(testCase, actSolution, expSolution,'RelTol',1e-6,'AbsTol',1e-6,...
             'Difference between actual and expected exceeds relative tolerance');
        verifyLessThanOrEqual(testCase, max(imag(sysr.A)), 0, ...
             'Ar is not purely real'); 
