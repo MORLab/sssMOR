@@ -25,29 +25,34 @@ function [sysr, V, W, s0, s0Traj] = irka(sys, s0, varargin)
 %
 % Input Arguments:  
 %       *Required Input Arguments:*
-%       -sys:       full oder model (sss)
-%       -s0:        vector of initial shifts
+%       -sys:			full oder model (sss)
+%       -s0:			vector of initial shifts
+%
 %       *Optional Input Arguments:*
-%       -Rt/Lt:     initial right/left tangential directions for MIMO
-%       -Opts:      structure with execution parameters
-%           -.maxiter: maximum number of iterations {50 (def)}
-%           -.tol:     convergence tolerange  {1e-3 (def)}
-%           -.type:    choose between different irka modifications
-%                      {' ' (def) | 'stab'}
-%           -.verbose: show text output during iterations {0 (def)}
-%           -.stopCrit: stopping criterion
-%                      {'combAny' (def) | 's0' | 'sysr' | 'combAll'}
+%       -Rt/Lt:			initial right/left tangential directions for MIMO
+%       -Opts:			structure with execution parameters
+%			-.maxiter:	maximum number of iterations;
+%						[{50} / positive integer]
+%			-.tol:		convergence tolerange;
+%						[{1e-3} / positive float]
+%			-.type:		choose between different irka modifications;
+%						[{''} / 'stab']
+%			-.verbose:	show text output during iterations;
+%						[{0} / 1]
+%			-.stopCrit:	stopping criterion;
+%						[{'combAny'} / 's0' / 'sysr' / 'combAll']
 %
 % Output Arguments:      
-%       -sysr:     reduced order model (sss)
-%       -V,W:      resulting projection matrices
-%       -s0:       final choice of shifts
-%       -s0Traj:  trajectory of all shifst for all iterations
+%       -sysr:			reduced order model (sss)
+%       -V,W:			resulting projection matrices
+%       -s0:			final choice of shifts
+%       -s0Traj:		trajectory of all shifst for all iterations
 %
 % Examples:
 %       This code computes an H2-optimal approximation of order 8 to
 %       the benchmark model 'fom'. One can use the function isH2opt to
 %       verify if the necessary conditions for optimality are satisfied.
+%
 %> sys = loadSss('fom')
 %> [sysr, ~, ~, s0opt] = irka(sys, -eigs(sys,8).');
 %> bode(sys,'-',sysr,'--r');

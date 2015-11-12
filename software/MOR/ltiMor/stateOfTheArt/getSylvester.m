@@ -44,7 +44,7 @@ function [R, S, B_] = getSylvester(sys,sysr,V,type)
 %> sys = loadSss('build');
 %> [sysr, V] = rk(sys,-eigs(sys,4).');
 %> [R, S, B_] = getSylvester(sys, sysr, V);
-%// note that rk can return some matrices of the Sylvester equation directly
+%// Note that |rk| can return some matrices of the Sylvester equation directly
 % 
 % See Also: 
 %       rk, porkV, porkW, cure, spark
