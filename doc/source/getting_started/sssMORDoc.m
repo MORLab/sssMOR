@@ -40,11 +40,11 @@
 %   <hr>
 %   <p class="copy">&copy; 2015 RT Technische Universit&auml;t M&uuml;nchen
 %        <tt class="minicdot">&#149;</tt>
-%        <a href="http://www.rt.mw.tum.de">Website</a>
+%        <a href="https://www.rt.mw.tum.de/?sssMOR">Website</a>
 %        <tt class="minicdot">&#149;</tt>
-%        <a href="file:./LICENSE.txt">Terms of Use</a>
+%        <a href="file:txts/LICENSE.txt">License</a>
 %        <tt class="minicdot">&#149;</tt>
-%        <a href="file:./README.txt">Read me</a>
+%        <a href="file:txts/RELEASE.txt">Release Notes</a>
 %   </p>
 %   <div style="position: relative; width:100%; height: 100px;">
 %        <div style="position: absolute; left:0%;">
