@@ -11,7 +11,7 @@
 	-->
 	
 	<matlabrelease>2014b</matlabrelease>
-	<name>sssMOR Toolbox</name>
+	<name>sssMOR</name>
 	<type>toolbox</type>
 	<icon>$toolbox/matlab/icons/matlabicon.gif</icon>
 	<help_location>html</help_location>
