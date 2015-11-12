@@ -6,9 +6,9 @@ function [sysr, V, W, s0, s0Traj] = irka(sys, s0, varargin)
 %       sysr						= IRKA(sys, s0, Opts)
 %       sysr						= IRKA(sys, s0, Rt, Lt)
 %       sysr						= IRKA(sys, s0, Rt, Lt, Opts)
-%       [sysr, V, W]				= IRKA(sys, s0,...)
-%       [sysr, V, W, s0]			= IRKA(sys, s0,...)
-%       [sysr, V, W, s0, s0Traj]	= IRKA(sys, s0,...)
+%       [sysr, V, W]				= IRKA(sys, s0,... )
+%       [sysr, V, W, s0]			= IRKA(sys, s0,... )
+%       [sysr, V, W, s0, s0Traj]	= IRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Iterative Rational Krylov
