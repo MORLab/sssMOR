@@ -39,12 +39,12 @@ classdef testBode < matlab.unittest.TestCase
                 
                 %Phase between 0° to 360°
                 for j=1:length(actPhase)
-                    if actPhase(:,:,j)<0
-                    actPhase(:,:,j)=actPhase(:,:,j)+360;
-                    end
-                    if expPhase(:,:,j)<0
-                    expPhase(:,:,j)=expPhase(:,:,j)+360;
-                    end
+                    %if actPhase(:,:,j)<0
+                    actPhase(:,:,j)=actPhase(:,:,j)-floor(actPhase(:,:,j)/360)*360;
+                    %end
+                    %if expPhase(:,:,j)<0
+                    expPhase(:,:,j)=expPhase(:,:,j)-floor(expPhase(:,:,j)/360)*360;
+                    %end
                 end
                 
                 actSolution={actMag, actPhase, actOmega};
