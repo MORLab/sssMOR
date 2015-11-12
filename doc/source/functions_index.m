@@ -56,7 +56,7 @@
 
 %% Extras
 %
-% * <.\setdiffVechelp.html |setdiffVec|>  --  compute difference between two unsorted vectors
+% * <.\setdiffVechelp.html |setdiffVec|>  --  Computes the difference between two unsorted vectors
 % * <.\bodeToFighelp.html |bodeToFig|>  --  Transforms MATLAB bode/step/impulse plot into normal figure
 % * <.\ispdhelp.html |ispd|>  --  Determines if a matrix is positive definite
 % * <.\loadSsshelp.html |loadSss|>  --  Creates an sss object from .mat file data
