@@ -80,8 +80,9 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="partitionhelp.html">partition</tocitem>
          </tocitem>
       </tocitem>
-      <tocitem image="HelpIcon.RELEASENOTES" target="txts/RELEASE.txt">Release Notes</tocitem>
-      <tocitem image="HelpIcon.RELEASENOTES" target="txts/LICENSE.txt">License</tocitem>
       <tocitem target="references.html">References</tocitem>
+      <tocitem target="acknowledgements.html">Acknowledgements</tocitem>
+      <tocitem image="HelpIcon.RELEASENOTES" target="txts/LICENSE.txt">License</tocitem>
+      <tocitem image="HelpIcon.RELEASENOTES" target="txts/RELEASE.txt">Release Notes</tocitem>
    </tocitem>
 </toc>
