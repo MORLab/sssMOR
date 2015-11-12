@@ -44,9 +44,9 @@
 % * <.\residuehelp.html |residue|>  --  Computes residues, poles and feedthrough of an LTI system
 % * <.\sigmahelp.html |sigma|>  --  Plots the amplitude of the frequency response of an LTI system
 % * <.\simhelp.html |sim|>  --  Simulates a sss system using iddata input time series
-% * <.\simBackwardEulerhelp.html |simBackwardEuler|>  --  Integrates sss model using backward Euler
+% * <.\simBackwardEulerhelp.html |simBackwardEuler|>  --  Integrates sss model using backward (implicit) Euler
 % * <.\simDiscretehelp.html |simDiscrete|>  --  Integrates discrete time model
-% * <.\simForwardEulerhelp.html |simForwardEuler|>  --  Integrates sss model using forward Euler
+% * <.\simForwardEulerhelp.html |simForwardEuler|>  --  Integrates sss model using forward (explicit) Euler
 % * <.\simRK4help.html |simRK4|>  --  Integrates sss model using Runge-Kutta 4
 % * <.\sizehelp.html |size|>  --  Computes the size of a sparse LTI system (sss)
 % * <.\spyhelp.html |spy|>  --  Plot sparsity pattern of sss system
