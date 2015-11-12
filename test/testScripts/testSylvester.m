@@ -11,12 +11,39 @@ classdef testSylvester< matlab.unittest.TestCase
             if exist('benchmarksSysCell.mat','file')
                 temp=load('benchmarksSysCell.mat');
                 testCase.sysCell=temp.benchmarksSysCell;
-            end
+                
+                %the directory "benchmark" is in sssMOR
+                p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+                pathBenchmarks = [p(1:k-1),'benchmarks'];
+                cd(pathBenchmarks);
+            else
+                % load the benchmarks here
+                p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+                pathBenchmarks = [p(1:k-1),'benchmarks'];
+                cd(pathBenchmarks);
+                
+                badBenchmarks = {'LF10.mat','beam.mat','random.mat'};
+                
+                files = dir('*.mat'); 
+                benchmarksSysCell=cell(1,length(files));
+                nLoaded=1; %count of loaded benchmarks
+                disp('Loaded systems:');
 
-            %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
-            pathBenchmarks = [p(1:k-1),'benchmarks'];
-            cd(pathBenchmarks);
+                warning('off');
+                for i=1:length(files)
+                    sys = loadSss(files(i).name);
+                    if ~any(strcmp(files(i).name,badBenchmarks)) && size(sys.A,1) <= 400
+                        benchmarksSysCell{nLoaded}=sys;
+                        nLoaded=nLoaded+1;
+                        disp(files(i).name);
+                    end
+                end
+                benchmarksSysCell(nLoaded:end)=[];
+                warning('on');
+                
+                %   save to testCase
+                testCase.sysCell = benchmarksSysCell;
+            end
         end
     end
     
@@ -31,8 +58,6 @@ classdef testSylvester< matlab.unittest.TestCase
         function testSylvesterV(testCase)
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
-                badBenchmarks = {'LF10.mat','beam.mat','random.mat'};
-                if ~any(strcmp(sys.Name,badBenchmarks))
                 
                 % get irka shifts and tangential directions
                 n = 10; r = ones(sys.m,n); l = ones(sys.p,n);
@@ -43,7 +68,7 @@ classdef testSylvester< matlab.unittest.TestCase
                 
                 [sysr, V, ~, Bb, Rsylv] = rk(sys,s0,s0,r,l);
                 warning off
-                [R, S, B_] = getSylvester(sys, sysr, V);
+                [R, B_, S] = getSylvester(sys, sysr, V);
                 warning on
                 
                 %   compute the residuals
@@ -62,15 +87,12 @@ classdef testSylvester< matlab.unittest.TestCase
                 expSolution={Bb, Rsylv, 0, 0, 0, 0};
                 
                 verification (testCase, actSolution,expSolution);
-                end
             end
         end
         
         function testSylvesterW(testCase)
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
-                badBenchmarks = {'LF10.mat','beam.mat','random.mat'};
-                if ~any(strcmp(sys.Name,badBenchmarks))
                 
                 % get irka shifts and tangential directions
                 n = 10; r = ones(sys.m,n); l = ones(sys.p,n);
@@ -81,7 +103,7 @@ classdef testSylvester< matlab.unittest.TestCase
                 
                 [sysr, ~, W, ~, ~, Cb, Lsylv] = rk(sys,s0,s0,r,l);
                 warning off
-                [L, S, C_] = getSylvester(sys, sysr, W, 'W');
+                [L, C_, S] = getSylvester(sys, sysr, W, 'W');
                 warning on
                 
                 %   get dual system
@@ -103,7 +125,6 @@ classdef testSylvester< matlab.unittest.TestCase
                 expSolution={Cb, Lsylv, 0, 0, 0, 0};
                 
                 verification (testCase, actSolution,expSolution);
-                end
             end
         end
     end
