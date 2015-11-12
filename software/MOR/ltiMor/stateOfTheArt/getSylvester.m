@@ -1,9 +1,9 @@
-function [R, S, B_] = getSylvester(sys,sysr,V,type)
+function [R, B_, S] = getSylvester(sys,sysr,V,type)
 % GETSYLVESTER - Get matrices of Sylvester's equation for Krylov subspaces
 %
 % Syntax: 
-%       [R, S, B_] = GETSYLVESTER(sys, sysr, V)
-%       [L, S, C_] = GETSYLVESTER(sys, sysr, W, 'W')
+%       [R, B_, S] = GETSYLVESTER(sys, sysr, V)
+%       [L, C_, S] = GETSYLVESTER(sys, sysr, W, 'W')
 %
 % Description:
 %       Given the full order model sys and a reduced order model sysr
@@ -43,7 +43,7 @@ function [R, S, B_] = getSylvester(sys,sysr,V,type)
 %
 %> sys = loadSss('build');
 %> [sysr, V] = rk(sys,-eigs(sys,4).');
-%> [R, S, B_] = getSylvester(sys, sysr, V);
+%> [R, B_, S] = getSylvester(sys, sysr, V);
 %// note that rk can return some matrices of the Sylvester equation directly
 % 
 % See Also: 
@@ -71,7 +71,7 @@ function [R, S, B_] = getSylvester(sys,sysr,V,type)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  11 Nov 2015
+% Last Change:  12 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -88,25 +88,30 @@ end
 B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
 R = (B_.'*B_)\(B_.'*(sys.A*V - sys.E*V*(sysr.E\sysr.A)));
 
-if nargout > 1
+if nargout > 2
     S = sysr.E\(sysr.A - sysr.B*R);
-    if strcmp(type,'W')
-        S = S.';
-    end
 end
 
 %% control the accuracy by computing the residual
 res = zeros(1,3);
 res(1) = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-B_*R);
-if nargout > 1
+if nargout > 2
     res(2) = norm(sysr.A - sysr.E*S - sysr.B*R);
     res(3) = norm(sys.A*V - sys.E*V*S - sys.B*R);
 end
 
-if any( res > 1e-6 )
-    warning('careful, the problem might be ill conditioned and the results of getSylvester inaccurate');
+%%  Change shape of Sw and C_
+if strcmp(type,'W'),
+    S = S.';
+    B_ = B_.'; 
 end
 
-%%  Change shape of C_
-
-if strcmp(type,'W'), B_ = B_.'; end
+%%  Check residuals
+if any( res > 1e-6 )
+    resMax = max(res);
+    if  resMax < 1e-1
+        warning('careful, the problem might be ill conditioned and the results of getSylvester inaccurate (res = %e)',resMax);
+    else
+        error('The Sylvester equation residual (%e) indicates that getSylvester failed to get the correct solution. Check the condition number of your problem',resMax);
+    end
+end
