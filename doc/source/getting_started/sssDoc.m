@@ -1,10 +1,19 @@
-%% Getting started
-% 
-% * <whatis.html What is sssMOR?>
-% * <problemStatement.html Why sssMOR?>
-% * <sssDoc.html sss - sparse state-space objects>
-% * <sssMORDoc.html sssMOR - model order reduction>
-% * <setUp.html Setting up the sssMOR toolbox>
+%% sss - sparse state-space objects
+%
+% To overcome the size limitations of ss and dss objects, we have introduced
+% a toolbox called *sss* which stands for sparse state-space. 
+%
+% This toolbox contains an *sss* class that allows the definition of *sss* objects, 
+% i.e. state-space objects defined by sparse matrices. 
+%
+% In fact, the large-scale dynamical system we could not define in the example above 
+% can now find place in your workspace
+%
+%> N = 10^8; A = speye(N); b = rand(N,1);
+%> sys = sss(A,b,b'); whos sys
+%	
+%	Further, many functions control engineers use on a daily basis to analyze and manipulate dynamic system objects, such as bode, step, pzmap, eig, isstable etc.
+%	are included in the *sss* toolbox to work with *sss* objects and exploit sparsity, avoiding dense computations, whenever this is possibile.
 
 %%
 % <html>

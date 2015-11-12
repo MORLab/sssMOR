@@ -1,7 +1,8 @@
-%% *sssMOR* - an awesome toolbox
+%% *sssMOR* - a sparse state-space and model reduction toolbox
 % <html>
 % <p><b></bb></p>
-% <p>A toolbox to handle something fancy using some cool methods.</p>
+% <p>A toolbox to define, analyze and reduce large-scale dynamical systems 
+% in state-space with sparse matrices</p>
 % </html>
 %
 % <html>
@@ -10,7 +11,7 @@
 %   <h2><a href="getting_started_index.html">Getting Started</a></h2>
 % </html>
 % 
-% Basics on ...
+% A short introduction to *sssMOR* and its functionality.
 %
 %
 % <html>
@@ -19,7 +20,7 @@
 %   <h2><a href="functions_index.html">Functions Reference</a></h2>
 % </html>
 % 
-% A list of UI-functions sorted by category.
+% A list of functions included in the toolbox, sorted by category.
 %
 % <html>
 %   <!--<hr <hr style="color:99CCFF; background-color:99CCFF; height:5px;
@@ -27,7 +28,10 @@
 %   <h2><a href="examples_index.html">Examples</a></h2>
 % </html>
 % 
-% Exemplary applications ...
+% Examples on how to use the toolbox and get started. 
+%
+% Don't forget to check out our demo! Just type *sssMOR_gettingStarted* in
+% the command Window.
 
 %%
 % <html>

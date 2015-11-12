@@ -56,7 +56,7 @@
 
 %% Extras
 %
-% * <.\setdiffVechelp.html |setdiffVec|>  --  Computes the difference between two unsorted vectors
+% * <.\setdiffVechelp.html |setdiffVec|>  --  compute difference between two unsorted vectors
 
 %% Not Categorized
 %

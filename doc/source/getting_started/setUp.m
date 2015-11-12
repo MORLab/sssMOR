@@ -1,10 +1,10 @@
-%% Getting started
+%% Setting up the sssToolbox
+%
+% After downloading the toolbox from 
+% TODO link
+% TODO installation steps
+%
 % 
-% * <whatis.html What is sssMOR?>
-% * <problemStatement.html Why sssMOR?>
-% * <sssDoc.html sss - sparse state-space objects>
-% * <sssMORDoc.html sssMOR - model order reduction>
-% * <setUp.html Setting up the sssMOR toolbox>
 
 %%
 % <html>

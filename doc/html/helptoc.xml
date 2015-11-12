@@ -11,6 +11,10 @@ web: https://www.rt.mw.tum.de/
    <tocitem image="$toolbox/matlab/icons/book_mat.gif" target="test_product_page.html">sssMOR Toolbox
 <tocitem image="HelpIcon.GETTING_STARTED" target="getting_started_index.html">Getting Started
 			<tocitem target="whatis.html">What is sssMOR?</tocitem>
+         <tocitem target="problemStatement.html">Why sssMOR?</tocitem>
+         <tocitem target="sssDoc.html">sss - sparse state-space</tocitem>
+         <tocitem target="sssMORDoc.html">sssMOR - model order reduction</tocitem>
+         <tocitem target="setUp.html">Setting up the sssMOR toolbox</tocitem>
       </tocitem>
       <tocitem image="HelpIcon.EXAMPLES" target="examples_index.html">Examples
 			<tocitem target="example_test.html">Example Test</tocitem>
