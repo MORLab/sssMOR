@@ -67,6 +67,7 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="sizehelp.html">size</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="spyhelp.html">spy</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="sshelp.html">ss</tocitem>
+            <tocitem image="HelpIcon.FUNCTION" target="ssshelp.html">sss</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="stephelp.html">step</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="truncatehelp.html">truncate</tocitem>
          </tocitem>

@@ -51,6 +51,7 @@
 % * <.\sizehelp.html |size|>  --  Computes the size of a sparse LTI system (sss)
 % * <.\spyhelp.html |spy|>  --  Plot sparsity pattern of sss system
 % * <.\sshelp.html |ss|>  --  Converts sparse LTI system (sss) to Matlab\control\ss
+% * <.\ssshelp.html |sss|>  --  Sparse state-space LTI system (sss) class
 % * <.\stephelp.html |step|>  --  Computes and/or plots the step response of a sparse LTI system
 % * <.\truncatehelp.html |truncate|>  --  Truncates a sparse LTI system (sss)
 

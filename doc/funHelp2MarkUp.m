@@ -209,13 +209,19 @@ end
         nextLine;
         
         % get function name
-        name = regexp(myLine_, ...
-            '\s*function(?:[\s\w\[\],]+=\s*|\s*)(?<fn>[\w_]+)', 'names');
-        if(~isempty(name))
-            funName = name.fn;
-        else
-            funName = '';
-        end
+		name = regexp(myLine_, ...
+			'\s*function(?:[\s\w\[\],]+=\s*|\s*)(?<fn>[\w_]+)', 'names');
+		if(~isempty(name))
+			funName = name.fn;
+		else
+			name = regexp(myLine_, ...
+				'\s*classdef(?:[\s\w\[\],]+=\s*|\s*)(?<fn>[\w_]+)', 'names');
+			if(~isempty(name))
+				funName = name.fn;
+			else
+				funName = '';
+			end
+		end
         
         % check whether the file contains a function definition
         if ~isempty(funName)
