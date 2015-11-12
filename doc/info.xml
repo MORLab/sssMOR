@@ -1,44 +1,37 @@
 <productinfo
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:noNamespaceSchemaLocation="">
-<?xml-stylesheet type="text/xsl" href="optional"?>
-<!--
-SSSMOR Toolbox
-Copyright (c) 2015 Institute of Automatic Control,
-  Technische Universitaet Muenchen
-See LICENSE.txt for license information.
-web: https://www.rt.mw.tum.de/
-
-(This file has been modified automatically on 15 Oct 2015 01:38)
--->
-
-<matlabrelease>2014b</matlabrelease>
-<name>sssMOR</name>
-<type>toolbox</type>
-<icon>$toolbox/matlab/icons/matlabicon.gif</icon>
-<help_location>html</help_location>
-<help_contents_icon>$toolbox/matlab/icons/book_mat.gif</help_contents_icon>
-
-<list>
-
-    <listitem>
-        <label>Help</label>
-        <callback>web ./html/test_product_page.html -helpbrowser</callback>
-        <icon>$toolbox/matlab/icons/book_mat.gif</icon>
-    </listitem>
-
-    <listitem>
-        <label>Function Reference</label>
-        <callback>web ./html/functions_index.html -helpbrowser</callback>
-        <icon>$toolbox/matlab/icons/help_fx.png</icon>
-    </listitem>
-
-    <listitem>
-        <label>Demos</label>
-        <callback>demo toolbox 'sssMOR'</callback>
-        <icon>$toolbox/matlab/icons/help_ex.png</icon>
-    </listitem>
-
-</list>
-    
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="">
+	<?xml-stylesheet type="text/xsl" href="optional"?>	
+	<!--
+	SSSMOR Toolbox
+	Copyright (c) 2015 Institute of Automatic Control,
+	  Technische Universitaet Muenchen
+	See doc/html/txts/LICENSE.txt for license information.
+	web: https://www.rt.mw.tum.de/
+	-->
+	
+	<matlabrelease>2014b</matlabrelease>
+	<name>sssMOR Toolbox</name>
+	<type>toolbox</type>
+	<icon>$toolbox/matlab/icons/matlabicon.gif</icon>
+	<help_location>html</help_location>
+	<help_contents_icon>$toolbox/matlab/icons/book_mat.gif</help_contents_icon>
+	
+	<list>
+		<listitem>
+			<label>Help</label>
+			<callback>web ./html/product_page.html</callback>
+			<icon>$toolbox/matlab/icons/book_mat.gif</icon>
+		</listitem>
+		<listitem>
+			<label>Function Reference</label>
+			<callback>web ./html/functions_index.html</callback>
+			<icon>$toolbox/matlab/icons/help_fx.png</icon>
+		</listitem>
+		<!--<listitem>
+			<label>Demos</label>
+			<callback>demo toolbox 'sssMOR'</callback>
+			<icon>$toolbox/matlab/icons/help_ex.png</icon>
+		</listitem>-->
+	</list>
 </productinfo>

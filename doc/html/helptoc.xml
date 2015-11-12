@@ -2,13 +2,13 @@
 SSSMOR Toolbox
 Copyright (c) 2015 Institute of Automatic Control,
   Technische Universitaet Muenchen
-See LICENSE.txt for license information.
+See doc/html/txts/LICENSE.txt for license information.
 web: https://www.rt.mw.tum.de/
 
 (This file has been generated automatically)
 -->
 <toc version="2.0">
-   <tocitem image="$toolbox/matlab/icons/book_mat.gif" target="test_product_page.html">sssMOR Toolbox
+   <tocitem image="$toolbox/matlab/icons/book_mat.gif" target="product_page.html">sssMOR Toolbox
 <tocitem image="HelpIcon.GETTING_STARTED" target="getting_started_index.html">Getting Started
 			<tocitem target="whatis.html">What is sssMOR?</tocitem>
          <tocitem target="problemStatement.html">Why sssMOR?</tocitem>
@@ -80,8 +80,8 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="partitionhelp.html">partition</tocitem>
          </tocitem>
       </tocitem>
-      <tocitem image="HelpIcon.RELEASENOTES" target="./RELEASE.txt">Release Notes</tocitem>
-      <tocitem image="HelpIcon.RELEASENOTES" target="./LICENSE.txt">License</tocitem>
+      <tocitem image="HelpIcon.RELEASENOTES" target="txts/RELEASE.txt">Release Notes</tocitem>
+      <tocitem image="HelpIcon.RELEASENOTES" target="txts/LICENSE.txt">License</tocitem>
       <tocitem target="references.html">References</tocitem>
    </tocitem>
 </toc>
