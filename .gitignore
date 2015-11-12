@@ -100,4 +100,5 @@ doc/html/helpsearch-v3/
 doc/html/*.html
 doc/html/*.png
 doc/source/functions/*.m
-# doc/source/functions_index.m
+doc/Matlab_Markup_Examples/html/*.html
+doc/Matlab_Markup_Examples/html/*.png
