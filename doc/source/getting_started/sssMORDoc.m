@@ -11,11 +11,21 @@
 % For the benchmark examples above, the figures below illustrate how
 % appropriate model order reduction (MOR) techniques can yield good
 % approximations of the dynamics and drastically reduced the model size.
-%	
-% <<img/iss_MOR.png >>
 %
-% <<img/gyro_MOR.png >>
-%	
+
+%%
+%
+% <html>
+% <div style="text-align: center; position: relative; height: 400px; width:100%;">
+%     <img src="img/iss_MOR.png" alt="iss" width="500" style="vertical-align: bottom;">
+% </div>
+% <div style="text-align: center; position: relative; height: 400px; width:100%;">
+%     <img src="img/gyro_MOR.png" alt="gyro" width="500" style="vertical-align: bottom;">
+% </div>
+% </html>
+%
+
+%%
 % For linear systems as in \eqref{eq:FOM}, this is generally done by
 % applying Petrov-Galerkin projections of the form
 % 
