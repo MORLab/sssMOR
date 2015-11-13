@@ -44,9 +44,9 @@
 % * <.\residuehelp.html |residue|>  --  Computes residues, poles and feedthrough of an LTI system
 % * <.\sigmahelp.html |sigma|>  --  Plots the amplitude of the frequency response of an LTI system
 % * <.\simhelp.html |sim|>  --  Simulates a sss system using iddata input time series
-% * <.\simBackwardEulerhelp.html |simBackwardEuler|>  --  Integrates sss model using backward (implicit) Euler
+% * <.\simBackwardEulerhelp.html |simBackwardEuler|>  --  Integrates sss model using backward Euler
 % * <.\simDiscretehelp.html |simDiscrete|>  --  Integrates discrete time model
-% * <.\simForwardEulerhelp.html |simForwardEuler|>  --  Integrates sss model using forward (explicit) Euler
+% * <.\simForwardEulerhelp.html |simForwardEuler|>  --  Integrates sss model using forward Euler
 % * <.\simRK4help.html |simRK4|>  --  Integrates sss model using Runge-Kutta 4
 % * <.\sizehelp.html |size|>  --  Computes the size of a sparse LTI system (sss)
 % * <.\spyhelp.html |spy|>  --  Plot sparsity pattern of sss system
@@ -63,6 +63,12 @@
 % * <.\loadSsshelp.html |loadSss|>  --  Creates an sss object from .mat file data
 % * <.\parseOptshelp.html |parseOpts|>  --  Createa an sss object from .mat file data
 % * <.\partitionhelp.html |partition|>  --  Createa an sss object from .mat file data
+
+%% Not Categorized
+%
+% * <.\demoEndhelp.html |demoEnd|>  --  Print lines at end of demos
+% * <.\sssMOR_gettingStartedhelp.html |sssMOR_gettingStarted|>  --  Introductory demo to sssMOR toolbox
+% * <.\sss_gettingStartedhelp.html |sss_gettingStarted|>  --  Introductory demo to sssMOR toolbox
 %
 %%
 % <html>

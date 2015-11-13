@@ -5,8 +5,9 @@
 % The |example| folder in the product path contains several examples which
 % shall clarify the usage
 % 
-% * <example_test.html |example test|> - A simple example 
-%
+% * <demoEndhelp.html |demoEnd|> - Print lines at end of demos
+% * <sss_gettingStartedhelp.html |sss_gettingStarted|> - Introductory demo to sss toolbox 
+% * <sssMOR_gettingStartedhelp.html |sssMOR_gettingStarted|> - Introductory demo to sssMOR toolbox
 
 %%
 % <html>
