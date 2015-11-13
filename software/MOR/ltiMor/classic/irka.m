@@ -3,9 +3,9 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = irka(sys, s0, 
 %
 % Syntax:
 %       sysr                            = IRKA(sys, s0)
-%       sysr                            = IRKA(sys, s0, Opts)
+%       sysr                            = IRKA(sys, s0)
 %       sysr                            = IRKA(sys, s0, Rt, Lt)
-%       sysr                            = IRKA(sys, s0, Rt, Lt, Opts)
+%       sysr                            = IRKA(sys, s0,..., Opts)
 %       [sysr, V, W]                    = IRKA(sys, s0,... )
 %       [sysr, V, W, s0]                = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, s0Traj]        = IRKA(sys, s0,... )
@@ -87,23 +87,18 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = irka(sys, s0, 
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
-if nargin > 2
-    if nargin == 3
-        %usage irka(sys,s0,Opts)
-        Opts = varargin{1};
-        if ~sys.isSiso
-            error('specify initial tangential directions for MIMO systems');
-        end
-    elseif nargin == 4
+if isstruct(varargin{end})
+    Opts = varargin{end};
+    varargin = varargin(1:end-1);
+else
+    Opts = struct();
+end
+if ~isempty(varargin) > 0
         %usage irka(sys,s0,Rt,Lt)
         Rt = varargin{1};
         Lt = varargin{2};
-    elseif nargin == 5
-        %usage irka(sys,s0,Rt,Lt,Opts)
-        Rt = varargin{1};
-        Lt = varargin{2};
-        Opts = varargin{3};
-    end
+elseif ~sys.isSiso
+        error('specify initial tangential directions for MIMO systems');
 end
     
 %% Parse the inputs
@@ -149,9 +144,9 @@ while true
     k=k+1; sysr_old = sysr;
     %   Reduction
     if sys.isSiso
-        [sysr, V, W,B_,Rsylv,C_,Lsylv] = rk(sys, s0, s0);
+        [sysr, V, W, B_, Rsylv,C_,Lsylv] = rk(sys, s0, s0,Opts);
     else
-        [sysr, V, W,B_,Rsylv,C_,Lsylv] = rk(sys, s0, s0, Rt, Lt);
+        [sysr, V, W, B_, Rsylv,C_,Lsylv] = rk(sys, s0, s0, Rt, Lt,Opts);
     end 
     
     %   Update of the reduction parameters
