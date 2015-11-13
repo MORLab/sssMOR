@@ -35,10 +35,10 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %       subspace. The orthogonalization is conducted using a 
 %       reorthogonalized modified Gram-Schmidt procedure [4] with respect 
 %       to the inner product  defined in IP (optional). If no inner product 
-%       is specified, then the elliptic product corresponding to E is 
+%       is specified, then the euclidian product corresponding to I is 
 %       chosen by default:
 %
-%                       IP=@(x,y) (x'*E*y)
+%                       IP=@(x,y) (x'*I*y)
 %
 %       which requires E to be a positive definite matrix.
 %
@@ -231,11 +231,7 @@ reorth = 'gs'; %0, 'gs','qr'
 %%  Define variables that might have not been passed to the function
 %   IP
 if ~exist('IP', 'var') 
-    if abs(condest(E))<Inf % 
-        IP=@(x,y) (x'*E*y); 
-    else
-        IP=@(x,y) (x'*y); 
-    end
+   IP=@(x,y) (x'*y); %seems to be better conditioned that E norm
 end
 %%  Compute the Krylov subspaces
 % preallocate memory
@@ -252,12 +248,15 @@ for jCol=1:nS0
             newlu=0;
             if Rt(:,jCol) == Rt(:,jCol-1)
                 % Higher order moments, for the SISO and MIMO case
+                newtan = 0;
                 tempV = V(:,jCol-1); %overwrite
                 Rsylv(:,jCol)=zeros(m,1);
                 if hermite
                     tempW = W(:,jCol-1); 
                     Lsylv(:,jCol)=zeros(p,1); 
                 end
+            else
+                newtan = 1;
             end
         end
     end
@@ -291,8 +290,10 @@ for jCol=1:nS0
             if m==1 %SISO
                 tempV=E*tempV;
                 if hermite, tempW = E'*tempW; end
-            else
-                % MIMO with different tangential direction: do nothing
+            elseif newtan==0
+                % Tangential matching of higher order moments
+                tempV=E*tempV;
+                if hermite, tempW = E'*tempW; end
             end
         end
         if newlu==1

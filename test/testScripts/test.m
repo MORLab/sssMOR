@@ -35,7 +35,7 @@ cd(testpath);
 %% Choose benchmarks
 % Default benchmarks
 Def.option = 'light'; %'light','full','heavy'
-Def.size =400'; %'light': only benchmarks with sys.n<=Opts.size are tested
+Def.size = 400'; %'light': only benchmarks with sys.n<=Opts.size are tested
                 %'heavy': only benchmarks with sys.n>Opts.size are tested
 Def.number = 3; %choose maximum number of tested benchmarks
 
