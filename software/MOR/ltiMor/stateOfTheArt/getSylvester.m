@@ -13,14 +13,18 @@ function [R, B_, S] = getSylvester(sys,sysr,V,type)
 %
 %           $A V - E V S - B R = 0 \quad          (1)$
 %
-%           $A V - E V E_r^{-1} A_r - B\_ R = 0\quad   (2)$
+%           $B\_ = (I - E V(W^T E V)^{-1}W^T) B \quad          (2)$
+%
+%           $A V - E V E_r^{-1} A_r - B\_ R = 0\quad   (3)$
 %
 %       If the type is set to 'W', then the matrices are given for the
 %       output Krylov Sylvester equation
 %
-%           $A^T W - E^T W S^T - C^T L = 0 \quad   (3)$
+%           $A^T W - E^T W S^T - C^T L = 0 \quad   (4)$
 %
-%           $A^T W - E^T V E_r^{-T} A_r^T - C\_^T L = 0 \quad  (4)$
+%           $C\_ = C (I - V(W^T E V)^{-1}W^T E) \quad          (5)$
+%
+%           $A^T W - E^T V E_r^{-T} A_r^T - C\_^T L = 0 \quad  (6)$
 %
 % 
 % Input Arguments:
