@@ -7,7 +7,7 @@ function  sss_gettingStarted
 % Description:
 %       This function can be executed as it is and will guide the 
 %       user in the command window through an introductory journey in the 
-%       capabilities and advantages of using sparse state space (sss) 
+%       capabilities and advantages of using sparse state-space (sss) 
 %       objects.
 %
 % See Also:
@@ -28,7 +28,7 @@ function  sss_gettingStarted
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  23 Nov 2015
+% Last Change:  13 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
