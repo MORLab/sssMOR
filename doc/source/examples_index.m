@@ -1,14 +1,18 @@
 %% Examples
-% Exemplary applications of _SOMETHING_
+% Examples on how to use the different functions are included in the
+% documentation of each function. Some more introductory examples to get 
+% started will be included in one of the next releases.
 %
-%% 
-% The |example| folder in the product path contains several examples which
-% shall clarify the usage
+% In order to introduce the user into the sss and sssMOR functions, the 
+% |example| folder contains a "getting started"-demo for both the sss and
+% the sssMOR toolbox:
 % 
 % * <demoEndhelp.html |demoEnd|> - Print lines at end of demos
 % * <sss_gettingStartedhelp.html |sss_gettingStarted|> - Introductory demo to sss toolbox 
 % * <sssMOR_gettingStartedhelp.html |sssMOR_gettingStarted|> - Introductory demo to sssMOR toolbox
-
+%
+% *Just type |sss_gettingStarted| and/or |sssMOR_gettingStarted| in the Command 
+% Window and start geting to know our toolboxes!*
 %%
 % <html>
 %   <hr>

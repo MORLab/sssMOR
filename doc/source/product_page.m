@@ -1,4 +1,4 @@
-%% *sssMOR* - a sparse state-space and model reduction toolbox
+%% *sssMOR* - A Sparse State-Space and Model Order Reduction Toolbox
 % <html>
 % <p><b></bb></p>
 % <p>A toolbox to define, analyze and reduce large-scale dynamical systems 
@@ -30,8 +30,8 @@
 % 
 % Examples on how to use the toolbox and get started. 
 %
-% Don't forget to check out our demo! Just type *sssMOR_gettingStarted* in
-% the command Window.
+% Don't forget to check out our demos! Just type |sss_gettingStarted| and/or
+% |sssMOR_gettingStarted| in the Command Window!
 
 %%
 % <html>
