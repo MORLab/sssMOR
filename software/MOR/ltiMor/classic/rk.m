@@ -153,11 +153,26 @@ end
 
 if exist('s0_inp', 'var')
     s0_inp = s0_vect(s0_inp);
+    % sort expansion points & tangential directions
+    s0old = s0_inp;
+    s0_inp = cplxpair(s0_inp);
+    if exist('Rt','var') && ~isempty(Rt)
+        [~,cplxSorting] = ismember(s0_inp,s0old); 
+        Rt = Rt(:,cplxSorting);
+    end
+clear s0old
 else
     s0_inp = [];
 end
 if exist('s0_out', 'var')
     s0_out = s0_vect(s0_out);
+        % sort expansion points & tangential directions
+    s0old = s0_out;
+    s0_out = cplxpair(s0_out);
+    if exist('Lt','var') && ~isempty(Lt)
+        [~,cplxSorting] = ismember(s0_out,s0old); 
+        Lt = Lt(:,cplxSorting);
+    end
 else
     s0_out = [];
 end
@@ -181,11 +196,7 @@ if ~isempty(s0_inp) && ~isempty(s0_out)
 end
 %%  Define execution variables
 if ~exist('IP', 'var'), 
-    if ispd(sys.E) %assign IP to speed-up computations
-        IP=@(x,y) (x'*sys.E*y); 
-    else
-        IP=@(x,y) (x'*y);
-    end
+    IP=@(x,y) (x'*y); %seems to be better conditioned
 end
 %%  Computation
 if isempty(s0_out)
@@ -235,7 +246,6 @@ function s0=s0_vect(s0)
         s0=temp;
     end
 
-%     s0 = cplxpair(s0);
     if size(s0,1)>size(s0,2)
         s0=transpose(s0);
     end
