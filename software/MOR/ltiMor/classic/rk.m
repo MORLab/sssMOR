@@ -74,25 +74,25 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %------------------------------------------------------------------
 
 %%  Parsing
-if isstruct(varargin(end))
+if isstruct(varargin{end})
     Opts = varargin{end};
-    varargin = varargout(1:end-1);
+    varargin = varargin(1:end-1);
 else
     Opts = struct();
 end
 
-if nargin > 2
+if length(varargin) > 0
     if isempty(s0_inp) || all(size(varargin{1}) == size(s0_inp));
         %usage: RK(sys, s0_inp, s0_out)
         s0_out = varargin{1};
-        if nargin == 4
+        if length(varargin) == 2
             %usage: RK(sys, s0_inp, s0_out ,IP)
             IP = varargin{2};
-        elseif nargin > 4
+        elseif length(varargin) > 2
             %usage: RK(sys, s0_inp, s0_out, Rt, Lt)
             Rt = varargin{2};
             Lt = varargin{3};
-            if nargin == 6
+            if length(varargin) == 4
                 %usage: RK(sys, s0_inp, s0_out, Rt, Lt, IP)
                 IP = varargin{4};
             end

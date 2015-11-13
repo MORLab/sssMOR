@@ -106,11 +106,11 @@ else
 end              
  
 %%  Parse input
-if nargin == 4
+if length(varargin) == 1
     % usage: ARNOLDI(E,A,B,s0)
     s0 = varargin{1};
     hermite = 0; % same shifts for input and output Krylov?
-elseif nargin > 4
+elseif length(varargin) > 1
     %   Do the classification depending on the properties of the objects
     %   ARNOLDI(E,A,B,s0,...) or ARNOLDI(E,A,B,C,...)
     if size(varargin{1},2) == size(A,1)
@@ -118,14 +118,14 @@ elseif nargin > 4
         hermite = 1;
         C = varargin{1};
         s0 = varargin{2};
-        if nargin == 6
+        if length(varargin) == 3
             % usage: ARNOLDI(E,A,B,C,s0,IP)
             IP = varargin{3};
-        elseif nargin == 7
+        elseif length(varargin) == 4
             % usage: ARNOLDI(E,A,B,C,s0,Rt,Lt)
             Rt = varargin{3};
             Lt = varargin{4};
-        elseif nargin == 8
+        elseif length(varargin) == 5
             % usage: ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
             Rt = varargin{3};
             Lt = varargin{4};
@@ -135,7 +135,7 @@ elseif nargin > 4
         % usage: ARNOLDI(E,A,B,s0,...)
         hermite = 0;
         s0 = varargin{1};
-        if nargin == 5
+        if length(varargin) == 5
             if size(varargin{2},2) == size(s0,2)
                 % usage: ARNOLDI(E,A,B,s0,Rt)
                 Rt = varargin{2};
@@ -173,7 +173,7 @@ if exist('Lt','var') && ~isempty(Lt)
     end
 end
 
-if Def.makeReal
+if Opts.makeReal
     % remove one element of complex pairs (must be closed under conjugation)
     k=find(imag(s0));
     if ~isempty(k)
@@ -326,7 +326,7 @@ for jCol=1:nS0
     end 
 
     % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
-    if Def.makeReal
+    if Opts.makeReal
         if ~isreal(s0(jCol))
             V(:,jCol+nS0c/2)=imag(tempV); 
             tempV=real(tempV);
@@ -340,7 +340,7 @@ for jCol=1:nS0
         end
     end
 
-    if Def.makeOrth
+    if Opts.makeOrth
         % orthogonalize vectors
         for iCol=1:jCol-1
           h=IP(tempV,V(:,iCol));
@@ -368,7 +368,7 @@ for jCol=1:nS0
 end
 
 %orthogonalize columns from imaginary components
-if Def.makeOrth
+if Opts.makeOrth
     for jCol=length(s0)+1:q
         tempV=V(:,jCol);
         if hermite, tempW=W(:,jCol);end
@@ -403,8 +403,8 @@ end
    reduced order is large
    The QR algorithm is much faster, however it does change the basis
 %}
-if Def.reorth
-   switch Def.reorth
+if Opts.reorth
+   switch Opts.reorth
        case 'gs' %reorthogonalized GS
             for jCol = 2:q
                 tempV = V(:,jCol);
