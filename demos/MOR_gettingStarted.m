@@ -66,17 +66,24 @@ fprintf('toolbox through an example.\n');
 fprintf('\nYou chose the "%s" model. \n',sysName);
 
 fprintf('\nDefine a sss-object and show some information about it.\n');
-fprintf('>> sys = sss(A,B,C,D,E)\n');
+fprintf('>> sys = sss(A,B,C)\n');
 fprintf('>> disp(sys)\n');
 fprintf('>> spy(sys)\n');
 fprintf('>> bode(sys)\n');
-    sys = sss(A,B,C,D,E); clear A B C D E
+    sys = sss(A,B,C); clear A B C D E
     disp(sys);
     spy(sys);
     [~,~,w] = bode(sys);%get frequency range
     figure;bode(sys);%plot
 customPause
 
+fprintf(['Only the first output and the first input of the cdplayer will\n'...
+        'be taken into consideration in the reduction.\n']);
+fprintf(['This can be done using the function truncate:\n'...
+        '>>sys=truncate(sys,1,1);\n'])
+    sys=truncate(sys,1,1);
+    fprintf('>>disp(sys)');
+    disp(sys);
 %   *Modal reduction
 fprintf('The first model reduction procedure we would like to test is\n');
 fprintf('MODAL REDUCTION, i.e. the truncation of less dominant modes in the\n');
@@ -86,11 +93,17 @@ fprintf('to select the eigenmodes corresponding to the first q eigenvalues \n');
 fprintf('with smallest magnitude (q is the desired reduced order). This can \n');
 fprintf('be computed quite efficiently using the "eigs" function.\n');
 customPause
-
+    if strcmp(sysName,'cdplayer')
+    q = round(size(sys.A,1)/6);
+    isEven = ~(round(q/2)-q/2); if ~isEven, q=q-1; end 
+fprintf('For this example, we choose a reduced order of %i, which \n',q);
+fprintf('corresponds to approximately a one-sixth of the original order.\n');
+    else
     q = round(size(sys.A,1)/3);
     isEven = ~(round(q/2)-q/2); if ~isEven, q=q-1; end 
 fprintf('For this example, we choose a reduced order of %i, which \n',q);
 fprintf('corresponds to approximately a third of the original order.\n');
+    end
 customPause
 
 fprintf('\nThe reduction is performed by calling:\n');
@@ -225,7 +238,7 @@ function [sysName,A,B,C,D,E] = selectModel
 %   *Selection of a benchmark model
 fprintf(['Choose one of the following benchmark models by pressing...\n',...
                 '\t "1" \t ..for the Los Angeles Hospital model (N=48)\n',...
-                '\t "2" \t ..for a 1D linear beam model (N=348)\n']);
+                '\t "2" \t ..for a CD-Player model (N=120)\n']);
 modelChosen = input('Model choice: ');
 
 if isempty(modelChosen),modelChosen = 0;end
@@ -241,8 +254,8 @@ while ~isValid
             D = 0;
             isValid = 1;
         case 2 %beam
-            sysName = 'beam';
-            LoadData = load('beam.mat');%assumes it is in path
+            sysName = 'cdplayer';
+            LoadData = load('cdplayer.mat');%assumes it is in path
             
             A = LoadData.A; B = LoadData.B; C = LoadData.C;
             E = speye(size(A));
@@ -254,7 +267,7 @@ while ~isValid
             warning('off','all');
             fprintf(['\nChoose one of the following benchmark models by pressing...\n',...
                 '\t "1" \t ..for the Los Angeles Hospital model (N=48)\n',...
-                '\t "2" \t ..for a 1D-beam model (N=348)\n']);
+                '\t "2" \t ..for a CD-Player model (N=120)\n']);
             modelChosen = input('Model choice: ');
             if isempty(modelChosen),modelChosen = 0;end
     end
