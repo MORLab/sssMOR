@@ -1,14 +1,15 @@
-function [sysr, V, W, s0, s0Traj] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, s0Traj, Rt, Lt] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
-%       sysr						= IRKA(sys, s0)
-%       sysr						= IRKA(sys, s0, Opts)
-%       sysr						= IRKA(sys, s0, Rt, Lt)
-%       sysr						= IRKA(sys, s0, Rt, Lt, Opts)
-%       [sysr, V, W]				= IRKA(sys, s0,... )
-%       [sysr, V, W, s0]			= IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj]	= IRKA(sys, s0,... )
+%       sysr                            = IRKA(sys, s0)
+%       sysr                            = IRKA(sys, s0, Opts)
+%       sysr                            = IRKA(sys, s0, Rt, Lt)
+%       sysr                            = IRKA(sys, s0, Rt, Lt, Opts)
+%       [sysr, V, W]                    = IRKA(sys, s0,... )
+%       [sysr, V, W, s0]                = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, s0Traj]        = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, s0Traj, Rt, Lt]= IRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Iterative Rational Krylov
@@ -151,11 +152,17 @@ while true
         [sysr, V, W] = rk(sys, s0, s0, Rt, Lt);
     end
     %   Update of the reduction parameters
-    s0_old=s0;
+    s0_old=s0; if ~sys.isSiso, Rt_old = Rt; Lt_old = Lt; end
     if sys.isMimo
         [X, D, Y] = eig(sysr);
         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X);
         s0 = full(-diag(D).');
+        % make sure real shifts have real directions
+        idx = find(imag(s0)==0);
+        if any([max(imag(Rt(:,idx))),max(imag(Lt(:,idx)))]) > 1e-15
+            warning('Tangential directions corresponding to real shifts are complex')              
+        end
+        Rt(:,idx) = real(Rt(:,idx)); Lt(:,idx) = real(Lt(:,idx));
     else
         s0 = -eig(sysr)';
     end
@@ -172,6 +179,7 @@ while true
     end
     if stop || k>= Opts.maxiter
         s0 = s0_old; % function return value
+        if ~sys.isSiso, Rt = Rt_old; Lt = Lt_old; end
         s0Traj = s0Traj(1:(k+1),:);
         break
     end      

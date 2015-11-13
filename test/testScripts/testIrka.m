@@ -36,12 +36,39 @@ classdef testIrka < matlab.unittest.TestCase
             if exist('benchmarksSysCell.mat','file')
                 temp=load('benchmarksSysCell.mat');
                 testCase.sysCell=temp.benchmarksSysCell;
-            end
+                
+                %the directory "benchmark" is in sssMOR
+                p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+                pathBenchmarks = [p(1:k-1),'benchmarks'];
+                cd(pathBenchmarks);
+            else
+                % load the benchmarks here
+                p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+                pathBenchmarks = [p(1:k-1),'benchmarks'];
+                cd(pathBenchmarks);
+                
+                badBenchmarks = {'LF10.mat','beam.mat','random.mat','heat-cont.mat'};
+                
+                files = dir('*.mat'); 
+                benchmarksSysCell=cell(1,length(files));
+                nLoaded=1; %count of loaded benchmarks
+                disp('Loaded systems:');
 
-            %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
-            pathBenchmarks = [p(1:k-1),'benchmarks'];
-            cd(pathBenchmarks);
+                warning('off');
+                for i=1:length(files)
+                    sys = loadSss(files(i).name);
+                    if ~any(strcmp(files(i).name,badBenchmarks)) && size(sys.A,1) <= 5000
+                        benchmarksSysCell{nLoaded}=sys;
+                        nLoaded=nLoaded+1;
+                        disp(files(i).name);
+                    end
+                end
+                benchmarksSysCell(nLoaded:end)=[];
+                warning('on');
+                
+                %   save to testCase
+                testCase.sysCell = benchmarksSysCell;
+            end
         end
     end
     
@@ -69,7 +96,6 @@ classdef testIrka < matlab.unittest.TestCase
             verifyLessThan(testCase, max(real(eig(sysr))), 0, ...
                     'Ar is not stable');
         end
-
         function testIrka2(testCase) 
              %s0: Inf (multiple value), imag (multiple value), real (multiple value)
             load('random.mat');
@@ -93,11 +119,12 @@ classdef testIrka < matlab.unittest.TestCase
                
             [sysr, V, W, s0, s0_traj] = irka(sss(A,B,C), ...
                  [0,0,3,300,Inf, Inf, 10+50i,10-50i], opts);
-            actSolution={full(sysr.A),full(sysr.B),full(sysr.C),V,W};
-            
+             
             expV=arnoldi(eye(size(A)),A,B,s0);
             expW=arnoldi(eye(size(A)),A',C',s0);
-            expSolution={expW'*A*expV, expW'*B, C*expV, expV, expW};
+            
+            actSolution={rank([V,expV]),rank([W,expW])};
+            expSolution={size(V,2), size(W,2)};
             
             verification(testCase, actSolution, expSolution, sysr, s0, s0_traj);
         end
@@ -108,11 +135,13 @@ classdef testIrka < matlab.unittest.TestCase
 
             [sysr, V, W, s0, s0_traj] = irka(sss(A, B, C,0,E), ...
                  [0,300000,25603+546i,25603-546i,Inf], opts);
-            actSolution={full(sysr.A),full(sysr.B),full(sysr.C), full(sysr.E),V,W};
 
             expV=arnoldi(E,A,B,s0);
             expW=arnoldi(E',A',C',s0);
-            expSolution={expW'*A*expV, expW'*B, C*expV, expW'*E*expV, expV, expW};
+            svdV = svd([V,expV],0); svdW = svd([W,expW]); tol = 1e-6;
+            rV = sum(svdV>tol); rW = sum(svdW>tol);
+            actSolution={rV,rW};
+            expSolution={size(V,2), size(W,2)};
             
             verification(testCase, actSolution, expSolution, sysr, s0, s0_traj);
         end
@@ -128,16 +157,50 @@ classdef testIrka < matlab.unittest.TestCase
 
             [sysr, V, W, s0, s0_traj] = irka(sss(A, B, C,0,E), ...
                  [Inf, Inf, 3+5i, 3-5i, 3+5i, 3-5i, 60, 60, 60], opts);
-            actSolution={full(sysr.A),full(sysr.B),full(sysr.C), full(sysr.E),V,W};
             
             expV=arnoldi(E,A,B,s0);
             expW=arnoldi(E',A',C',s0);
-            expSolution={expW'*A*expV, expW'*B, C*expV, expW'*E*expV, expV, expW};
+            
+            svdV = svd([V,expV],0); svdW = svd([W,expW]); tol = 1e-6;
+            rV = sum(svdV>tol); rW = sum(svdW>tol);
+            actSolution={rV,rW};
+            expSolution={size(V,2), size(W,2)};
             
             verification(testCase, actSolution, expSolution, sysr, s0, s0_traj);
         end
+        function testIrka6(testCase)
+            % all benchmarks + check hermite interpolation
+            for i=1:length(testCase.sysCell)
+                %  test system
+                sys=testCase.sysCell{i};
+                
+                Opts=struct('epsilon',0.05,'maxiter',300,'type','stab','stopCrit','s0');
+                [sysr, V, W, s0, s0_traj, Rt, Lt] = irka(sys,zeros(1,10),ones(sys.m,10), ones(sys.p,10),Opts);
+                
+                expV=arnoldi(sys.E,sys.A,sys.B,s0, Rt); 
+                expW=arnoldi(sys.E',sys.A',sys.C',s0, Lt);
+                            
+                svdV = svd([V,expV],0); svdW = svd([W,expW]); tol = 1e-6;
+                rV = sum(svdV>tol); rW = sum(svdW>tol);
+                actSolution={rV,rW};
+                expSolution={size(V,2), size(W,2)};
+              
+              % verify moment matching
+              actM = moments(sysr,s0, 2); expM = moments(sys,s0, 2);
+              actMt = {}; expMt = {};
+              for iS = 1:length(s0)
+                  jM = iS*2-1;
+                  actMt = [actMt, {actM(:,:,jM)*Rt(:,iS), Lt(:,iS).'*actM(:,:,jM),...
+                           Lt(:,iS).'*actM(:,:,jM)*Rt(:,iS), Lt(:,iS).'*actM(:,:,jM+1)*Rt(:,iS)}];
+                  expMt = [expMt, {expM(:,:,jM)*Rt(:,iS), Lt(:,iS).'*expM(:,:,jM),...
+                           Lt(:,iS).'*expM(:,:,jM)*Rt(:,iS), Lt(:,iS).'*expM(:,:,jM+1)*Rt(:,iS)}];
+              end
+              actSolution = [actSolution, actMt];
+              expSolution = [expSolution, expMt];
+              verification(testCase, actSolution, expSolution, sysr, s0, s0_traj);
+            end
+        end
     end
- 
 end
 
 function [] = verification(testCase, actSolution, expSolution, sysr, s0, s0_traj)
