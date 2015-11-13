@@ -1,10 +1,10 @@
 %% What is sssMOR?
 %
-% *sssMOR* is a sparse state-space, model order reduction toolbox for
+% *sssMOR* is a sparse state-space and model order reduction toolbox for
 % MATLAB designed to work with large-scale dynamical systems in
 % state-space.
 %
-% The *sssMOR* toolbox is composed of two parts: *sss* and *sssMOR*
+% The *sssMOR* toolbox is composed of two parts: *sss* and *sssMOR*.
 %
 % *sss* extends the capabilities of the Control System Toolbox by defining
 % sparse state-space (sss) objects and implementing large-scale and
@@ -15,16 +15,16 @@
 % (MOR) techniques to capture the dynamics of large-scale systems in
 % reduced order models of significantly smaller size.
 %
-% By using *sss* and *sssMOR*, it is posisble to define and analyze dynamic
+% By using *sss* and *sssMOR*, it is possible to define and analyze dynamic
 % system objects with state-space dimensions higher than
 % $\mathcal{O}(10^4)$, which is generally the limit for standard built-in
 % ss and dss objects.
 %
-% *sssMOR* is a MATLAB toolbox developed at the model order reduction lab
-% (MORLAB) of the Chair of Aumtomatic Control of TU M&uuml;nchen.
+% *sssMOR* is a MATLAB toolbox developed at the Model Order Reduction Lab
+% (MORLAB) of the Chair of Automatic Control of TU M&uuml;nchen.
 %
 % *sss* is a MATLAB toolbox developed at MORLAB in collaboration with the
-% Chair of Thermo-Fluid Dynamic, TU M&uuml;nchen.
+% Chair of Thermofluid Dynamics, TU M&uuml;nchen.
 %
 % 
 
