@@ -1,5 +1,5 @@
 function  sss_gettingStarted
-% SSS_GETTINGSTARTED - Introductory demo to sssMOR toolbox 
+% SSS_GETTINGSTARTED - Introductory demo to sss toolbox 
 % 
 % Syntax:
 %       SSS_GETTINGSTARTED

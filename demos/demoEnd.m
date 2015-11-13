@@ -2,7 +2,7 @@ function demoEnd
 % DEMOEND - Print lines at end of demos 
 % 
 % Syntax:
-%       SSSMOR_GETTINGSTARTED
+%       DEMOEND
 % 
 % Description:
 %       This is an auxiliary function for all demos. It prints out
