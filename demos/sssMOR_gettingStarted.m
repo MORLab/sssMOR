@@ -1,8 +1,8 @@
-function MOR_gettingStarted
-% MOR_GETTINGSTARTED - Introductory demo to sssMOR toolbox 
+function sssMOR_gettingStarted
+% SSSMOR_GETTINGSTARTED - Introductory demo to sssMOR toolbox 
 % 
 % Syntax:
-%       MOR_GETTINGSTARTED
+%       SSSMOR_GETTINGSTARTED
 % 
 % Description:
 %       This function can be executed as it is and will guide the 
@@ -13,10 +13,10 @@ function MOR_gettingStarted
 %       sss_gettingStarted
 %
 %------------------------------------------------------------------
-% This file is part of <a href="matlab:docsearch sss">sss</a>, a Sparse State-Space and System Analysis 
-% Toolbox developed at the Chair of Automatic Control in collaboration
-% with the Chair of Thermofluid Dynamics, Technische Universitaet Muenchen. 
-% For updates and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
 %                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
 %
@@ -30,15 +30,16 @@ function MOR_gettingStarted
 % Last Change:  23 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
+
 %%  Initialization
 clear, clc
 warning('off','all');
 fprintf('Starting demo execution: sssMOR_gettingStarted...\n\n'); 
 
 rule
-fprintf(['\t sssMOR - A sparse state space and model reduction toolbox\n']); 
+fprintf(['\t sssMOR - A sparse state-space and model reduction toolbox\n']); 
 rule
-fprintf(['\tDeveloped at Chair of Automatic Control, TUM\n']);
+fprintf(['\tDeveloped at the Chair of Automatic Control, TUM\n']);
 fprintf(['\tNote: for academic use only.\n']);
 rule
 %%  Model Order Reduction
@@ -47,7 +48,7 @@ clear
 fprintf(['\t Model Order Reduction (MOR)\n\n']);
 
 fprintf('Besides allowing the definition of sparse dynamic systems, the \n');
-fprintf('main goal of the sssMOR toolbox is to provide basic and state-of- \n');
+fprintf('main goal of the sssMOR toolbox is to provide classic and state-of- \n');
 fprintf('the-art MOR functions for academic research and teaching.\n');
 
 fprintf('The functions are implemented to work in combination with the sss- \n');
@@ -81,7 +82,7 @@ customPause
 fprintf('The first model reduction procedure we would like to test is\n');
 fprintf('MODAL REDUCTION, i.e. the truncation of less dominant modes in the\n');
 fprintf('system. There are several ways to define "dominance". The default\n');
-fprintf('choice in "modalMOR", the sssMOR function for modal reduction, is\n');
+fprintf('choice in "modalMor", the sssMOR function for modal reduction, is\n');
 fprintf('to select the eigenmodes corresponding to the first q eigenvalues \n');
 fprintf('with smallest magnitude (q is the desired reduced order). This can \n');
 fprintf('be computed quite efficiently using the "eigs" function.\n');
@@ -112,8 +113,8 @@ customPause
 fprintf('\nThe next reduction method we wish to test is BALANCED TRUNCATION.\n');
 fprintf('This reduction is based on bringing the system to a balanced form,\n');
 fprintf('where observability and controllability Gramians are equal and \n');
-fprintf('diagonal, and truncating states that are both badly controllable\n');
-fprintf('and observable. The reduction order is the same as in the modal \n');
+fprintf('diagonal, and truncating states variables that are both badly contro-\n');
+fprintf('llable and observable. The reduction order is the same as in the modal \n');
 fprintf('case. \n');
 customPause
 
@@ -140,7 +141,7 @@ fprintf('is the same as before, we perform two-sided reduction, hence 2q \n');
 fprintf('moments of the original model are matched. \n');
 customPause
 
-fprintf('\nThe definition of s0 can be done either by listing all frequenceies \n');
+fprintf('\nThe definition of s0 can be done either by listing all frequencies \n');
 fprintf('in a row vector...\n');
 fprintf('>> s0 = [0 0 ... 0]\n');
 fprintf('...or in a matrix having frequencies in the 1st and multiplicity in the\n');
@@ -163,7 +164,7 @@ customPause
 %   *IRKA
 fprintf('\nAnother algorithm based on rational Krylov which is aimed at \n');
 fprintf('finding a set of complex frequencies s0 such that the reduced model\n');
-fprintf('is a locally H2 optimal approximation of the original, is the \n');
+fprintf('is a locally H2-optimal approximation of the original, is the \n');
 fprintf('Iterative Rational Krylov Algoritm (IRKA).\n');
 customPause
 

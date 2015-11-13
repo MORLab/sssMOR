@@ -11,7 +11,7 @@ function  sss_gettingStarted
 %       objects.
 %
 % See Also:
-%       MOR_gettingStarted
+%       sssMOR_gettingStarted
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sss">sss</a>, a Sparse State-Space and System Analysis 
@@ -35,17 +35,18 @@ function  sss_gettingStarted
 %%  Initialization
 clear, clc
 warning('off','all');
-fprintf('Starting demo execution: sssMOR_gettingStarted...\n\n'); 
+fprintf('Starting demo execution: sss_gettingStarted...\n\n'); 
 
 rule
-fprintf(['\t sssMOR - A sparse state space and model reduction toolbox\n']); 
+fprintf(['\t sss - A sparse state-space and system analysis toolbox\n']); 
 rule
-fprintf(['\tDeveloped at Chair of Automatic Control, TUM\n']);
+fprintf(['\tDeveloped at the Chair of Automatic Control in collaboration\n']);
+fprintf(['\twith the Chair of Thermofluid Dynamics, TUM\n\n']);
 fprintf(['\tNote: for academic use only.\n']);
 rule
 
 %%  Sparse State Space (SSS)
-fprintf(['\t Sparse State Space (SSS) objects\n\n']);
+fprintf(['\t Sparse State-Space (SSS) objects\n\n']);
 
 fprintf('Large scale linear systems are usually modelled by sparse\n');
 fprintf('matrices, i.e. matrices with only a small number of nonzero\n');
@@ -65,23 +66,22 @@ fprintf('\t... "full" is 10^%i\n',kDouble);
 fprintf('\t... sparse is 10^%i.\n',kSparse);
 customPause
 
-fprintf('Unfortunately, the DynamicSystem class in MATLAB, in particular\n');
+fprintf('Unfortunately, the Control System Toolbox in MATLAB, in particular\n');
 fprintf('state space (ss or dss) objects, do not support sparse matrices.\n');
-fprintf('As a result, in the large scale setting, where the storing of \n');
+fprintf('As a result, in the large-scale setting, where the storing of \n');
 fprintf('system matrices as "full" is not possible and/or desirable,\n');
 fprintf('the basic system analysis functions such as bode, bodemag, eig \n');
 fprintf('freqresp etc., but even model reduction functions as balred, \n');
-fprintf('balancmr, modred etc. cannot be used \n')
+fprintf('balancmr, modred etc., cannot be used. \n')
 customPause
 
-fprintf('sssMOR includes the definition of sparse state space (sss) objects\n');
-fprintf('and the sparsity and large-scale-optimized implementation of some \n');
-fprintf('of the most common function for dynamic systems objects.\n');
+fprintf('sss includes the definition of sparse state-space (sss) objects\n');
+fprintf('as well as the sparsity and large-scale-optimized implementation of\n');
+fprintf('some of the most common function for dynamic systems objects.\n');
 customPause
-
 
 fprintf('\nLet us begin with an example that illustrates the capabilities \n');
-fprintf('of the sssMOR toolbox and in particular sss-objects.\n');
+fprintf('of the sss toolbox and in particular sss-objects.\n');
 
 %   *Selection of a benchmark model
 [sysName,A,B,C,D,E] = selectModel;
@@ -95,12 +95,12 @@ fprintf('\nYou chose the "%s" model. \n',sysName);
 
 %   *Create an sss-object sys
 fprintf('\nThe dynamics of the system are described by the explicit\n');
-fprintf('state space realization with sparse matrices:\n');
+fprintf('state-space realization with sparse matrices:\n');
 fprintf('\t    d/dt(x) = A x + B u\n');
 fprintf('\t         y  = C x + D u\n');
 customPause
 
-fprintf('Using sssMOR, the dynamic system can be stored as sss-object calling:\n');
+fprintf('Using sss, the dynamic system can be stored as sss-object calling:\n');
 fprintf('>> sys = sss(A,B,C,D,E)\n');
 sys = sss(A,B,C,D,E);
 sysDss = dss(full(A),full(B),full(C),full(D),full(E));
@@ -134,7 +134,6 @@ figure; tic;bode(sys);tBodeSss = toc;
 % tBodePerc = tBodeSss/tBodeSs*100;
 % fprintf('(Note that the time required to plot the sss-object is %03.2f%% \n',tBodePerc);
 % fprintf('of the one needed for the respective ss-object.)\n');
-% TODO: Why is our  bode so mach slower than the builtin?
 customPause
 
 %*  System norms
@@ -166,7 +165,7 @@ fprintf('\trespective ss-object.)\n');
 % fprintf('\t(Note that the time required to compute the norm of the\n');
 % fprintf('\tsss-object is %03.2f%% of the one needed for the\n',tHInfPerc);
 % fprintf('\trespective ss-object.)\n');
-% customPause
+customPause
 
 %*  Time domain analysis.
 fprintf('Often times we wish to analyze the dynamic response of the \n');
