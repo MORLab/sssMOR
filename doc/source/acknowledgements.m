@@ -1,19 +1,14 @@
 %% Ackowledgements
-%
-% The sss class and all of its related analysis functions were created at
-% the Chair of Automatic Control, TU Munich, by former researchers like
-% Rudy Eid, Heiko Peuscher and Silvia Cremer and is currently being
-% serviced and developed in collaboration with the Chair of Thermofluid
-% Dynamics.
-%
-% We would like thank all the people that diretly or indirectly contributed
-% to the conception of this toolbox. Special thanks to:
-%
-% * Nico Walz
-% * HiWis
-% * Nico Walz
-% * Nico Walz
-% * Nico Walz
+% The development of the toolbox as it is could not have been achieved
+% without the support of a whole series of people, first and foremost the
+% students at MORLab that have been working hard in these past few months
+% to bring everything in shape. In addition, we would like to explicitly
+% acknowledge the work of Rudy Eid, Heiko Peuscher and Silvia Cramer who
+% have laid the foundations for the toolbox and the functions as they are
+% today. Further, Nico-Philipp Walz and the team of
+% <http://www.itm.uni-stuttgart.de/research/model_reduction/MOREMBS_en.php
+% MOREMBS> in Stuttgart are thanked for their help on creating the MATLAB
+% documentation that comes along with this toolbox.
 
 %%
 % <html>
