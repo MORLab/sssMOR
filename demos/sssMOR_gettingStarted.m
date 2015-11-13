@@ -83,8 +83,9 @@ fprintf(['Only the first output and the first input of the cdplayer will\n'...
 fprintf(['This can be done using the function truncate:\n'...
         '>>sys=truncate(sys,1,1);\n'])
     sys=truncate(sys,1,1);
-    fprintf('>>disp(sys)');
+    fprintf('>>disp(sys)\n');
     disp(sys);
+customPause
 %   *Modal reduction
 fprintf('The first model reduction procedure we would like to test is\n');
 fprintf('MODAL REDUCTION, i.e. the truncation of less dominant modes in the\n');
@@ -254,7 +255,7 @@ while ~isValid
             E = speye(size(A));
             D = 0;
             isValid = 1;
-        case 2 %beam
+        case 2 %cdplayer
             sysName = 'cdplayer';
             LoadData = load('cdplayer.mat');%assumes it is in path
             
