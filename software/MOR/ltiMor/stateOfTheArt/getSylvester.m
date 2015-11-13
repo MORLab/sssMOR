@@ -26,7 +26,6 @@ function [R, B_, S] = getSylvester(sys,sysr,V,type)
 %
 %           $A^T W - E^T V E_r^{-T} A_r^T - C\_^T L = 0 \quad  (6)$
 %
-% 
 % Input Arguments:
 %       *Required Input Arguments:*
 %       -sys:      full order model
@@ -35,7 +34,7 @@ function [R, B_, S] = getSylvester(sys,sysr,V,type)
 %       *Optional Input Arguments:*
 %       -type:     specifies if V spans an input (def) or output Krylov 
 %                   subspace {'V' (def), 'W'} 
-%
+
 % Output Arguments: 
 %       -R,S:      matrices of Sylvester equation (1) or (3)
 %       -B_:       matrix of Sylvester equation (2) or (4)
