@@ -1,3 +1,8 @@
-This is RELEASE.txt
+RELEASE NOTES
 
-Some interesting information
+A sparse state-space, model order reduction toolbox developed at the 
+Chair of Automatic Control, Technische Universität München
+Programmed and tested with: MATLAB R2015b
+The sssMOR toolbox was programmed and tested with MATLAB R2015b. The 
+toolbox might also work for previous releases of MATLAB, but perhaps 
+some functionalities get lost (no warranty).
