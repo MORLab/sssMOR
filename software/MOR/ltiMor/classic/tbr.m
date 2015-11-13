@@ -49,7 +49,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       rk, modalMor, gram, balancmr
 %
 % References:
-%       * *[1] B. C. Moore (1981)*, Principal component analysis in linear systems: controllability,
+%       * *[1] Moore (1981)*, Principal component analysis in linear systems: controllability,
 %       observability and model reduction
 %       * *[2] Antoulas (2005)*, Approximation of large-scale dynamical systems
 %
