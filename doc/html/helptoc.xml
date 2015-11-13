@@ -12,12 +12,11 @@ web: https://www.rt.mw.tum.de/
 <tocitem image="HelpIcon.GETTING_STARTED" target="getting_started_index.html">Getting Started
 			<tocitem target="whatis.html">What is sssMOR?</tocitem>
          <tocitem target="problemStatement.html">Why sssMOR?</tocitem>
-         <tocitem target="sssDoc.html">sss - sparse state-space</tocitem>
-         <tocitem target="sssMORDoc.html">sssMOR - model order reduction</tocitem>
-         <tocitem target="setUp.html">Setting up the sssMOR toolbox</tocitem>
+         <tocitem target="sssDoc.html">sss - Sparse State-Space</tocitem>
+         <tocitem target="sssMORDoc.html">sssMOR - Model Order Reduction</tocitem><!--<tocitem target="setUp.html">Setting up the sssMOR toolbox</tocitem>-->
       </tocitem>
       <tocitem image="HelpIcon.EXAMPLES" target="examples_index.html">Examples
-			<tocitem target="example_test.html">Example Test</tocitem>
+			<!---<tocitem target="example_test.html">Example Test</tocitem>-->
       </tocitem>
       <tocitem image="HelpIcon.FUNCTION" target="functions_index.html">Functions Reference
 			<tocitem target="functions_index.html">LTI MOR Classic
@@ -79,7 +78,7 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="parseOptshelp.html">parseOpts</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="partitionhelp.html">partition</tocitem>
          </tocitem>
-         <tocitem target="functions_index.html">Not Categorized
+         <tocitem target="functions_index.html">Demos
 <tocitem image="HelpIcon.FUNCTION" target="demoEndhelp.html">demoEnd</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="sssMOR_gettingStartedhelp.html">sssMOR_gettingStarted</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="sss_gettingStartedhelp.html">sss_gettingStarted</tocitem>

@@ -64,7 +64,7 @@
 % * <.\parseOptshelp.html |parseOpts|>  --  Createa an sss object from .mat file data
 % * <.\partitionhelp.html |partition|>  --  Createa an sss object from .mat file data
 
-%% Not Categorized
+%% Demos
 %
 % * <.\demoEndhelp.html |demoEnd|>  --  Print lines at end of demos
 % * <.\sssMOR_gettingStartedhelp.html |sssMOR_gettingStarted|>  --  Introductory demo to sssMOR toolbox
