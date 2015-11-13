@@ -68,7 +68,7 @@
 %
 % * <.\demoEndhelp.html |demoEnd|>  --  Print lines at end of demos
 % * <.\sssMOR_gettingStartedhelp.html |sssMOR_gettingStarted|>  --  Introductory demo to sssMOR toolbox
-% * <.\sss_gettingStartedhelp.html |sss_gettingStarted|>  --  Introductory demo to sssMOR toolbox
+% * <.\sss_gettingStartedhelp.html |sss_gettingStarted|>  --  Introductory demo to sss toolbox
 %
 %%
 % <html>

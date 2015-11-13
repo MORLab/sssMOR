@@ -79,7 +79,8 @@ web: https://www.rt.mw.tum.de/
             <tocitem image="HelpIcon.FUNCTION" target="parseOptshelp.html">parseOpts</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="partitionhelp.html">partition</tocitem>
          </tocitem>
-         <tocitem target="functions_index.html">Not Categorized<tocitem image="HelpIcon.FUNCTION" target="demoEndhelp.html">demoEnd</tocitem>
+         <tocitem target="functions_index.html">Not Categorized
+<tocitem image="HelpIcon.FUNCTION" target="demoEndhelp.html">demoEnd</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="sssMOR_gettingStartedhelp.html">sssMOR_gettingStarted</tocitem>
             <tocitem image="HelpIcon.FUNCTION" target="sss_gettingStartedhelp.html">sss_gettingStarted</tocitem>
          </tocitem>
