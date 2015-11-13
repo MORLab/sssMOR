@@ -57,18 +57,36 @@ N = 10^8; A = speye(N); whos A
 % high dimensionality goes along with a high degree of sparsity, as it is
 % shown in figures below for a selection of benchmark problems.
 %
-% <<img/iss.jpg>>
-%
-% <<img/iss_sparsity.png>>
-%
-% <<img/gyro.jpg>>
+
+%%
+% <html>
+% <div style="text-align: center; position: relative; height: 400px; width:100%;">
+%     <div style="text-align: left; height: 150px; width:100%; display: inline-block">
+%         <div style="text-align: center; width:33%; display: inline-block">
+%             <img src="img/iss.jpg" alt="iss" width="200" style="vertical-align: bottom;">
+%         </div>
+%         <div style="text-align: center; width:32%; display: inline-block">
+%             <img src="img/gyro.jpg" alt="gyro" width="200" style="vertical-align: bottom;">
+%         </div>
+%         <div style="text-align: center; width:33%; display: inline-block;">
+%             <img src="img/rail.jpg" alt="rail" width="200" style="vertical-align: bottom;">
+%         </div>
+%     </div>
+%     <div style="text-align: left; height: 150px; width:100%; display: inline-block">
+%         <div style="text-align: center; width:33%; display: inline-block">
+%             <img src="img/iss_sparsity.png" alt="iss" width="250" style="vertical-align: top;">
+%         </div>
+%         <div style="text-align: center; width:32%; display: inline-block">
+%             <img src="img/gyro_sparsity.png" alt="gyro" width="250" style="vertical-align: top;">
+%         </div>
+%         <div style="text-align: center; width:33%; display: inline-block;">
+%             <img src="img/rail_5177_sparsity.png" alt="rail" width="250" style="vertical-align: top;">
+%         </div>
+%     </div>
+% </div>
+% </html>
 % 
-% <<img/gyro_sparsity.png>>   
-%
-% <<img/rail.jpg>>
-% 
-% <<img/rail_5177_sparsity.png>>  
-%
+
 %%	
 % Unfortunaltely, the built-in functions _ss_ and _dss_ convert all
 % matrices to full, so that sparsity of the system matrices cannot be
