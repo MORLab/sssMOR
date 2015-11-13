@@ -1,15 +1,16 @@
-function [sysr, V, W, s0, s0Traj, Rsylv, Lsylv] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
-%       sysr = IRKA(sys, s0)
-%       sysr = IRKA(sys, s0, Opts)
-%       sysr = IRKA(sys, s0, Rt, Lt)
-%       sysr = IRKA(sys, s0, Rt, Lt, Opts)
-%       [sysr, V, W] = IRKA(sys, ... )
-%       [sysr, V, W, s0] = IRKA(sys, ... )
-%       [sysr, V, W, s0, s0Traj] = IRKA(sys, ... )
-%       [sysr, V, W, s0, s0Traj, Rsylv, Lsylv] = IRKA(sys, ... )
+%       sysr                            = IRKA(sys, s0)
+%       sysr                            = IRKA(sys, s0, Opts)
+%       sysr                            = IRKA(sys, s0, Rt, Lt)
+%       sysr                            = IRKA(sys, s0, Rt, Lt, Opts)
+%       [sysr, V, W]                    = IRKA(sys, s0,... )
+%       [sysr, V, W, s0]                = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, s0Traj]        = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, s0Traj, Rt, Lt]= IRKA(sys, s0,... )
+%       [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = IRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Iterative Rational Krylov
@@ -20,28 +21,51 @@ function [sysr, V, W, s0, s0Traj, Rsylv, Lsylv] = irka(sys, s0, varargin)
 %       then the reduced model is known to be a local optimum with respect
 %       to the H2 norm of the error.
 %
-% Input Arguments:       
-%       -sys:       full oder model (sss)
-%       -s0:        vector of initial shifts
-%       -Opts:      (opt.) structure with execution parameters
-%       -Rt/Lt:     initial right/left tangential directions for MIMO
+%       Convergence is determined by observing the shifts and norm of the
+%       reduced model over the iterations. This behavior can be changed
+%       with the optional Opts structure.
+%
+% Input Arguments:  
+%       *Required Input Arguments:*
+%       -sys:			full oder model (sss)
+%       -s0:			vector of initial shifts
+%
+%       *Optional Input Arguments:*
+%       -Rt/Lt:			initial right/left tangential directions for MIMO
+%       -Opts:			structure with execution parameters
+%			-.maxiter:	maximum number of iterations;
+%						[{50} / positive integer]
+%			-.tol:		convergence tolerange;
+%						[{1e-3} / positive float]
+%			-.type:		choose between different irka modifications;
+%						[{''} / 'stab']
+%			-.verbose:	show text output during iterations;
+%						[{0} / 1]
+%			-.stopCrit:	stopping criterion;
+%						[{'combAny'} / 's0' / 'sysr' / 'combAll']
 %
 % Output Arguments:      
-%       -sysr:     reduced order model (sss)
-%       -V,W:      resulting projection matrices
-%       -s0:       final choice of shifts
-%       -s0Traj:  trajectory of all shifst for all iterations
-%       -Rt,Lt:   right/left tangential directions from arnoldi
+%       -sysr:			reduced order model (sss)
+%       -V,W:			resulting projection matrices
+%       -s0:			final choice of shifts
+%       -s0Traj:		trajectory of all shifst for all iterations
 %
 % Examples:
-%       TODO
+%       This code computes an H2-optimal approximation of order 8 to
+%       the benchmark model 'fom'. One can use the function isH2opt to
+%       verify if the necessary conditions for optimality are satisfied.
+%
+%> sys = loadSss('fom')
+%> [sysr, ~, ~, s0opt] = irka(sys, -eigs(sys,8).');
+%> bode(sys,'-',sysr,'--r');
+%> isH2opt(sys, sysr, s0opt)
 %
 % See Also: 
-%       arnoldi, rk
+%       arnoldi, rk, isH2opt
 %
 % References:
-%       * *[1] Gugercin (2008)*, H2 model reduction for large-scale linear dynamical systems
-%       * *[2] Beattie (2014)*, Model reduction by rational interpolation
+%       * *[1] Gugercin et al. (2008)*, H2 model reduction for large-scale linear dynamical systems
+%       * *[2] Beattie et al. (2014)*, Model reduction by rational interpolation
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
@@ -67,7 +91,7 @@ if nargin > 2
     if nargin == 3
         %usage irka(sys,s0,Opts)
         Opts = varargin{1};
-        if sys.isMimo
+        if ~sys.isSiso
             error('specify initial tangential directions for MIMO systems');
         end
     elseif nargin == 4
@@ -81,10 +105,6 @@ if nargin > 2
         Opts = varargin{3};
     end
 end
-if sys.isMimo && (~exist('Rt','var')|| isempty(Rt) ...
-        || ~exist('Lt','var')|| isempty(Lt))
-    error('specify initial tangential directions for MIMO systems');
-end
     
 %% Parse the inputs
 %   Default execution parameters
@@ -93,7 +113,6 @@ Def.tol = 1e-3;
 Def.type = ''; %'stab', 'newton', 'restarted'
 Def.verbose = 0; % text output durint iteration?
 Def.stopCrit = 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
-Def.cplxpairTol = 1e-6;
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -109,6 +128,16 @@ end
 
 s0 = s0_vect(s0);
 
+% sort expansion points & tangential directions
+s0old = s0;
+s0 = cplxpair(s0);
+if exist('Rt','var') && ~isempty(Rt)
+    [~,cplxSorting] = ismember(s0old,s0); 
+    Rt = Rt(:,cplxSorting);
+    Lt = Lt(:,cplxSorting);
+end
+clear s0old
+
 % Initialize variables
 sysr = sss([],[],[]);
 s0Traj = zeros(Opts.maxiter+2, length(s0));
@@ -120,31 +149,23 @@ while true
     k=k+1; sysr_old = sysr;
     %   Reduction
     if sys.isSiso
-        [sysr, V, W, ~ , Rsylv, ~ , Lsylv] = rk(sys, s0, s0);
+        [sysr, V, W,B_,Rsylv,C_,Lsylv] = rk(sys, s0, s0);
     else
-        [sysr, V, W, ~, Rsylv, ~ , Lsylv] = rk(sys, s0, s0, Rt, Lt);
+        [sysr, V, W,B_,Rsylv,C_,Lsylv] = rk(sys, s0, s0, Rt, Lt);
     end 
-    %--
-%     warning off
-%     rMatching = zeros(1,sysr.n); lMatching = zeros(1,sysr.n);
-%     for iS = 1:length(s0)
-%         rMatching(iS) = (norm(moments(sys-sysr,s0(iS),1)*Rt(:,iS)));
-%         lMatching(iS) = (norm(Lt(:,iS).'*moments(sys-sysr,s0(iS),1)));
-%     end
-%     all([rMatching, lMatching]< 1e-5)
-%     for iS = 1:length(s0)
-%         rMatching(iS) = (norm(moments(sys-sysr,s0(iS),1)*Rsylv(:,iS)));
-%         lMatching(iS) = (norm(Lsylv(:,iS).'*moments(sys-sysr,s0(iS),1)));
-%     end
-%     all([rMatching, lMatching]< 1e-5)
-%     warning on
-    %--
+    
     %   Update of the reduction parameters
-    s0_old=s0;
+    s0_old=s0; if ~sys.isSiso, Rt_old = Rt; Lt_old = Lt; end
     if sys.isMimo
         [X, D, Y] = eig(sysr);
         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X);
         s0 = full(-diag(D).');
+        % make sure real shifts have real directions
+        idx = find(imag(s0)==0);
+        if any([max(imag(Rt(:,idx))),max(imag(Lt(:,idx)))]) > 1e-15
+            warning('Tangential directions corresponding to real shifts are complex')              
+        end
+        Rt(:,idx) = real(Rt(:,idx)); Lt(:,idx) = real(Lt(:,idx));
     else
         s0 = -eig(sysr)';
     end
@@ -161,6 +182,7 @@ while true
     end
     if stop || k>= Opts.maxiter
         s0 = s0_old; % function return value
+        if ~sys.isSiso, Rt = Rt_old; Lt = Lt_old; end
         s0Traj = s0Traj(1:(k+1),:);
         break
     end      
@@ -184,6 +206,9 @@ function s0=s0_vect(s0)
             temp(k)=s0(1,j)*ones(1,s0(2,j));
         end
         s0=temp;
+    end
+    if size(s0,1)>size(s0,2)
+        s0=transpose(s0);
     end
 function [stop,stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts)
 %   Computes the stopping criterion(s) for IRKA

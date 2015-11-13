@@ -15,6 +15,7 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %
 %       [sysr, V, W, Bb, Rsylv] = RK(sys,s0_inp,...)
 %       [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = RK(sys,s0_inp, s0_out, ...)
+%       [sysr,...] = RK(sys, s0_inp, ..., Opts)
 %
 % Description:
 %       s0 may either be horizontal vectors containing the desired
@@ -73,6 +74,13 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %------------------------------------------------------------------
 
 %%  Parsing
+if isstruct(varargin(end))
+    Opts = varargin{end};
+    varargin = varargout(1:end-1);
+else
+    Opts = struct();
+end
+
 if nargin > 2
     if isempty(s0_inp) || all(size(varargin{1}) == size(s0_inp));
         %usage: RK(sys, s0_inp, s0_out)
@@ -105,11 +113,26 @@ end
 
 if exist('s0_inp', 'var')
     s0_inp = s0_vect(s0_inp);
+    % sort expansion points & tangential directions
+    s0old = s0_inp;
+    s0_inp = cplxpair(s0_inp);
+    if exist('Rt','var') && ~isempty(Rt)
+        [~,cplxSorting] = ismember(s0_inp,s0old); 
+        Rt = Rt(:,cplxSorting);
+    end
+clear s0old
 else
     s0_inp = [];
 end
 if exist('s0_out', 'var')
     s0_out = s0_vect(s0_out);
+        % sort expansion points & tangential directions
+    s0old = s0_out;
+    s0_out = cplxpair(s0_out);
+    if exist('Lt','var') && ~isempty(Lt)
+        [~,cplxSorting] = ismember(s0_out,s0old); 
+        Lt = Lt(:,cplxSorting);
+    end
 else
     s0_out = [];
 end
@@ -133,18 +156,14 @@ if ~isempty(s0_inp) && ~isempty(s0_out)
 end
 %%  Define execution variables
 if ~exist('IP', 'var'), 
-    if ispd(sys.E) %assign IP to speed-up computations
-        IP=@(x,y) (x'*sys.E*y); 
-    else
-        IP=@(x,y) (x'*y);
-    end
+    IP=@(x,y) (x'*y);
 end
 %%  Computation
 if isempty(s0_out)
     % input Krylov subspace
     
     % SISO Arnoldi
-    [V,Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP);
+    [V,Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
     W = V;
     sysr = sss(V'*sys.A*V, V'*sys.B, sys.C*V, sys.D, V'*sys.E*V);
     Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
@@ -154,7 +173,7 @@ elseif isempty(s0_inp)
     % output Krylov subspace
     
     % SISO Arnoldi
-    [W,Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP);
+    [W,Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP, Opts);
     V = W;
     sysr = sss(W'*sys.A*W, W'*sys.B, sys.C*W, sys.D, W'*sys.E*W);
     Cb = sys.C - sysr.C/sysr.E*W'*sys.E;
@@ -162,10 +181,10 @@ elseif isempty(s0_inp)
 else
     if all(s0_inp == s0_out) %use only 1 LU decomposition for V and W
         [V,Rsylv,W,Lsylv] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
-                            s0_inp,Rt, Lt, IP);
+                            s0_inp,Rt, Lt, IP, Opts);
     else
-        [V,Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP);
-        [W,Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP);
+        [V,Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
+        [W,Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP, Opts);
     end
     sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
 

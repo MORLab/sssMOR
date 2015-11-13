@@ -1,20 +1,22 @@
 function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
-% ARNOLDI - Arnoldi algorithm using multiple expansion points
+% ARNOLDI - Arnoldi algorithm for Krylov subspaces with multiple shifts
 % 
 % Syntax:
-%       V                = ARNOLDI(E,A,B,s0)
-%       [V,Rsylv]        = ARNOLDI(E,A,B,s0)
-%       [V,Rsylv]        = ARNOLDI(E,A,B,s0,IP)
-%       [V,Rsylv]        = ARNOLDI(E,A,B,s0,Rt)
-%       [V,Rsylv]        = ARNOLDI(E,A,B,s0,Rt,IP)
-%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0)
-%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0,IP)
-%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0,Rt,Lt)
-%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
+%       V					= ARNOLDI(E,A,B,s0)
+%       V					= ARNOLDI(E,A,B,s0)
+%       [V,Rsylv]			= ARNOLDI(E,A,B,s0)
+%       [V,Rsylv]			= ARNOLDI(E,A,B,s0,IP)
+%       [V,Rsylv]			= ARNOLDI(E,A,B,s0,Rt)
+%       [V,Rsylv]			= ARNOLDI(E,A,B,s0,Rt,IP)
+%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0)
+%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0,IP)
+%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0,Rt,Lt)
+%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
+%       [V,...]	= ARNOLDI(E,A,B,C,s0,...,Opts)
 % 
 % Description:
 %       This function is used to compute the matrix V spanning the 
-%       input Krylov subspace corresponding to E, A, b and s0 [1,2].
+%       rational input Krylov subspace corresponding to E, A, b and s0 [1-3].
 %
 %       s0 must be a vector of complex frequencies closed under conjugation. 
 %       In case of MIMO systems, if matrices of tangential directions Rt 
@@ -23,24 +25,33 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %       which shift it belongs. If not tangential directions are specified,
 %       then block Krylov subspaces are computed.
 %
-%       NOTE that for MIMO systems, not all possible Krylov subspaces can 
-%       be build with this function. For example, block Krylov subpspaces 
+%       If in addition, the output matrix C is passed, then ARNOLDI
+%       computes input and output Krylov subspaces corresponding to the
+%       same expansion points. The resulting matrices V, W can be used for
+%       Hermite interpolation.
+%
+%       //Note: for MIMO systems, block Krylov subpspaces 
 %       with multiplicities in the shifts are not supported so far.
 %
 %       The columns of V build an orthonormal basis of the input Krylov 
 %       subspace. The orthogonalization is conducted using a 
-%       reorthogonalized modified Gram-Schmidt procedure [3] with respect 
+%       reorthogonalized modified Gram-Schmidt procedure [4] with respect 
 %       to the inner product  defined in IP (optional). If no inner product 
-%       is specified, then the elliptic product corresponding to E is 
+%       is specified, then the euclidian product corresponding to I is 
 %       chosen by default:
-%                       IP=@(x,y) (x'*E*y)
+%
+%                       IP=@(x,y) (x'*I*y)
+%
 %       which requires E to be a positive definite matrix.
 %
 % Input Arguments:
+%       *Required Input Arguments:*
 %       -E/A/B/C:  System matrices
-%       -s0:       Vector of expansion points
-%       -Rt,Lt:     (opt.) Matrix of right/left tangential directions
-%       -IP:       (opt.) function handle for inner product
+%       -s0:       Vector of complex conjuate expansion points
+%
+%       *Optional Input Arguments:*
+%       -Rt,Lt:    Matrix of right/left tangential directions
+%       -IP:       function handle for inner product
 %
 % Output Arguments:
 %       -V:        Orthonormal basis spanning the input Krylov subsp. 
@@ -48,11 +59,8 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %       -W:        Orthonormal basis spanning the output Krylov subsp.
 %       -Lsylv:    Left tangential directions of Sylvester Eq.
 %
-% Examples:
-%       TODO
-%
 % See Also: 
-%       rk
+%       rk, irka
 %
 % References:
 %       * *[1] Grimme (1997)*, Krylov projection methods for model reduction
@@ -79,12 +87,24 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
-
 %%  Define execution parameters
-makeOrth = 1; %create an orthonormal basis?
-makeReal = 1; %keep the projection matrices real?
+if isstruct(varargin{end});
+    %Options defined
+    Opts = varargin{end};
+    varargin = varargin(1:end-1);
+end
 
-reorth = 'gs'; %0, 'gs','qr'
+Def.makeOrth = 1; %make orthogonal?
+Def.makeReal = 1; %keep the projection matrices real?
+Def.reorth = 'gs'; %gram schmidt reorthogonalization {0, 'gs','qr'}
+        
+% create the options structure
+if ~exist('Opts','var') || isempty(Opts)
+    Opts = Def;
+else
+    Opts = parseOpts(Opts,Def);
+end              
+ 
 %%  Parse input
 if nargin == 4
     % usage: ARNOLDI(E,A,B,s0)
@@ -153,17 +173,16 @@ if exist('Lt','var') && ~isempty(Lt)
     end
 end
 
-if makeReal
+if Def.makeReal
     % remove one element of complex pairs (must be closed under conjugation)
-    k=find(imag(s0)); idx = 1:length(s0); %keep track of permutations
+    k=find(imag(s0));
     if ~isempty(k)
         % make sure shift are sorted and come in complex conjugate pairs
         try 
-            s0cUnsrt = s0(k); idxUnsrt = idx(k);
+            s0cUnsrt = s0(k);
             s0c = cplxpair(s0cUnsrt);
             % get permutation indices, since cplxpair does not do it for you
             [~,cplxSorting] = ismember(s0c,s0cUnsrt); %B(idx) = A
-            idxc = idxUnsrt(cplxSorting);
         catch 
             error(['Shifts must come in complex conjugated pairs and be sorted',...
                 ' before being passed to arnoldi.'])
@@ -171,8 +190,8 @@ if makeReal
 
         % take only one shift per complex conjugate pair
         nS0c = length(s0c); %number of complex shifts
-        s0(k) = []; idx(k) = [];
-        s0 = [s0 s0c(1:2:end)]; idx = [idx idxc(1:2:end) idxc(2:2:end)];
+        s0(k) = []; 
+        s0 = [s0 s0c(1:2:end)];
 
         % take only one residue vector for each complex conjugate pair
         if exist('Rt','var') && ~isempty(Rt)
@@ -229,15 +248,10 @@ if ~exist('Rt', 'var') || isempty(Rt)%   Compute block Krylov subspaces
     end
 end
 
-% lseSol = 'lu'; %'lu', '\'
 %%  Define variables that might have not been passed to the function
 %   IP
 if ~exist('IP', 'var') 
-    if abs(condest(E))<Inf % 
-        IP=@(x,y) (x'*E*y); 
-    else
-        IP=@(x,y) (x'*y); 
-    end
+    IP=@(x,y) (x'*y); 
 end
 %%  Compute the Krylov subspaces
 % preallocate memory
@@ -253,14 +267,16 @@ for jCol=1:nS0
         if s0(jCol)==s0(jCol-1)
             newlu=0;
             if Rt(:,jCol) == Rt(:,jCol-1)
-                newrt=0;
                 % Higher order moments, for the SISO and MIMO case
+                newtan = 0;
                 tempV = V(:,jCol-1); %overwrite
                 Rsylv(:,jCol)=zeros(m,1);
                 if hermite
                     tempW = W(:,jCol-1); 
                     Lsylv(:,jCol)=zeros(p,1); 
                 end
+            else
+                newtan = 1;
             end
         end
     end
@@ -290,9 +306,15 @@ for jCol=1:nS0
             tempV = S*(R\(R'\(S'*tempV)));
         end
     else %Rational Krylov
-        if newlu==0 && newrt ==0
-            tempV=E*tempV;
-            if hermite, tempW = E'*tempW; end
+        if newlu==0
+            if m==1 %SISO
+                tempV=E*tempV;
+                if hermite, tempW = E'*tempW; end
+            elseif newtan==0
+                % Tangential matching of higher order moments
+                tempV=E*tempV;
+                if hermite, tempW = E'*tempW; end
+            end
         end
         if newlu==1
             % vector LU for sparse matrices
@@ -304,7 +326,7 @@ for jCol=1:nS0
     end 
 
     % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
-    if makeReal
+    if Def.makeReal
         if ~isreal(s0(jCol))
             V(:,jCol+nS0c/2)=imag(tempV); 
             tempV=real(tempV);
@@ -318,7 +340,7 @@ for jCol=1:nS0
         end
     end
 
-    if makeOrth
+    if Def.makeOrth
         % orthogonalize vectors
         for iCol=1:jCol-1
           h=IP(tempV,V(:,iCol));
@@ -346,7 +368,7 @@ for jCol=1:nS0
 end
 
 %orthogonalize columns from imaginary components
-if makeOrth
+if Def.makeOrth
     for jCol=length(s0)+1:q
         tempV=V(:,jCol);
         if hermite, tempW=W(:,jCol);end
@@ -381,8 +403,8 @@ end
    reduced order is large
    The QR algorithm is much faster, however it does change the basis
 %}
-if reorth
-   switch reorth
+if Def.reorth
+   switch Def.reorth
        case 'gs' %reorthogonalized GS
             for jCol = 2:q
                 tempV = V(:,jCol);
@@ -412,11 +434,4 @@ if reorth
            error('The orthogonalization chosen is incorrect or not implemented')
    end
 end
-
-%%  Sort everything back in terms of the original order
-% (this is needed i.e. when checking if tangential interpolation is
-% achieved)
-
-V(:,idx) = V; Rsylv(:,idx)= Rsylv;
-if hermite, W(:,idx) = W; Lsylv(:,idx)=Lsylv; end
 
