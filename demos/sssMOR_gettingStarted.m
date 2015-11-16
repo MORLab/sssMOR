@@ -78,7 +78,7 @@ fprintf('>> bode(sys)\n');
     figure;bode(sys);%plot
 customPause
 
-fprintf(['Only the first output and the first input of the cdplayer will\n'...
+fprintf(['Only the first output and the first input of the CDplayer will\n'...
         'be taken into consideration in the reduction.\n']);
 fprintf(['This can be done using the function truncate:\n'...
         '>>sys=truncate(sys,1,1);\n'])
@@ -95,7 +95,7 @@ fprintf('to select the eigenmodes corresponding to the first q eigenvalues \n');
 fprintf('with smallest magnitude (q is the desired reduced order). This can \n');
 fprintf('be computed quite efficiently using the "eigs" function.\n');
 customPause
-    if strcmp(sysName,'cdplayer')
+    if strcmp(sysName,'CDplayer')
     q = round(size(sys.A,1)/6);
     isEven = ~(round(q/2)-q/2); if ~isEven, q=q-1; end 
 fprintf('For this example, we choose a reduced order of %i, which \n',q);
@@ -255,9 +255,9 @@ while ~isValid
             E = speye(size(A));
             D = 0;
             isValid = 1;
-        case 2 %cdplayer
-            sysName = 'cdplayer';
-            LoadData = load('cdplayer.mat');%assumes it is in path
+        case 2 %CDplayer
+            sysName = 'CDplayer';
+            LoadData = load('CDplayer.mat');%assumes it is in path
             
             A = LoadData.A; B = LoadData.B; C = LoadData.C;
             E = speye(size(A));
