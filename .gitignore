@@ -44,7 +44,6 @@ Temporary Items
 
 # MATLAB stuff
 *.asv
-*.mat
 
 # LaTeX stuff
 *.acn
