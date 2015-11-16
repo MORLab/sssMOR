@@ -39,13 +39,14 @@ classdef testRk < matlab.unittest.TestCase
         function getBenchmarks(testCase)
             testCase.pwdPath=pwd;
             if exist('benchmarksSysCell.mat','file')
-                temp=load('benchmarksSysCell.mat');
-                testCase.sysCell=temp.benchmarksSysCell;
                 testCase.deleteBenchmarks=0;
             else
                 testCase.testPath=loadBenchmarks;
                 testCase.deleteBenchmarks=1;
             end
+            
+            temp=load('benchmarksSysCell.mat');
+            testCase.sysCell=temp.benchmarksSysCell;
 
             %the directory "benchmark" is in sssMOR
             p = mfilename('fullpath'); k = strfind(p, 'test\'); 
