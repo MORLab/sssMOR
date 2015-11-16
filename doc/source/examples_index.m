@@ -7,7 +7,6 @@
 % |example| folder contains a "getting started"-demo for both the sss and
 % the sssMOR toolbox:
 % 
-% * <demoEndhelp.html |demoEnd|> - Print lines at end of demos
 % * <sss_gettingStartedhelp.html |sss_gettingStarted|> - Introductory demo to sss toolbox 
 % * <sssMOR_gettingStartedhelp.html |sssMOR_gettingStarted|> - Introductory demo to sssMOR toolbox
 %

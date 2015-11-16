@@ -188,7 +188,7 @@ options.format = 'html';
 options.outputDir = html_dir;
 options.maxHeight = 800;
 options.maxWidth = 600;
-options.evalCode = false;
+options.evalCode = true;
 options.stylesheet = [doc_dir filesep 'myStyleSheet.xsl'];
 options.createThumbnail = false;
 

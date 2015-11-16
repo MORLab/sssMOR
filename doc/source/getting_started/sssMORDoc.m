@@ -8,7 +8,7 @@
 % For this reason, in the large-scale setting we often seek reduced order
 % models (ROM) of much smaller dimension that capture the relevant dynamics.
 %
-% For the benchmark examples above, the figures below illustrate how
+% For the ISS benchmark example above, the figure below illustrates how
 % appropriate model order reduction (MOR) techniques can yield good
 % approximations of the dynamics and drastically reduced the model size.
 %
@@ -18,10 +18,6 @@
 % <html>
 % <div style="text-align: center; position: relative; height: 400px; width:100%;">
 %     <img src="img/iss_MOR.png" alt="iss" width="500" style="vertical-align: bottom;">
-% </div>
-% <div style="text-align: center; position: relative; height: 400px; width:100%;">
-%     <img src="img/gyro_MOR.png" alt="gyro" width="500" style="vertical-align: bottom;">
-% </div>
 % </html>
 %
 
