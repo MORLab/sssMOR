@@ -3,7 +3,7 @@
 % without the support of a whole series of people, first and foremost the
 % students at MORLab that have been working hard in these past few months
 % to bring everything in shape. In addition, we would like to explicitly
-% acknowledge the work of Rudy Eid, Heiko Peuscher and Silvia Cramer who
+% acknowledge the work of Rudy Eid, Heiko Panzer and Sylvia Cremer who
 % have laid the foundations for the toolbox and the functions as they are
 % today. Further, Nico-Philipp Walz and the team of
 % <http://www.itm.uni-stuttgart.de/research/model_reduction/MOREMBS_en.php

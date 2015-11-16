@@ -12,7 +12,7 @@
 % * <sssMOR_gettingStartedhelp.html |sssMOR_gettingStarted|> - Introductory demo to sssMOR toolbox
 %
 % *Just type |sss_gettingStarted| and/or |sssMOR_gettingStarted| in the Command 
-% Window and start geting to know our toolboxes!*
+% Window and start getting to know our toolboxes!*
 %%
 % <html>
 %   <hr>

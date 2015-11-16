@@ -1,8 +1,17 @@
 RELEASE NOTES
 
-A sparse state-space, model order reduction toolbox developed at the 
-Chair of Automatic Control, Technische Universität München
-Programmed and tested with: MATLAB R2015b
+A sparse state-space and model order reduction toolbox developed at the 
+Chair of Automatic Control, Technische Universitaet Muenchen.
+
+Programmed and tested with: MATLAB R2015b.
+
 The sssMOR toolbox was programmed and tested with MATLAB R2015b. The 
 toolbox might also work for previous releases of MATLAB, but perhaps 
 some functionalities get lost (no warranty).
+
+However, in order to be able to install the toolbox, you need the Add-On 
+Explorer, for which the Add-Ons icon is required. Therefore, you need at least
+to have the MATLAB R2014b version installed on your computer before installing
+the sssMOR toolbox.
+
+At least required version: MATLAB R2014b.
