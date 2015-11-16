@@ -1,4 +1,4 @@
-classdef testConnectSss < matlab.unittest.TestCase
+classdef testConnect < matlab.unittest.TestCase
     properties 
         pwdPath
         sysCell
@@ -37,7 +37,7 @@ classdef testConnectSss < matlab.unittest.TestCase
     
     %Test functions
     methods(Test)  
-        function testConnectSss1(testCase)
+        function testConnect1(testCase)
             if length(testCase.sysCell)>1
                 for i=1:2:length(testCase.sysCell)-1
                     sys1=testCase.sysCell{i};
@@ -54,13 +54,22 @@ classdef testConnectSss < matlab.unittest.TestCase
 end
 
 function []=sysConnect(testCase,sys1,sys2)
-            sys=append(sys1,sys2);
-            K=rand(sys.p, sys.m);
+            if sys1.m>5 || sys2.m>5 || sys1.p>5 || sys2.p>5
+                error('test is only for systems with sys.p<6 and sys.m<6');
+            end
+            inputVector1={'u11','u12','u13','u14','u15'};
+            outputVector1={'y11','y12','y13','y14','y15'};
+            inputVector2={'u21','u22','u23','u24','u25'};
+            outputVector2={'y21','y22','y23','y24','y25'};
+            sys1.InputName=inputVector1(1:sys1.m)';
+            sys1.OutputName=outputVector1(1:sys1.p)';
+            sys2.InputName=inputVector2(1:sys2.m)';
+            sys2.OutputName=outputVector2(1:sys2.p)';
 
-            [actSys]=connectSss(sys,K);
-            [expSys]=feedback(ss(sys),-K);
+            [actSys]=connect(sys1,sys2,[inputVector1(1:sys1.m),inputVector2(1:sys2.m)],[outputVector1(1:sys1.p),outputVector2(1:sys2.p)]);
+            [expSys]=connect(ss(sys1),ss(sys2),[inputVector1(1:sys1.m),inputVector2(1:sys2.m)],[outputVector1(1:sys1.p),outputVector2(1:sys2.p)]);
 
-            actSolution={full(actSys.A), full(actSys.B), full(actSys.C), full(actSys.D)};
+            actSolution={full(actSys.E\actSys.A), full(actSys.B), full(actSys.C), full(actSys.D)};
             expSolution={expSys.A, expSys.B, expSys.C, expSys.D};
 
             verifyEqual(testCase, actSolution, expSolution, 'RelTol', 0.1,'AbsTol',0.000001, ...

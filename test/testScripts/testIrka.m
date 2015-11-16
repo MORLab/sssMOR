@@ -25,56 +25,40 @@ classdef testIrka < matlab.unittest.TestCase
 % Last Change:  05 Sep 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------ 
+
     properties 
-        path
+        pwdPath
         sysCell
+        deleteBenchmarks
+        testPath
     end
 
     methods(TestClassSetup)
         function getBenchmarks(testCase)
-            testCase.path=pwd;
+            testCase.pwdPath=pwd;
             if exist('benchmarksSysCell.mat','file')
                 temp=load('benchmarksSysCell.mat');
                 testCase.sysCell=temp.benchmarksSysCell;
-                
-                %the directory "benchmark" is in sssMOR
-                p = mfilename('fullpath'); k = strfind(p, 'test\'); 
-                pathBenchmarks = [p(1:k-1),'benchmarks'];
-                cd(pathBenchmarks);
+                testCase.deleteBenchmarks=0;
             else
-                % load the benchmarks here
-                p = mfilename('fullpath'); k = strfind(p, 'test\'); 
-                pathBenchmarks = [p(1:k-1),'benchmarks'];
-                cd(pathBenchmarks);
-                
-                badBenchmarks = {'LF10.mat','beam.mat','random.mat','heat-cont.mat'};
-                
-                files = dir('*.mat'); 
-                benchmarksSysCell=cell(1,length(files));
-                nLoaded=1; %count of loaded benchmarks
-                disp('Loaded systems:');
-
-                warning('off');
-                for i=1:length(files)
-                    sys = loadSss(files(i).name);
-                    if ~any(strcmp(files(i).name,badBenchmarks)) && size(sys.A,1) <= 5000
-                        benchmarksSysCell{nLoaded}=sys;
-                        nLoaded=nLoaded+1;
-                        disp(files(i).name);
-                    end
-                end
-                benchmarksSysCell(nLoaded:end)=[];
-                warning('on');
-                
-                %   save to testCase
-                testCase.sysCell = benchmarksSysCell;
+                testCase.testPath=loadBenchmarks;
+                testCase.deleteBenchmarks=1;
             end
+
+            %the directory "benchmark" is in sssMOR
+            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+            pathBenchmarks = [p(1:k-1),'benchmarks'];
+            cd(pathBenchmarks);
         end
     end
     
     methods(TestClassTeardown)
         function changePath(testCase)
-            cd(testCase.path);
+            if testCase.deleteBenchmarks
+                cd(testCase.testPath);
+                delete('benchmarksSysCell.mat');
+            end
+            cd(testCase.pwdPath);
         end
     end
  
