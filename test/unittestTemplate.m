@@ -28,16 +28,26 @@
 classdef testName < matlab.unittest.TestCase
     
     properties 
-        path
+        pwdPath
         sysCell
+        deleteBenchmarks
+        testPath
     end
 
     methods(TestClassSetup)
         function getBenchmarks(testCase)
-            testCase.path=pwd;
+            testCase.pwdPath=pwd;
             if exist('benchmarksSysCell.mat','file')
-                temp=load('benchmarksSysCell.mat');
-                testCase.sysCell=temp.benchmarksSysCell;
+                testCase.deleteBenchmarks=0;
+            else
+                testCase.testPath=loadBenchmarks;
+                testCase.deleteBenchmarks=1;
+            end
+            
+            temp=load('benchmarksSysCell.mat');
+            testCase.sysCell=temp.benchmarksSysCell;
+            if isempty(testCase.sysCell)
+                error('No benchmarks loaded.');
             end
 
             %the directory "benchmark" is in sssMOR
@@ -49,7 +59,11 @@ classdef testName < matlab.unittest.TestCase
     
     methods(TestClassTeardown)
         function changePath(testCase)
-            cd(testCase.path);
+            if testCase.deleteBenchmarks
+                cd(testCase.testPath);
+                delete('benchmarksSysCell.mat');
+            end
+            cd(testCase.pwdPath);
         end
     end
     

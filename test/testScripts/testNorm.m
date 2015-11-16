@@ -44,6 +44,9 @@ classdef testNorm < matlab.unittest.TestCase
             
             temp=load('benchmarksSysCell.mat');
             testCase.sysCell=temp.benchmarksSysCell;
+            if isempty(testCase.sysCell)
+                error('No benchmarks loaded.');
+            end
 
             %the directory "benchmark" is in sssMOR
             p = mfilename('fullpath'); k = strfind(p, 'test\'); 
