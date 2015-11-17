@@ -11,7 +11,7 @@ function varargout = porkW(W,S_W,Brt,B)
 %       Given a projection matrix W spanning an output Krylov subspace and
 %       the respective matrices from the Sylvester equation
 %
-%          $ A^T W - E^T W S_W^T - C^T Brt^T = 0$
+%       $A^T W - E^T W S_W^T - C^T Brt^T = 0$
 %
 %       this function computes the reduced order matrices corresponding to
 %       the H2-pseudo-optimal reduced order model, i.e. a model

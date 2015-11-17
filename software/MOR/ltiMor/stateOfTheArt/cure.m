@@ -238,7 +238,7 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                 case 'rk+pork'
                     [sysRedRK, ~, W, ~, ~, ~, Brt] = rk(sys,[],s0);
                     Brt = Brt.'; %make it column matrix
-                    [~, S_W] = getSylvester(sys,sysRedRK,W,'W');
+                    [~, ~, S_W] = getSylvester(sys,sysRedRK,W,'W');
                     
                     [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B_);  
                     

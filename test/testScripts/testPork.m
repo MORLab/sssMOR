@@ -64,7 +64,7 @@ classdef testPork < matlab.unittest.TestCase
                 end              
                 
                 % get (S,R)
-                [R, S] = getSylvester(sys, sysr, V);
+                [R, ~, S] = getSylvester(sys, sysr, V);
                 
                 % perform pseudo-optimal reduction
                 [Ar,Br,Cr,Er] = porkV(V,S,R,sys.C);
@@ -99,7 +99,7 @@ classdef testPork < matlab.unittest.TestCase
                 
                 % get (S,L)
                 warning off
-                [L, S] = getSylvester(sys, sysr, W, 'W');
+                [L, ~, S] = getSylvester(sys, sysr, W, 'W');
                 warning on
                 
                 % perform pseudo-optimal reduction
