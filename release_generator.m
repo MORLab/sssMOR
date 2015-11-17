@@ -28,7 +28,7 @@ function release_generator
 
 %% configuration
 product_name = 'sssMOR';
-release_version = '0.01';
+release_version = '1.01';
 ver_str = strrep(release_version, '.', '_');
 out_dir_name = [product_name '_Toolbox' '_release_' ver_str];
 
