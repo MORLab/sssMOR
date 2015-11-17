@@ -38,9 +38,8 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %       is specified, then the euclidian product corresponding to I is 
 %       chosen by default:
 %
-%                       IP=@(x,y) (x'*I*y)
+%                       IP=@(x,y) (x'*y)
 %
-%       which requires E to be a positive definite matrix.
 %
 % Input Arguments:
 %       *Required Input Arguments:*
