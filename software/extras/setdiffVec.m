@@ -20,13 +20,12 @@ function setdiffVec = setdiffVec(v1,v2)
 % 		computes a difference vector of the same size by substracting the
 % 		remaining entries after appropriate sorting.
 % 
-% 		// Warning: since the entries in the vectors are sorted, it is not
+% 		// Warning: Since the entries in the vectors are sorted, it is not
 % 		possible to assign the entries of setdiffVec to any entries of v1 or
 % 		v2. This function is hence useful only if the order of the result can
 % 		be arbitrary.
 %
 % Example:
-%		TODO description of what this code does
 %
 %> v1 = [38, 0.43-13.44i, 0.43+13.44i, 0.38-5.21i,0.38+5.21i]';
 %> v2 = [0.38-5.21i, 0.38+5.21i, 0.43-13.44i, 0.43+13.44i, 38]';
