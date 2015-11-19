@@ -19,7 +19,7 @@ function varargout = porkV(V,S_V,Crt,C)
 %       eigenvalues as mirror images of the shifts.
 %
 %       If only one output is specified, this function returns an sss
-%       object. Otherwise, the reduced system matrices are returend.
+%       object. Otherwise, the reduced system matrices are returned.
 % 
 % Input Arguments:
 %       *Required Input Arguments:*
@@ -36,7 +36,7 @@ function varargout = porkV(V,S_V,Crt,C)
 %> sys = loadSss('build');
 %> s0 = -eigs(sys,4,'sm').';
 %> [sysr, V] = rk(sys,s0);
-%> [Crt, S] = getSylvester(sys, sysr, V);
+%> [Crt, ~, S] = getSylvester(sys, sysr, V);
 %> sysrPO = porkV(V,S,Crt,sys.C)
 % 
 % See Also: 

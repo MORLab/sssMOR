@@ -33,8 +33,8 @@ function varargout = porkW(W,S_W,Brt,B)
 %> sys = loadSss('build');
 %> s0 = -eigs(sys,4,'sm').';
 %> [sysr, ~, W] = rk(sys,[],s0);
-%> [Brt, S] = getSylvester(sys, sysr, W, 'W');
-%> sysrPO = porkW(V,S,Brt',sys.B)
+%> [Brt, ~, S] = getSylvester(sys, sysr, W, 'W');
+%> sysrPO = porkW(W,S,Brt',sys.B)
 % 
 % See Also: 
 %       porkV, spark, rk, getSylvester
