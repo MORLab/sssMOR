@@ -11,12 +11,13 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 %       projection matrices V and W by the modal reduction technique [1,4].
 %         
 %       Only a few eigenvalues and left and right eigenvectors of the pair (A,E) 
-%       are computed with the eigs command. The right eigenvectors build the
-%       columns of V, while the left eigenvectors build the columns of W.
+%       are computed with the eigs command using the (default) option 'SM' (smallest
+%       magnitude). The right eigenvectors build the columns of V, while the 
+%       left eigenvectors build the columns of W.
 %
 %       Depending on the options, the vectors composing the projection
-%       matrices are not the left and right eigenvectors but linear
-%       combinations to keep i.e. the reduced system matrices real and/or
+%       matrices are not the left and right eigenvectors, but linear
+%       combinations to keep the reduced system matrices real and/or
 %       orthogonalize the projection matrices.
 %
 % Input Arguments:
