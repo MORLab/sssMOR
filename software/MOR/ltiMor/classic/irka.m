@@ -87,13 +87,13 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = irka(sys, s0, 
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
-if isstruct(varargin{end})
+if ~isempty(varargin) && isstruct(varargin{end})
     Opts = varargin{end};
     varargin = varargin(1:end-1);
 else
     Opts = struct();
 end
-if ~isempty(varargin) > 0
+if ~isempty(varargin)
         %usage irka(sys,s0,Rt,Lt)
         Rt = varargin{1};
         Lt = varargin{2};
@@ -127,9 +127,12 @@ s0 = s0_vect(s0);
 s0old = s0;
 s0 = cplxpair(s0);
 if exist('Rt','var') && ~isempty(Rt)
-    [~,cplxSorting] = ismember(s0old,s0); 
+    [~,cplxSorting] = ismember(s0,s0old); 
     Rt = Rt(:,cplxSorting);
     Lt = Lt(:,cplxSorting);
+else
+    Rt = ones(sys.m,length(s0));
+    Lt = ones(sys.p,length(s0));
 end
 clear s0old
 
