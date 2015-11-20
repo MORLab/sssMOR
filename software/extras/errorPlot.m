@@ -49,12 +49,8 @@ for iOut = 1:sys.p
         set(ax1,'Xlim',[w(1),w(end)],'XScale','log','YScale','log')
 
         if iOut == 1
-            if jIn == 1
-                ylabel(ax1,'Error');
-            elseif jIn == sys.m
-                ylabel(ax2,'Magnitude /dB');
-            end
-        elseif iOut == sys.p && jIn == 1
+            if jIn == 1, ylabel(ax1,'Error');end
+            if jIn == sys.m, ylabel(ax2,'Magnitude /dB'); end
             xlabel(ax1,'Frequency /rad/sec');
         end
     end
