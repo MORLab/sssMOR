@@ -6,7 +6,7 @@ function result = test(Opts)
 %   contained in the folder 'testScripts' can be executed or the tests can
 %   be run seperately by choosing the test-suites.
 %
-%   Required systems: build, beam, fom, eady, random, LF10 (IMTEK), 
+%   Required systems: building, beam, fom, eady, random, LF10 (IMTEK), 
 %                     SpiralInductorPeec (IMTEK), rail_1357 (IMTEK)
 %------------------------------------------------------------------
 % This file is part of sssMOR, a Sparse State Space, Model Order
