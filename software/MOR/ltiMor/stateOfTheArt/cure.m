@@ -20,7 +20,7 @@ function sysr = cure(sys,Opts)
 %       You can reduce index 1 DAEs in semiexplicit form by selecting the
 %       appropriate option. See [3] for more details.
 %
-%//     Note: currently CUREd SPARK works only for SISO systems
+%//     Note: Currently CUREd SPARK works only for SISO systems
 %
 % Input Arguments:
 %       *Required Input Arguments:*
