@@ -57,7 +57,7 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %       shifts s0 = [1 1 2 2 2] (i.e. matching two moments about 1 and
 %       three moments about 2)
 %
-%> sys = loadSss('build');
+%> sys = loadSss('building');
 %> s0  = [1 1 2 2 2];
 %> sysr = rk(sys,s0);
 %

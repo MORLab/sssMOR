@@ -55,7 +55,7 @@ function sysr = cure(sys,Opts)
 %       By default, cure reduces a given model sys to a reduced order of
 %       sqrt(sys.n) by steps of nk = 2 using mespark (model function based
 %       spark)
-%> sys = loadSss('build');
+%> sys = loadSss('building');
 %> sysr = cure(sys);
 %
 %       The behavior of the function can be highly customized using the

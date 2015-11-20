@@ -28,7 +28,7 @@ function M = moments(sys, s0, n)
 %      This code computes 3 moments of the transfer function of the
 %      benchmark model 'build' about the frequencies 1, 1+i and 1-i
 %
-%> sys = loadSss('build');
+%> sys = loadSss('building');
 %> M = moments(sys,[1,1+i,1-i], 3)
 %
 %      To compute different order moments for different frequencies,
