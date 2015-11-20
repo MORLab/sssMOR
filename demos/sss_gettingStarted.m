@@ -204,9 +204,9 @@ if isempty(modelChosen),modelChosen = 0;end
 isValid = 0;
 while ~isValid
     switch modelChosen
-        case 1 %build
-            sysName = 'build';
-            LoadData = load('build.mat'); %assumes it is in path
+        case 1 %building
+            sysName = 'building';
+            LoadData = load('building.mat'); %assumes it is in path
             
             A = LoadData.A; B = LoadData.B; C = LoadData.C;
             E = speye(size(A));

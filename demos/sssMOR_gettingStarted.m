@@ -111,7 +111,7 @@ customPause
 fprintf('\nThe reduction is performed by calling:\n');
 fprintf('>> sysrModal = modalMor(sys,q)\n');
     Opts.real = 'real';
-    %modalMor can fail with build, q=16 to find matching eigenvalues at the
+    %modalMor can fail with building, q=16 to find matching eigenvalues at the
     %first try (eigs in initialized randomly)
     try
         tic, sysrModal = modalMor(sys,q,Opts); tModal = toc;
@@ -247,9 +247,9 @@ if isempty(modelChosen),modelChosen = 0;end
 isValid = 0;
 while ~isValid
     switch modelChosen
-        case 1 %build
-            sysName = 'build';
-            LoadData = load('build.mat'); %assumes it is in path
+        case 1 %building
+            sysName = 'building';
+            LoadData = load('building.mat'); %assumes it is in path
             
             A = LoadData.A; B = LoadData.B; C = LoadData.C;
             E = speye(size(A));

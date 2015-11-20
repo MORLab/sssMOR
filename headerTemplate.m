@@ -21,7 +21,7 @@ function [output1,output2] = headerTemplate(input1,varargin)
 %       Matlab Markup doesn't 
 %       recognize line breaks.
 %
-%		//Note: the build.mat file for the example can be found in the
+%		//Note: the building.mat file for the example can be found in the
 %		benchmarks folder or you can download them from the SLICOT website
 %
 %       It only recognizes a new paragraph when theres is an empty line in
@@ -95,11 +95,11 @@ function [output1,output2] = headerTemplate(input1,varargin)
 %		This code loads a benchmark model included in the toolbox
 %		and plots its bode diagram using the sparse state space class:
 %
-%> load build; 
+%> load building; 
 %> sys = sss(A,B,C);
 %> bode(sys);
 %
-%//Note: the build.mat file for the example can be found in the benchmarks
+%//Note: the building.mat file for the example can be found in the benchmarks
 %		folder or you can download them from the SLICOT website
 %
 % See Also: 
