@@ -29,7 +29,7 @@ if sys.isSiso
     % initialize
     try s0 = -eigs(sys,n,'sm').'; catch , s0 = zeros(1,n); end
     % run IRKA
-    [sysr0, V, W, s0, ~, Rt, Lt] = irka(sys,s0);
+    [sysr0, V, W, s0, ~, ~, ~, ~, Rt, ~, Lt] = irka(sys,s0);
 else %MIMO
     % initialize
     %   compute one step of tangential Krylov at 0 to get initial tangent 
@@ -38,31 +38,13 @@ else %MIMO
     sysr = rk(sys,s0,s0,Rt,Lt);  [X,D,Y] = eig(sysr);
     Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
     %run IRKA
-    [sysr0, V, W, s0, ~, Rt, Lt] = irka(sys,s0,Rt,Lt);
+    [sysr0, V, W, s0, ~, ~, ~, ~, Rt, ~, Lt] = irka(sys,s0,Rt,Lt);
 end
-
-%   Check moment matcing
-rMatching = zeros(1,n); lMatching = zeros(1,n);
-for iS = 1:length(s0)
-    rMatching(iS) = norm((moments(sys,s0(iS),1)-moments(sysr0,s0(iS),1))*Rt(:,iS));
-    lMatching(iS) = norm(Lt(:,iS).'*(moments(sys,s0(iS),1)-moments(sysr0,s0(iS),1)));
-end
-all([rMatching, lMatching]< 1e-5)
 
 %   Transform (A- s0*E) to (s0*E- A)
 sysr0.C = -sysr0.C; sysr0.B = -sysr0.B;
 Rt = -Rt; Lt = -Lt;
 
-%   Check moment matcing
-rMatching = zeros(1,n); lMatching = zeros(1,n);
-for iS = 1:length(s0)
-    rMatching(iS) = norm((moments(sys,s0(iS),1)-moments(sysr0,s0(iS),1))*Rt(:,iS));
-    lMatching(iS) = norm(Lt(:,iS).'*(moments(sys,s0(iS),1)-moments(sysr0,s0(iS),1)));
-end
-if ~all([rMatching, lMatching]< 1e-5)
-    warning('Tangential moment matching failed?')
-    keyboard
-end
 
 % Check that the generalized tangential directions are correct
 R = getSylvester(sys,sysr0,-V); L = getSylvester(sys,sysr0,-W,'W'); 
