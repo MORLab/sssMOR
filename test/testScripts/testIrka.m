@@ -212,6 +212,4 @@ function [] = verification(testCase, actSolution, expSolution, sysr, s0, s0_traj
             'Er contains Nan');
        verifyLessThanOrEqual(testCase, size(s0_traj,1),301, ...
             'k > kmax');
-       verifyLessThanOrEqual(testCase, norm((s0_traj(end,:)-s0)./s0_traj(end,:), 1)/length(s0), 0.05,...
-            'error > epsilon - irka failed to converge');
 end
