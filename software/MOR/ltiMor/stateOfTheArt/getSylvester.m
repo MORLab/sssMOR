@@ -1,45 +1,62 @@
-function [R, S, B_] = getSylvester(sys,sysr,V,type)
-% GETSYLVESTER - get matrices of Sylvester equation
+function [R, B_, S] = getSylvester(sys,sysr,V,type)
+% GETSYLVESTER - Get matrices of Sylvester's equation for Krylov subspaces
 %
 % Syntax: 
-%       [R, S, B_] = GETSYLVESTER(sys, sysr, V, type)
+%       [R, B_, S] = GETSYLVESTER(sys, sysr, V)
+%       [L, C_, S] = GETSYLVESTER(sys, sysr, W, 'W')
 %
 % Description:
 %       Given the full order model sys and a reduced order model sysr
 %       obtained through a projection with V being an input Krylov
 %       subspace, this function reconstructs the matrices of the Sylvester
 %       equation for the Krylov subspace
-%           A V - E V S - B R = 0           (1)
-%           A V - E V Er^-1 Ar - B_ R = 0   (2)
+%
+%           $A V - E V S - B R = 0 \quad          (1)$
+%
+%           $B\_ = (I - E V(W^T E V)^{-1}W^T) B \quad          (2)$
+%
+%           $A V - E V E_r^{-1} A_r - B\_ R = 0\quad   (3)$
 %
 %       If the type is set to 'W', then the matrices are given for the
 %       output Krylov Sylvester equation
-%           A.' W - E.' W S.' - C.' L = 0           (3)
-%           A.' W - E.' V Er^-T Ar.' - C_.' L = 0   (4)
 %
-% 
+%           $A^T W - E^T W S^T - C^T L = 0 \quad   (4)$
+%
+%           $C\_ = C (I - V(W^T E V)^{-1}W^T E) \quad          (5)$
+%
+%           $A^T W - E^T V E_r^{-T} A_r^T - C\_^T L = 0 \quad  (6)$
+%
 % Input Arguments:
 %       *Required Input Arguments:*
 %       -sys:      full order model
 %       -sysr:     reduced order model
 %       -V:        input Krylov subspace
 %       *Optional Input Arguments:*
-%       -type:     {'V' (def), 'W'} specifies if V spans an input (def) or 
-%                  output Krylov subspace
+%       -type:     specifies if V spans an input (def) or output Krylov 
+%                  subspace {'V' (def), 'W'} 
 %
 % Output Arguments: 
 %       -R,S:      matrices of Sylvester equation (1) or (3)
 %       -B_:       matrix of Sylvester equation (2) or (4)
 % 
 % Examples:
-%       TODO
+%       This code computes the input Krylov subspace for a benchmark model
+%       and reconstructs the matrices of the corresponding Sylvester
+%       equation
+%
+%> sys = loadSss('building');
+%> [sysr, V] = rk(sys,-eigs(sys,4).');
+%> [R, B_, S] = getSylvester(sys, sysr, V);
+%// Note that rk can return some matrices of the Sylvester equation directly
 % 
 % See Also: 
-%       porkV, porkW, cure, spark
+%       rk, porkV, porkW, cure, spark
 %
 % References:
-%       * *[1] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
-%       * *[2] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
+%       * *[1] Gallivan et al. (2002)*, Sylvester equations and projection
+%              based model reduction
+%       * *[2] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
+%       * *[3] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
 %              with Global Error Bounds and Automatic Choice of Parameters
 %
 %------------------------------------------------------------------
@@ -57,7 +74,7 @@ function [R, S, B_] = getSylvester(sys,sysr,V,type)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  08 Nov 2015
+% Last Change:  12 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -74,25 +91,32 @@ end
 B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
 R = (B_.'*B_)\(B_.'*(sys.A*V - sys.E*V*(sysr.E\sysr.A)));
 
-if nargout > 1
+if nargout > 2
     S = sysr.E\(sysr.A - sysr.B*R);
-    if strcmp(type,'W')
-        S = S.';
-    end
 end
 
 %% control the accuracy by computing the residual
 res = zeros(1,3);
 res(1) = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-B_*R);
-if nargout > 1
+if nargout > 2
     res(2) = norm(sysr.A - sysr.E*S - sysr.B*R);
     res(3) = norm(sys.A*V - sys.E*V*S - sys.B*R);
 end
 
-if any( res > 1e-6 )
-    warning('careful, the problem might be ill conditioned and the results of getSylvester inaccurate');
+%%  Change shape of C_ and Sw 
+if strcmp(type,'W'),
+    B_ = B_.'; 
+    if nargout > 2
+        S = S.';
+    end
 end
 
-%%  Change shape of C_
-
-if strcmp(type,'W'), B_ = B_.'; end
+%%  Check residuals
+if any( res > 1e-6 )
+    resMax = max(res);
+    if  resMax < 1e-1
+        warning('careful, the problem might be ill conditioned and the results of getSylvester inaccurate (res = %e)',resMax);
+    else
+        error('The Sylvester equation residual (%e) indicates that getSylvester failed to get the correct solution. Check the condition number of your problem',resMax);
+    end
+end

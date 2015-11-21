@@ -5,7 +5,7 @@ classdef testMoments < matlab.unittest.TestCase
 %   The function moments.m is tested (4 tests) on:
 %    + moments: mi=c*(A-s0*I)^-(i+1)*b i=0,1,...
 %    + markov: mi=c*A^i*b, i=0,1,..
-%    + test systems: build, beam, random, LF10 (with E-matrix)
+%    + test systems: building, beam, random, LF10 (with E-matrix)
 %    + Neither Inf nor NaN in m
 %    + s0: real, imag, Inf
 % ------------------------------------------------------------------
@@ -21,16 +21,26 @@ classdef testMoments < matlab.unittest.TestCase
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------ 
     properties 
-        path
+        pwdPath
         sysCell
+        deleteBenchmarks
+        testPath
     end
 
     methods(TestClassSetup)
         function getBenchmarks(testCase)
-            testCase.path=pwd;
+            testCase.pwdPath=pwd;
             if exist('benchmarksSysCell.mat','file')
-                temp=load('benchmarksSysCell.mat');
-                testCase.sysCell=temp.benchmarksSysCell;
+                testCase.deleteBenchmarks=0;
+            else
+                testCase.testPath=loadBenchmarks;
+                testCase.deleteBenchmarks=1;
+            end
+            
+            temp=load('benchmarksSysCell.mat');
+            testCase.sysCell=temp.benchmarksSysCell;
+            if isempty(testCase.sysCell)
+                error('No benchmarks loaded.');
             end
 
             %the directory "benchmark" is in sssMOR
@@ -42,7 +52,11 @@ classdef testMoments < matlab.unittest.TestCase
     
     methods(TestClassTeardown)
         function changePath(testCase)
-            cd(testCase.path);
+            if testCase.deleteBenchmarks
+                cd(testCase.testPath);
+                delete('benchmarksSysCell.mat');
+            end
+            cd(testCase.pwdPath);
         end
     end
     

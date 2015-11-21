@@ -5,7 +5,7 @@ classdef testModal < matlab.unittest.TestCase
 %   The function modalMor.m is tested (3 tests) on:
 %    + comparing the eigenvalues of the reduced system to the solution of
 %      modreal (only 'SM' possible).
-%    + test systems: diagonal, build, LF10 (with E-matrix)
+%    + test systems: diagonal, building, LF10 (with E-matrix)
 %
 % ------------------------------------------------------------------
 %   This file is part of sssMOR, a Sparse State Space, Model Order
@@ -21,16 +21,26 @@ classdef testModal < matlab.unittest.TestCase
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
     properties 
-        path
+        pwdPath
         sysCell
+        deleteBenchmarks
+        testPath
     end
 
     methods(TestClassSetup)
         function getBenchmarks(testCase)
-            testCase.path=pwd;
+            testCase.pwdPath=pwd;
             if exist('benchmarksSysCell.mat','file')
-                temp=load('benchmarksSysCell.mat');
-                testCase.sysCell=temp.benchmarksSysCell;
+                testCase.deleteBenchmarks=0;
+            else
+                testCase.testPath=loadBenchmarks;
+                testCase.deleteBenchmarks=1;
+            end
+            
+            temp=load('benchmarksSysCell.mat');
+            testCase.sysCell=temp.benchmarksSysCell;
+            if isempty(testCase.sysCell)
+                error('No benchmarks loaded.');
             end
 
             %the directory "benchmark" is in sssMOR
@@ -42,7 +52,11 @@ classdef testModal < matlab.unittest.TestCase
     
     methods(TestClassTeardown)
         function changePath(testCase)
-            cd(testCase.path);
+            if testCase.deleteBenchmarks
+                cd(testCase.testPath);
+                delete('benchmarksSysCell.mat');
+            end
+            cd(testCase.pwdPath);
         end
     end
  
@@ -66,7 +80,7 @@ classdef testModal < matlab.unittest.TestCase
         end
         function testModal2(testCase) 
             %without E-matrix
-            load('build.mat');
+            load('building.mat');
 
             Opts.type='SM';
             [sysr] = modalMor(sss(A,B,C,0), 6, Opts);

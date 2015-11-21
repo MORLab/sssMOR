@@ -5,18 +5,37 @@ function M = moments(sys, s0, n)
 %       M = moments(sys, s0, n)
 %
 % Description:
-%       
+%       This function computes n moments, i.e. the negative Taylor series
+%       coefficients of the transfer function of an LTI system about a
+%       complex frequency s0. If s0 is inf, Markov parameters are
+%       computers.
 %
+%       To compute multiple moments about different shifts, s0 and n can be
+%       arrays.
+%
+%       The ouput is a 3D array with the moments ordered according to the
+%       shifts.
+%       
 % Input Arguments:
-%      -sys:    an sss-object containing the LTI system
+%      -sys:	an sss-object containing the LTI system
 %      -s0:     (array of) expansion point (inf -> Markov parameters)
 %      -n:      (array of) number of moments to be computed
 %
 % Output Arguments: 
-%      -M:     3D-array of moments / Markov parameters
+%      -M:		3D-array of moments / Markov parameters
 %
 % Examples:
-%       TODO
+%      This code computes 3 moments of the transfer function of the
+%      benchmark model 'build' about the frequencies 1, 1+i and 1-i
+%
+%> sys = loadSss('building');
+%> M = moments(sys,[1,1+i,1-i], 3)
+%
+%      To compute different order moments for different frequencies,
+%      specify n as an array of te same length as s0
+%
+%> sys = loadSss('CDplayer');
+%> M = moments(sys,[1,1+i,1-i],[1,2,4])
 %
 % See Also:
 %       rk, lu

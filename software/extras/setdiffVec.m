@@ -1,55 +1,59 @@
 function setdiffVec = setdiffVec(v1,v2)
-% SETDIFFVEC - compute difference between two unsorted vectors
+% SETDIFFVEC - Computes the difference between two unsorted vectors
 %
 % Syntax:
-%   SETDIFFVEC(v1,v2)
-%   setdiffVec = SETDIFFVEC(v1,v2)
+% 		setdiffVec = SETDIFFVEC(v1,v2)
 %
 % Description:
-%   This function computes the difference between the elements in two
-%   (generally complex valued) unsorted vectors v1 and v2. If the elements 
-%   in v1 and v2 are complex, then they must be closed under conjugation.
+% 		This function computes the difference between the elements in two
+% 		(generally complex valued) unsorted vectors v1 and v2. If the elements 
+% 		in v1 and v2 are complex, then they must be closed under conjugation.
+% 
+% 		Sometimes we wish to verify if two sets of (complex) values are equal 
+% 		and if not, compare some distance measure.
+% 		MATLAB's minus function operates elementwise. However, if the sorting 
+% 		is not known a priori, computing the right difference might be a 
+% 		challengin task.
+% 
+% 		This function takes the vectors v1 and v2 as set of numbers, eliminates
+% 		all entries that are equal (using the builtin setdiff function), and
+% 		computes a difference vector of the same size by substracting the
+% 		remaining entries after appropriate sorting.
+% 
+% 		// Warning: Since the entries in the vectors are sorted, it is not
+% 		possible to assign the entries of setdiffVec to any entries of v1 or
+% 		v2. This function is hence useful only if the order of the result can
+% 		be arbitrary.
 %
-%   Sometimes we wish to verify if two sets of (complex) values are equal 
-%   and if not, compare some distance measure.
-%   MATLAB's minus function operates elementwise. However, if the sorting 
-%   is not known a priori, computing the right difference might be a 
-%   challengin task.
+% Example:
 %
-%   This function takes the vectors v1 and v2 as set of numbers, eliminates
-%   all entries that are equal (using the builtin setdiff function), and
-%   computes a difference vector of the same size by substracting the
-%   remaining entries after appropriate sorting.
+%> v1 = [38, 0.43-13.44i, 0.43+13.44i, 0.38-5.21i,0.38+5.21i]';
+%> v2 = [0.38-5.21i, 0.38+5.21i, 0.43-13.44i, 0.43+13.44i, 38]';
+%> diff1 = v1 - v2 %standard difference in MATLAB
+%> diff2 = setdiffVec(v1,v2)
+%> norm(diff1),norm(diff2)
 %
-%   Warning: since the entries in the vectors are sorted, it is not
-%   possible to assign the entries of setdiffVec to any entries of v1 or
-%   v2. This function is hence useful only if the order of the result can
-%   be arbitrary.
+% See Also:
+%		setdiff, cplxpair
 %
-% Example
-%   v1 = [38, 0.43-13.44i, 0.43+13.44i, 0.38-5.21i,0.38+5.21i]';
-%   v2 = [0.38-5.21i, 0.38+5.21i, 0.43-13.44i, 0.43+13.44i, 38]';
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
 %
-%   diff1 = v1 - v2 %standard difference in MATLAB
-%   diff2 = setdiffVec(v1,v2)
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
-%   norm(diff1),norm(diff2)
-%
-% See also:
-%   SETDIFF, CPLXPAIR
-%
-% ------------------------------------------------------------------
-%   This file is part of sssMOR, a Sparse State Space, Model Order
-%   Reduction and System Analysis Toolbox developed at the Institute 
-%   of Automatic Control, Technische Universitaet Muenchen.
-%   For updates and further information please visit www.rt.mw.tum.de
-%   For any suggestions, submission and/or bug reports, mail us at
-%                     -> sssMOR@rt.mw.tum.de <-
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
 % Last Change:  01 Sep 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 
 %%  Parse input and initialize
 if length(v1)~=length(v2),error('Both vectors must be of the same length'),end

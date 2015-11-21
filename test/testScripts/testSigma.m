@@ -26,16 +26,26 @@ classdef testSigma < matlab.unittest.TestCase
     % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
     % ------------------------------------------------------------------
     properties 
-        path
+        pwdPath
         sysCell
+        deleteBenchmarks
+        testPath
     end
 
     methods(TestClassSetup)
         function getBenchmarks(testCase)
-            testCase.path=pwd;
+            testCase.pwdPath=pwd;
             if exist('benchmarksSysCell.mat','file')
-                temp=load('benchmarksSysCell.mat');
-                testCase.sysCell=temp.benchmarksSysCell;
+                testCase.deleteBenchmarks=0;
+            else
+                testCase.testPath=loadBenchmarks;
+                testCase.deleteBenchmarks=1;
+            end
+            
+            temp=load('benchmarksSysCell.mat');
+            testCase.sysCell=temp.benchmarksSysCell;
+            if isempty(testCase.sysCell)
+                error('No benchmarks loaded.');
             end
 
             %the directory "benchmark" is in sssMOR
@@ -47,13 +57,17 @@ classdef testSigma < matlab.unittest.TestCase
     
     methods(TestClassTeardown)
         function changePath(testCase)
-            cd(testCase.path);
+            if testCase.deleteBenchmarks
+                cd(testCase.testPath);
+                delete('benchmarksSysCell.mat');
+            end
+            cd(testCase.pwdPath);
         end
     end
     
     methods(Test)
         function testSISObench(testCase)
-            load('build.mat');
+            load('building.mat');
             sysSparse=sss(A,B,C);
             sys=ss(A,B,C,zeros(1,1));
             sigma(sysSparse);

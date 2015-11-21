@@ -6,7 +6,7 @@ function result = test(Opts)
 %   contained in the folder 'testScripts' can be executed or the tests can
 %   be run seperately by choosing the test-suites.
 %
-%   Required systems: build, beam, fom, eady, random, LF10 (IMTEK), 
+%   Required systems: building, beam, fom, eady, random, LF10 (IMTEK), 
 %                     SpiralInductorPeec (IMTEK), rail_1357 (IMTEK)
 %------------------------------------------------------------------
 % This file is part of sssMOR, a Sparse State Space, Model Order
@@ -21,16 +21,10 @@ function result = test(Opts)
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
-clear;
-clc;
 import matlab.unittest.TestSuite;
 
 %%  Change to testScripts folder
 testCase.Path = pwd; %original
-            
-p = mfilename('fullpath'); k = strfind(p, '\test'); 
-testpath = p(1:k(end)-1);
-cd(testpath);
 
 %% Choose benchmarks
 % Default benchmarks
@@ -46,53 +40,8 @@ else
     Opts = parseOpts(Opts,Def);
 end
 
-%% Load benchmarks
-%the directory "benchmark" is in sssMOR
-p = mfilename('fullpath'); k = strfind(p, 'test\'); 
-pathBenchmarks = [p(1:k-1),'benchmarks'];
-cd(pathBenchmarks);
-badBenchmarks = {'LF10.mat','beam.mat','random.mat',...
-    'SpiralInductorPeec.mat'};  
-
-% load files
-files = dir('*.mat'); 
-benchmarksSysCell=cell(1,Opts.number);
-nLoaded=1; %count of loaded benchmarks
-disp('Loaded systems:');
-
-warning('off');
-for i=1:length(files)
-    if nLoaded<Opts.number+1
-        switch(Opts.option)
-            case 'light'
-                sys = loadSss(files(i).name);
-                if ~any(strcmp(files(i).name,badBenchmarks)) && size(sys.A,1)<=Opts.size
-                    benchmarksSysCell{nLoaded}=sys;
-                    nLoaded=nLoaded+1;
-                    disp(files(i).name);
-                end
-            case 'full' 
-                benchmarksSysCell{nLoaded} = loadSss(files(i).name);
-                nLoaded=nLoaded+1;
-                disp(files(i).name);
-            case 'heavy'
-                sys = loadSss(files(i).name);
-                if any(strcmp(files(i).name,badBenchmarks)) || size(sys.A,1)>Opts.size
-                    benchmarksSysCell{nLoaded}=sys;
-                    nLoaded=nLoaded+1;
-                    disp(files(i).name);
-                end
-            otherwise
-                error('Benchmark option is wrong.');
-        end
-    end
-end
-benchmarksSysCell(nLoaded:end)=[];
-warning('on');
-
-% change path back and save loaded systems
-cd(testpath);
-save('benchmarksSysCell.mat');
+% load benchmarks and change to folder 'testScripts'
+loadBenchmarks(Opts);
 
 %% Test all unittest-files in current folder
 % suite = TestSuite.fromFolder(pwd);
@@ -131,6 +80,7 @@ suite28=TestSuite.fromFile('testPork.m');
 suite29=TestSuite.fromFile('testSpark.m');
 suite30=TestSuite.fromFile('testCure.m');
 suite31=TestSuite.fromFile('testConnectSss.m');
+suite32=TestSuite.fromFile('testConnect.m');
 
 
 % Add/remove suiteX (e.g. [suite1, suite3] to run testArnoldi and testIRKA)

@@ -1,4 +1,4 @@
-function [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
+function varargout = porkV(V,S_V,Crt,C)
 % PORKV - Pseudo-Optimal Rational Krylov (Input)
 %
 % Syntax: 
@@ -10,11 +10,16 @@ function [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
 %
 %       Given a projection matrix V spanning an input Krylov subspace and
 %       the respective matrices from the Sylvester equation
-%           A V - E V S_V - B Crt = 0
+%
+%           $A V - E V S_V - B Crt = 0$
+%
 %       this function computes the reduced order matrices corresponding to
 %       the H2-pseudo-optimal reduced order model, i.e. a model
 %       interpolating the original according to (V,S_V,Crt) and having
 %       eigenvalues as mirror images of the shifts.
+%
+%       If only one output is specified, this function returns an sss
+%       object. Otherwise, the reduced system matrices are returned.
 % 
 % Input Arguments:
 %       *Required Input Arguments:*
@@ -22,13 +27,20 @@ function [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
 %       -C:              output matrix of original model
 %
 % Output Arguments: 
-%       -Ar,Br,Cr,Er:    ROM matrices
+%       - sysrPO:         Pseudo-optimal reduced order model 
+%       - Ar,Br,Cr,Er:    ROM matrices
 % 
 % Examples:
-%       TODO
+%       Following code computes an H2-pseudo-optimal reduced order model
+%       with an input Krylov subspace
+%> sys = loadSss('building');
+%> s0 = -eigs(sys,4,'sm').';
+%> [sysr, V] = rk(sys,s0);
+%> [Crt, ~, S] = getSylvester(sys, sysr, V);
+%> sysrPO = porkV(V,S,Crt,sys.C)
 % 
 % See Also: 
-%       porkW, spark, rk
+%       porkW, spark, rk, getSylvester
 %
 % References:
 %       * *[1] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
@@ -54,8 +66,21 @@ function [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
+
+%%  Computation
 Qr_c = lyapchol(-S_V', Crt');
 Br = -Qr_c\(Qr_c'\Crt');
 Ar = S_V+Br*Crt;
 Cr = C*V;
 Er = eye(size(Ar));
+
+%% Preparing output
+if nargout == 1
+    varargout{1} = sss(Ar,Br,Cr,zeros(size(Cr,1),size(Br,2)),Er);
+else
+    varargout{1} = Ar;
+    varargout{2} = Br;
+    varargout{3} = Cr;
+    varargout{4} = Er;
+end
+    

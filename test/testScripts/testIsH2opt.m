@@ -19,16 +19,26 @@ classdef testIsH2opt < matlab.unittest.TestCase
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------ 
     properties 
-        path
+        pwdPath
         sysCell
+        deleteBenchmarks
+        testPath
     end
 
     methods(TestClassSetup)
         function getBenchmarks(testCase)
-            testCase.path=pwd;
+            testCase.pwdPath=pwd;
             if exist('benchmarksSysCell.mat','file')
-                temp=load('benchmarksSysCell.mat');
-                testCase.sysCell=temp.benchmarksSysCell;
+                testCase.deleteBenchmarks=0;
+            else
+                testCase.testPath=loadBenchmarks;
+                testCase.deleteBenchmarks=1;
+            end
+            
+            temp=load('benchmarksSysCell.mat');
+            testCase.sysCell=temp.benchmarksSysCell;
+            if isempty(testCase.sysCell)
+                error('No benchmarks loaded.');
             end
 
             %the directory "benchmark" is in sssMOR
@@ -40,7 +50,11 @@ classdef testIsH2opt < matlab.unittest.TestCase
     
     methods(TestClassTeardown)
         function changePath(testCase)
-            cd(testCase.path);
+            if testCase.deleteBenchmarks
+                cd(testCase.testPath);
+                delete('benchmarksSysCell.mat');
+            end
+            cd(testCase.pwdPath);
         end
     end
  
@@ -48,7 +62,7 @@ classdef testIsH2opt < matlab.unittest.TestCase
     methods(Test)
         function testIsH2opt1(testCase)
             %local H2-optimal
-            load('build.mat');
+            load('building.mat');
             opts=struct('epsilon',0.0005,'maxiter',300,'type','stab','stopCrit','s0');
 
             s0=[0,0,50,100,Inf, Inf, 1+5i,1-5i,14-0.2i,14+0.2i];
@@ -75,7 +89,7 @@ classdef testIsH2opt < matlab.unittest.TestCase
         function testIsH2opt2(testCase)
             %not local H2-optimal ('Warning: IRKA has not converged after 3
             %steps')
-            load('build.mat');
+            load('building.mat');
             opts=struct('epsilon',0.1,'maxiter',3,'type','stab','stopCrit','sysr');
             
             s0=[0,0,50,100,Inf, Inf, 1+5i,1-5i,14-0.2i,14+0.2i];

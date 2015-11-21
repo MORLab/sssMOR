@@ -1,16 +1,26 @@
 classdef testSylvester< matlab.unittest.TestCase
     
     properties 
-        path
+        pwdPath
         sysCell
+        deleteBenchmarks
+        testPath
     end
 
     methods(TestClassSetup)
         function getBenchmarks(testCase)
-            testCase.path=pwd;
+            testCase.pwdPath=pwd;
             if exist('benchmarksSysCell.mat','file')
-                temp=load('benchmarksSysCell.mat');
-                testCase.sysCell=temp.benchmarksSysCell;
+                testCase.deleteBenchmarks=0;
+            else
+                testCase.testPath=loadBenchmarks;
+                testCase.deleteBenchmarks=1;
+            end
+            
+            temp=load('benchmarksSysCell.mat');
+            testCase.sysCell=temp.benchmarksSysCell;
+            if isempty(testCase.sysCell)
+                error('No benchmarks loaded.');
             end
 
             %the directory "benchmark" is in sssMOR
@@ -22,7 +32,11 @@ classdef testSylvester< matlab.unittest.TestCase
     
     methods(TestClassTeardown)
         function changePath(testCase)
-            cd(testCase.path);
+            if testCase.deleteBenchmarks
+                cd(testCase.testPath);
+                delete('benchmarksSysCell.mat');
+            end
+            cd(testCase.pwdPath);
         end
     end
     
@@ -31,8 +45,6 @@ classdef testSylvester< matlab.unittest.TestCase
         function testSylvesterV(testCase)
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
-                badBenchmarks = {'LF10.mat','beam.mat','random.mat'};
-                if ~any(strcmp(sys.Name,badBenchmarks))
                 
                 % get irka shifts and tangential directions
                 n = 10; r = ones(sys.m,n); l = ones(sys.p,n);
@@ -43,7 +55,7 @@ classdef testSylvester< matlab.unittest.TestCase
                 
                 [sysr, V, ~, Bb, Rsylv] = rk(sys,s0,s0,r,l);
                 warning off
-                [R, S, B_] = getSylvester(sys, sysr, V);
+                [R, B_, S] = getSylvester(sys, sysr, V);
                 warning on
                 
                 %   compute the residuals
@@ -62,15 +74,12 @@ classdef testSylvester< matlab.unittest.TestCase
                 expSolution={Bb, Rsylv, 0, 0, 0, 0};
                 
                 verification (testCase, actSolution,expSolution);
-                end
             end
         end
         
         function testSylvesterW(testCase)
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
-                badBenchmarks = {'LF10.mat','beam.mat','random.mat'};
-                if ~any(strcmp(sys.Name,badBenchmarks))
                 
                 % get irka shifts and tangential directions
                 n = 10; r = ones(sys.m,n); l = ones(sys.p,n);
@@ -81,7 +90,7 @@ classdef testSylvester< matlab.unittest.TestCase
                 
                 [sysr, ~, W, ~, ~, Cb, Lsylv] = rk(sys,s0,s0,r,l);
                 warning off
-                [L, S, C_] = getSylvester(sys, sysr, W, 'W');
+                [L, C_, S] = getSylvester(sys, sysr, W, 'W');
                 warning on
                 
                 %   get dual system
@@ -103,7 +112,6 @@ classdef testSylvester< matlab.unittest.TestCase
                 expSolution={Cb, Lsylv, 0, 0, 0, 0};
                 
                 verification (testCase, actSolution,expSolution);
-                end
             end
         end
     end
