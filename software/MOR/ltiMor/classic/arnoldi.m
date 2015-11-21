@@ -1,20 +1,20 @@
 function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
-% ARNOLDI - Arnoldi algorithm using multiple expansion points
+% ARNOLDI - Arnoldi algorithm for Krylov subspaces with multiple shifts
 % 
 % Syntax:
-%       V                = ARNOLDI(E,A,B,s0)
-%       [V,Rsylv]        = ARNOLDI(E,A,B,s0)
-%       [V,Rsylv]        = ARNOLDI(E,A,B,s0,IP)
-%       [V,Rsylv]        = ARNOLDI(E,A,B,s0,Rt)
-%       [V,Rsylv]        = ARNOLDI(E,A,B,s0,Rt,IP)
-%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0)
-%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0,IP)
-%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0,Rt,Lt)
-%       [V,Rsylv,W,Lsylv]= ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
+%       V					= ARNOLDI(E,A,B,s0)
+%       [V,Rsylv]			= ARNOLDI(E,A,B,s0)
+%       [V,Rsylv]			= ARNOLDI(E,A,B,s0,IP)
+%       [V,Rsylv]			= ARNOLDI(E,A,B,s0,Rt)
+%       [V,Rsylv]			= ARNOLDI(E,A,B,s0,Rt,IP)
+%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0)
+%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0,IP)
+%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0,Rt,Lt)
+%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
 % 
 % Description:
 %       This function is used to compute the matrix V spanning the 
-%       input Krylov subspace corresponding to E, A, b and s0 [1,2].
+%       rational input Krylov subspace corresponding to E, A, b and s0 [1-3].
 %
 %       s0 must be a vector of complex frequencies closed under conjugation. 
 %       In case of MIMO systems, if matrices of tangential directions Rt 
@@ -23,24 +23,32 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %       which shift it belongs. If not tangential directions are specified,
 %       then block Krylov subspaces are computed.
 %
-%       NOTE that for MIMO systems, not all possible Krylov subspaces can 
-%       be build with this function. For example, block Krylov subpspaces 
+%       If in addition, the output matrix C is passed, then ARNOLDI
+%       computes input and output Krylov subspaces corresponding to the
+%       same expansion points. The resulting matrices V, W can be used for
+%       Hermite interpolation.
+%
+%       //Note: for MIMO systems, block Krylov subpspaces 
 %       with multiplicities in the shifts are not supported so far.
 %
 %       The columns of V build an orthonormal basis of the input Krylov 
 %       subspace. The orthogonalization is conducted using a 
-%       reorthogonalized modified Gram-Schmidt procedure [3] with respect 
+%       reorthogonalized modified Gram-Schmidt procedure [4] with respect 
 %       to the inner product  defined in IP (optional). If no inner product 
-%       is specified, then the elliptic product corresponding to E is 
+%       is specified, then the euclidian product corresponding to I is 
 %       chosen by default:
-%                       IP=@(x,y) (x'*E*y)
-%       which requires E to be a positive definite matrix.
+%
+%                       IP=@(x,y) (x'*y)
+%
 %
 % Input Arguments:
+%       *Required Input Arguments:*
 %       -E/A/B/C:  System matrices
-%       -s0:       Vector of expansion points
-%       -Rt,Lt:     (opt.) Matrix of right/left tangential directions
-%       -IP:       (opt.) function handle for inner product
+%       -s0:       Vector of complex conjuate expansion points
+%
+%       *Optional Input Arguments:*
+%       -Rt,Lt:    Matrix of right/left tangential directions
+%       -IP:       function handle for inner product
 %
 % Output Arguments:
 %       -V:        Orthonormal basis spanning the input Krylov subsp. 
@@ -48,11 +56,8 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %       -W:        Orthonormal basis spanning the output Krylov subsp.
 %       -Lsylv:    Left tangential directions of Sylvester Eq.
 %
-% Examples:
-%       TODO
-%
 % See Also: 
-%       rk
+%       rk, irka
 %
 % References:
 %       * *[1] Grimme (1997)*, Krylov projection methods for model reduction
@@ -225,11 +230,7 @@ reorth = 'gs'; %0, 'gs','qr'
 %%  Define variables that might have not been passed to the function
 %   IP
 if ~exist('IP', 'var') 
-    if abs(condest(E))<Inf % 
-        IP=@(x,y) (x'*E*y); 
-    else
-        IP=@(x,y) (x'*y); 
-    end
+   IP=@(x,y) (x'*y); %seems to be better conditioned that E norm
 end
 %%  Compute the Krylov subspaces
 % preallocate memory
@@ -246,12 +247,15 @@ for jCol=1:nS0
             newlu=0;
             if Rt(:,jCol) == Rt(:,jCol-1)
                 % Higher order moments, for the SISO and MIMO case
+                newtan = 0;
                 tempV = V(:,jCol-1); %overwrite
                 Rsylv(:,jCol)=zeros(m,1);
                 if hermite
                     tempW = W(:,jCol-1); 
                     Lsylv(:,jCol)=zeros(p,1); 
                 end
+            else
+                newtan = 1;
             end
         end
     end
@@ -285,8 +289,10 @@ for jCol=1:nS0
             if m==1 %SISO
                 tempV=E*tempV;
                 if hermite, tempW = E'*tempW; end
-            else
-                % MIMO with different tangential direction: do nothing
+            elseif newtan==0
+                % Tangential matching of higher order moments
+                tempV=E*tempV;
+                if hermite, tempW = E'*tempW; end
             end
         end
         if newlu==1

@@ -11,6 +11,10 @@ function [V,S_V,Crt,k] = spark(sys,s0,Opts)
 %       region optimization algorithm known as stability-preserving 
 %       adaptive rational Krylov (SPARK).
 %
+%       Selecting the option 'model', the algorithm known as MESPARK is
+%       computed, where a model function approximating the original model
+%       is computed and reduced iteratively.
+%
 % Input Arguments:
 %       *Required Input Arguments:*
 %       -sys:       original full order model; 
@@ -43,8 +47,6 @@ function [V,S_V,Crt,k] = spark(sys,s0,Opts)
 %       -V,S_V,Crt: Input Krylov subspace,  A*V - E*V*S_V - B*Crt = 0
 %       -k:         Number of iterations of MESPARK
 %
-% Examples:
-%       TODO
 % 
 % See Also: 
 %       cure, porkV, porkW, rk

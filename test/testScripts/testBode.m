@@ -1,18 +1,28 @@
 classdef testBode < matlab.unittest.TestCase
     
-    properties
-         sysCell;
-         testPath;
+    properties 
+        pwdPath
+        sysCell
+        deleteBenchmarks
+        testPath
     end
- 
-    methods(TestMethodSetup)
+
+    methods(TestClassSetup)
         function getBenchmarks(testCase)
-            testCase.testPath=pwd;
+            testCase.pwdPath=pwd;
             if exist('benchmarksSysCell.mat','file')
-                load('benchmarksSysCell.mat');
-                testCase.sysCell=benchmarksSysCell;
+                testCase.deleteBenchmarks=0;
+            else
+                testCase.testPath=loadBenchmarks;
+                testCase.deleteBenchmarks=1;
             end
             
+            temp=load('benchmarksSysCell.mat');
+            testCase.sysCell=temp.benchmarksSysCell;
+            if isempty(testCase.sysCell)
+                error('No benchmarks loaded.');
+            end
+
             %the directory "benchmark" is in sssMOR
             p = mfilename('fullpath'); k = strfind(p, 'test\'); 
             pathBenchmarks = [p(1:k-1),'benchmarks'];
@@ -20,9 +30,13 @@ classdef testBode < matlab.unittest.TestCase
         end
     end
     
-    methods(TestMethodTeardown)
+    methods(TestClassTeardown)
         function changePath(testCase)
-            cd(testCase.testPath);
+            if testCase.deleteBenchmarks
+                cd(testCase.testPath);
+                delete('benchmarksSysCell.mat');
+            end
+            cd(testCase.pwdPath);
         end
     end
     
@@ -39,12 +53,12 @@ classdef testBode < matlab.unittest.TestCase
                 
                 %Phase between 0° to 360°
                 for j=1:length(actPhase)
-                    if actPhase(:,:,j)<0
-                    actPhase(:,:,j)=actPhase(:,:,j)+360;
-                    end
-                    if expPhase(:,:,j)<0
-                    expPhase(:,:,j)=expPhase(:,:,j)+360;
-                    end
+                    %if actPhase(:,:,j)<0
+                    actPhase(:,:,j)=actPhase(:,:,j)-floor(actPhase(:,:,j)/360)*360;
+                    %end
+                    %if expPhase(:,:,j)<0
+                    expPhase(:,:,j)=expPhase(:,:,j)-floor(expPhase(:,:,j)/360)*360;
+                    %end
                 end
                 
                 actSolution={actMag, actPhase, actOmega};

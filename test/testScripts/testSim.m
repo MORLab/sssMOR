@@ -3,7 +3,7 @@ classdef testSim < matlab.unittest.TestCase
 %
 % Description:
 %   The function sim.m is tested on:
-%    + Simulation of a SSS, SISO benchmark system (build).
+%    + Simulation of a SSS, SISO benchmark system (building).
 %    + Simulation of a SSS, SISO random system.
 %    + Simulation of a DSSS, SISO benchmark system (SpiralInductorPeec).
 %    + Simulation of a DSS, MISO random system.
@@ -25,19 +25,29 @@ classdef testSim < matlab.unittest.TestCase
 % Last Change:  7 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
-    properties
-         sysCell;
-         testPath;
+    properties 
+        pwdPath
+        sysCell
+        deleteBenchmarks
+        testPath
     end
- 
-    methods(TestMethodSetup)
+
+    methods(TestClassSetup)
         function getBenchmarks(testCase)
-            testCase.testPath=pwd;
+            testCase.pwdPath=pwd;
             if exist('benchmarksSysCell.mat','file')
-                load('benchmarksSysCell.mat');
-                testCase.sysCell=benchmarksSysCell;
+                testCase.deleteBenchmarks=0;
+            else
+                testCase.testPath=loadBenchmarks;
+                testCase.deleteBenchmarks=1;
             end
             
+            temp=load('benchmarksSysCell.mat');
+            testCase.sysCell=temp.benchmarksSysCell;
+            if isempty(testCase.sysCell)
+                error('No benchmarks loaded.');
+            end
+
             %the directory "benchmark" is in sssMOR
             p = mfilename('fullpath'); k = strfind(p, 'test\'); 
             pathBenchmarks = [p(1:k-1),'benchmarks'];
@@ -45,17 +55,22 @@ classdef testSim < matlab.unittest.TestCase
         end
     end
     
-    methods(TestMethodTeardown)
+    methods(TestClassTeardown)
         function changePath(testCase)
-            cd(testCase.testPath);
+            if testCase.deleteBenchmarks
+                cd(testCase.testPath);
+                delete('benchmarksSysCell.mat');
+            end
+            cd(testCase.pwdPath);
         end
     end
 
     methods(Test)
         function testSISObench(testCase)
-            load('build.mat');
+            load('building.mat');
             sysSparse=sss(A,B,C);
             sys=ss(A,B,C,zeros(1,1));
+            nOutputs = sysSparse.p;
             
 %             isstable = isstable(sysSparse)
             
@@ -75,11 +90,14 @@ classdef testSim < matlab.unittest.TestCase
 %             figure; plot(t,actSim); hold on; plot(t,expSim); 
 %             xlabel('Time [s]'); ylabel('Amplitude');
             
-            verification(testCase, actSim, expSim);
+            for iCase=1:4
+                verification(testCase, actSim(:,(iCase*nOutputs-nOutputs+1):iCase*nOutputs), expSim);
+            end
         end
         function testSISOrandom(testCase)
             sys=rss(35);
             sysSparse=sss(sys);
+            nOutputs = sysSparse.p;
             
 %             isstable = isstable(sysSparse)
             
@@ -99,12 +117,15 @@ classdef testSim < matlab.unittest.TestCase
             figure; plot(t,actSim); hold on; plot(t,expSim); 
             xlabel('Time [s]'); ylabel('Amplitude');
             
-            verification(testCase, actSim, expSim);
+            for iCase=1:4
+                verification(testCase, actSim(:,(iCase*nOutputs-nOutputs+1):iCase*nOutputs), expSim);
+            end
         end
         function testDSSSISObench(testCase)
             load('SpiralInductorPeec.mat');
             sysSparse=sss(A,B,C,[],E);
             sys=ss(sysSparse);
+            nOutputs = sysSparse.p;
             
 %             isstable = isstable(sysSparse)
             
@@ -125,7 +146,9 @@ classdef testSim < matlab.unittest.TestCase
             figure; plot(t,actSim); hold on; plot(t,expSim); 
             xlabel('Time [s]'); ylabel('Amplitude');
             
-            verification(testCase, actSim, expSim);
+            for iCase=1:4
+                verification(testCase, actSim(:,(iCase*nOutputs-nOutputs+1):iCase*nOutputs), expSim);
+            end
         end
         function testDSSSMISOrandom(testCase)
             n=35;
@@ -133,6 +156,7 @@ classdef testSim < matlab.unittest.TestCase
             sys=rss(n);
             sys=dss(sys.A,rand(n,nInputs),sys.C,rand(1,nInputs),rand(size(sys.A)));
             sysSparse=sss(sys);
+            nOutputs = sysSparse.p;
             
 %             isstable = isstable(sysSparse)
 
@@ -154,7 +178,9 @@ classdef testSim < matlab.unittest.TestCase
 %             figure; plot(t,actSim); hold on; plot(t,expSim); 
 %             xlabel('Time [s]'); ylabel('Amplitude');
 
-            verification(testCase, actSim, expSim);
+            for iCase=1:4
+                verification(testCase, actSim(:,(iCase*nOutputs-nOutputs+1):iCase*nOutputs), expSim);
+            end
         end
         function testDSSSSIMOrandom(testCase)
             n=35;
@@ -162,6 +188,7 @@ classdef testSim < matlab.unittest.TestCase
             sys=rss(n);
             sys=dss(sys.A,sys.B,rand(nOutputs,n),rand(nOutputs,1),rand(size(sys.A)));
             sysSparse=sss(sys);
+            nOutputs = sysSparse.p;
             
 %             isstable = isstable(sysSparse)
             
@@ -181,12 +208,15 @@ classdef testSim < matlab.unittest.TestCase
 %             figure; plot(t,actSim); hold on; plot(t,expSim); 
 %             xlabel('Time [s]'); ylabel('Amplitude');
 
-            verification(testCase, actSim, expSim);
+            for iCase=1:4
+                verification(testCase, actSim(:,(iCase*nOutputs-nOutputs+1):iCase*nOutputs), expSim);
+            end
         end
 %         function testMIMObench(testCase)
 %             load('cdplayer.mat');
 %             sysSparse=sss(A,B,C);
 %             sys=ss(full(A),full(B),full(C),zeros(2,2));
+%             nOutputs = sysSparse.p;
 %             
 %             isstable = isstable(sysSparse)
 % 
@@ -209,13 +239,16 @@ classdef testSim < matlab.unittest.TestCase
 %             figure; plot(t,actSim); hold on; plot(t,expSim); 
 %             xlabel('Time [s]'); ylabel('Amplitude');
 % 
-%             verification(testCase, actSim, expSim);
+%             for iCase=1:4
+%                 verification(testCase, actSim(:,(iCase*nOutputs-nOutputs+1):iCase*nOutputs), expSim);
+%             end
 %         end
 
         function testMIMObench(testCase)
             load('rail_1357.mat');
             sysSparse=sss(A,B,C,[],E);
             sys=dss(full(A),full(B),full(C),zeros(size(C,1),size(B,2)),full(E));
+            nOutputs = sysSparse.p;
             
 %             isstable = isstable(sysSparse)
 
@@ -238,7 +271,9 @@ classdef testSim < matlab.unittest.TestCase
             figure; plot(t,actSim); hold on; plot(t,expSim); 
             xlabel('Time [s]'); ylabel('Amplitude');
 
-            verification(testCase, actSim, expSim);
+            for iCase=1:4
+                verification(testCase, actSim(:,(iCase*nOutputs-nOutputs+1):iCase*nOutputs), expSim);
+            end
         end
         function testDSSSMIMOrandom(testCase)
             n=35;
@@ -268,12 +303,14 @@ classdef testSim < matlab.unittest.TestCase
             figure; plot(t,actSim); hold on; plot(t,expSim); 
             xlabel('Time [s]'); ylabel('Amplitude');
             
-            verification(testCase, actSim, expSim);
+            for iCase=1:4
+                verification(testCase, actSim(:,(iCase*nOutputs-nOutputs+1):iCase*nOutputs), expSim);
+            end
         end
     end
 end
 
 function [] = verification(testCase, actSolution, expSolution)
-verifyEqual(testCase, actSolution(1:4),  expSolution(1:4),'RelTol',1e-3,...
+verifyEqual(testCase, actSolution,  expSolution,'RelTol',1e-3,...
     'Difference between actual and expected exceeds relative tolerance');
 end

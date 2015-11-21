@@ -1,5 +1,5 @@
 function isH2opt = isH2opt(sys,sysr,s0,Opts)
-% ISH2OPT - Evaluate Maier-Luenberger conditions for H2-optimality
+% ISH2OPT - Evaluate Maier-Luenberger necessary conditions for H2-optimality
 %
 % Syntax:
 %       ISH2OPT(sys,sysr,s0)
@@ -16,23 +16,36 @@ function isH2opt = isH2opt(sys,sysr,s0,Opts)
 % 
 %       Following conditions must be met:
 %
-%       * a) the reduced eigenvalues are the mirror images of the shifts
-%       * b) two moments are matched at each shift
+%       * *a)* the reduced eigenvalues are the mirror images of the shifts
+%       * *b)* two moments are matched at each shift
 % 
 %       Then sysr is said to be a locally H2-optimal approximation of sys
 %
+%		//Note: this function currently works only for SISO systems, but
+%       the generalization to MIMO will be implemented in one of the next
+%       releases
+%
 % Input Arguments:
 %		*Required Input Arguments:*
-%		TODO
+%		- sys/sysr:		original and reduced model to be tested
+%		- s0:			vector of shifts for Hermite reduction
 %
 %		*Optional Input Arguments:*
-%		TODO
+%		- Opts:			Option structure with follwing fields
+%			-.tol:		Relative tolerance {1e-3 (def)}
 %
 % Output Arguments:
-%       TODO
+%       - isH2opt:      Boolean
 %
 % Examples:
-%		TODO
+%       This code computes an H2-optimal approximation of order 8 to
+%       the benchmark model 'fom' and uses the function isH2opt to
+%       verify if the necessary conditions for optimality are satisfied.
+%
+%> sys = loadSss('fom')
+%> [sysr, ~, ~, s0opt] = irka(sys, -eigs(sys,8).');
+%> bode(sys,'-',sysr,'--r');
+%> isH2opt(sys, sysr, s0opt)
 %
 % See Also: 
 %		moments, irka, spark, eig
