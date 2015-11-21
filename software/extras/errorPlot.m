@@ -1,4 +1,4 @@
-function errorPlot(sys,sysr,w)
+function fh = errorPlot(sys,sysr,w)
 
 %% Parse input
 if ~exist('w','var')
@@ -21,7 +21,7 @@ for iSysr = 1:nSysr
 end
 
 %% Plotting
-nicefigure('compareMor - results (error)');
+fh = nicefigure('compareMor - results (error)');
 
 %   Create axis
 for iOut = 1:sys.p
