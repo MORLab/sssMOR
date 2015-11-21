@@ -66,7 +66,7 @@ classdef testSs < matlab.unittest.TestCase
     
     methods(Test)
         function testSISObench(testCase)
-            load('build.mat');
+            load('building.mat');
             sysSparse=sss(A,B,C);
             sys=ss(sysSparse);
         end

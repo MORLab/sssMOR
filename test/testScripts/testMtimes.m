@@ -62,7 +62,7 @@ classdef testMtimes < matlab.unittest.TestCase
 
     methods(Test)
         function testMTimes1(testCase)
-            load('build.mat');
+            load('building.mat');
             sysSparse=sss(A,B,C);
             sys=ss(full(A),full(B),full(C),zeros(1,1));
             

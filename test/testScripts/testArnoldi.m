@@ -10,7 +10,7 @@ classdef testArnoldi < matlab.unittest.TestCase
 %    + rank(V) full
 %    + Neither Inf nor NaN in V
 %    + s0: purely real, purely imaginary, zero, Inf (Markov-parameter)
-%    + test systems: build, iss, fom, eady, rail_1357 (with E-matrix)
+%    + test systems: building, iss, fom, eady, rail_1357 (with E-matrix)
 %
 % ------------------------------------------------------------------
 %   This file is part of sssMOR, a Sparse State Space, Model Order
@@ -68,7 +68,7 @@ classdef testArnoldi < matlab.unittest.TestCase
     methods(Test)        
         function testArnoldi1(testCase) 
             %s0=Inf, real, imag (without E-matrix)
-            load('build.mat');
+            load('building.mat');
 
             [V] = arnoldi(speye(size(A)),A,B,[Inf, 50, 100, 200, 300, 1-1i, 1+1i]);
             actSolution={V};

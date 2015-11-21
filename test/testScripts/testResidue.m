@@ -67,7 +67,7 @@ classdef testResidue < matlab.unittest.TestCase
     
     methods(Test)
         function testSISObench(testCase)
-            load('build.mat');
+            load('building.mat');
             sysSparse=sss(A,B,C);
             sys=ss(A,B,C,zeros(1,1));
             residue(sysSparse);

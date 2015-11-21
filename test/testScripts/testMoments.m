@@ -5,7 +5,7 @@ classdef testMoments < matlab.unittest.TestCase
 %   The function moments.m is tested (4 tests) on:
 %    + moments: mi=c*(A-s0*I)^-(i+1)*b i=0,1,...
 %    + markov: mi=c*A^i*b, i=0,1,..
-%    + test systems: build, beam, random, LF10 (with E-matrix)
+%    + test systems: building, beam, random, LF10 (with E-matrix)
 %    + Neither Inf nor NaN in m
 %    + s0: real, imag, Inf
 % ------------------------------------------------------------------

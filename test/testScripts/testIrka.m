@@ -10,7 +10,7 @@ classdef testIrka < matlab.unittest.TestCase
 %    + rank(Ar), rank(Er) full
 %    + Neither Inf nor NaN in Ar, Er
 %    + s0: purely real, purely imaginary, zero, Inf (Markov-parameter)
-%    + test systems: build, beam, random, SpiralInductorPeec 
+%    + test systems: building, beam, random, SpiralInductorPeec 
 %      (includes E-matrix), LF10 (includes E-matrix).
 % ------------------------------------------------------------------
 %   This file is part of sssMOR, a Sparse State Space, Model Order
@@ -69,7 +69,7 @@ classdef testIrka < matlab.unittest.TestCase
     methods(Test)
         function testIrka1(testCase) 
              %s0: zero, real, imag, Inf
-            load('build.mat');
+            load('building.mat');
             Opts=struct('epsilon',0.05,'maxiter',300,'type','stab','stopCrit','s0');
 
             [sysr, V, W, s0, s0_traj] = irka(sss(A,B,C), ...

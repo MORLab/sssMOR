@@ -9,7 +9,7 @@ classdef testRk < matlab.unittest.TestCase
 %    + rank(Ar), rank(Er) full
 %    + Neither Inf nor NaN in Ar, Er
 %    + s0: purely real, purely imaginary, zero, Inf 
-%    + test systems: build, beam, random, SpiralInductorPeec 
+%    + test systems: building, beam, random, SpiralInductorPeec 
 %      (with E-matrix), LF10 (with E-matrix).
 %    + is moment matching achieved
 %    + are the matrices of Sylvester equation correct (Bb, Rsylv, Cb, Lsylv)
@@ -71,7 +71,7 @@ classdef testRk < matlab.unittest.TestCase
     methods(Test)
          function testRk1 (testCase) 
               %one-sided reduction isempty(s0_out), s0: real (multiple value)
-              load('build.mat'); sys = sss(A,B,C);
+              load('building.mat'); sys = sss(A,B,C);
               n = 10; s0val = 100; s0 = ones(1,n)*s0val; 
               
               [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0);

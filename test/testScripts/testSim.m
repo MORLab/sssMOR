@@ -3,7 +3,7 @@ classdef testSim < matlab.unittest.TestCase
 %
 % Description:
 %   The function sim.m is tested on:
-%    + Simulation of a SSS, SISO benchmark system (build).
+%    + Simulation of a SSS, SISO benchmark system (building).
 %    + Simulation of a SSS, SISO random system.
 %    + Simulation of a DSSS, SISO benchmark system (SpiralInductorPeec).
 %    + Simulation of a DSS, MISO random system.
@@ -67,7 +67,7 @@ classdef testSim < matlab.unittest.TestCase
 
     methods(Test)
         function testSISObench(testCase)
-            load('build.mat');
+            load('building.mat');
             sysSparse=sss(A,B,C);
             sys=ss(A,B,C,zeros(1,1));
             nOutputs = sysSparse.p;

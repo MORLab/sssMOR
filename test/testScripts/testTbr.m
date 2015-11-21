@@ -4,7 +4,7 @@ classdef testTbr < matlab.unittest.TestCase
 % Description:
 %   The function tbr.m is tested (5 tests) on:
 %    + q: 5, 10, 15, 20, 25
-%    + test systems: build, beam, fom, random, LF10 (with E-matrix).
+%    + test systems: building, beam, fom, random, LF10 (with E-matrix).
 %    + comparing sysr with directly calculated solution 
 %    + W'*V identity matrix
 %    + Ar, Er purely real
@@ -65,11 +65,11 @@ classdef testTbr < matlab.unittest.TestCase
     
     methods(Test)
         function testTbr1(testCase) %q=5
-            load('build.mat');      
+            load('building.mat');      
             q=5;
             
             [sysr, V, W, calchsv] = tbr(sss(A,B,C,0),q);
-            load build hsv;
+            load building hsv;
             actSolution={full(sysr.A),full(sysr.B),full(sysr.C),V,W, calchsv};
            
             S=lyapchol(full(A),full(B));

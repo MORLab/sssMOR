@@ -49,7 +49,7 @@ classdef testConnectSss < matlab.unittest.TestCase
                     sysConnect(testCase,sys1,sys2)
                 end
             else 
-                sys1=loadSss('build.mat');
+                sys1=loadSss('building.mat');
                 sys2=loadSss('random.mat');
                 sysConnect(testCase,sys1,sys2);
             end
