@@ -1,15 +1,16 @@
-function [sysr, V, W, s0, s0Traj, Rt, Lt] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
 %       sysr                            = IRKA(sys, s0)
-%       sysr                            = IRKA(sys, s0, Opts)
+%       sysr                            = IRKA(sys, s0)
 %       sysr                            = IRKA(sys, s0, Rt, Lt)
-%       sysr                            = IRKA(sys, s0, Rt, Lt, Opts)
+%       sysr                            = IRKA(sys, s0,..., Opts)
 %       [sysr, V, W]                    = IRKA(sys, s0,... )
 %       [sysr, V, W, s0]                = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, s0Traj]        = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, s0Traj, Rt, Lt]= IRKA(sys, s0,... )
+%       [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = IRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Iterative Rational Krylov
@@ -86,29 +87,25 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt] = irka(sys, s0, varargin)
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
-if nargin > 2
-    if nargin == 3
-        %usage irka(sys,s0,Opts)
-        Opts = varargin{1};
-        if sys.isMimo
-            error('specify initial tangential directions for MIMO systems');
-        end
-    elseif nargin == 4
+if ~isempty(varargin) && isstruct(varargin{end})
+    Opts = varargin{end};
+    varargin = varargin(1:end-1);
+else
+    Opts = struct();
+end
+if ~isempty(varargin)
         %usage irka(sys,s0,Rt,Lt)
         Rt = varargin{1};
         Lt = varargin{2};
-    elseif nargin == 5
-        %usage irka(sys,s0,Rt,Lt,Opts)
-        Rt = varargin{1};
-        Lt = varargin{2};
-        Opts = varargin{3};
-    end
+elseif ~sys.isSiso
+        error('specify initial tangential directions for MIMO systems');
 end
+    
 %% Parse the inputs
 %   Default execution parameters
 Def.maxiter = 50; 
 Def.tol = 1e-3; 
-Def.type = ''; %'stab', 'newton','restarted'
+Def.type = ''; %'stab', 'newton', 'restarted'
 Def.verbose = 0; % text output durint iteration?
 Def.stopCrit = 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
 
@@ -130,9 +127,12 @@ s0 = s0_vect(s0);
 s0old = s0;
 s0 = cplxpair(s0);
 if exist('Rt','var') && ~isempty(Rt)
-    [~,cplxSorting] = ismember(s0old,s0); 
+    [~,cplxSorting] = ismember(s0,s0old); 
     Rt = Rt(:,cplxSorting);
     Lt = Lt(:,cplxSorting);
+else
+    Rt = ones(sys.m,length(s0));
+    Lt = ones(sys.p,length(s0));
 end
 clear s0old
 
@@ -147,10 +147,11 @@ while true
     k=k+1; sysr_old = sysr;
     %   Reduction
     if sys.isSiso
-        [sysr, V, W] = rk(sys, s0, s0);
+        [sysr, V, W, B_, Rsylv,C_,Lsylv] = rk(sys, s0, s0,Opts);
     else
-        [sysr, V, W] = rk(sys, s0, s0, Rt, Lt);
-    end
+        [sysr, V, W, B_, Rsylv,C_,Lsylv] = rk(sys, s0, s0, Rt, Lt,Opts);
+    end 
+    
     %   Update of the reduction parameters
     s0_old=s0; if ~sys.isSiso, Rt_old = Rt; Lt_old = Lt; end
     if sys.isMimo
