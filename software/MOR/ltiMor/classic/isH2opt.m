@@ -85,6 +85,7 @@ end
 %   Predefine variables
 isH2opt = 0; %initialize
 %%  Computations 
+%   Check that eigenvalues are mirror images of shifts
 if (norm(setdiffVec(s0',-conj(eig(sysr))))/norm(s0))/sysr.n <=Opts.tol
     %   check Meier-Luenberger conditions
     for iShift = 1:length(s0)
@@ -94,7 +95,7 @@ if (norm(setdiffVec(s0',-conj(eig(sysr))))/norm(s0))/sysr.n <=Opts.tol
             if norm(squeeze(m-mr))/norm(squeeze(m))> Opts.tol
                 % moments do not match
                 if nargout == 0
-                    fprintf('Reduced model is NOT locally H2-optimal\n');
+                    fprintf('Reduced model is NOT locally H2-optimal to given accuracy\n');
                 end
                 return
             end
