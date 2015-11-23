@@ -86,7 +86,7 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %------------------------------------------------------------------
 
 %%  Define execution parameters
-if isstruct(varargin{end});
+if ~isempty(varargin) && isstruct(varargin{end});
     %Options defined
     Opts = varargin{end};
     varargin = varargin(1:end-1);
@@ -133,7 +133,7 @@ elseif length(varargin) > 1
         % usage: ARNOLDI(E,A,B,s0,...)
         hermite = 0;
         s0 = varargin{1};
-        if length(varargin) == 5
+        if length(varargin) == 2
             if size(varargin{2},2) == size(s0,2)
                 % usage: ARNOLDI(E,A,B,s0,Rt)
                 Rt = varargin{2};

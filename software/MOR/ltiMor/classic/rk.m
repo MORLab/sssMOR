@@ -122,14 +122,14 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %------------------------------------------------------------------
 
 %%  Parsing
-if isstruct(varargin{end})
+if ~isempty(varargin) && isstruct(varargin{end})
     Opts = varargin{end};
     varargin = varargin(1:end-1);
 else
     Opts = struct();
 end
 
-if length(varargin) > 0
+if ~isempty(varargin)
     if isempty(s0_inp) || all(size(varargin{1}) == size(s0_inp));
         %usage: RK(sys, s0_inp, s0_out)
         s0_out = varargin{1};
