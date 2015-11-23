@@ -1,4 +1,4 @@
-function [sysr, sysr0, Hinf] = HinfMor(sys, n, varargin) 
+function [sysr, sysr0, Hinf, tOpt , bound] = HinfMor(sys, n, varargin) 
     % HINFMOR - H-infinity reduction by tangential interpolation
     % ------------------------------------------------------------------
     %
@@ -20,7 +20,7 @@ function [sysr, sysr0, Hinf] = HinfMor(sys, n, varargin)
     % [3] Beattie (2014), Model reduction by rational interpolation
     % ------------------------------------------------------------------
     % Authors:      Alessandro Castagnotto
-    % Last Change:  10 Nov 2015
+    % Last Change:  23 Nov 2015
     % Copyright (c) ?
     % ------------------------------------------------------------------
 
@@ -29,7 +29,7 @@ function [sysr, sysr0, Hinf] = HinfMor(sys, n, varargin)
         % initialize
         try s0 = -eigs(sys,n,'sm').'; catch , s0 = zeros(1,n); end
         % run IRKA
-        [sysr0, ~, ~, s0, ~, ~, ~, ~, Rt, ~, Lt] = irka(sys,s0);
+        [sysr0, ~, ~, ~, ~, ~, ~, B_, Rt, C_, Lt] = irka(sys,s0);
     else %MIMO
         % initialize
         %   compute one step of tangential Krylov at 0 to get initial tangent 
@@ -38,7 +38,7 @@ function [sysr, sysr0, Hinf] = HinfMor(sys, n, varargin)
         sysr = rk(sys,s0,s0,Rt,Lt);  [X,D,Y] = eig(sysr);
         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
         %run IRKA
-        [sysr0, ~, ~, s0, ~, ~, ~, ~, Rt, ~, Lt] = irka(sys,s0,Rt,Lt);
+        [sysr0, ~, ~, ~, ~, ~, ~, B_, Rt, C_, Lt] = irka(sys,s0,Rt,Lt);
     end
 
     %   Transform (A- s0*E) to (s0*E- A)
@@ -128,19 +128,27 @@ function [sysr, sysr0, Hinf] = HinfMor(sys, n, varargin)
             sysr = sysrfun(Dr);
         case 'normOpt'
             Dr0 = zeros(sys.p,sys.m);
-            sysr = normOpt(Dr0);
+            [sysr, ~, Hinf,tOpt] = normOpt(Dr0);
         case 'steadyState+normOpt'
             % execution params
             plotCostOverDr = 1;
             
             % initialization at steady-state error amplitude response
             G0 = freqresp(sys,0); Dr0 = G0-freqresp(sysr0,0);
-            [sysr, DrOpt, Hinf] = normOpt(Dr0);
+            [sysr, DrOpt, Hinf,tOpt] = normOpt(Dr0);
 
             %   See how the cost behaves around the chosen minimum?
             if plotCostOverDr
-                nStep = 50; kRange = 10;
-                DrRange = linspace(DrOpt*(1-kRange),DrOpt*(1+kRange), nStep); 
+                nStep = 20; kRange = 6;
+                if isscalar(DrOpt) %SISO
+                    DrRange = linspace(DrOpt*(1-kRange),DrOpt*(1+kRange), nStep); 
+                elseif any (size(DrOpt) == 1) % SIMO or MISO
+                    DrRange = cell(size(DrOpt)); %get the right size
+                    DrRange1 = linspace(DrOpt(1)*(1-kRange),DrOpt(1)*(1+kRange), nStep);
+                    DrRange2 = linspace(DrOpt(2)*(1-kRange),DrOpt(2)*(1+kRange), nStep);
+                    [DrRange1, DrRange2] = meshgrid(DrRange1,DrRange2);
+                    DrRange{1} = DrRange1; DrRange{2} = DrRange2;
+                end
                 plotOverDrRange(DrOpt,Hinf);
             end
         case 'DrRange'
@@ -158,13 +166,17 @@ function [sysr, sysr0, Hinf] = HinfMor(sys, n, varargin)
             error('Specified Hinf optimization type not valid');
     end
 
-    %% 
-    if nargout == 3
+    %% Additional outputs
+    if nargout > 3
         Hinf = norm(sys-sysr,inf)/norm(sys,inf);
+        if nargout > 4
+            bound = HinfBound(sys,B_,C_);
+        end
     end
 
+    %% Auxiliary
     function [minDr, minVal] = plotOverDrRange(varargin)
-
+        if isnumeric(DrRange) %vector of Dr values
             %initializing
             normVec = zeros(1,length(DrRange));
             normO = norm(ss(sys),inf); 
@@ -179,35 +191,107 @@ function [sysr, sysr0, Hinf] = HinfMor(sys, n, varargin)
             end
             % sort Dr to be sure you cane use lines in plots
             [DrRange,idx] = sort(DrRange,'ascend'); normVec = normVec(idx);
-            figure; plot(DrRange,normVec,'-b'); hold on; 
-            plot(minDr,minVal,'*g');plot([DrRange(1),DrRange(end)],minVal*[1,1],'--g');
-            titStr = sprintf('min in range=%4.3e',minDr);
-            
+            figure; h(1) = plot(DrRange,normVec,'-b'); hold on; 
+            h(2) = plot(minDr,minVal,'*g');plot([DrRange(1),DrRange(end)],minVal*[1,1],'--g');
+            legNames = {'Error', 'Min on plot'};
             %optimizer passed to function
             if ~isempty(varargin) 
-                plot(varargin{1},varargin{2}/normO,'or'); 
+                h(3) = plot(varargin{1},varargin{2}/normO,'or'); 
                 plot([DrRange(1),DrRange(end)],varargin{2}/normO*[1,1],'--r');
-                titStr = [titStr, sprintf(', min from opt=%4.3e',varargin{1})];
+                legNames = [legNames, {'Min from optimization'}];
             end
             
+            % Add zero and Dr0 to the plot
+            currDr = 0; currVal = norm(ss(sys-sysrfun(currDr)),inf)/normO;
+            h(4) = plot(currDr, currVal,'ok');          
+            currDr = freqresp(sys-sysrfun(0),0); currVal = norm(ss(sys-sysrfun(currDr)),inf)/normO;
+            h(5) = plot(currDr,currVal,'sm');
+            legNames = [legNames, {'val@0','Ge0(0)'}];
+            
             % labeling
-            xlabel(titStr); ylabel('Relative Hinf error over Dr')
+            xlabel('Dr'); ylabel('Relative Hinf error over Dr')
             title(sprintf('%s, n=%i',sys.Name,sysr.n),'Interpreter','none');
             
             % rescale y-axis (often you see high peaks)
             ylim(minVal*[.25,4]);
+            
+            legend(h,legNames,'Location','SouthOutside');
+        else % Dr is a grid (MISO or SIMO)
+            currDr = zeros(size(DrRange)); %get the right shape
+            minDr = zeros(size(DrRange));
+            
+            Dr1Range = DrRange{1}; Dr2Range = DrRange{2};
+            normMat = zeros(size(Dr1Range));
+            normO = norm(ss(sys),inf); 
+            % in this case, we don't add 0 as a value to the grid
+            minVal = Inf;
+            for iDr = 1:size(Dr1Range,1)
+                for jDr = 1:size(Dr1Range,2)
+                    currDr(1) = Dr1Range(iDr,jDr);
+                    currDr(2) = Dr2Range(iDr,jDr);
+                    sysrTest = sysrfun(currDr);
+                    normMat(iDr,jDr) = norm(ss(sys-sysrTest),inf)/normO;
+                    if normMat(iDr,jDr) < minVal
+                        minDr(1) = Dr1Range(iDr,jDr);
+                        minDr(2) = Dr2Range(iDr,jDr);
+                        minVal = normMat(iDr,jDr);
+                    end
+                end
+            end
+            
+            figure; h(1) = surf(Dr1Range,Dr2Range,normMat); hold on; 
+            h(2) = plot3(minDr(1),minDr(2),minVal,'pg','MarkerFaceColor','g');
+            plot3(Dr1Range,Dr2Range,minVal*ones(size(Dr1Range)),'--g');
+            legNames = {'Error surface', 'Min on surface'};
+            %optimizer passed to function
+            if ~isempty(varargin) 
+                DrOpti = varargin{1}; optimVal = varargin{2}/normO;
+                h(3) = plot3(DrOpti(1),DrOpti(2),optimVal,'or','MarkerFaceColor','r'); 
+                plot3(Dr1Range,Dr2Range,optimVal*ones(size(Dr1Range)),'--r');
+                legNames = [legNames, {'Min from optimization'}];
+            end
+            
+            % Add zero and Dr0 to the plot
+            currDr = zeros(size(currDr)); currVal = norm(ss(sys-sysrfun(currDr)),inf)/normO;
+            h(4) = plot3(currDr(1),currDr(2),currVal,'ok','MarkerFaceColor','k');            
+            currDr = abs(freqresp(sys,0) - freqresp(sysr0,0));
+            currVal = norm(ss(sys-sysrfun(currDr)),inf)/normO;
+            h(5) = plot3(currDr(1),currDr(2),currVal,'sm','MarkerFaceColor','m');
+            legNames = [legNames, {'val@0','Ge0(0)'}];
+            
+            % labeling
+            xlabel('Dr'); zlabel('Relative Hinf error over Dr')
+            title(sprintf('%s, n=%i',sys.Name,sysr.n),'Interpreter','none');
+            
+            % rescale y-axis (often you see high peaks)
+            ZLims = minVal*[.25,4];
+            zlim(ZLims);
+            caxis(ZLims)
+            
+            % legend
+            legend(h,legNames,'Location','SouthOutside')
+        end
                 
             drawnow
             
             if 1 %saving
                 cdir = pwd;
                 cd('..\res')
-                saveas(gcf,sprintf('ErrorOverDr_%s_n%i',sys.Name,sysr.n));
+                sysSaveNm = sys.Name;
+                k = strfind(sysSaveNm,':');
+                if ~isempty(k)
+                    if strcmp(sysSaveNm(k-1),'_')
+                        sysSaveNm = strrep(sysSaveNm,':','simo');
+                    else
+                        sysSaveNm = strrep(sysSaveNm,':','miso');
+                    end
+                end
+                saveas(gcf,sprintf('ErrorOverDr_%s_n%i',sysSaveNm,sysr.n));
                 cd(cdir);
             end
     end
 
-    function [sysr, DrOpt, Hinf] = normOpt(Dr0)
+    function [sysr, DrOpt, Hinf,tOpt] = normOpt(Dr0)
         
             cost = @(Dr) norm(sys-sysrfun(Dr),Inf);
             solver = 'fminsearch';
@@ -226,8 +310,29 @@ function [sysr, sysr0, Hinf] = HinfMor(sys, n, varargin)
             warning on
             sysr = sysrfun(DrOpt); 
     end
+    function bound = HinfBound(sys,B_,C_)
+        % Panzer 2014 
+%         function bndHinf = BoundHinf(L_S,P_S,B,C)
+        % Upper bound on H-infinity norm of strictly dissipative system
+        % Input: L_S,P_S: Cholesky factor of S=-A-A', and permutation matrix;
+        % B_,C_ : Perp input and output matrices
+        % Output: bndHinf: Upper bound
+        % (c) 2014 Heiko K.F. Panzer, Tech. Univ. Muenchen.
+        % This file is published under the BSD 3-Clause License. All rights reserved.
+        
+        S = -(sys.A + sys.A.'); [L_S,p,P_S] = chol(S); 
+            if p
+                warning('System is not in strictly dissipative form. HinfBound set to Inf');
+                bound = inf;
+            else
+                B_S = L_S'\(P_S'*B_);
+                C_S = (L_S'\(P_S'*C_'))';
+                bound = norm(full(C_S*B_S)) + norm(full(B_S))*norm(full(C_S));
+            end
+    end
 
 end
+
 
 
 
