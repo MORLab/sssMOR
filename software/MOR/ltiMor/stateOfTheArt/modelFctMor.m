@@ -59,8 +59,8 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
     %   Default Opts
     Def.qm0     = max([10,2*length(s0)]); %at least twice the reduced order
     Def.s0m     = zeros(1,Def.qm0);
-    Def.maxiter = 20;
-    Def.tol     = 1e-6;
+    Def.maxiter = 8;
+    Def.tol     = 1e-3;
     Def.verbose = 0;
 
     if ~exist('Opts','var') || isempty(Opts)
