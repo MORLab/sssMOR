@@ -57,11 +57,11 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
     end
 
     %   Default Opts
-    Def.qm0     = max([10,2*length(s0)]); %at least twice the reduced order
+    Def.qm0     = length(s0)+2; %at least reduced order + 2
     Def.s0m     = zeros(1,Def.qm0);
-    Def.maxiter = 8;
-    Def.tol     = 1e-3;
+    Def.maxiter = 8; Def.tol     = 1e-3; %execution params for modelFctMor
     Def.verbose = 0;
+    Def.updateModel = 'new'; % 'all','new','lean'
 
     if ~exist('Opts','var') || isempty(Opts)
         Opts = Def;
@@ -75,8 +75,8 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
     L2 = sparse(N,N);U2=L2;P2=L2;Q2=L2; 
     
     %   Initialize model function
-    s0m = Opts.s0m; 
-    V = []; W = []; [sysm,V,W] = buildModelFunction(s0m,V,W);
+    s0m = Opts.s0m; s0mTot = s0m;
+    V = []; W = []; [sysm,V,W] = updateModelFct(s0m,V,W);
    
     stop = 0;
     kIter = 0;
@@ -87,9 +87,9 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
         kIter = kIter + 1; if Opts.verbose, fprintf(sprintf('modelFctMor: k=%i\n',kIter));end
         if kIter > 1
             % update model
-            if length(s0m)<size(sys.a,1)
+            if length(s0mTot)<size(sys.a,1)
                 %   Update model function
-                [sysm,V,W] = buildModelFunction(s0,V,W);
+                [sysm,V,W] = updateModelFct(s0m,V,W);
             else
                 warning(['Model function is already as big as the original model.',...
                     ' Using the original model for one last iteration']);
@@ -102,8 +102,11 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
         if stoppingCrit
             stop = 1;
         else
-            s0m = [s0m,s0new]; %shifts for updated model
+            %define new shifts for next irka run
             s0 = s0new;
+            %define shifts for model update
+            s0m = updateModelFctShifts(s0mTot,s0new,Opts);           
+            s0mTot = [s0mTot, s0m];
         end
         if kIter > Opts.maxiter; 
             warning('modelFctMor did not converge within maxiter'); 
@@ -122,8 +125,20 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
         elseif length(s0m)> size(sys.a,1),stop = 1;end
     end
     
+%%  Auxiliary functions --------------------------------------------------
     %%  Model function creation and update
-    function [sysm,V,W] = buildModelFunction(s0,V,W)
+    function s0m = updateModelFctShifts(s0mTot,s0new,Opts)
+        switch Opts.updateModel
+            case 'all'
+                s0m = s0new;
+            case 'new'
+                idx = ismemberf(s0new,s0mTot,'tol',Opts.tol); %available in the matlab central
+                s0m = s0new(~idx);
+            otherwise
+                error('selected model function update is not valid');
+        end
+    end
+    function [sysm,V,W] = updateModelFct(s0,V,W)
         idxComplex=find(imag(s0));
         if ~isempty(idxComplex)
             s0c = cplxpair(s0(idxComplex));
@@ -201,51 +216,4 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
         end
     end
 
-%% -------- old    
-%     function computeLU(s0)
-%         % compute new LU decompositions
-%         if real(s0(1))==real(s0(2))  % complex conjugated or double shift
-%             [L1,U1,P1,Q1] = lu(sparse(sys.A-s0(1)*sys.E));  L2=conj(L1);U2=conj(U1);P2=P1;Q2=Q1;
-%         else                         % two real shifts
-%             [L1,U1,P1,Q1] = lu(sparse(sys.A-s0(1)*sys.E));  [L2,U2,P2,Q2] = lu(sparse(sys.A-s0(2)*sys.E));
-%         end
-%     end
-%     function V = newColV(V, k)
-%         % add columns to input Krylov subspace
-%         for i=(size(V,2)+1):2:(size(V,2)+2*k)
-%             if i==1, x=sys.B; else x=sys.E*V(:,i-1); end
-%             r1  = Q1*(U1\(L1\(P1*x)));   tmp = Q2*(U2\(L2\(P2*x)));
-%             v1 = real(0.5*r1 + 0.5*tmp); v2  = real(Q2*(U2\(L2\(P2*(sys.E*r1)))));
-%             V = GramSchmidt([V,v1,v2],[],[],[i,i+1]);
-%         end
-%     end
-%     function W = newColW(W, k)
-%         % add columns to output Krylov subspace
-%         for i=(size(W,2)+1):2:(size(W,2)+2*k)
-%             if i==1, x=sys.C; else x=W(:,i-1)'*sys.E; end
-%             l1  = x*Q1/U1/L1*P1;          tmp = x*Q2/U2/L2*P2;
-%             w1 = real(0.5*l1 + 0.5*tmp);  w2  = real(l1*sys.E*Q2/U2/L2*P2);
-%             W = GramSchmidt([W,w1',w2'],[],[],[i,i+1]);
-%         end
-%     end
-%     function [X,Y,Z] = GramSchmidt(X,Y,Z,cols)
-%         % Gram-Schmidt orthonormalization
-%         %   Input:  X,[Y,[Z]]:  matrices in Sylvester eq.: V,S_V,Crt or W.',S_W.',Brt.'
-%         %           cols:       2-dim. vector: number of first and last column to be treated
-%         %   Output: X,[Y,[Z]]:  solution of Sylvester eq. with X.'*X = I
-%         % $\MatlabCopyright$
-% 
-%         if nargin<4, cols=[1 size(X,2)]; end
-%         for k=cols(1):cols(2)
-%             for j=1:(k-1)                       % orthogonalization
-%                 T = eye(size(X,2)); T(j,k)=-X(:,k)'*X(:,j);
-%                 X = X*T;
-%                 if nargout>=2, Y=T\Y*T; end
-%                 if nargout>=3, Z=Z*T; end
-%             end
-%             h = norm(X(:,k));  X(:,k)=X(:,k)/h; % normalization
-%             if nargout>=2, Y(:,k) = Y(:,k)/h; Y(k,:) = Y(k,:)*h; end
-%             if nargout==3, Z(:,k) = Z(:,k)/h; end
-%         end
-%     end
 end
