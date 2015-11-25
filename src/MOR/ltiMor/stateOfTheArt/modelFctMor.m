@@ -59,7 +59,8 @@ function [sysr, s0new] = modelFctMor(sys,redFct,varargin)
     %   Default Opts
     Def.qm0     = length(s0)+2; %at least reduced order + 2
     Def.s0m     = zeros(1,Def.qm0);
-    Def.maxiter = 8; Def.tol = 1e-3; %execution params for modelFctMor
+    Def.maxiter = 8;
+    Def.tol     = 1e-3;
     Def.verbose = 0;
     Def.updateModel = 'new'; % 'all','new','lean'
 
