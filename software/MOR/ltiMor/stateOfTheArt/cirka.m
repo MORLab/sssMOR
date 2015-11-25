@@ -9,7 +9,7 @@ Def.qm0     = length(s0)+2;
 Def.s0m     = zeros(1,Def.qm0); 
 Def.maxiter = 20; Def.tol = 1e-3;
 Def.verbose = 0; Def.plot = 0;
-Def.updateModel = 'all';
+Def.updateModel = 'new';
 
 if ~exist('Opts','var') || isempty(Opts)
     Opts = Def;
