@@ -43,6 +43,8 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = irka(sys, s0, 
 %						[{0} / 1]
 %			-.stopCrit:	stopping criterion;
 %						[{'combAny'} / 's0' / 'sysr' / 'combAll']
+%           -.suppressverbose: suppress any type of verbose for speedup;
+%                       [{0} / 1]
 %
 % Output Arguments:      
 %       -sysr:			reduced order model (sss)
@@ -108,6 +110,7 @@ Def.tol = 1e-3;
 Def.type = ''; %'stab', 'newton', 'restarted'
 Def.verbose = 0; % text output durint iteration?
 Def.stopCrit = 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
+Def.suppressverbose = 0;
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -185,7 +188,7 @@ while true
         break
     end      
 end
-if ~Opts.verbose %display at least the last value
+if ~Opts.suppressverbose %display at least the last value
     fprintf('IRKA step %03u - Convergence (%s): %s \n', ...
             k, Opts.stopCrit, sprintf('% 3.1e', stopCrit));
 end
