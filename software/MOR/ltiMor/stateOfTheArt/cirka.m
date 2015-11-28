@@ -1,4 +1,4 @@
-function [sysr, s0] = cirka(sys, s0, Opts) 
+function [sysr, s0, kIter, kIrkaTot, nSysm] = cirka(sys, s0, Opts) 
 
     %% Define execution options
     Def.qm0     = length(s0)+2;
@@ -6,7 +6,7 @@ function [sysr, s0] = cirka(sys, s0, Opts)
     Def.maxiter = 8; Def.tol = 1e-3;
     Def.verbose = 0; Def.plot = 0;
     Def.updateModel = 'new';
-    Def.irka.stopCrit = 's0';
+%     Def.irka.stopCrit = 's0';
     Def.irka.suppressverbose = 1;
 %     Def.irka.maxiter = 20;
 %     Def.irka.tol = 1e-2; 
@@ -20,6 +20,8 @@ function [sysr, s0] = cirka(sys, s0, Opts)
     %% run computations
     stop = 0;
     kIter = 0;
+    kIrkaTot = 0;
+    sysmOld = sss([],[],[]);
     
     %   Generate the model function
     s0m = Opts.s0m;    [sysm, s0mTot, V, W] = modelFct(sys,s0m);
@@ -33,13 +35,16 @@ function [sysr, s0] = cirka(sys, s0, Opts)
             [sysm, s0mTot, V, W] = modelFct(sys,s0,s0mTot,V,W,Opts);
         end
         % reduction of new model with new starting shifts
-        [sysr, ~,~, s0new] = irka(sysm,s0,Opts.irka);
+        [sysr, ~,~, s0new, ~,~,~,~,~,~,~,kIrka] = irka(sysm,s0,Opts.irka);
+        nSysm = sysm.n;
+        kIrkaTot = kIrkaTot + kIrka;
         % computation of convergence
         if stoppingCrit
             stop = 1;
         else
             %Overwrite parameters with new variables
             s0 = s0new;    
+            sysmOld = sysm;
         end
         if kIter > Opts.maxiter; 
             warning('modelFctMor did not converge within maxiter'); 
@@ -49,12 +54,22 @@ function [sysr, s0] = cirka(sys, s0, Opts)
 
     function stop = stoppingCrit
         stop = 0;
-        if norm(s0) == 0
+        %   Compute the change in shifts
+        normS0 = norm(s0);
+        if normS0 == 0
             crit = norm(setdiffVec(s0new,s0)); %absolute
         else
-            crit = norm(setdiffVec(s0new,s0))/norm(s0); %relative
+            crit = norm(setdiffVec(s0new,s0))/normS0; %relative
         end
-        if crit <= Opts.tol, stop = 1;
+        %   Cumpute the change in model function
+        normSysmOld = norm(sysmOld);
+        if ~isinf(normSysmOld) %stable
+            crit = [crit, norm(sysm-sysmOld)/norm(sysmOld)];
+        else
+            crit = [crit, NaN];
+        end
+        
+        if any(crit <= Opts.tol), stop = 1;
         elseif length(s0mTot)> size(sys.a,1),stop = 1;end
     end    
 end
