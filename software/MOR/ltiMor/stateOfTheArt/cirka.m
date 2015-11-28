@@ -8,8 +8,9 @@ function [sysr, s0, kIter, kIrkaTot, nSysm] = cirka(sys, s0, Opts)
     Def.updateModel = 'new';
 %     Def.irka.stopCrit = 's0';
     Def.irka.suppressverbose = 1;
-%     Def.irka.maxiter = 20;
+    Def.irka.maxiter = 15;
 %     Def.irka.tol = 1e-2; 
+    Def.irka.lu = 'full';
 
     if ~exist('Opts','var') || isempty(Opts)
         Opts = Def;
@@ -46,7 +47,7 @@ function [sysr, s0, kIter, kIrkaTot, nSysm] = cirka(sys, s0, Opts)
             s0 = s0new;    
             sysmOld = sysm;
         end
-        if kIter > Opts.maxiter; 
+        if kIter >= Opts.maxiter; 
             warning('modelFctMor did not converge within maxiter'); 
             return
         end
