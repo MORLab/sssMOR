@@ -3,10 +3,10 @@ function [sysr, s0, kIter, kIrkaTot, nSysm] = cirka(sys, s0, Opts)
     %% Define execution options
     Def.qm0     = length(s0)+2;
     Def.s0m     = zeros(1,Def.qm0); 
-    Def.maxiter = 8; Def.tol = 1e-3;
+    Def.maxiter = 6; Def.tol = 1e-3;
     Def.verbose = 0; Def.plot = 0;
     Def.updateModel = 'new';
-%     Def.irka.stopCrit = 's0';
+    Def.irka.stopCrit = 's0';
     Def.irka.suppressverbose = 1;
 %     Def.irka.maxiter = 20;
 %     Def.irka.tol = 1e-2; 
