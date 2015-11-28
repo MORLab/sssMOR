@@ -95,6 +95,7 @@ end
 Def.makeOrth = 1; %make orthogonal?
 Def.makeReal = 1; %keep the projection matrices real?
 Def.reorth = 'gs'; %gram schmidt reorthogonalization {0, 'gs','qr'}
+Def.lu     = 'sparse'; %use sparse or full LU
         
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -251,6 +252,11 @@ end
 if ~exist('IP', 'var') 
    IP=@(x,y) (x'*y); %seems to be better conditioned that E norm
 end
+
+%%  If the 'full' option is selected for LU, convert E,A once to full
+if strcmp(Opts.lu,'full')
+    E = full(E); A = full(A);
+end
 %%  Compute the Krylov subspaces
 % preallocate memory
 V=zeros(length(B),q);
@@ -292,14 +298,24 @@ for jCol=1:nS0
             catch err
                 if (strcmp(err.identifier,'MATLAB:posdef'))
                     % E is not pos. def -> use LU instead
-                    [L,U,a,o,S]=lu(sparse(E),'vector');
+                    switch Opts.lu
+                        case 'sparse'
+                            [L,U,a,o,S]=lu(sparse(E),'vector');
+                        case 'full'
+                            [L,U]=lu(E);
+                    end
                 else
                     rethrow(err);
                 end
             end
         end
         if exist('U', 'var')
-            tempV(o,:) = U\(L\(S(:,a)\tempV)); %LU x(o,:) = S(:,a)\b 
+            switch Opts.lu
+                case 'sparse'
+                    tempV(o,:) = U\(L\(S(:,a)\tempV)); %LU x(o,:) = S(:,a)\b 
+                case 'full'
+                    tempV = U\(L\tempV);
+            end
         else
             tempV = S*(R\(R'\(S'*tempV)));
         end
@@ -315,12 +331,23 @@ for jCol=1:nS0
             end
         end
         if newlu==1
-            % vector LU for sparse matrices
-            [L,U,a,o,S]=lu(sparse(A-s0(jCol)*E),'vector');
+            switch Opts.lu
+                case 'sparse'
+                    % vector LU for sparse matrices
+                    [L,U,a,o,S]=lu(sparse(A-s0(jCol)*E),'vector');
+                case 'full'
+                    [L,U] = lu(A-s0(jCol)*E);
+            end
         end
         % Solve the linear system of equations
-        tempV(o,:) = U\(L\(S(:,a)\tempV)); %LU x(o,:) = S(:,a)\b 
-        if hermite, tempW = (S(:,a)).'\(L.'\(U.'\(tempW(o,:)))); end %U'L'S(:,a) x = c'(o,:) 
+        switch Opts.lu
+            case 'sparse'
+                tempV(o,:) = U\(L\(S(:,a)\tempV)); %LU x(o,:) = S(:,a)\b 
+                if hermite, tempW = (S(:,a)).'\(L.'\(U.'\(tempW(o,:)))); end %U'L'S(:,a) x = c'(o,:) 
+            case 'full'
+                tempV = U\(L\tempV);
+                if hermite, tempW = (L.'\(U.'\(tempW))); end 
+        end
     end 
 
     % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
