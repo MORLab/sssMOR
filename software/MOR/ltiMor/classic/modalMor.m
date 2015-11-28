@@ -74,7 +74,7 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  11 Sep 2015
+% Last Change:  28 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -106,17 +106,16 @@ rlambda=tbl.rlambda;
 W = zeros(size(V)); llambda = zeros(size(rlambda));
 warning('off','MATLAB:nearlySingularMatrix');
 warning('off','MATLAB:eigs:SigmaNearExactEig');
+opts.tol=1e3*eps/norm(full(sys.A));
 for iEig = 1:length(rlambda)
-    [W(:,iEig),llambda(iEig)] = eigs((sys.A-(rlambda(iEig))*sys.E).',1,1e3*eps);
+    [W(:,iEig),llambda(iEig)] = eigs((sys.A-(rlambda(iEig))*sys.E).',1,1e3*eps, opts);
+    %Ritz residual: r=Ax-lambda*x
+    if (sys.A.'*W(:,iEig)-rlambda(iEig)*sys.E.'*W(:,iEig))/norm(W(:,iEig)) >= norm(full(sys.A))*1e3*eps
+        error('Eigenvectors belong to different eigenvalues. Please try again.');
+    end
 end
 warning('on','MATLAB:nearlySingularMatrix');
 warning('on','MATLAB:eigs:SigmaNearExactEig');
-
-%check if the same eigenvalues have been found
-% in this case it is equivalent to verifying that llambda is close to 0
-if norm(llambda)/length(llambda) > 1e3*eps
-     error('Eigenvectors belong to different eigenvalues. Please try again.');
-end
 
 %split complex conjugated columns into real and imaginary
 if strcmp(Opts.real,'real');
