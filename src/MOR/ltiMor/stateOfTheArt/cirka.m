@@ -6,7 +6,7 @@ function [sysr, s0, kIter, kIrkaTot, nSysm] = cirka(sys, s0, Opts)
     Def.maxiter = 15; Def.tol = 1e-3;
     Def.verbose = 0; Def.plot = 0;
     Def.updateModel = 'new';
-    Def.irka.stopCrit = 's0';
+%     Def.irka.stopCrit = 's0';
     Def.irka.suppressverbose = 1;
     Def.irka.maxiter = 15;
 %     Def.irka.tol = 1e-2; 
@@ -62,7 +62,7 @@ function [sysr, s0, kIter, kIrkaTot, nSysm] = cirka(sys, s0, Opts)
         else
             crit = norm(setdiffVec(s0new,s0))/normS0; %relative
         end
-%       %   Cumpute the change in model function
+        %   Compute the change in model function
         normSysmOld = norm(sysmOld);
         if ~isinf(normSysmOld) %stable
             crit = [crit, norm(sysm-sysmOld)/norm(sysmOld)];
