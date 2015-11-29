@@ -77,23 +77,29 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
         end
     end
     function [sysm,V,W] = updateModelFct(s0,V,W)
-        idxComplex=find(imag(s0));
-        if ~isempty(idxComplex)
-            s0c = cplxpair(s0(idxComplex));
-            s0(idxComplex) = []; %real shifts
-            s0 = [s0 s0c(1:2:end)]; %add 1 complex shift per complex partner
-        end
-
-        for iShift = 1:length(s0)
-            if iShift > 1 && s0(iShift)==s0(iShift-1)
-                    %do nothing: no new LU decomposition needed
-            else %new LU needed
-                computeLU(s0(iShift));
+        if isempty(V)
+            %first run
+            [sysm,V,W] = rk(sys,s0,s0);
+        else
+            idxComplex=find(imag(s0));
+            if ~isempty(idxComplex)
+                s0c = cplxpair(s0(idxComplex));
+                s0(idxComplex) = []; %real shifts
+                s0 = [s0 s0c(1:2:end)]; %add 1 complex shift per complex partner
             end
-            V = newColV(V);  W = newColW(W);
-        end
-        sysm = sss(W'*sys.A*V,W'*sys.B,sys.C*V,...
+
+            for iShift = 1:length(s0)
+                if iShift > 1 && s0(iShift)==s0(iShift-1)
+                        %do nothing: no new LU decomposition needed
+                else %new LU needed
+                    computeLU(s0(iShift));
+                end
+                V = newColV(V);  W = newColW(W);
+            end
+            [V,~] = qr(V,0); [W,~] = qr(W,0);
+            sysm = sss(W'*sys.A*V,W'*sys.B,sys.C*V,...
                             zeros(size(sys.C,1),size(sys.B,2)),W'*sys.E*V);
+        end   
     end
     %%  Functions copied from "spark"
     function computeLU(s0)
@@ -111,11 +117,15 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
         r1  = Q1*(U1\(L1\(P1*x)));   
         if isempty(L2) %only one shift 
             v1 = r1;
-            V = GramSchmidt([V,v1],[],[],iCol*[1 1]);
+%             V = GramSchmidt([V,v1],[],[],iCol*[1 1]);
+            V = [V, v1];
+%             [V,~] = qr([V,v1],0);
         else %complex conjugated pair
             tmp = Q2*(U2\(L2\(P2*x)));
             v1 = real(0.5*r1 + 0.5*tmp); v2  = real(Q2*(U2\(L2\(P2*(sys.E*r1)))));
-            V = GramSchmidt([V,v1,v2],[],[],[iCol,iCol+1]);
+%             V = GramSchmidt([V,v1,v2],[],[],[iCol,iCol+1]);
+%             [V,~] = qr([V,v1,v2],0);
+            V = [V, v1, v2];
         end
     end
     function W = newColW(W)
@@ -125,11 +135,15 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
         l1  = x*Q1/U1/L1*P1;          
         if isempty(L2) %only one shift
             w1 = l1;
-            W = GramSchmidt([W,w1'],[],[],iCol*[1 1]);
+%             W = GramSchmidt([W,w1'],[],[],iCol*[1 1]);
+%             [W,~] = qr([W,w1'],0);
+            W = [W, w1'];
         else %complex conjugated pair
             tmp = x*Q2/U2/L2*P2;
             w1 = real(0.5*l1 + 0.5*tmp);  w2  = real(l1*sys.E*Q2/U2/L2*P2);
-            W = GramSchmidt([W,w1',w2'],[],[],[iCol,iCol+1]);
+%             W = GramSchmidt([W,w1',w2'],[],[],[iCol,iCol+1]);
+%             [W,~] = qr([W,w1',w2'],0);
+            W = [W, w1', w2'];
         end
     end
     function [X,Y,Z] = GramSchmidt(X,Y,Z,cols)
