@@ -3,7 +3,7 @@ function [sysr, s0, kIter, kIrkaTot, nSysm] = cirka(sys, s0, Opts)
     %% Define execution options
     Def.qm0     = length(s0)+2;
     Def.s0m     = zeros(1,Def.qm0); 
-    Def.maxiter = 6; Def.tol = 1e-3;
+    Def.maxiter = 15; Def.tol = 1e-3;
     Def.verbose = 0; Def.plot = 0;
     Def.updateModel = 'new';
     Def.irka.stopCrit = 's0';
@@ -62,15 +62,16 @@ function [sysr, s0, kIter, kIrkaTot, nSysm] = cirka(sys, s0, Opts)
         else
             crit = norm(setdiffVec(s0new,s0))/normS0; %relative
         end
-        %   Cumpute the change in model function
+%       %   Cumpute the change in model function
         normSysmOld = norm(sysmOld);
         if ~isinf(normSysmOld) %stable
             crit = [crit, norm(sysm-sysmOld)/norm(sysmOld)];
         else
             crit = [crit, NaN];
         end
+%         crit = [crit, inf]; %use only s0 for convergence
         
-        if any(crit <= Opts.tol), stop = 1;
+        if any(crit <= [Opts.tol, 1e-9]), stop = 1;
         elseif length(s0mTot)> size(sys.a,1),stop = 1;end
     end    
 end
