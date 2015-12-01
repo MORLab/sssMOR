@@ -1,4 +1,4 @@
-function [sysr, sysr0, Hinf, tOpt , bound] = HinfMor(sys, n, varargin) 
+function [sysr, sysr0, Hinf, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin) 
     % HINFMOR - H-infinity reduction by tangential interpolation
     % ------------------------------------------------------------------
     %
