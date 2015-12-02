@@ -160,14 +160,18 @@ end
 
 %% if MOR is to be performed, calculate V, W and reduced system
 if nargin == 1
-    figure(1);
-    bar(1:sys.n,abs(hsv),'r');
+    h=figure(1);
+    bar(1:sys.n,abs(hsv./hsv(1)),'r');
     title('Hankel Singular Values');
     xlabel('Order');
-    ylabel('abs');
+    ylabel({'Relative hsv decay';sprintf('abs(hsv/hsv(1)) with hsv(1)=%.4d',hsv(1))});
+    set(gca,'YScale','log');
+    set(gca, 'YLim', [-Inf;1.5]);
     prompt='Please enter the desired order: (>=0) ';
     q=input(prompt);
-    close Figure 1;
+    if ishandle(h)
+        close Figure 1;
+    end
     if q<0 || round(q)~=q
         error('Invalid reduction order.');
     end
