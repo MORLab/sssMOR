@@ -160,8 +160,14 @@ end
 
 %% if MOR is to be performed, calculate V, W and reduced system
 if nargin == 1
-    prompt='Please enter the reduction order: \n';
+    figure(1);
+    bar(1:sys.n,abs(hsv),'r');
+    title('Hankel Singular Values');
+    xlabel('Order');
+    ylabel('abs');
+    prompt='Please enter the desired order: (>=0) ';
     q=input(prompt);
+    close Figure 1;
     if q<0 || round(q)~=q
         error('Invalid reduction order.');
     end
