@@ -74,14 +74,14 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  28 Nov 2015
+% Last Change:  02 Dec 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 % Default execution parameters
 Def.type = 'SM'; 
 Def.orth = '0'; %orthogonalization ('0','qr')
-Def.real = '0'; %real reduced system ('0', 'real')
+Def.real = 'real'; %real reduced system ('0', 'real')
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
