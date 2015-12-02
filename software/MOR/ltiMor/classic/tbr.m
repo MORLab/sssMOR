@@ -69,7 +69,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  11 Nov 2015
+% Last Change:  02 Dec 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
@@ -160,9 +160,17 @@ end
 
 %% if MOR is to be performed, calculate V, W and reduced system
 if nargin == 1
-    q = sys.n;
+    prompt='Please enter the reduction order: \n';
+    q=input(prompt);
+    if q<0 || round(q)~=q
+        error('Invalid reduction order.');
+    end
 else
     q=varargin{1};
+end
+if q>sys.n
+    warning('Reduction order exceeds system order. It is replaced by the system order.');
+    q=sys.n;
 end
 
 V = sys.TBalInv(:,1:q);
