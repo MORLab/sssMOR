@@ -80,7 +80,7 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 
 % Default execution parameters
 Def.type = 'SM'; 
-Def.orth = '0'; %orthogonalization ('0','qr')
+Def.orth = 'qr'; %orthogonalization ('0','qr')
 Def.real = 'real'; %real reduced system ('0', 'real')
 
 % create the options structure
