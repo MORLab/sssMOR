@@ -81,7 +81,7 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  26 Oct 2015
+% Last Change:  04 Dec 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -256,6 +256,8 @@ end
 %%  If the 'full' option is selected for LU, convert E,A once to full
 if strcmp(Opts.lu,'full')
     E = full(E); A = full(A);
+else
+    E = sparse(E); A=sparse(A);
 end
 %%  Compute the Krylov subspaces
 % preallocate memory
@@ -293,14 +295,14 @@ for jCol=1:nS0
             try
                 % compute Cholesky factors of E
                 clear L U a o S
-                [R,~,S] = chol(sparse(E));
+                [R,~,S] = chol(E);
 %                 R = chol(sparse(E));
             catch err
                 if (strcmp(err.identifier,'MATLAB:posdef'))
                     % E is not pos. def -> use LU instead
                     switch Opts.lu
                         case 'sparse'
-                            [L,U,a,o,S]=lu(sparse(E),'vector');
+                            [L,U,a,o,S]=lu(E,'vector');
                         case 'full'
                             [L,U]=lu(E);
                     end
@@ -334,7 +336,7 @@ for jCol=1:nS0
             switch Opts.lu
                 case 'sparse'
                     % vector LU for sparse matrices
-                    [L,U,a,o,S]=lu(sparse(A-s0(jCol)*E),'vector');
+                    [L,U,a,o,S]=lu(A-s0(jCol)*E,'vector');
                 case 'full'
                     [L,U] = lu(A-s0(jCol)*E);
             end
