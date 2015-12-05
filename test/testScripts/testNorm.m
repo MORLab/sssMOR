@@ -25,13 +25,13 @@ classdef testNorm < matlab.unittest.TestCase
     % Last Change:  26 Out 2015
     % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
     % ------------------------------------------------------------------
-    properties 
+    properties
         pwdPath
         sysCell
         deleteBenchmarks
         testPath
     end
-
+    
     methods(TestClassSetup)
         function getBenchmarks(testCase)
             testCase.pwdPath=pwd;
@@ -47,9 +47,9 @@ classdef testNorm < matlab.unittest.TestCase
             if isempty(testCase.sysCell)
                 error('No benchmarks loaded.');
             end
-
+            
             %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+            p = mfilename('fullpath'); k = strfind(p, 'test\');
             pathBenchmarks = [p(1:k-1),'benchmarks'];
             cd(pathBenchmarks);
         end
@@ -79,6 +79,13 @@ classdef testNorm < matlab.unittest.TestCase
             [expNorm2,expFreq]=norm(sys,inf);
             sys.D=zeros(size(sys.D));
             expNorm3=norm(sys,2);
+            if norm(freqresp(sys,actFreq),2)>expNorm2
+                expNorm2=actNorm2;
+                expFreq=actFreq;
+            end
+            if (actFreq==0 &&expFreq==0)
+                expNorm2=actNorm2;
+            end
             expNorm = [expNorm1,expNorm2,expFreq,expNorm3];
             verification(testCase, actNorm, expNorm);
         end
@@ -94,6 +101,13 @@ classdef testNorm < matlab.unittest.TestCase
             [expNorm2,expFreq]=norm(sys,inf);
             sys.D=zeros(size(sys.D));
             expNorm3=norm(sys,2);
+            if norm(freqresp(sys,actFreq),2)>expNorm2
+                expNorm2=actNorm2;
+                expFreq=actFreq;
+            end
+            if (actFreq==0 &&expFreq==0)
+                expNorm2=actNorm2;
+            end
             expNorm = [expNorm1,expNorm2,expFreq,expNorm3];
             verification(testCase, actNorm, expNorm);
         end
@@ -112,6 +126,13 @@ classdef testNorm < matlab.unittest.TestCase
             [expNorm2,expFreq]=norm(sys,inf);
             sys.D=zeros(size(sys.D));
             expNorm3=norm(sys,2);
+            if norm(freqresp(sys,actFreq),2)>expNorm2
+                expNorm2=actNorm2;
+                expFreq=actFreq;
+            end
+            if (actFreq==0 &&expFreq==0)
+                expNorm2=actNorm2;
+            end
             expNorm = [expNorm1,expNorm2,expFreq,expNorm3];
             verification(testCase, actNorm, expNorm);
         end
@@ -130,6 +151,13 @@ classdef testNorm < matlab.unittest.TestCase
             [expNorm2,expFreq]=norm(sys,inf);
             sys.D=zeros(size(sys.D));
             expNorm3=norm(sys,2);
+            if norm(freqresp(sys,actFreq),2)>expNorm2
+                expNorm2=actNorm2;
+                expFreq=actFreq;
+            end
+            if (actFreq==0 &&expFreq==0)
+                expNorm2=actNorm2;
+            end
             expNorm = [expNorm1,expNorm2,expFreq,expNorm3];
             verification(testCase, actNorm, expNorm);
         end
@@ -146,6 +174,13 @@ classdef testNorm < matlab.unittest.TestCase
             [expNorm2,expFreq]=norm(sys,inf);
             sys.D=zeros(size(sys.D));
             expNorm3=norm(sys,2);
+            if norm(freqresp(sys,actFreq),2)>expNorm2
+                expNorm2=actNorm2;
+                expFreq=actFreq;
+            end
+            if (actFreq==0 &&expFreq==0)
+                expNorm2=actNorm2;
+            end
             expNorm = [expNorm1,expNorm2,expFreq,expNorm3];
             verification(testCase, actNorm, expNorm);
         end
@@ -165,6 +200,13 @@ classdef testNorm < matlab.unittest.TestCase
             [expNorm2,expFreq]=norm(sys,inf);
             sys.D=zeros(size(sys.D));
             expNorm3=norm(sys,2);
+            if norm(freqresp(sys,actFreq),2)>expNorm2
+                expNorm2=actNorm2;
+                expFreq=actFreq;
+            end
+            if (actFreq==0 &&expFreq==0)
+                expNorm2=actNorm2;
+            end
             expNorm = [expNorm1,expNorm2,expFreq,expNorm3];
             verification(testCase, actNorm, expNorm);
         end
