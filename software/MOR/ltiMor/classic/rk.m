@@ -12,8 +12,9 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %       sysr = RK(sys, s0_inp, s0_out, Rt, Lt, IP)
 %
 %       [sysr, V, W]						= RK(sys,s0_inp,...)
-%       [sysr, V, W, Bb, Rsylv]				= RK(sys,s0_inp,...)
+%		[sysr, V, W, Bb, Rsylv] 			= RK(sys,s0_inp,...)
 %       [sysr, V, W, Bb, Rsylv, Cb, Lsylv]	= RK(sys,s0_inp, s0_out, ...)
+%		[sysr,...] 							= RK(sys, s0_inp, ..., Opts)
 %
 % Description:
 %       Reduction by Rational Krylov subspace methods. 
@@ -121,18 +122,25 @@ function [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0_inp, varargin)
 %------------------------------------------------------------------
 
 %%  Parsing
-if nargin > 2
+if ~isempty(varargin) && isstruct(varargin{end})
+    Opts = varargin{end};
+    varargin = varargin(1:end-1);
+else
+    Opts = struct();
+end
+
+if ~isempty(varargin)
     if isempty(s0_inp) || all(size(varargin{1}) == size(s0_inp));
         %usage: RK(sys, s0_inp, s0_out)
         s0_out = varargin{1};
-        if nargin == 4
+        if length(varargin) == 2
             %usage: RK(sys, s0_inp, s0_out ,IP)
             IP = varargin{2};
-        elseif nargin > 4
+        elseif length(varargin) > 2
             %usage: RK(sys, s0_inp, s0_out, Rt, Lt)
             Rt = varargin{2};
             Lt = varargin{3};
-            if nargin == 6
+            if length(varargin) == 4
                 %usage: RK(sys, s0_inp, s0_out, Rt, Lt, IP)
                 IP = varargin{4};
             end
@@ -203,7 +211,7 @@ if isempty(s0_out)
     % input Krylov subspace
     
     % SISO Arnoldi
-    [V,Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP);
+    [V,Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
     W = V;
     sysr = sss(V'*sys.A*V, V'*sys.B, sys.C*V, sys.D, V'*sys.E*V);
     Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
@@ -213,7 +221,7 @@ elseif isempty(s0_inp)
     % output Krylov subspace
     
     % SISO Arnoldi
-    [W,Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP);
+    [W,Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP, Opts);
     V = W;
     sysr = sss(W'*sys.A*W, W'*sys.B, sys.C*W, sys.D, W'*sys.E*W);
     Cb = sys.C - sysr.C/sysr.E*W'*sys.E;
@@ -221,10 +229,10 @@ elseif isempty(s0_inp)
 else
     if all(s0_inp == s0_out) %use only 1 LU decomposition for V and W
         [V,Rsylv,W,Lsylv] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
-                            s0_inp,Rt, Lt, IP);
+                            s0_inp,Rt, Lt, IP, Opts);
     else
-        [V,Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP);
-        [W,Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP);
+        [V,Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
+        [W,Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP, Opts);
     end
     sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
 
