@@ -78,10 +78,11 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto 
+%               Lisa Jeschek
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  04 Dec 2015
+% Last Change:  06 Dec 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -94,8 +95,9 @@ end
 
 Def.makeOrth = 1; %make orthogonal?
 Def.makeReal = 1; %keep the projection matrices real?
-Def.reorth = 'gs'; %gram schmidt reorthogonalization {0, 'gs','qr'}
+Def.reorth = 0; %gram schmidt reorthogonalization {0, 'gs','qr'}
 Def.lu     = 'sparse'; %use sparse or full LU
+Def.dkgs   = 1; %dkgs algorithm for direct reorthogonalization
         
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -364,21 +366,55 @@ for jCol=1:nS0
                 Lsylv(:,jCol+nS0c/2) = imag(Lsylv(:,jCol));
                 Lsylv(:,jCol) = real(Lsylv(:,jCol));
             end
+        else
+            tempV=real(tempV);
+            Rsylv=real(Rsylv);
+            if hermite
+                tempW=real(tempW);
+                Lsylv=real(Lsylv);
+            end
         end
     end
 
     if Opts.makeOrth
         % orthogonalize vectors
-        for iCol=1:jCol-1
-          h=IP(tempV,V(:,iCol));
-          tempV=tempV-V(:,iCol)*h;
-          Rsylv(:,jCol)=Rsylv(:,jCol)-h*Rsylv(:,iCol);
-          if hermite
-            h=IP(tempW,W(:,iCol));
-            tempW=tempW-W(:,iCol)*h;
-            Lsylv(:,jCol)=Lsylv(:,jCol)-h*Lsylv(:,iCol);
-          end 
-        end
+        if Opts.dkgs
+            % repeat standard gram-schmidt
+            orthError=1;
+            count=0;
+            while(orthError>1e-12)
+                tempIPV=tempV;
+                if hermite
+                    tempIPW=tempW;
+                end
+                for iCol=1:jCol-1
+                  h=IP(tempIPV,V(:,iCol));
+                  tempV=tempV-V(:,iCol)*h;
+                  Rsylv(:,jCol)=Rsylv(:,jCol)-h*Rsylv(:,iCol);
+                  if hermite
+                    h=IP(tempIPW,W(:,iCol));
+                    tempW=tempW-W(:,iCol)*h;
+                    Lsylv(:,jCol)=Lsylv(:,jCol)-h*Lsylv(:,iCol);
+                  end 
+                end
+                orthError=norm([V(:,1:jCol-1),tempV/sqrt(IP(tempV,tempV))]'*[V(:,1:jCol-1),tempV/sqrt(IP(tempV,tempV))]-speye(jCol),'fro');
+                if count>20
+                    error('Orthogonalization failed.');
+                end
+                count=count+1;
+            end
+        else
+            for iCol=1:jCol-1
+              h=IP(tempV,V(:,iCol));
+              tempV=tempV-V(:,iCol)*h;
+              Rsylv(:,jCol)=Rsylv(:,jCol)-h*Rsylv(:,iCol);
+              if hermite
+                h=IP(tempW,W(:,iCol));
+                tempW=tempW-W(:,iCol)*h;
+                Lsylv(:,jCol)=Lsylv(:,jCol)-h*Lsylv(:,iCol);
+              end 
+            end
+        end     
 
         % normalize new basis vector
         h = sqrt(IP(tempV,tempV));
@@ -399,15 +435,41 @@ if Opts.makeOrth
     for jCol=length(s0)+1:q
         tempV=V(:,jCol);
         if hermite, tempW=W(:,jCol);end
-        for iCol=1:jCol-1
-          h=IP(tempV, V(:,iCol));
-          tempV=tempV-h*V(:,iCol);
-          Rsylv(:,jCol) = Rsylv(:,jCol)-h*Rsylv(:,iCol);
-          if hermite        
-            h=IP(tempW, W(:,iCol));
-            tempW=tempW-h*W(:,iCol);
-            Lsylv(:,jCol) = Lsylv(:,jCol)-h*Lsylv(:,iCol);
-          end
+        if Opts.dkgs
+            orthError=1;
+            count=0;
+            while(orthError>1e-12)
+                tempIPV=tempV;
+                if hermite
+                    tempIPW=tempW;
+                end
+                for iCol=1:jCol-1
+                  h=IP(tempIPV, V(:,iCol));
+                  tempV=tempV-h*V(:,iCol);
+                  Rsylv(:,jCol) = Rsylv(:,jCol)-h*Rsylv(:,iCol);
+                  if hermite        
+                    h=IP(tempIPW, W(:,iCol));
+                    tempW=tempW-h*W(:,iCol);
+                    Lsylv(:,jCol) = Lsylv(:,jCol)-h*Lsylv(:,iCol);
+                  end
+                end
+                orthError=norm([V(:,1:jCol-1),tempV/sqrt(IP(tempV,tempV))]'*[V(:,1:jCol-1),tempV/sqrt(IP(tempV,tempV))]-speye(jCol),'fro');
+                if count>20
+                    error('Orthogonalization failed.');
+                end
+                count=count+1;
+            end
+        else
+            for iCol=1:jCol-1
+              h=IP(tempV, V(:,iCol));
+              tempV=tempV-h*V(:,iCol);
+              Rsylv(:,jCol) = Rsylv(:,jCol)-h*Rsylv(:,iCol);
+              if hermite        
+                h=IP(tempW, W(:,iCol));
+                tempW=tempW-h*W(:,iCol);
+                Lsylv(:,jCol) = Lsylv(:,jCol)-h*Lsylv(:,iCol);
+              end
+            end
         end
         h = sqrt(IP(tempV,tempV));
         V(:,jCol)=tempV/h;
