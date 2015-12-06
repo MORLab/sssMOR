@@ -214,6 +214,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 Dr0 = zeros(sys.p,sys.m);
             case 0
                 Dr0 = DrInit('0');    
+                type = '0'; %overwrite for stability check at the end
             case 'Ge0'   
                 Dr0 = freqresp(sys,0)-freqresp(sysr0,0);      
             case 'Ge0/2'
@@ -222,21 +223,20 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 G0 = freqresp(sys,0); %the only costly part
 
                 Dr0 = DrInit('Ge0'); %get an initial feedthrough
-                deltaDr = 100*abs(Dr0); nStep = 500; DrSet = []; dSet = [];
-                Hinf0 = norm(sys-sysr0,Inf); d0 = DrInit('Ge0'); dMin = d0; %initial error
+                deltaDr = 100*abs(Dr0); nStep = 500; 
+                DrSet(:,:,1) = DrInit('0'); dSet(:,:,1) = Dr0; dMin = norm(Dr0); %initial error
                 if Opts.plot, figure; sigma(sys-sysr0,'b', 'LineWidth',2); end
-                pause
                 
                 for k = 0:nStep
                     Dr = Dr0-deltaDr + k*(2*deltaDr)/nStep;
                     sysr = sysrfun(Dr);
 
 %                     d = abs(abs(G0-freqresp(sysr,0)) - abs(Dr));
-                      d = G0 - (freqresp(sysr,0) + Dr);
-                    if d < dMin
+                      d = norm(G0 - (freqresp(sysr,0) + Dr));
+                    if d < dMin && isstable(sysr)
                         dMin = d;
-                        dSet = [dSet, d];
-                        DrSet = [DrSet,Dr];
+                        dSet(:,:,end+1) = d;
+                        DrSet(:,:,end+1)= Dr;
                         if Opts.plot
                             syse = sys-sysr; sigma(syse,'Color',rand(1,3)); 
                             drawnow
@@ -245,16 +245,24 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 end
                 %   best feedthrough in term of minimizing the error between the
                 %   response at 0 and Inf
-                Dr0 = DrSet(end); 
+                Dr0 = DrSet(:,:,end); 
                 if Opts.plot 
-                    syse = sys-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),); 
+                    syse = sys-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
+                                                   'LineWidth',2); 
                     drawnow 
-                end
-                
+                end      
             case 'maxGe' 
                 
             otherwise
                 error('Initialization option for Dr not valid');
+        end
+        % make sure the initialization yields a stable system 
+        %(if not 0 and if not called by DrInit itself)
+        caller = dbstack;
+        if ~strcmp(caller(2).name,'HinfMor/DrInit')&& ~strcmp(type,'0') &&...
+                ~isstable(sysrfun(Dr0))
+            warning('Selected initialization for Dr0 would have yielded an unstable system. Changing it to 0');
+            Dr0 = DrInit('0');
         end
     end
     function [minDr, minVal] = plotOverDrRange(varargin)
