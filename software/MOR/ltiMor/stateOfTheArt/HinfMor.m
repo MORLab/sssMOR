@@ -38,7 +38,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
     
     Def.plotCostOverDr = 0;
     Def.irka    = []; %run irka with defaul parameters
-    Def.corrType = 'normOpt_cicle';
+    Def.corrType = 'normOptCycle';
     Def.DrInit  = 0; %0, Ge0, matchGe0, maxGe
     Def.plot    = 0; % generate analysis plot
     
@@ -150,7 +150,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             cost = @(Dr) norm(sys-sysrfun(Dr),Inf);
             [DrOpt, Hinf,tOpt] = normOpt(Dr0,cost);
             sysr = sysrfun(DrOpt);         
-        case 'normOpt_cicle'
+        case 'normOptCycle'
             % running optimization wr to each entry of D individually
             % the cost function takes into account the whole MIMO system
             DrOpt = DrInit(Opts.DrInit); HinfVec = norm(sys-sysr0,Inf); tOpt = 0;
@@ -175,8 +175,35 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             end
             end
             sysr = sysrfun(DrOpt); 
-            figure; plot(0:1:length(HinfVec)-1,HinfVec/HinfVec(1)); ylabel('relative error decrease');
-
+            if Opts.plot
+                figure; plot(0:1:length(HinfVec)-1,HinfVec/HinfVec(1)); 
+                ylabel('relative error decrease');
+            end
+            
+        case 'normOptCycleCombo'
+            % running optimization wr to each entry of D individually
+            % the cost function takes into account the whole MIMO system
+            % after one cycle is run, we use the result to initialize a
+            % multivariate optimization
+            
+            % 1) cycle optimization
+            DrOpt = DrInit(Opts.DrInit); HinfVec = norm(sys-sysr0,Inf); tOpt = 0;
+            for iOut = 1:sys.p
+                for jIn = 1:sys.m
+                    Dr0 = DrOpt(iOut,jIn);
+                    cost = @(Dr) norm(sys-sysrfun(Dr,iOut,jIn,DrOpt),Inf);
+                    [DrOptCurr, ~,tOptCurr] = normOpt(Dr0,cost);
+                    tOpt = tOpt+tOptCurr;
+                    DrOpt(iOut,jIn) = DrOptCurr;
+                end
+            end
+            
+            % 2) multivariate optimization
+            cost = @(Dr) norm(sys-sysrfun(Dr),Inf);
+            [DrOpt, Hinf,tOptCurr] = normOpt(DrOpt,cost);
+            tOpt = tOpt + tOptCurr;
+            
+            sysr = sysrfun(DrOpt); 
         otherwise
             error('Specified Hinf optimization type not valid');
     end
@@ -219,11 +246,14 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 Dr0 = freqresp(sys,0)-freqresp(sysr0,0);      
             case 'Ge0/2'
                 Dr0 = DrInit('Ge0')/2;
-            case 'matchGe0'                 
+            case 'matchGe0_old'        
+                % this computation does not work well for MIMO systems
+                % since is sweeping Dr0 only along a hyperline with
+                % direction of the absolute value of Dr0
                 G0 = freqresp(sys,0); %the only costly part
 
                 Dr0 = DrInit('Ge0'); %get an initial feedthrough
-                deltaDr = 100*abs(Dr0); nStep = 500; 
+                deltaDr = 20*abs(Dr0); nStep = 100; 
                 DrSet(:,:,1) = DrInit('0'); dSet(:,:,1) = Dr0; dMin = norm(Dr0); %initial error
                 if Opts.plot, figure; sigma(sys-sysr0,'b', 'LineWidth',2); end
                 
@@ -250,9 +280,29 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                     syse = sys-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
                                                    'LineWidth',2); 
                     drawnow 
-                end      
-            case 'maxGe' 
+                end
+            case 'matchGe0'      
+                %   Run a sweep in an sys.m x sys.p dimensinal space
+                %   The claim is that all computations are cheap since we
+                %   compute G0 once.
                 
+                G0 = freqresp(sys,0); %the only costly part
+                sweepcost = @(Dr0) norm(G0 - (freqresp(sysrfun(Dr0),0) + Dr0));
+                
+                Dr0 = sweepDr0(sweepcost);
+
+            case 'maxGe'
+                % finde the frequency w at which the maximum singular value
+                % of the transfer function matrix is obtained. Conduct a
+                % sweep to minimize the error at w
+                
+                %expensive computations
+                [~, w] = norm(sys-sysr0,inf);
+                Gew = freqresp(sys,w);
+                
+                sweepcost = @(Dr0) norm(Gew - freqresp(sysrfun(Dr0),w));
+                
+                Dr0 = sweepDr0(sweepcost);              
             otherwise
                 error('Initialization option for Dr not valid');
         end
@@ -264,6 +314,58 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             warning('Selected initialization for Dr0 would have yielded an unstable system. Changing it to 0');
             Dr0 = DrInit('0');
         end
+    end
+    function Dr0 = sweepDr0(sweepcost)
+        %   Compute Dr0 from a sweep that tries to minimize "cost"
+        
+        if Opts.plot, figure; sigma(sys-sysr0,'b', 'LineWidth',2); end
+
+        Dr0 = DrInit('0'); % Initialize with the data at the origin
+        DrSet(:,:,1)= Dr0; dMin = sweepcost(Dr0); dSet(:,:,1) = dMin;
+
+        deltaDr = 2*abs(DrInit('Ge0'));
+        probSize = sys.m*sys.p; %dimension of the search space
+
+        %CURSE of DIMENSIONALITY!!
+        if probSize < 9 , nStep = 9; else nStep = 5; end
+
+        % Create the grid
+        x = {}; 
+        for iOut = 1:sys.p
+            for jIn = 1:sys.m
+                x = [x, ...
+                    {linspace(-deltaDr(iOut,jIn),deltaDr(iOut,jIn),nStep).'}];
+            end
+        end
+        X = cell(1,probSize); [X{:}] = ndgrid(x{:});   
+        
+        % Run the sweep
+        nPoints = nStep^probSize;                
+        for k=1:nPoints    
+            %   generate the current feedthrough
+            for iEl = 1:probSize, Dr0(iEl) = X{iEl}(k); end
+
+            sysr = sysrfun(Dr0);
+
+            d = sweepcost(Dr0);
+            if d < dMin && isstable(sysr)
+                dMin = d;
+%                 dSet(:,:,end+1) = d; %only for analysis
+%                 DrSet(:,:,end+1)= Dr0;
+                DrSet = Dr0;
+                if Opts.plot
+                    syse = sys-sysr; sigma(syse,'Color',rand(1,3)); 
+                    drawnow
+                end
+            end
+        end
+        
+        %   best feedthrough
+        Dr0 = DrSet(:,:,end); 
+        if Opts.plot 
+            syse = sys-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
+                                           'LineWidth',2); drawnow 
+        end          
     end
     function [minDr, minVal] = plotOverDrRange(varargin)
         if isnumeric(DrRange) %vector of Dr values
@@ -414,7 +516,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 bound = norm(full(C_S*B_S)) + norm(full(B_S))*norm(full(C_S));
             end
     end
-    function  sysr = sysrfun(Dr,iOut,jIn,DrMIMO)
+    function sysr = sysrfun(Dr,iOut,jIn,DrMIMO)
         if nargin == 1
             %Dr is the full feedthrough
             DrMIMO = Dr;
