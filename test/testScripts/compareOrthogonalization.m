@@ -18,7 +18,7 @@ end
 for i=1:length(sysCell)
     sys = sysCell{i};
     sys = sys(1,1); E = sys.E; A = sys.A; B = sys.B;
-    opts.dkgs=1e-16;
+    opts.dkgs=1;
     opts.reorth=0;
     start1=tic();
     [V1] = arnoldi(E,A,B,[Inf, 0, 100, 4+13i, 4-13i], @(x,y) (x'*y), opts);
