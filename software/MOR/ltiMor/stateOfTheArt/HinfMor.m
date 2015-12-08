@@ -37,10 +37,11 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
     end
     
     Def.plotCostOverDr = 0;
-    Def.irka    = []; %run irka with defaul parameters
+    Def.irka    = struct(); %run irka with defaul parameters
     Def.corrType = 'normOptCycle';
-    Def.DrInit  = 0; %0, Ge0, matchGe0, maxGe
+    Def.DrInit  = '0'; %0, '0', Ge0, matchGe0, maxGe
     Def.plot    = 0; % generate analysis plot
+    Def.sampling='random'; %sampling for sweepDr
     
     % create the options structure
     if ~exist('Opts','var') || isempty(Opts)
@@ -178,8 +179,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             if Opts.plot
                 figure; plot(0:1:length(HinfVec)-1,HinfVec/HinfVec(1)); 
                 ylabel('relative error decrease');
-            end
-            
+            end            
         case 'normOptCycleCombo'
             % running optimization wr to each entry of D individually
             % the cost function takes into account the whole MIMO system
@@ -203,6 +203,12 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             [DrOpt, Hinf,tOptCurr] = normOpt(DrOpt,cost);
             tOpt = tOpt + tOptCurr;
             
+            sysr = sysrfun(DrOpt); 
+        case 'sweepDr'
+            cost = @(Dr) norm(sys-sysrfun(Dr),Inf);
+            [DrOpt, tOpt, DrArray,costArray] = sweepDr(cost);
+            assignin('caller','DrArray',DrArray);
+            assignin('caller','costArray',costArray);
             sysr = sysrfun(DrOpt); 
         otherwise
             error('Specified Hinf optimization type not valid');
@@ -289,8 +295,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 G0 = freqresp(sys,0); %the only costly part
                 sweepcost = @(Dr0) norm(G0 - (freqresp(sysrfun(Dr0),0) + Dr0));
                 
-                Dr0 = sweepDr0(sweepcost);
-
+                Dr0 = sweepDr(sweepcost);
             case 'maxGe'
                 % finde the frequency w at which the maximum singular value
                 % of the transfer function matrix is obtained. Conduct a
@@ -366,6 +371,58 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             syse = sys-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
                                            'LineWidth',2); drawnow 
         end          
+    end
+    function [DrOpt, tOpt, DrArray, costArray] = sweepDr(sweepcost)
+        % This is used in parallel (parfor) 
+        
+        %   Determine the relevant frequency range for Dr based on the Hinf
+        %   error after IRKA
+        [~,wmax] = norm(sys,inf); deltaDr = freqresp(sys-sysr0,wmax);
+        
+        probSize = sys.m*sys.p; %dimension of the search space
+
+        %CURSE of DIMENSIONALITY!!
+        nPointsMax = 2000;
+        nStep = floor(nthroot(nPointsMax,probSize));
+        if mod(nStep,2) == 0
+          %number is even
+          nStep = nStep-1;
+        end 
+        % take at least two points
+        nStep = max([nStep,2]);
+
+        % Create the grid
+        x = {}; sampling = 'random';
+        for iOut = 1:sys.p
+            for jIn = 1:sys.m
+                switch sampling
+                    case 'grid'
+                        x = [x, ...
+                        {linspace(-deltaDr(iOut,jIn),deltaDr(iOut,jIn),nStep).'}];
+                    case 'random'
+                        x = [x, ...
+                        {randn(nStep,1)*3*deltaDr(iOut,jIn)}];
+                end
+            end
+        end
+        Xl = cell(1,probSize); [Xl{:}] = ndgrid(x{:});   
+        
+        % Run the sweep
+        nPoints = nStep^probSize;     
+        DrArray = zeros(sys.p,sys.m,nPoints); 
+        costArray = zeros(1,1,nPoints);  
+        p = sys.p; m = sys.m;
+        tic
+        parfor k=1:nPoints  
+            Dr0l = zeros(p,m);
+            %   generate the current feedthrough
+            for iEl = 1:probSize, Dr0l(iEl) = Xl{iEl}(k); end
+            DrArray(:,:,k)= Dr0l;
+            costArray(:,:,k) = sweepcost(Dr0l);
+        end    
+        tOpt = toc;
+        [~, idxMin] = min(squeeze(costArray));
+        DrOpt = DrArray(:,:,idxMin);    
     end
     function [minDr, minVal] = plotOverDrRange(varargin)
         if isnumeric(DrRange) %vector of Dr values
