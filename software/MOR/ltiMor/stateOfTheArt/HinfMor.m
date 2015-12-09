@@ -250,7 +250,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 type = '0'; %overwrite for stability check at the end
             case 'Ge0'   
                 Dr0 = freqresp(sys,0)-freqresp(sysr0,0);      
-            case 'Ge0/2'
+            case 'Ge0half'
                 Dr0 = DrInit('Ge0')/2;
             case 'matchGe0_old'        
                 % this computation does not work well for MIMO systems
@@ -307,7 +307,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 
                 sweepcost = @(Dr0) norm(Gew - freqresp(sysrfun(Dr0),w));
                 
-                Dr0 = sweepDr0(sweepcost);              
+                Dr0 = sweepDr(sweepcost);              
             otherwise
                 error('Initialization option for Dr not valid');
         end
