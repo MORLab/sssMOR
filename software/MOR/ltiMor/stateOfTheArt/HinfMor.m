@@ -41,7 +41,8 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
     Def.corrType = 'normOptCycle';
     Def.DrInit  = '0'; %0, '0', Ge0, matchGe0, maxGe
     Def.plot    = 0; % generate analysis plot
-    Def.sampling='random'; %sampling for sweepDr
+    Def.sampling= 'random'; %sampling for sweepDr
+    Def.sweepPoints = 2e3;
     
     % create the options structure
     if ~exist('Opts','var') || isempty(Opts)
@@ -382,7 +383,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
         probSize = sys.m*sys.p; %dimension of the search space
 
         %CURSE of DIMENSIONALITY!!
-        nPointsMax = 2000;
+        nPointsMax = Opts.sweepPoints;
         nStep = floor(nthroot(nPointsMax,probSize));
         if mod(nStep,2) == 0
           %number is even
