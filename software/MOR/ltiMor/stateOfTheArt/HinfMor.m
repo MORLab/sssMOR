@@ -39,6 +39,8 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
     Def.plotCostOverDr = 0;
     Def.irka    = struct(); %run irka with defaul parameters
     Def.corrType = 'normOptCycle';
+    Def.solver   = 'fminunc'; %optimization solver
+                    %fminsearch, globalsearch, multistart, ga
     Def.DrInit  = '0'; %0, '0', Ge0, matchGe0, maxGe
     Def.plot    = 0; % generate analysis plot
     Def.sampling= 'random'; %sampling for sweepDr
@@ -321,58 +323,6 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             Dr0 = DrInit('0');
         end
     end
-    function Dr0 = sweepDr0(sweepcost)
-        %   Compute Dr0 from a sweep that tries to minimize "cost"
-        
-        if Opts.plot, figure; sigma(sys-sysr0,'b', 'LineWidth',2); end
-
-        Dr0 = DrInit('0'); % Initialize with the data at the origin
-        DrSet(:,:,1)= Dr0; dMin = sweepcost(Dr0); dSet(:,:,1) = dMin;
-
-        deltaDr = 2*abs(DrInit('Ge0'));
-        probSize = sys.m*sys.p; %dimension of the search space
-
-        %CURSE of DIMENSIONALITY!!
-        if probSize < 9 , nStep = 9; else nStep = 5; end
-
-        % Create the grid
-        x = {}; 
-        for iOut = 1:sys.p
-            for jIn = 1:sys.m
-                x = [x, ...
-                    {linspace(-deltaDr(iOut,jIn),deltaDr(iOut,jIn),nStep).'}];
-            end
-        end
-        X = cell(1,probSize); [X{:}] = ndgrid(x{:});   
-        
-        % Run the sweep
-        nPoints = nStep^probSize;                
-        for k=1:nPoints    
-            %   generate the current feedthrough
-            for iEl = 1:probSize, Dr0(iEl) = X{iEl}(k); end
-
-            sysr = sysrfun(Dr0);
-
-            d = sweepcost(Dr0);
-            if d < dMin && isstable(sysr)
-                dMin = d;
-%                 dSet(:,:,end+1) = d; %only for analysis
-%                 DrSet(:,:,end+1)= Dr0;
-                DrSet = Dr0;
-                if Opts.plot
-                    syse = sys-sysr; sigma(syse,'Color',rand(1,3)); 
-                    drawnow
-                end
-            end
-        end
-        
-        %   best feedthrough
-        Dr0 = DrSet(:,:,end); 
-        if Opts.plot 
-            syse = sys-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
-                                           'LineWidth',2); drawnow 
-        end          
-    end
     function [DrOpt, tOpt, DrArray, costArray] = sweepDr(sweepcost)
         % This is used in parallel (parfor) 
         
@@ -425,6 +375,69 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
         [~, idxMin] = min(squeeze(costArray));
         DrOpt = DrArray(:,:,idxMin);    
     end
+    function [DrOpt, Hinf,tOpt] = normOpt(Dr0,cost)       
+
+            switch Opts.solver
+                case 'fminsearch'
+                tic, [DrOpt, Hinf] = fminsearch(cost,Dr0); tOpt = toc;
+                
+                case 'fminunc'
+                optOpts = optimoptions(@fminunc, 'algorithm','quasi-newton');
+                tic, [DrOpt, Hinf] = fminunc(cost,Dr0,optOpts); tOpt = toc;
+                
+                case 'gs'
+                    
+                optOpts = optimoptions(@fmincon,'UseParallel',1);
+                problem = createOptimProblem('fmincon',...
+                            'objective',cost,'x0',Dr0,'options',optOpts);
+                gs = GlobalSearch;
+                tic, [DrOpt,Hinf] = run(gs,problem); tOpt = toc;
+
+                case 'ms'
+                optOpts = optimoptions(@fminunc, 'algorithm','quasi-newton');
+                problem = createOptimProblem('fminunc',....
+                            'objective',cost, 'x0',Dr0,'options',optOpts);
+                ms = MultiStart('UseParallel',true);
+                tic, [DrOpt,Hinf] = run(ms,problem,24); tOpt = toc;
+                    
+                case 'ga'
+                    options = gaoptimset('UseParallel',true);
+                    gacost = @(x) cost(reshape(x,size(Dr0,1),size(Dr0,2)));
+                    tic, [xOpt, Hinf] = ga(gacost,numel(Dr0),[],[],[],[],[],[],[],options); tOpt = toc;
+                    DrOpt = reshape(xOpt,size(Dr0,1),size(Dr0,2));
+            end
+    end
+    function bound = HinfBound(sys,B_,C_)
+        % Panzer 2014 
+%         function bndHinf = BoundHinf(L_S,P_S,B,C)
+        % Upper bound on H-infinity norm of strictly dissipative system
+        % Input: L_S,P_S: Cholesky factor of S=-A-A', and permutation matrix;
+        % B_,C_ : Perp input and output matrices
+        % Output: bndHinf: Upper bound
+        % (c) 2014 Heiko K.F. Panzer, Tech. Univ. Muenchen.
+        % This file is published under the BSD 3-Clause License. All rights reserved.
+        
+        S = -(sys.A + sys.A.'); [L_S,p,P_S] = chol(S); 
+            if p
+                warning('System is not in strictly dissipative form. HinfBound set to Inf');
+                bound = inf;
+            else
+                B_S = L_S'\(P_S'*B_);
+                C_S = (L_S'\(P_S'*C_'))';
+                bound = norm(full(C_S*B_S)) + norm(full(B_S))*norm(full(C_S));
+            end
+    end
+    function sysr = sysrfun(Dr,iOut,jIn,DrMIMO)
+        if nargin == 1
+            %Dr is the full feedthrough
+            DrMIMO = Dr;
+        else
+            DrMIMO(iOut,jIn) = Dr;
+        end
+        sysr= sss(sysr0.A+Lt.'*DrMIMO*Rt, sysr0.B+Lt.'*DrMIMO, ...
+                                     sysr0.C+DrMIMO*Rt, DrMIMO, sysr0.E);
+    end
+
     function [minDr, minVal] = plotOverDrRange(varargin)
         if isnumeric(DrRange) %vector of Dr values
             %initializing
@@ -540,49 +553,60 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 cd(cdir);
             end
     end
-    function [DrOpt, Hinf,tOpt] = normOpt(Dr0,cost)       
-            solver = 'fminsearch';
-%             warning('optimizing over the actual error norm');
-            switch solver
-                case 'fminsearch'
-                %zero initialization
-                tic, [DrOpt, Hinf] = fminsearch(cost,Dr0); tOpt = toc;
 
-                case 'ga'
-                    options = gaoptimset('Display','iter','TimeLimit',5*60,...
-                        'UseParallel',true, 'PopInitRange',[-1;1]);
-                    tic, [DrOpt, Hinf] = ga(cost,1,[],[],[],[],[],[],[],options); tOpt = toc
-            end
-    end
-    function bound = HinfBound(sys,B_,C_)
-        % Panzer 2014 
-%         function bndHinf = BoundHinf(L_S,P_S,B,C)
-        % Upper bound on H-infinity norm of strictly dissipative system
-        % Input: L_S,P_S: Cholesky factor of S=-A-A', and permutation matrix;
-        % B_,C_ : Perp input and output matrices
-        % Output: bndHinf: Upper bound
-        % (c) 2014 Heiko K.F. Panzer, Tech. Univ. Muenchen.
-        % This file is published under the BSD 3-Clause License. All rights reserved.
+
+    %% Trash
+    function Dr0 = sweepDr0(sweepcost)
+        %   Compute Dr0 from a sweep that tries to minimize "cost"
         
-        S = -(sys.A + sys.A.'); [L_S,p,P_S] = chol(S); 
-            if p
-                warning('System is not in strictly dissipative form. HinfBound set to Inf');
-                bound = inf;
-            else
-                B_S = L_S'\(P_S'*B_);
-                C_S = (L_S'\(P_S'*C_'))';
-                bound = norm(full(C_S*B_S)) + norm(full(B_S))*norm(full(C_S));
+        if Opts.plot, figure; sigma(sys-sysr0,'b', 'LineWidth',2); end
+
+        Dr0 = DrInit('0'); % Initialize with the data at the origin
+        DrSet(:,:,1)= Dr0; dMin = sweepcost(Dr0); dSet(:,:,1) = dMin;
+
+        deltaDr = 2*abs(DrInit('Ge0'));
+        probSize = sys.m*sys.p; %dimension of the search space
+
+        %CURSE of DIMENSIONALITY!!
+        if probSize < 9 , nStep = 9; else nStep = 5; end
+
+        % Create the grid
+        x = {}; 
+        for iOut = 1:sys.p
+            for jIn = 1:sys.m
+                x = [x, ...
+                    {linspace(-deltaDr(iOut,jIn),deltaDr(iOut,jIn),nStep).'}];
             end
-    end
-    function sysr = sysrfun(Dr,iOut,jIn,DrMIMO)
-        if nargin == 1
-            %Dr is the full feedthrough
-            DrMIMO = Dr;
-        else
-            DrMIMO(iOut,jIn) = Dr;
         end
-        sysr= sss(sysr0.A+Lt.'*DrMIMO*Rt, sysr0.B+Lt.'*DrMIMO, ...
-                                     sysr0.C+DrMIMO*Rt, DrMIMO, sysr0.E);
+        X = cell(1,probSize); [X{:}] = ndgrid(x{:});   
+        
+        % Run the sweep
+        nPoints = nStep^probSize;                
+        for k=1:nPoints    
+            %   generate the current feedthrough
+            for iEl = 1:probSize, Dr0(iEl) = X{iEl}(k); end
+
+            sysr = sysrfun(Dr0);
+
+            d = sweepcost(Dr0);
+            if d < dMin && isstable(sysr)
+                dMin = d;
+%                 dSet(:,:,end+1) = d; %only for analysis
+%                 DrSet(:,:,end+1)= Dr0;
+                DrSet = Dr0;
+                if Opts.plot
+                    syse = sys-sysr; sigma(syse,'Color',rand(1,3)); 
+                    drawnow
+                end
+            end
+        end
+        
+        %   best feedthrough
+        Dr0 = DrSet(:,:,end); 
+        if Opts.plot 
+            syse = sys-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
+                                           'LineWidth',2); drawnow 
+        end          
     end
 
 end
