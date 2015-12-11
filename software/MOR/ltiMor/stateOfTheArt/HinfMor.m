@@ -40,7 +40,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
     Def.irka    = struct(); %run irka with defaul parameters
     Def.corrType = 'normOptCycle';
     Def.solver   = 'fminunc'; %optimization solver
-                    %fminsearch, globalsearch, multistart, ga
+                    %fminsearch, gs, ms, ga
     Def.DrInit  = '0'; %0, '0', Ge0, matchGe0, maxGe
     Def.plot    = 0; % generate analysis plot
     Def.sampling= 'random'; %sampling for sweepDr
@@ -387,44 +387,53 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 
                 case 'gs'
                     
-                optOpts = optimoptions(@fmincon,'UseParallel',1);
+                optOpts = optimoptions('fmincon','UseParallel',1);
                 problem = createOptimProblem('fmincon',...
-                            'objective',cost,'x0',Dr0,'options',optOpts);
-                gs = GlobalSearch;
-                tic, [DrOpt,Hinf] = run(gs,problem); tOpt = toc;
-
+                            'objective',cost,'x0',Dr0,'options',optOpts,...
+                            'nonlcon',@stabilityConstraint);
+                gs = GlobalSearch('NumStageOnePoints',25,...%start points
+                                  'NumTrialPoints',25,... %potential start points
+                                  'StartPointsToRun','bounds-ineqs');%exclude certain points?
+                                 
+                tic,  [DrOpt,Hinf] = run(gs,problem); tOpt = toc;
+                % stability constraint is included in the optimization
+                
                 case 'ms'
-                optOpts = optimoptions(@fminunc, 'algorithm','quasi-newton');
+                optOpts = optimoptions('fminunc', 'algorithm','quasi-newton');
                 problem = createOptimProblem('fminunc',....
                             'objective',cost, 'x0',Dr0,'options',optOpts);
                 ms = MultiStart('UseParallel',true);
-                tic, [DrOpt,Hinf] = run(ms,problem,24); tOpt = toc;
-                    
+                tic, [DrOpt,Hinf,~,~,allmins] = run(ms,problem,25); tOpt = toc;
+                
+                %   Get the best stable result
+                k = 1; nOpt = length(allmins);
+                while ~isstable(sysrfun(DrOpt))
+                    k = k+1;
+                    DrOpt = allmins(k).X;
+                    Hinf  = allmins(k).Fval;
+                    if k >= nOpt
+                        warning('none of the local optima from MS was stable')
+                        DrOpt = allmins.X(1);
+                        Hinf  = allmins.Fval(1);
+                        break
+                    end
+                end
+                
                 case 'ga'
-                    options = gaoptimset('UseParallel',true);
+                    options = gaoptimset('UseParallel',true,...
+                                         'PopulationSize',25,...
+                                         'Generations',20,...
+                                         'InitialPopulation',Dr0(:).');
+                    
+                    hybridoptions = optimoptions('fmincon','UseParallel',1);
+                    options = gaoptimset(options,...
+                    'HybridFcn',{@fmincon, hybridoptions});
+
                     gacost = @(x) cost(reshape(x,size(Dr0,1),size(Dr0,2)));
-                    tic, [xOpt, Hinf] = ga(gacost,numel(Dr0),[],[],[],[],[],[],[],options); tOpt = toc;
+
+                    tic, [xOpt, Hinf] = ga(gacost,numel(Dr0),[],[],[],[],...
+                            [],[],@stabilityConstraintGA,options); tOpt = toc;
                     DrOpt = reshape(xOpt,size(Dr0,1),size(Dr0,2));
-            end
-    end
-    function bound = HinfBound(sys,B_,C_)
-        % Panzer 2014 
-%         function bndHinf = BoundHinf(L_S,P_S,B,C)
-        % Upper bound on H-infinity norm of strictly dissipative system
-        % Input: L_S,P_S: Cholesky factor of S=-A-A', and permutation matrix;
-        % B_,C_ : Perp input and output matrices
-        % Output: bndHinf: Upper bound
-        % (c) 2014 Heiko K.F. Panzer, Tech. Univ. Muenchen.
-        % This file is published under the BSD 3-Clause License. All rights reserved.
-        
-        S = -(sys.A + sys.A.'); [L_S,p,P_S] = chol(S); 
-            if p
-                warning('System is not in strictly dissipative form. HinfBound set to Inf');
-                bound = inf;
-            else
-                B_S = L_S'\(P_S'*B_);
-                C_S = (L_S'\(P_S'*C_'))';
-                bound = norm(full(C_S*B_S)) + norm(full(B_S))*norm(full(C_S));
             end
     end
     function sysr = sysrfun(Dr,iOut,jIn,DrMIMO)
@@ -437,7 +446,6 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
         sysr= sss(sysr0.A+Lt.'*DrMIMO*Rt, sysr0.B+Lt.'*DrMIMO, ...
                                      sysr0.C+DrMIMO*Rt, DrMIMO, sysr0.E);
     end
-
     function [minDr, minVal] = plotOverDrRange(varargin)
         if isnumeric(DrRange) %vector of Dr values
             %initializing
@@ -553,6 +561,15 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 cd(cdir);
             end
     end
+    function [c,ceq]=stabilityConstraint(x)
+        % define a nonlinear constraint to impose stability
+        ceq = 1-isstable(sysrfun(x));
+        c = [];
+    end
+    function [c,ceq]=stabilityConstraintGA(x)
+        % define a nonlinear constraint to impose stability
+        [c,ceq]=stabilityConstraint(reshape(x,size(Dr0,1),size(Dr0,2)));
+    end
 
 
     %% Trash
@@ -607,6 +624,26 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             syse = sys-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
                                            'LineWidth',2); drawnow 
         end          
+    end
+    function bound = HinfBound(sys,B_,C_)
+        % Panzer 2014 
+%         function bndHinf = BoundHinf(L_S,P_S,B,C)
+        % Upper bound on H-infinity norm of strictly dissipative system
+        % Input: L_S,P_S: Cholesky factor of S=-A-A', and permutation matrix;
+        % B_,C_ : Perp input and output matrices
+        % Output: bndHinf: Upper bound
+        % (c) 2014 Heiko K.F. Panzer, Tech. Univ. Muenchen.
+        % This file is published under the BSD 3-Clause License. All rights reserved.
+        
+        S = -(sys.A + sys.A.'); [L_S,p,P_S] = chol(S); 
+            if p
+                warning('System is not in strictly dissipative form. HinfBound set to Inf');
+                bound = inf;
+            else
+                B_S = L_S'\(P_S'*B_);
+                C_S = (L_S'\(P_S'*C_'))';
+                bound = norm(full(C_S*B_S)) + norm(full(B_S))*norm(full(C_S));
+            end
     end
 
 end
