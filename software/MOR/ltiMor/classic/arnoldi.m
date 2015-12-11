@@ -95,9 +95,9 @@ end
 
 Def.makeOrth = 1; %make orthogonal?
 Def.makeReal = 1; %keep the projection matrices real?
-Def.reorth = 0; %gram schmidt reorthogonalization {0, 'gs','qr'}
+Def.reorth = 'dgks'; %gram schmidt reorthogonalization {0,'dgks','gs','qr'}
 Def.lu     = 'sparse'; %use sparse or full LU
-Def.dkgs   = 1; %dkgs algorithm for direct reorthogonalization
+Def.dgksTol= 1e-12; %orthogonality tolerance: norm(V'*V-I,'fro')<tol
         
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -269,7 +269,6 @@ end
     if Opts.reorth
        switch Opts.reorth
            case 'gs' %reorthogonalized GS
-                Opts.dkgs=0;
                 for jCol = 2:q        
                     if hermite
                         [V, Rsylv, W, Lsylv] = gramSchmidt(jCol, V, Rsylv, W, Lsylv);
@@ -279,6 +278,7 @@ end
                 end
            case 'qr' 
                [V,~] = qr(V,0); if hermite, [W,~] = qr(W,0); end
+           case 'dgks'
            otherwise
                error('The orthogonalization chosen is incorrect or not implemented')
        end
@@ -371,29 +371,23 @@ end
     %   Output: V, W:  orthonormal basis of Krylov-Subspaces
     %           Rsylv, Lsylv: orthonormal Sylvester matrices
     
-    if Opts.dkgs
+    if strcmp(Opts.reorth, 'dgks') && jCol>1
         % iterates standard gram-schmidt
         orthError=1;
         count=0;
-        while(orthError>1e-13)
-            tempIPV=V(:,jCol);
+        while(orthError>Opts.dgksTol)
+            h=IP(V(:,1:jCol-1),V(:,jCol));
+            V(:,jCol)=V(:,jCol)-V(:,1:jCol-1)*h;
+            Rsylv(:,jCol)=Rsylv(:,jCol)-Rsylv(:,1:jCol-1)*h;
             if hermite
-                tempIPW=W(:,jCol);
+                h=IP(W(:,1:jCol-1),W(:,jCol));
+                W(:,jCol)=W(:,jCol)-W(:,1:jCol-1)*h;
+                Lsylv(:,jCol)=Lsylv(:,jCol)-Lsylv(:,1:jCol-1)*h;
             end
-            for iCol=1:jCol-1
-              h=IP(tempIPV,V(:,iCol));
-              V(:,jCol)=V(:,jCol)-V(:,iCol)*h;
-              Rsylv(:,jCol)=Rsylv(:,jCol)-h*Rsylv(:,iCol);
-              if hermite
-                h=IP(tempIPW,W(:,iCol));
-                W(:,jCol)=W(:,jCol)-W(:,iCol)*h;
-                Lsylv(:,jCol)=Lsylv(:,jCol)-h*Lsylv(:,iCol);
-              end 
-            end
-            orthError=norm([V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))]'...
-                *[V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))]-speye(jCol),'fro');
-            if count>20
-                error('Orthogonalization failed.');
+            orthError=norm(IP([V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))],...
+                [V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))])-speye(jCol),'fro');
+            if count>50
+                error('Orthogonalization of the Krylov basis failed due to the given accuracy.');
             end
             count=count+1;
         end
