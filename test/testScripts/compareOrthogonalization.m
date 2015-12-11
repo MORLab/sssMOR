@@ -17,16 +17,13 @@ end
 
 for i=1:length(sysCell)
     sys = sysCell{i};
-    sys = sys(1,1); E = sys.E; A = sys.A; B = sys.B;
-    opts.dkgs=1;
-    opts.reorth=0;
+    opts.reorth='dgks';
     start1=tic();
-    [V1] = arnoldi(E,A,B,[Inf, 0, 100, 4+13i, 4-13i], @(x,y) (x'*y), opts);
+    [V1] = arnoldi(sys.E,sys.A,sys.B,[Inf, 0, 100, 4+13i, 4-13i], @(x,y) (x'*y), opts);
     time1=toc(start1);
-    opts.dkgs=0;
     opts.reorth='gs';
     start2=tic();
-    [V2] = arnoldi(E,A,B,[Inf, 0, 100, 4+13i, 4-13i], @(x,y) (x'*y), opts);
+    [V2] = arnoldi(sys.E,sys.A,sys.B,[Inf, 0, 100, 4+13i, 4-13i], @(x,y) (x'*y), opts);
     time2=toc(start2);
     normV1=norm(V1'*V1-speye(size(V1,2)),'fro');
     normV2=norm(V2'*V2-speye(size(V1,2)),'fro');
