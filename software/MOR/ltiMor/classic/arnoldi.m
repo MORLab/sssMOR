@@ -82,7 +82,7 @@ function [V,Rsylv,W,Lsylv] = arnoldi(E,A,B,varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  08 Dec 2015
+% Last Change:  12 Dec 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -96,8 +96,8 @@ end
 Def.makeOrth = 1; %make orthogonal?
 Def.makeReal = 1; %keep the projection matrices real?
 Def.reorth = 'dgks'; %gram schmidt reorthogonalization {0,'dgks','gs','qr'}
-Def.lu     = 'sparse'; %use sparse or full LU
-Def.dgksTol= 1e-12; %orthogonality tolerance: norm(V'*V-I,'fro')<tol
+Def.lse = 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess'}
+Def.dgksTol = 1e-12; %orthogonality tolerance: norm(V'*V-I,'fro')<tol
         
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -179,13 +179,14 @@ if ~exist('IP', 'var')
 end
 
 % If the 'full' option is selected for LU, convert E,A once to full
-if strcmp(Opts.lu,'full')
+if strcmp(Opts.lse,'full')
     E = full(E); A = full(A);
+elseif strcmp(Opts.lse,'hess')
+    [A,E,Q,Z] = hess(full(A),full(E)); B = Q*B; if hermite, C = C*Z; end
 else
     E = sparse(E); A=sparse(A);
 end
 
-global R S L U a o;
 %% ---------------------------- CODE -------------------------------
 % Real reduced system
 if Opts.makeReal
@@ -386,7 +387,7 @@ end
             end
             orthError=norm(IP([V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))],...
                 [V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))])-speye(jCol),'fro');
-            if count>50
+            if count>50 % if dgksTol is too small, Matlab can get caught in the while-loop
                 error('Orthogonalization of the Krylov basis failed due to the given accuracy.');
             end
             count=count+1;
@@ -437,13 +438,6 @@ end
             Lsylv(:,jCol+nS0c) = imag(Lsylv(:,jCol));
             Lsylv(:,jCol) = real(Lsylv(:,jCol));
         end
-    else
-        V(:,jCol)=real(V(:,jCol));
-        Rsylv=real(Rsylv);
-        if hermite
-            W(:,jCol)=real(W(:,jCol));
-            Lsylv=real(Lsylv);
-        end
     end
     end
     
@@ -492,6 +486,8 @@ end
     %           s0: Vector containing the expansion points
     %           tempV, tempW: previous Krylov direction
     %   Output: tempV, tempW: new Krylov direction
+    persistent R S L U a o;
+    
     if isinf(s0(jCol)) %Realization problem (match Markov parameters)
         if newlu==0
             tempV=A*tempV;
@@ -499,13 +495,13 @@ end
         if newlu==1
             try
                 % compute Cholesky factors of E
-                clear L U a o S
+                U=[];
                 [R,~,S] = chol(E);
 %                 R = chol(sparse(E));
             catch err
-                if (strcmp(err.identifier,'MATLAB:posdef'))
+                if (strcmp(err.identifier,'MATLAB:posdef')) || ~strcmp(Opts.lse,'sparse')
                     % E is not pos. def -> use LU instead
-                    switch Opts.lu
+                    switch Opts.lse
                         case 'sparse'
                             [L,U,a,o,S]=lu(E,'vector');
                         case 'full'
@@ -516,12 +512,14 @@ end
                 end
             end
         end
-        if exist('U', 'var') && ~isempty(U)
-            switch Opts.lu
+        if ~isempty(U) || strcmp(Opts.lse,'hess')
+            switch Opts.lse
                 case 'sparse'
                     tempV(o,:) = U\(L\(S(:,a)\tempV)); %LU x(o,:) = S(:,a)\b 
                 case 'full'
                     tempV = U\(L\tempV);
+                case 'hess'
+                    tempV = E\tempV;
             end
         else
             tempV = S*(R\(R'\(S'*tempV)));
@@ -538,7 +536,7 @@ end
             end
         end
         if newlu==1
-            switch Opts.lu
+            switch Opts.lse
                 case 'sparse'
                     % vector LU for sparse matrices
                     [L,U,a,o,S]=lu(A-s0(jCol)*E,'vector');
@@ -547,13 +545,16 @@ end
             end
         end
         % Solve the linear system of equations
-        switch Opts.lu
+        switch Opts.lse
             case 'sparse'
                 tempV(o,:) = U\(L\(S(:,a)\tempV)); %LU x(o,:) = S(:,a)\b 
                 if hermite, tempW = (S(:,a)).'\(L.'\(U.'\(tempW(o,:)))); end %U'L'S(:,a) x = c'(o,:) 
             case 'full'
                 tempV = U\(L\tempV);
                 if hermite, tempW = (L.'\(U.'\(tempW))); end 
+            case 'hess'
+                tempV = (A-s0(jCol)*E)\tempV;
+                if hermite, tempW = (A-s0(jCol)*E).'\tempW; end 
         end
     end
     end
