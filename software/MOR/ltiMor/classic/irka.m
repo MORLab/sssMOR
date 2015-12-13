@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv, kIter] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, kIter] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -150,9 +150,9 @@ while true
     kIter=kIter+1; sysr_old = sysr;
     %   Reduction
     if sys.isSiso
-        [sysr, V, W, B_, Rsylv,C_,Lsylv] = rk(sys, s0, s0,Opts);
+        [sysr, V, W, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv] = rk(sys, s0, s0,Opts);
     else
-        [sysr, V, W, B_, Rsylv,C_,Lsylv] = rk(sys, s0, s0, Rt, Lt,Opts);
+        [sysr, V, W, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv] = rk(sys, s0, s0, Rt, Lt,Opts);
     end 
     
     %   Update of the reduction parameters

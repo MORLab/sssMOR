@@ -74,7 +74,7 @@ classdef testRk < matlab.unittest.TestCase
               load('building.mat'); sys = sss(A,B,C);
               n = 10; s0val = 100; s0 = ones(1,n)*s0val; 
               
-              [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, s0);
+              [sysr, V, W, Bb, ~, Rsylv, Cb, ~, Lsylv] = rk(sys, s0);
               actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W, ...
                   Rsylv, Bb};
               
@@ -100,7 +100,7 @@ classdef testRk < matlab.unittest.TestCase
               load('beam.mat'); sys = sss(A,B,C);
               n = 5; s0val = 100; s0 = [ones(1,n)*s0val*1i,-ones(1,n)*s0val*1i]; 
               
-              [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys, [], s0);
+              [sysr, V, W, Bb, ~, Rsylv, Cb, ~, Lsylv] = rk(sys, [], s0);
               actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W, Lsylv, Cb};
               
               expW = arnoldi(speye(size(A)),A',C',s0);
@@ -156,7 +156,7 @@ classdef testRk < matlab.unittest.TestCase
                 sysrIrka = irka(sys, zeros(1,n),r, l);
                 s0 = -eig(sysrIrka).'; s0moment = s0; n = 2;
             
-              [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys,s0,s0);              
+              [sysr, V, W, Bb, ~, Rsylv, Cb, ~, Lsylv] = rk(sys,s0,s0);              
               [expV,~,expW,~] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0);
               
               % The transpose LU problem can be ill conditioned, check the
@@ -204,7 +204,7 @@ classdef testRk < matlab.unittest.TestCase
                     Lt(k) = real(Lt(k));
                 end
               
-               [sysr, V, W, Bb, Rsylv, Cb, Lsylv] = rk(sys,s0,s0,Rt,Lt);
+               [sysr, V, W, Bb, ~, Rsylv, Cb, ~, Lsylv] = rk(sys,s0,s0,Rt,Lt);
                [expV,~,expW,~] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0,Rt,Lt);
               
               % The transpose LU problem can be ill conditioned, check the
