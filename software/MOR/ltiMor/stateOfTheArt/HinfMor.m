@@ -39,8 +39,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
     Def.plotCostOverDr = 0;
     Def.irka    = struct(); %run irka with defaul parameters
     Def.corrType = 'normOptCycle';
-    Def.solver   = 'fminunc'; %optimization solver
-                    %fminsearch, gs, ms, ga
+    Def.solver   = 'fmincon'; %optimization solver
     Def.DrInit  = '0'; %0, '0', Ge0, matchGe0, maxGe
     Def.plot    = 0; % generate analysis plot
     Def.sampling= 'random'; %sampling for sweepDr
@@ -384,6 +383,12 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 case 'fminunc'
                 optOpts = optimoptions(@fminunc, 'algorithm','quasi-newton');
                 tic, [DrOpt, Hinf] = fminunc(cost,Dr0,optOpts); tOpt = toc;
+                
+                case 'fmincon'
+                optOpts = optimoptions('fmincon','UseParallel',1);
+%                 
+                tic, [DrOpt, Hinf] = fmincon(cost,Dr0,[],[],[],...
+                    [],[],[],@stabilityConstraint,optOpts); tOpt = toc;
                 
                 case 'gs'
                     
