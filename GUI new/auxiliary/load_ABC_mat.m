@@ -10,6 +10,33 @@ function varargout = load_ABC_mat(varargin)
 % Last Change:  13 Feb 2011
 % ------------------------------------------------------------------
 
+
+
+%Structure:
+%
+%   GUI INITIALIZATION
+%
+%   FIGURE(TOP-LEVEL)
+%
+%       TOP MENUE
+%
+%       PANEL ABCD
+%
+%       PANEL MDK
+%
+%       BOTTOM MENUE
+%
+%   UTILITY FUNCTIONS
+
+
+
+
+
+
+%--------------------------------------------------------------------------
+%                           GUI INITIALIZATION
+%--------------------------------------------------------------------------
+
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
@@ -45,9 +72,34 @@ list_matrices(handles)
 function varargout = load_ABC_mat_OutputFcn(hObject, eventdata, handles) %#ok<*INUSD>
 varargout = {};
 
-function ed_sysname_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
-% check variable names
-isvalidvarname(hObject,'NoWarning')
+
+
+%--------------------------------------------------------------------------
+%                            FIGURE(TOP LEVEL)
+%--------------------------------------------------------------------------
+
+function figure1_DeleteFcn(hObject, eventdata, handles)
+    try
+        set(handles.inputGUI.lb_systems,'Value',[])
+        set(handles.inputGUI.lb_systems,'String',systems_in_workspace)
+        set(handles.inputGUI.lb_matrixes,'Value',[])
+        set(handles.inputGUI.lb_matrixes,'String',matrices_in_workspace)
+    catch exception
+        if strcmp(exception.identifier,'MATLAB:class:InvalidHandle')
+            % GUI has been closes, handles are not valid anymore
+        else
+            throw(exception)
+        end
+    end
+    delete(handles.figure1)
+    % clear variable that have been written to workspace
+    evalin('base','clear load_var_dont_destroy')
+
+
+    
+%--------------------------------------------------------------------------
+%                               TOP MENUE
+%--------------------------------------------------------------------------
 
 function pb_loadfile_Callback(hObject, eventdata, handles)
 set(hObject,'Enable','off') % doppeltes aufrufen der uigetfile funktion vermeiden
@@ -78,139 +130,30 @@ if ~isempty(suggestion)
     set(handles.ed_sysname,'UserData',0)
 end
 
-function pb_create_Callback(hObject, eventdata, handles)
-set(handles.figure1,'Pointer','watch');
-k=[];
-% Überprüfen, ob überall eine Matrix ausgewählt wurde (muss, wenn in der lb
-% Einträge vorhanden sind)
-if get(handles.rb_ABCD,'Value')==1 && isempty(get(handles.lb_A,'String'))
-    set(handles.figure1,'Pointer','arrow');
-    errordlg('No A selected','Error Dialog','modal')
-    uiwait
-    return
-end
-if get(handles.rb_MDK,'Value')==1 && isempty(get(handles.lb_Mmdk,'String'))
-    set(handles.figure1,'Pointer','arrow');
-    errordlg('No M selected','Error Dialog','modal')
-    uiwait
-    return
-end
-if get(handles.ed_sysname,'UserData')~=0
-    set(handles.figure1,'Pointer','arrow');
-    errordlg('Please correct System Name first','Error Dialog','modal')
-    uiwait
-    return
-end
-sysname=get(handles.ed_sysname,'String');
-if exist_in_base_ws(sysname)~=0
-%wenn es schon Variable im workspce mit diesem Namen gibt
-          s=sprintf('%s already exists in base workspace. Do you want to overwrite it?',sysname);
-          k=stqd('String',s,'Title','Question Dialog');
-end
-if ~isempty(k) && strcmp(k,'No')
-    set(handles.figure1,'Pointer','arrow');
-    return
-end
-% set(handles.figure1,'Pointer','watch');
-if any(get(handles.ed_a,'UserData')==1) || any(get(handles.ed_b,'UserData')==1)
-    set(handles.figure1,'Pointer','arrow');
-    errordlg('Please correct alpha and beta first','Error Dialog','modal')
-    uiwait
-    return
+function bg_ABCMDK_SelectionChangeFcn(hObject, eventdata, handles)
+if eventdata.NewValue==handles.rb_ABCD
+    % ABCD selected
+    set(handles.panel_ABCD,'Visible','on')
+    set(handles.panel_MDK,'Visible','off')
+elseif eventdata.NewValue==handles.rb_MDK
+    % MDK selected
+    set(handles.panel_MDK,'Visible','on')
+    set(handles.panel_ABCD,'Visible','off')
 end
 
-if get(handles.rb_ABCD,'Value')==1
-    % state space model
-    try
-        A = get_matrix_from_ws(handles.lb_A);
-        B = get_matrix_from_ws(handles.lb_B);
-        C = get_matrix_from_ws(handles.lb_C);
-        D = get_matrix_from_ws(handles.lb_D);
-        E = get_matrix_from_ws(handles.lb_E);
-        assignin('base',sysname,sss(A,B,C,D,E));
-    catch ex
-        errordlg(ex.message,'Error Dialog','modal')
-        set(handles.figure1,'Pointer','arrow');
-        return
-    end
-    set(handles.figure1,'Pointer','arrow');
+function cb_include_Callback(hObject, eventdata, handles)
+% Matrizen aus dem workspace (nicht) mit auflisten, entweder mit Matrizen
+% aus der geladenen Datei, oder ohne
+list_matrices(handles)
 
-    k=stqd('String','System created! Do you want to create another system?','Title','Question Dialog');
-    if ~isempty(k) && strcmp(k,'No')
-        figure1_DeleteFcn([], [], handles)
-        return
-    end
-    
-elseif get(handles.rb_MDK,'Value')==1
-    % second order systems
-    try
-        M = get_matrix_from_ws(handles.lb_Mmdk);
-        K = get_matrix_from_ws(handles.lb_Kmdk);
-        B = get_matrix_from_ws(handles.lb_Bmdk);
-        
-        Dsel = get(handles.lb_Dmdk, 'String');
-        Dsel = Dsel{get(handles.lb_Dmdk, 'Value')};
-        if strcmp(Dsel, 'alpha*M+beta*K')
-            alpha=str2double(get(handles.ed_a,'String'));
-            beta=str2double(get(handles.ed_b,'String'));
-            D = alpha*M + beta*K;
-        elseif strcmp(Dsel, 'Zero')
-            D = [];
-        else
-            D = get_matrix_from_ws(handles.lb_Dmdk);
-        end
+function cb_file_Callback(hObject, eventdata, handles)
+list_matrices(handles)
 
-        Fsel = get(handles.lb_Fmdk, 'String');
-        Fsel = Fsel{get(handles.lb_Fmdk, 'Value')};
-        if strcmp(Fsel, 'identity matrix')
-            F = speye(size(M));
-        else
-            F = get_matrix_from_ws(handles.lb_Fmdk);
-        end
 
-        Cvsel = get(handles.lb_Cvmdk, 'String');
-        Cvsel = Cvsel{get(handles.lb_Cvmdk, 'Value')};
-        if strcmp(Cvsel, 'Zero')
-            Cv = [];
-        else
-            Cv = get_matrix_from_ws(handles.lb_Cvmdk);
-        end
 
-        Cxsel = get(handles.lb_Cxmdk, 'String');
-        Cxsel = Cxsel{get(handles.lb_Cxmdk, 'Value')};
-        if strcmp(Cxsel, 'Zero')
-            Cx = [];
-        else
-            Cx = get_matrix_from_ws(handles.lb_Cxmdk);
-        end
-        
-        sys = fem2ss(M, D, K, B, Cx, Cv, F);
-        assignin('base',sysname,sys);
-    catch ex
-        errordlg(ex.message,'Error Dialog','modal')
-        set(handles.figure1,'Pointer','arrow');
-        return
-    end
-    set(handles.figure1,'Pointer','arrow');
-    k=stqd('String','System created! Do you want to create another system?','Title','Question Dialog');% Dialogbox wir aufgerufen
-    if isempty(k) || strcmp(k,'No') % 
-        figure1_DeleteFcn([], [], handles)
-        return
-    end
-end
-% MORLAB_GUI aktualisieren
-try
-    set(handles.inputGUI.lb_systems,'Value',[])
-    set(handles.inputGUI.lb_systems,'String',systems_in_workspace)
-    set(handles.inputGUI.lb_matrixes,'Value',[])
-    set(handles.inputGUI.lb_matrixes,'String',matrices_in_workspace)
-catch exception
-    if strcmp(exception.identifier,'MATLAB:class:InvalidHandle')
-        % GUI wurde geschlossen, handles sind nicht mehr gültig
-    else
-        throw(exception)
-    end
-end
+%--------------------------------------------------------------------------
+%                             PANEL ABCD
+%--------------------------------------------------------------------------
 
 function lb_Dmdk_Callback(hObject, eventdata, handles)
 % falls D=alpha*M+beta*K ausgewählt wurde, Felder für alpha und beta
@@ -233,10 +176,11 @@ else
     set(handles.st_b,'Visible','off')
 end
 
-function cb_include_Callback(hObject, eventdata, handles)
-% Matrizen aus dem workspace (nicht) mit auflisten, entweder mit Matrizen
-% aus der geladenen Datei, oder ohne
-list_matrices(handles)
+
+
+%--------------------------------------------------------------------------
+%                              PANEL MDK
+%--------------------------------------------------------------------------
 
 function ed_a_Callback(hObject, eventdata, handles)
 % check alpha
@@ -288,7 +232,169 @@ else
     set(hObject,'UserData','0')
 end
 
-function figure1_DeleteFcn(hObject, eventdata, handles)
+
+
+%--------------------------------------------------------------------------
+%                            BOTTOM MENUE
+%--------------------------------------------------------------------------
+
+function ed_sysname_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
+% check variable names
+isvalidvarname(hObject,'NoWarning')
+
+function pb_create_Callback(hObject, eventdata, handles)
+set(handles.figure1,'Pointer','watch');
+k=[];
+% Überprüfen, ob überall eine Matrix ausgewählt wurde (muss, wenn in der lb
+% Einträge vorhanden sind)
+if get(handles.rb_ABCD,'Value')==1 && isempty(get(handles.lb_A,'String'))
+    set(handles.figure1,'Pointer','arrow');
+    errordlg('No A selected','Error Dialog','modal')
+    uiwait
+    return
+end
+if get(handles.rb_MDK,'Value')==1 && isempty(get(handles.lb_Mmdk,'String'))
+    set(handles.figure1,'Pointer','arrow');
+    errordlg('No M selected','Error Dialog','modal')
+    uiwait
+    return
+end
+if get(handles.ed_sysname,'UserData')~=0
+    set(handles.figure1,'Pointer','arrow');
+    errordlg('Please correct System Name first','Error Dialog','modal')
+    uiwait
+    return
+end
+sysname=get(handles.ed_sysname,'String');
+if exist_in_base_ws(sysname)~=0
+%wenn es schon Variable im workspce mit diesem Namen gibt
+          s=sprintf('%s already exists in base workspace. Do you want to overwrite it?',sysname);
+          k=stqd('String',s,'Title','Question Dialog');
+end
+if ~isempty(k) && strcmp(k,'No')
+    set(handles.figure1,'Pointer','arrow');
+    return
+end
+% set(handles.figure1,'Pointer','watch');
+if any(get(handles.ed_a,'UserData')==1) || any(get(handles.ed_b,'UserData')==1)
+    set(handles.figure1,'Pointer','arrow');
+    errordlg('Please correct alpha and beta first','Error Dialog','modal')
+    uiwait
+    return
+end
+
+if get(handles.rb_ABCD,'Value')==1
+    
+    % State-Space-Modell
+    
+    try
+        A = get_matrix_from_ws(handles.lb_A);
+        B = get_matrix_from_ws(handles.lb_B);
+        C = get_matrix_from_ws(handles.lb_C);
+        D = get_matrix_from_ws(handles.lb_D);
+        E = get_matrix_from_ws(handles.lb_E);
+        assignin('base',sysname,sss(A,B,C,D,E));
+    catch ex
+        errordlg(ex.message,'Error Dialog','modal')
+        set(handles.figure1,'Pointer','arrow');
+        return
+    end
+    set(handles.figure1,'Pointer','arrow');
+
+    k=stqd('String','System created! Do you want to create another system?','Title','Question Dialog');
+    if ~isempty(k) && strcmp(k,'No')
+        figure1_DeleteFcn([], [], handles)
+        return
+    end
+    
+elseif get(handles.rb_MDK,'Value')==1
+    
+    % Second Order Systems
+    
+    try
+        
+        %Inform the User that the system will be transformed to first order
+        
+        dialog=stqd('String','The system will be converted from 2nd order form to 1st order form. Do you want to continue?','Title','Question Dialog');
+        
+        if ~isempty(dialog) && ~strcmp(dialog,'No')
+        
+            %Matrices M, K and B
+
+            M = get_matrix_from_ws(handles.lb_Mmdk);
+            K = get_matrix_from_ws(handles.lb_Kmdk);
+            B = get_matrix_from_ws(handles.lb_Bmdk);
+
+            %Matrix D
+
+            Dsel = get(handles.lb_Dmdk, 'String');
+            Dsel = Dsel{get(handles.lb_Dmdk, 'Value')};
+            if strcmp(Dsel, 'alpha*M+beta*K')
+                alpha=str2double(get(handles.ed_a,'String'));
+                beta=str2double(get(handles.ed_b,'String'));
+                D = alpha*M + beta*K;
+            elseif strcmp(Dsel, 'Zero')
+                D = [];
+            else
+                D = get_matrix_from_ws(handles.lb_Dmdk);
+            end
+
+            %Matrix F
+
+            Fsel = get(handles.lb_Fmdk, 'String');
+            Fsel = Fsel{get(handles.lb_Fmdk, 'Value')};
+            if strcmp(Fsel, 'identity matrix')
+                F = speye(size(M));
+            else
+                F = get_matrix_from_ws(handles.lb_Fmdk);
+            end
+
+            %Matrix Cv
+
+            Cvsel = get(handles.lb_Cvmdk, 'String');
+            Cvsel = Cvsel{get(handles.lb_Cvmdk, 'Value')};
+            if strcmp(Cvsel, 'Zero')
+                Cv = [];
+            else
+                Cv = get_matrix_from_ws(handles.lb_Cvmdk);
+            end
+
+            %Matrix Cx
+
+            Cxsel = get(handles.lb_Cxmdk, 'String');
+            Cxsel = Cxsel{get(handles.lb_Cxmdk, 'Value')};
+            if strcmp(Cxsel, 'Zero')
+                Cx = [];
+            else
+                Cx = get_matrix_from_ws(handles.lb_Cxmdk);
+            end
+
+            %Conversion to first Order
+
+            sys = fem2ss(M, D, K, B, Cx, Cv, F);
+            assignin('base',sysname,sys);
+            
+            %User request
+            
+            set(handles.figure1,'Pointer','arrow');
+            k=stqd('String','System created! Do you want to create another system?','Title','Question Dialog');% Dialogbox wir aufgerufen
+            if isempty(k) || strcmp(k,'No') 
+                figure1_DeleteFcn([], [], handles)
+                return
+            end
+        
+        end
+        
+    catch ex
+        errordlg(ex.message,'Error Dialog','modal')
+        set(handles.figure1,'Pointer','arrow');
+        return
+    end
+    
+    set(handles.figure1,'Pointer','arrow');
+
+end
+% MORLAB_GUI aktualisieren
 try
     set(handles.inputGUI.lb_systems,'Value',[])
     set(handles.inputGUI.lb_systems,'String',systems_in_workspace)
@@ -296,27 +402,72 @@ try
     set(handles.inputGUI.lb_matrixes,'String',matrices_in_workspace)
 catch exception
     if strcmp(exception.identifier,'MATLAB:class:InvalidHandle')
-        % GUI has been closes, handles are not valid anymore
+        % GUI wurde geschlossen, handles sind nicht mehr gültig
     else
         throw(exception)
     end
 end
-delete(handles.figure1)
-% clear variable that have been written to workspace
-evalin('base','clear load_var_dont_destroy')
 
-function cb_file_Callback(hObject, eventdata, handles)
-list_matrices(handles)
 
-function bg_ABCMDK_SelectionChangeFcn(hObject, eventdata, handles)
-if eventdata.NewValue==handles.rb_ABCD
-    % ABCD selected
-    set(handles.panel_ABCD,'Visible','on')
-    set(handles.panel_MDK,'Visible','off')
-elseif eventdata.NewValue==handles.rb_MDK
-    % MDK selected
-    set(handles.panel_MDK,'Visible','on')
-    set(handles.panel_ABCD,'Visible','off')
+
+%--------------------------------------------------------------------------
+%                          UTILITY FUNCTIONS
+%--------------------------------------------------------------------------
+
+function preselection(hObject,x)
+% trifft Vorauswahl in der Create Systems GUI
+% letzte Änderung 04.05.2010
+
+%alle "zeilen" im String finden, in denen x voekommt
+b=strfind(get(hObject,'String'),x);
+%wenn es einen passenden eintrag in der datei gibt ist der genau x und
+%kleiner als 6, weil nicht [ws] savor steht
+for i=1:length(b)
+    if length(b{i})==1 && b{i}<6
+        set(hObject,'Value',i)
+        return
+    end
+end
+%wenn es keinen aus der datei gab, dann auch workspace einträge
+%berücksichtigen
+for i=1:length(b)
+    if length(b{i})==1
+        set(hObject,'Value',i)
+        return
+    end
+end
+%wenn es auch im workspace nichts gibt, einen nehmen, in dem x vorkommt
+%(z.B 'A_A' für A)
+for i=1:length(b)
+    if length(b{i})>1
+        set(hObject,'Value',i)
+        return
+    end
+end
+%sonst auf den ersten eintrag setzten, dort stehen Einheitsmatrix oder Nullmatrix
+set(hObject,'Value',1)
+
+function i = exist_in_base_ws(varname)
+% returns 1 if x exists in base workspace, otherwise 0
+i=evalin('base',sprintf('exist(''%s'')',varname));
+
+function mat = get_matrix_from_ws(handle)
+% returns matrix selected in control handle
+
+k=get(handle,'String');
+l=regexp(k(get(handle,'Value')), '\ ', 'split'); % split string
+if strcmp(l{1}{1,1},'[ws]')
+    %variable im 'base' workspace
+    varname=l{1}{1,2};
+    mat=evalin('base',varname);
+else
+    %variable in load_var_dont_destroy
+    varname=l{1}{1,1};
+    try
+        mat=evalin('base',sprintf('load_var_dont_destroy.%s',varname));
+    catch
+        mat=[];
+    end
 end
 
 function list_matrices(handles)
@@ -444,64 +595,3 @@ set(handles.ed_a,'Visible','off')
 set(handles.ed_b,'Visible','off')
 set(handles.st_a,'Visible','off')
 set(handles.st_b,'Visible','off')
-
-
-
-function preselection(hObject,x)
-% trifft Vorauswahl in der Create Systems GUI
-% letzte Änderung 04.05.2010
-
-%alle "zeilen" im String finden, in denen x voekommt
-b=strfind(get(hObject,'String'),x);
-%wenn es einen passenden eintrag in der datei gibt ist der genau x und
-%kleiner als 6, weil nicht [ws] savor steht
-for i=1:length(b)
-    if length(b{i})==1 && b{i}<6
-        set(hObject,'Value',i)
-        return
-    end
-end
-%wenn es keinen aus der datei gab, dann auch workspace einträge
-%berücksichtigen
-for i=1:length(b)
-    if length(b{i})==1
-        set(hObject,'Value',i)
-        return
-    end
-end
-%wenn es auch im workspace nichts gibt, einen nehmen, in dem x vorkommt
-%(z.B 'A_A' für A)
-for i=1:length(b)
-    if length(b{i})>1
-        set(hObject,'Value',i)
-        return
-    end
-end
-%sonst auf den ersten eintrag setzten, dort stehen Einheitsmatrix oder Nullmatrix
-set(hObject,'Value',1)
-
-
-
-function i = exist_in_base_ws(varname)
-% returns 1 if x exists in base workspace, otherwise 0
-i=evalin('base',sprintf('exist(''%s'')',varname));
-
-
-function mat = get_matrix_from_ws(handle)
-% returns matrix selected in control handle
-
-k=get(handle,'String');
-l=regexp(k(get(handle,'Value')), '\ ', 'split'); % split string
-if strcmp(l{1}{1,1},'[ws]')
-    %variable im 'base' workspace
-    varname=l{1}{1,2};
-    mat=evalin('base',varname);
-else
-    %variable in load_var_dont_destroy
-    varname=l{1}{1,1};
-    try
-        mat=evalin('base',sprintf('load_var_dont_destroy.%s',varname));
-    catch
-        mat=[];
-    end
-end
