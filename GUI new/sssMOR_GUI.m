@@ -22,6 +22,8 @@ function varargout = sssMOR_GUI(varargin)
 
 %Structure:
 %
+%   INITIALIZATION
+%
 %   FIGURE(TOP-LEVEL)
 %   
 %       MAIN-MENUE
@@ -43,11 +45,11 @@ function varargout = sssMOR_GUI(varargin)
 
 
 
+%--------------------------------------------------------------------------
+%                           INITIALIZATION
+%--------------------------------------------------------------------------
 
 
-
-%%
-% initialization
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
@@ -79,26 +81,30 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     handles.letzterpfad='*';
 
     %Make latex code possible for all static text-fields whose tag names start
-    %with "latex"
+    %with "latex"  
     
-    handles.laxis = axes('parent',hObject,'units','normalized','position',[0 0 1 1],'visible','off');
-
-    %lbls = findobj('-regexp','tag','text*');
     lbls = findall(hObject);
+    
     for i=1:length(lbls)
+        
           l = lbls(i);
           t = get(l,'tag');
           
           if strfind(t,'latex_') == 1
+              
              % Get current text, position and tag
              t = 'nothing'; 
-             set(l,'units','normalized');
+             set(l,'units','pixels');
              s = get(l,'string');
              p = get(l,'position');
+             parent = get(l,'parent');
+             
              % Remove the UICONTROL
              delete(l);
-             % Replace it with a TEXT object 
-             handles.(t) = text(p(1),p(2),s,'interpreter','latex');            
+             
+             % Replace it with an axis with an text object on it
+             handles.(t) = axes('parent',parent,'units','pixels','position',[p(1) p(2) p(3) p(4)],'visible','off');
+             handles.(t) = text(0,0.3,s,'interpreter','latex');            
           end
 
     end
@@ -268,8 +274,12 @@ function logo_about_CreateFcn(hObject, eventdata, handles)
     A=imread('MOR.jpg');
     image(A);
 
+function text_about_weblink_ButtonDownFcn(hObject, eventdata, handles)
+    % Open a weblink if the mouse is klicked over the text element
+    web www.rt.mw.tum.de/forschung/forschungsgebiete/modellreduktion/sssmor/
 
-
+    
+    
 %--------------------------------------------------------------------------
 %                    POSTPROCESSING AND VISUALISATION
 %--------------------------------------------------------------------------
@@ -344,118 +354,6 @@ end
 set(handles.ed_legend,'String',s);
 % refresh list of open figures
 list_open_figures(handles)
-
-function pb_refreshsys_Callback(hObject, eventdata, handles)
-% refresh list of open figures and systems
-l=systems_in_workspace();
-l_alt=get(handles.syschoice,'String'); % old String
-x=l_alt{get(handles.syschoice,'Value')};
-x=find(strcmp(x,l));
-if ~isempty(x)
-    set(handles.syschoice,'Value',x+1)
-end
-x=l_alt{get(handles.pu_mor_systems,'Value')};
-x=find(strcmp(x,l));
-if ~isempty(x)
-    set(handles.pu_mor_systems,'Value',x+1)
-end
-x=l_alt{get(handles.pu_an_sys,'Value')};
-x=find(strcmp(x,l));
-if ~isempty(x)
-    set(handles.pu_an_sys,'Value',x+1)
-end
-
-
-
-if get(handles.syschoice,'Value')>length(l)+1
-    set(handles.syschoice,'Value',1)
-    set(handles.sysinfo,'String','Please choose a system!')
-end
-if get(handles.pu_mor_systems,'Value')>length(l)+1
-    set(handles.pu_mor_systems,'Value',1)
-    set(handles.st_mor_sysinfo,'String','Please choose a system!')
-    set(handles.pb_mor_reduce,'Enable','off')
-    set(handles.panel_mor_hsv,'Visible','off')
-end
-if get(handles.pu_an_sys,'Value')>length(l)+1
-    set(handles.pu_an_sys,'Value',1)
-    set(handles.tx_an_sysinfo,'String','Please choose a system!')
-end
-
-
-
-set(handles.syschoice, 'String', [{''}; l]);  
-set(handles.pu_mor_systems,'String', [{''}; l]);
-set(handles.pu_an_sys,'String',[{''}; l]);
-
-%refresh list of open figures
-list_open_figures(handles);
-%list vectors in workspace that might be s0
-set(handles.pu_mor_krylov_s0,'String',list_s0_inworkspace);
-
-return
-
-
-% systems from list in workspace
-x = get(handles.syschoice,'String');
-try
-    % system chosen for postprocessing
-    y=x{get(handles.syschoice,'Value')};
-    if ~isempty(y)
-        sys = evalin('base', y);
-        if ~strcmp(class(sys), 'sss')
-            errordlg('Variable is not a valid state space model.')            
-        else 
-            set(handles.sysinfo, 'String', sys.disp);
-            if sys.is_mimo
-                if get(handles.pu_in,'Value') > sys.m + 1
-                    set(handles.pu_in,'Value', 1)
-                end
-                if get(handles.pu_out,'Value') > sys.p + 1
-                    set(handles.pu_out,'Value', 1)
-                end
-                set(handles.panel_intoout,'Visible','on')
-                in={num2str((1:size(sys.B,2))'),'all'};
-                out={num2str((1:size(sys.C,1))'),'all'};
-                set(handles.pu_in,'String',in)
-                set(handles.pu_out,'String',out)
-            else
-                set(handles.panel_intoout,'Visible','off')
-            end
-        end
-    else
-        set(handles.sysinfo,'String','Please choose system')
-        set(handles.panel_intoout,'Visible','off')
-    end
-catch ex  %#ok<NASGU>
-    set(handles.panel_intoout,'Visible','off')
-    set(handles.sysinfo,'String','')
-end
-
-% system chosen for MOR
-try
-    sys = get_sys_from_ws(handles.pu_mor_systems);
-    set(handles.st_mor_sysinfo, 'String', sys.disp);
-catch ex
-    if strfind(ex.identifier, 'unassigned')
-        set(handles.st_mor_sysinfo,'String','Please choose a system.')
-        return
-    end
-    set(handles.st_mor_sysinfo,'String','Variable is not a sparse state space model.')
-end
-
-% system chosen for Analysis
-try
-    sys = get_sys_from_ws(handles.pu_an_sys);
-    set(handles.tx_an_sysinfo, 'String', sys.disp);
-catch ex
-    if strfind(ex.identifier, 'unassigned')
-        set(handles.tx_an_sysinfo,'String','Please choose a system.')
-        return
-    end
-    set(handles.tx_an_sysinfo,'String','Variable is not a sparse state space model.')
-end
-pu_an_sys_Callback(handles.pu_an_sys, eventdata, handles)
 
 
 function plot_type_Callback(hObject, eventdata, handles)
@@ -1616,52 +1514,165 @@ uiwait
 %                         MODEL ORDER REDUCTION
 %--------------------------------------------------------------------------
 
+%Callbacks of the controls on the top
 
 function pu_mor_systems_Callback(hObject, eventdata, handles)
-% original system has been selected
+    % original system has been selected
 
-x = get(hObject,'String');
-y = x{get(hObject,'Value')};
-if isempty(y)
-    set(handles.pb_mor_reduce,'Enable','off')
-    set(handles.panel_mor_hsv,'Visible','off')
-    set(handles.st_mor_sysinfo,'String','Please choose a system.')
-    return
-end
-
-sys = evalin('base', y);
-if ~strcmp(class(sys), 'sss')
-    try
-        sys = sss(sys);
-    catch ex %#ok<NASGU>
+    x = get(hObject,'String');
+    y = x{get(hObject,'Value')};
+    if isempty(y)
         set(handles.pb_mor_reduce,'Enable','off')
         set(handles.panel_mor_hsv,'Visible','off')
-        set(handles.st_mor_sysinfo,'String','Invalid model')
-        errordlg('Variable is not a valid state space model.','Error Dialog','modal')
-        uiwait
+        set(handles.st_mor_sysinfo,'String','Please choose a system.')
         return
     end
+
+    sys = evalin('base', y);
+    if ~strcmp(class(sys), 'sss')
+        try
+            sys = sss(sys);
+        catch ex %#ok<NASGU>
+            set(handles.pb_mor_reduce,'Enable','off')
+            set(handles.panel_mor_hsv,'Visible','off')
+            set(handles.st_mor_sysinfo,'String','Invalid model')
+            errordlg('Variable is not a valid state space model.','Error Dialog','modal')
+            uiwait
+            return
+        end
+    end
+
+    % set max of slider to system order
+    if get(handles.sl_mor_q,'Value') > sys.n || ... 
+       str2double(get(handles.ed_mor_q,'String')) > sys.n
+        if get(handles.rb_mor_krylov_multi,'Value')==1
+            warndlg('Order of reduced system must not be greater than order of original system.','Warning','modal')
+            uiwait
+        end
+        set(handles.sl_mor_q,'Value',1)
+        set(handles.ed_mor_q,'String','1')
+    end
+    set(handles.st_mor_sysinfo, 'String', sys.disp);
+    set(handles.sl_mor_q,'Max',size(sys.A,1))
+    set(handles.pb_mor_reduce,'Enable','on')
+    % suggest names for reduced system and projection matrices
+    z=suggest_varname(sprintf('%s_red',y),handles.ed_mor_sysred);
+    suggest_varname(sprintf('%s_w',z),handles.ed_mor_w);
+    suggest_varname(sprintf('%s_v',z),handles.ed_mor_v);
+    % hide plot of Hankel Singular Values
+    set(handles.panel_mor_hsv,'Visible','off')
+
+function pb_refreshsys_Callback(hObject, eventdata, handles)
+    % refresh list of open figures and systems
+    l=systems_in_workspace();
+    l_alt=get(handles.syschoice,'String'); % old String
+    x=l_alt{get(handles.syschoice,'Value')};
+    x=find(strcmp(x,l));
+    if ~isempty(x)
+        set(handles.syschoice,'Value',x+1)
+    end
+    x=l_alt{get(handles.pu_mor_systems,'Value')};
+    x=find(strcmp(x,l));
+    if ~isempty(x)
+        set(handles.pu_mor_systems,'Value',x+1)
+    end
+    x=l_alt{get(handles.pu_an_sys,'Value')};
+    x=find(strcmp(x,l));
+    if ~isempty(x)
+        set(handles.pu_an_sys,'Value',x+1)
+    end
+
+
+
+if get(handles.syschoice,'Value')>length(l)+1
+    set(handles.syschoice,'Value',1)
+    set(handles.sysinfo,'String','Please choose a system!')
+end
+if get(handles.pu_mor_systems,'Value')>length(l)+1
+    set(handles.pu_mor_systems,'Value',1)
+    set(handles.st_mor_sysinfo,'String','Please choose a system!')
+    set(handles.pb_mor_reduce,'Enable','off')
+    set(handles.panel_mor_hsv,'Visible','off')
+end
+if get(handles.pu_an_sys,'Value')>length(l)+1
+    set(handles.pu_an_sys,'Value',1)
+    set(handles.tx_an_sysinfo,'String','Please choose a system!')
 end
 
-% set max of slider to system order
-if get(handles.sl_mor_q,'Value') > sys.n || ... 
-   str2double(get(handles.ed_mor_q,'String')) > sys.n
-    if get(handles.rb_mor_krylov_multi,'Value')==1
-        warndlg('Order of reduced system must not be greater than order of original system.','Warning','modal')
-        uiwait
+
+
+set(handles.syschoice, 'String', [{''}; l]);  
+set(handles.pu_mor_systems,'String', [{''}; l]);
+set(handles.pu_an_sys,'String',[{''}; l]);
+
+%refresh list of open figures
+list_open_figures(handles);
+%list vectors in workspace that might be s0
+set(handles.pu_mor_krylov_s0,'String',list_s0_inworkspace);
+
+return
+
+
+% systems from list in workspace
+x = get(handles.syschoice,'String');
+try
+    % system chosen for postprocessing
+    y=x{get(handles.syschoice,'Value')};
+    if ~isempty(y)
+        sys = evalin('base', y);
+        if ~strcmp(class(sys), 'sss')
+            errordlg('Variable is not a valid state space model.')            
+        else 
+            set(handles.sysinfo, 'String', sys.disp);
+            if sys.is_mimo
+                if get(handles.pu_in,'Value') > sys.m + 1
+                    set(handles.pu_in,'Value', 1)
+                end
+                if get(handles.pu_out,'Value') > sys.p + 1
+                    set(handles.pu_out,'Value', 1)
+                end
+                set(handles.panel_intoout,'Visible','on')
+                in={num2str((1:size(sys.B,2))'),'all'};
+                out={num2str((1:size(sys.C,1))'),'all'};
+                set(handles.pu_in,'String',in)
+                set(handles.pu_out,'String',out)
+            else
+                set(handles.panel_intoout,'Visible','off')
+            end
+        end
+    else
+        set(handles.sysinfo,'String','Please choose system')
+        set(handles.panel_intoout,'Visible','off')
     end
-    set(handles.sl_mor_q,'Value',1)
-	set(handles.ed_mor_q,'String','1')
+catch ex  %#ok<NASGU>
+    set(handles.panel_intoout,'Visible','off')
+    set(handles.sysinfo,'String','')
 end
-set(handles.st_mor_sysinfo, 'String', sys.disp);
-set(handles.sl_mor_q,'Max',size(sys.A,1))
-set(handles.pb_mor_reduce,'Enable','on')
-% suggest names for reduced system and projection matrices
-z=suggest_varname(sprintf('%s_red',y),handles.ed_mor_sysred);
-suggest_varname(sprintf('%s_w',z),handles.ed_mor_w);
-suggest_varname(sprintf('%s_v',z),handles.ed_mor_v);
-% hode plot of Hankel Singular Values
-set(handles.panel_mor_hsv,'Visible','off')
+
+% system chosen for MOR
+try
+    sys = get_sys_from_ws(handles.pu_mor_systems);
+    set(handles.st_mor_sysinfo, 'String', sys.disp);
+catch ex
+    if strfind(ex.identifier, 'unassigned')
+        set(handles.st_mor_sysinfo,'String','Please choose a system.')
+        return
+    end
+    set(handles.st_mor_sysinfo,'String','Variable is not a sparse state space model.')
+end
+
+% system chosen for Analysis
+try
+    sys = get_sys_from_ws(handles.pu_an_sys);
+    set(handles.tx_an_sysinfo, 'String', sys.disp);
+catch ex
+    if strfind(ex.identifier, 'unassigned')
+        set(handles.tx_an_sysinfo,'String','Please choose a system.')
+        return
+    end
+    set(handles.tx_an_sysinfo,'String','Variable is not a sparse state space model.')
+end
+pu_an_sys_Callback(handles.pu_an_sys, eventdata, handles)
 
 function pu_mor_method_Callback(hObject, eventdata, handles)
 % selection of reduction method
@@ -1689,379 +1700,15 @@ else
     set(handles.sl_mor_q,'Enable','on')
 end
 
-function pb_mor_reduce_Callback(hObject, eventdata, handles)
-if (get(handles.ed_mor_w,'UserData')==1 && get(handles.cb_mor_savew,'Value')==1)...
- ||(get(handles.ed_mor_v,'UserData')==1 && get(handles.cb_mor_savev,'Value')==1)
-    errordlg('Please correct names for projection matrices first','Error Dialog','modal')
-    uiwait
-    return
-end
-q=str2double(get(handles.ed_mor_q,'String'));
-if isnan(q) || isempty(q)
-    if get(handles.pu_mor_method,'Value')==3 && get(handles.pu_mor_krylov_algorithm,'Value')==3
-        % expansion point and order from table
-        errordlg('Please correct expansion points first','Error Dialo','modal')
-        uiwait
-        return
-    else
-        errordlg('Please choose order of reduced system first.','Error Dialog','modal')
-        uiwait
-        return
-    end
-end
-if get(handles.ed_mor_sysred,'UserData')==1
-    errordlg('Please correct name for reduced system first','Error Dialog','modal')
-    uiwait
-    return
-elseif exist_in_base_ws(get(handles.ed_mor_sysred,'String'))==1
-    s=sprintf('%s already exists in base workspac. Do you want to overwrite it?',get(handles.ed_mor_sysred,'String'));
-    % show dialog box
-    k=stqd('String',s,'Title','Question Dialog');
-    if ~isempty(k) && strcmp(k,'No')
-        return
-    end
-end
-set(handles.figure1,'Pointer','watch')
-set(hObject,'Enable','off')
-drawnow % this makes the watch appear
-sysname = get(handles.pu_mor_systems,'String');
-sysname = sysname{get(handles.pu_mor_systems,'Value')};
-sys=evalin('base',sysname);
-
-% convert to sss
-if ~strcmp(class(sys), 'sss')
-    try
-        sys=sss(sys);
-    catch ex
-        set(hObject,'String','Plot')
-        set(hObject,'Enable','on') 
-        errordlg(['Original system is not a valid state space model: ' ex.message],'Error Dialog','modal')
-        uiwait
-        return
-    end
-end
-
-% Reduce
-switch get(handles.pu_mor_method,'Value')
-case 1 %TBR
-    if isempty(sys.HankelSingularValues) || isempty(sys.T_bal) || isempty(sys.T_bal_inv)
-        set(handles.figure1,'Pointer','arrow')
-        set(hObject,'Enable','on')
-        errordlg('Please calculate Hankel Singular Values first.','Error Dialog','modal')
-        uiwait
-        return
-    end
-    if get(handles.rb_mor_tbrtruncate,'Value')==1
-        % truncation
-        [sysr, V, W] = TBR(sys, q);
-        sysr.mor_info = struct('time', clock, 'method', 'TBR', 'orgsys', sysname);
-    else
-        % match DC gain
-        W=sys.T_bal_inv;
-        V=sys.T_bal;
-        A_bal=W*sys.A*V;
-        B_bal=W*sys.B;
-        C_bal=sys.C*V;
-        
-        A11=A_bal(1:q,1:q);
-        A12=A_bal(1:q,q+1:end);
-        A21=A_bal(q+1:end,1:q);
-        A22=A_bal((q+1):end,(q+1):end);
-        B1=B_bal(1:q);B2=B_bal(q+1:end);
-        C1=C_bal(1:q);C2=C_bal(q+1:end);
-
-        A_red=A11-A12/A22*A21;
-        B_red=B1-A12/A22*B2;       
-        if sys.is_dae
-            E_bal=W'*sys.E*V;
-            E11=E_bal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
-            E21=E_bal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
-            E_red=E11-A12/A22*E21;
-            C_red=C1-C2/A22*A21+C2*A22i*E21/E_red*A_red;
-            D_red=sys.D-C2/A22*B2+C2/A22*E21/E_red*B_red;
-            sysr = sss(A_red, B_red, C_red, D_red, E_red);
-            sysr.mor_info = struct('time', clock, 'method', 'TBR, matched DC-gain', 'orgsys', sysname);
-        else % Er=I
-            C_red=C1-C2/A22*A21;
-            D_red=sys.D-C2/A22*B2;
-            sysr = sss(A_red, B_red, C_red, D_red);
-            sysr.mor_info = struct('time', clock, 'method', 'TBR, matched DC-gain', 'orgsys', sysname);
-        end
-    end
-case 2 % modal truncation
-    if get(handles.rb_mor_modal_neig,'Value')==1
-        if get(handles.ed_mor_modal_neig,'UserData')==1
-            set(handles.figure1,'Pointer','arrow')
-            set(hObject,'Enable','on')
-            errordlg('Please correct s0 first','Error Dialog','modal')
-            uiwait
-            return
-        end
-    end
-    
-    if get(handles.rb_mor_modal_neig,'Value')==1
-        eig_opt = str2double(get(handles.ed_mor_modal_neig,'String'));
-    elseif get(handles.rb_mor_modal_large,'Value')==1
-        eig_opt='LM';
-    else
-        eig_opt='SM';
-    end
-    
-    try
-        [sysr, V, W] = modalMOR(sys, q, eig_opt);
-        sysr.mor_info=struct('time', clock, 'method', 'Modal Truncation', 'orgsys', sysname);
-    catch ex
-        set(handles.figure1,'Pointer','arrow')
-        set(hObject,'Enable','on')
-        errordlg(ex.message,'Error Dialog','modal')
-        uiwait
-        return
-    end
-case 3 % Krylov
-    % get expansion points. on error s0:=[]
-    s0=get_expansion_points(handles);
-    if isempty(s0)
-        set(handles.figure1,'Pointer','arrow')
-        set(hObject,'Enable','on')
-        return
-    end
-    switch get(handles.pu_mor_krylov_algorithm,'Value')
-    case 3 % explicit moment matching
-        if get(handles.rb_mor_krylov_input,'Value')==1
-            % input krylov
-           if sys.m>1 % multiple input?
-               if sys.p==1
-                    set(handles.figure1,'Pointer','arrow')
-                    set(hObject,'Enable','on')
-                    errordlg('Your system has only one output, use output-Krylov subspace!','Error Dialog','modal')
-                    uiwait
-                    return  
-               else
-                    set(handles.figure1,'Pointer','arrow')
-                    set(hObject,'Enable','on')
-                    errordlg('MIMO is not supported','Error Dialog','modal')
-                    uiwait
-                    return
-               end
-            end
-            s0_inp=s0;
-            s0_out=[];
-            method='Rational Krylov, Input Krylov Subspace';
-        elseif get(handles.rb_mor_krylov_twosided,'Value')==1
-            % output krylov
-            if sys.p>1 % multiple output?
-               if sys.m==1
-                    set(handles.figure1,'Pointer','arrow')
-                    set(hObject,'Enable','on')
-                    errordlg('Your system has only one input, use input-Krylov subspace!','Error Dialog','modal')
-                    uiwait
-                    return  
-               else
-                    set(handles.figure1,'Pointer','arrow')
-                    set(hObject,'Enable','on')
-                    errordlg('MIMO is not supported','Error Dialog','modal')
-                    uiwait
-                    return
-               end
-            end
-            s0_out=s0;
-            s0_inp=[];
-            method='Rational Krylov, Output Krylov Subspace';
-        else
-            % two-sided
-            if sys.is_mimo
-                if sys.p>1 && sys.m==1
-                    set(handles.figure1,'Pointer','arrow')
-                    set(hObject,'Enable','on')
-                    errordlg('Your system has only one input, use input-Krylov subspace!','Error Dialog','modal')
-                    uiwait
-                    return
-                elseif sys.m>1 && sys.p==1
-                    set(handles.figure1,'Pointer','arrow')
-                    set(hObject,'Enable','on')
-                    errordlg('Your system has only one output, use output-Krylov subspace!','Error Dialog','modal')
-                    uiwait
-                    return  
-                else
-                    set(handles.figure1,'Pointer','arrow')
-                    set(hObject,'Enable','on')
-                    errordlg('MIMO is not supported yet','Error Dialog','modal')
-                    uiwait
-                    return
-                end
-            end
-            s0_inp=s0;
-            s0_out=s0;
-            method='Rational Krylov, two-sided';
-        end
-        try
-            [sysr, V, W] = RK(sys, s0_inp, s0_out);
-            sysr.mor_info=struct('time', clock, 'method', method, 'orgsys', sysname);
-        catch ex
-            set(handles.figure1,'Pointer','arrow')
-            set(hObject,'Enable','on')
-            errordlg(['Reduction Failed: ' ex.message],'Error Dialog','modal')
-            uiwait
-            assignin('base','LastError',ex)
-            return
-        end
-        
-    case 2 %ICOP
-        if sys.is_mimo
-            set(handles.figure1,'Pointer','arrow')
-            set(hObject,'Enable','on')
-            errordlg('MIMO is not supported yet, coming soon','Error Dialog','modal')
-            uiwait
-            return
-        end
-        if get(handles.rb_mor_krylov_twosided,'Value')==1
-            projection='two';
-        elseif get(handles.rb_mor_krylov_twosided,'Value')==1
-            projection='out';
-        else
-            projection='in';
-        end
-        maxiter=str2double(get(handles.ed_mor_krylov_max,'String'));
-        epsilon=str2double(get(handles.ed_mor_krylov_epsilon,'String'));
-        if isempty(maxiter) || maxiter==0 || isempty(epsilon) %|| epsilon==0 ??
-            set(handles.figure1,'Pointer','arrow')
-            set(hObject,'Enable','on')
-            errordlg('Please choose the maximum number of iterations and epsilon first','Error dialog','modal')
-            uiwait
-            return
-        end
-        try
-            [sysr,V,W,alpha_opt] = RK_ICOP(sys, s0,'maxiter',maxiter,'epsilon',epsilon,'projection',projection );
-            sysr.mor_info=struct('time', clock, 'method', 'Krylov, ICOP', 'orgsys', sysname);
-            sysr.mor_info.alpha_opt=alpha_opt;
-        catch ex
-            set(handles.figure1,'Pointer','arrow')
-            set(hObject,'Enable','on')
-            errordlg('Failed','Error Dialog','modal')
-            uiwait
-            disp(ex.message)
-            return
-        end
-        if isempty(sysr)
-            set(handles.figure1,'Pointer','arrow')
-            set(hObject,'Enable','on')
-            errordlg('ICOP did not converge, reduction failed','Error dialog','modal')
-            uiwait
-            return
-        end
-       
-    case 1 %IRKA
-        if sys.is_mimo % MIMO?
-            set(handles.figure1,'Pointer','arrow')
-            set(hObject,'Enable','on')
-            errordlg('MIMO is not supported yet.','Error Dialog','modal')
-            uiwait
-            return
-        end
-        maxiter=str2double(get(handles.ed_mor_krylov_max,'String'));
-        epsilon=str2double(get(handles.ed_mor_krylov_epsilon,'String'));
-        if isempty(maxiter) || maxiter==0 || isempty(epsilon) %|| epsilon==0 ??
-            set(handles.figure1,'Pointer','arrow')
-            set(hObject,'Enable','on')
-            errordlg('Please choose the maximum number of iterations and epsilon first','Error dialog','modal')
-            uiwait
-            return
-        end
-        try
-            [sysr,V,W,s0] = IRKA(sys, get(handles.sl_mor_q, 'Value'), s0, maxiter, epsilon);
-            sysr.mor_info=struct('time', clock, 'method', 'Krylov, IRKA', 'orgsys', sysname);
-            sysr.mor_info.s0=s0;
-        catch ex
-            set(handles.figure1,'Pointer','arrow')
-            set(hObject,'Enable','on')
-            errordlg(ex.message,'Error Dialog','modal')
-            uiwait
-            return
-        end
-    end
-end
-
-% write system to workspace
-if get(handles.cb_mor_krylov,'Value')==1
-    % impose E_r=I?
-    sysr.resolve_dae
-end
-
-assignin('base',get(handles.ed_mor_sysred,'String'),sysr)
-if get(handles.cb_mor_savew,'Value')==1
-    assignin('base',get(handles.ed_mor_w,'String'),W)
-end
-if get(handles.cb_mor_savev,'Value')==1
-    assignin('base',get(handles.ed_mor_v,'String'),V)
-end
-set(handles.figure1,'Pointer','arrow')
-msgbox('Reduction was successful!','Information','modal')
-uiwait
-pb_refreshsys_Callback(hObject, eventdata, handles)
-pb_refreshlb_Callback(hObject, eventdata, handles)
-s=get(handles.ed_mor_sysred,'String');
-% suggest names for next reduction
-s=s(~isstrprop(s,'digit'));
-s=suggest_varname(s,handles.ed_mor_sysred);
-suggest_varname(sprintf('%s_w',s),handles.ed_mor_w);
-suggest_varname(sprintf('%s_v',s),handles.ed_mor_v);
-set(hObject,'Enable','on')
-
-function ed_mor_w_Callback(hObject, eventdata, handles)
-% check variable name
-isvalidvarname(hObject)
-
-function ed_mor_v_Callback(hObject, eventdata, handles)
-% check variable name
-isvalidvarname(hObject)
-
-function ed_mor_sysred_Callback(hObject, eventdata, handles)
-% check variable name
-isvalidvarname(hObject)
-
-function updateTBR(hObject, eventdata, handles)
-sys_x=get(handles.pu_mor_systems,'String');
-sysname=sys_x{get(handles.pu_mor_systems,'Value')};
-sys=evalin('base',sysname);
-hr=get(handles.axes_mor_hsv,'UserData');
-q=get(handles.sl_mor_q,'Value');
-if get(handles.pu_mor_method,'Value')==1 && ~isempty(sys.HankelSingularValues)
-    e=2*sum(sys.HankelSingularValues((q+1):end));
-    erel=e/norm(sys, inf);
-    set(handles.st_mor_tbr_error,'String',num2str(e, '%.3e'))
-    set(handles.st_mor_tbr_relerror,'String',num2str(erel, '%.3e'))
-    if strcmp(get(handles.panel_mor_hsv,'Visible'),'off')
-        set(handles.panel_mor_hsv, 'Visible','on') 
-        cla(handles.axes_mor_hsv)
-        hold(handles.axes_mor_hsv, 'on')
-        h=plot(handles.axes_mor_hsv, sys.HankelSingularValues);
-        % make callback react to click on red HSV line
-        set(h,'HitTest','off')
-        legend(handles.axes_mor_hsv, sysname)
-        % set scale
-        if get(handles.rb_mor_tbr_log,'Value')==1
-            set(handles.axes_mor_hsv,'YScale','log')
-        else
-            set(handles.axes_mor_hsv,'YScale','linear')
-        end
-    end
-    if ishandle(hr)
-        set(hr,'XData',[q,q])
-    else
-        hr=plot(handles.axes_mor_hsv, [q,q],sys.HankelSingularValues([end,1]),'r');
-        set(handles.axes_mor_hsv,'UserData',hr)
-    end
-end
-
 function sl_mor_q_Callback(hObject, eventdata, handles)
-% order selection slider has been changed
-q=get(hObject,'Value'); 
-% round to integer number
-q=round(q);
-set(hObject,'Value',q)
-% write to textfield
-set(handles.ed_mor_q,'String',q);
-updateTBR(hObject, eventdata, handles)
+    % order selection slider has been changed
+    q=get(hObject,'Value'); 
+    % round to integer number
+    q=round(q);
+    set(hObject,'Value',q)
+    % write to textfield
+    set(handles.ed_mor_q,'String',q);
+    updateTBR(hObject, eventdata, handles)
 
 function ed_mor_q_Callback(hObject, eventdata, handles)
 % order selection textfield has been changed
@@ -2090,6 +1737,416 @@ set(hObject,'String',x)
 set(handles.sl_mor_q,'Value',x)
 updateTBR(hObject, eventdata, handles)
 
+%Callbacks of the controls on the bottom
+
+function pb_mor_reduce_Callback(hObject, eventdata, handles)
+
+    if (get(handles.ed_mor_w,'UserData')==1 && get(handles.cb_mor_savew,'Value')==1)...
+     ||(get(handles.ed_mor_v,'UserData')==1 && get(handles.cb_mor_savev,'Value')==1)
+        errordlg('Please correct names for projection matrices first','Error Dialog','modal')
+        uiwait
+        return
+    end
+    q=str2double(get(handles.ed_mor_q,'String'));
+    if isnan(q) || isempty(q)
+        if get(handles.pu_mor_method,'Value')==3 && get(handles.pu_mor_krylov_algorithm,'Value')==3
+            % expansion point and order from table
+            errordlg('Please correct expansion points first','Error Dialo','modal')
+            uiwait
+            return
+        else
+            errordlg('Please choose order of reduced system first.','Error Dialog','modal')
+            uiwait
+            return
+        end
+    end
+    if get(handles.ed_mor_sysred,'UserData')==1
+        errordlg('Please correct name for reduced system first','Error Dialog','modal')
+        uiwait
+        return
+    elseif exist_in_base_ws(get(handles.ed_mor_sysred,'String'))==1
+        s=sprintf('%s already exists in base workspac. Do you want to overwrite it?',get(handles.ed_mor_sysred,'String'));
+        % show dialog box
+        k=stqd('String',s,'Title','Question Dialog');
+        if ~isempty(k) && strcmp(k,'No')
+            return
+        end
+    end
+    set(handles.figure1,'Pointer','watch')
+    set(hObject,'Enable','off')
+    drawnow % this makes the watch appear
+    sysname = get(handles.pu_mor_systems,'String');
+    sysname = sysname{get(handles.pu_mor_systems,'Value')};
+    sys=evalin('base',sysname);
+
+    % convert to sss
+    if ~strcmp(class(sys), 'sss')
+        try
+            sys=sss(sys);
+        catch ex
+            set(hObject,'String','Plot')
+            set(hObject,'Enable','on') 
+            errordlg(['Original system is not a valid state space model: ' ex.message],'Error Dialog','modal')
+            uiwait
+            return
+        end
+    end
+
+    % Reduce
+    switch get(handles.pu_mor_method,'Value')
+        
+    case 1 %TBR
+        if isempty(sys.HankelSingularValues) || isempty(sys.T_bal) || isempty(sys.T_bal_inv)
+            set(handles.figure1,'Pointer','arrow')
+            set(hObject,'Enable','on')
+            errordlg('Please calculate Hankel Singular Values first.','Error Dialog','modal')
+            uiwait
+            return
+        end
+        if get(handles.rb_mor_tbrtruncate,'Value')==1
+            % truncation
+            [sysr, V, W] = tbr(sys, q);
+            sysr.mor_info = struct('time', clock, 'method', 'TBR', 'orgsys', sysname);
+        else
+            % match DC gain
+            W=sys.T_bal_inv;
+            V=sys.T_bal;
+            A_bal=W*sys.A*V;
+            B_bal=W*sys.B;
+            C_bal=sys.C*V;
+
+            A11=A_bal(1:q,1:q);
+            A12=A_bal(1:q,q+1:end);
+            A21=A_bal(q+1:end,1:q);
+            A22=A_bal((q+1):end,(q+1):end);
+            B1=B_bal(1:q);B2=B_bal(q+1:end);
+            C1=C_bal(1:q);C2=C_bal(q+1:end);
+
+            A_red=A11-A12/A22*A21;
+            B_red=B1-A12/A22*B2;       
+            if sys.is_dae
+                E_bal=W'*sys.E*V;
+                E11=E_bal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
+                E21=E_bal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
+                E_red=E11-A12/A22*E21;
+                C_red=C1-C2/A22*A21+C2*A22i*E21/E_red*A_red;
+                D_red=sys.D-C2/A22*B2+C2/A22*E21/E_red*B_red;
+                sysr = sss(A_red, B_red, C_red, D_red, E_red);
+                sysr.mor_info = struct('time', clock, 'method', 'TBR, matched DC-gain', 'orgsys', sysname);
+            else % Er=I
+                C_red=C1-C2/A22*A21;
+                D_red=sys.D-C2/A22*B2;
+                sysr = sss(A_red, B_red, C_red, D_red);
+                sysr.mor_info = struct('time', clock, 'method', 'TBR, matched DC-gain', 'orgsys', sysname);
+            end
+        end
+        
+    case 2 % modal truncation
+        if get(handles.rb_mor_modal_neig,'Value')==1
+            if get(handles.ed_mor_modal_neig,'UserData')==1
+                set(handles.figure1,'Pointer','arrow')
+                set(hObject,'Enable','on')
+                errordlg('Please correct s0 first','Error Dialog','modal')
+                uiwait
+                return
+            end
+        end
+
+        if get(handles.rb_mor_modal_neig,'Value')==1
+            eig_opt = str2double(get(handles.ed_mor_modal_neig,'String'));
+        elseif get(handles.rb_mor_modal_large,'Value')==1
+            eig_opt='LM';
+        else
+            eig_opt='SM';
+        end
+
+        try
+            [sysr, V, W] = modalMOR(sys, q, eig_opt);
+            sysr.mor_info=struct('time', clock, 'method', 'Modal Truncation', 'orgsys', sysname);
+        catch ex
+            set(handles.figure1,'Pointer','arrow')
+            set(hObject,'Enable','on')
+            errordlg(ex.message,'Error Dialog','modal')
+            uiwait
+            return
+        end
+    case 3 % Krylov
+        % get expansion points. on error s0:=[]
+        s0=get_expansion_points(handles);
+        if isempty(s0)
+            set(handles.figure1,'Pointer','arrow')
+            set(hObject,'Enable','on')
+            return
+        end
+        
+        
+        switch get(handles.pu_mor_krylov_algorithm,'Value')
+        case 3 % explicit moment matching
+            if get(handles.rb_mor_krylov_input,'Value')==1
+                % input krylov
+               if sys.m>1 % multiple input?
+                   if sys.p==1
+                        set(handles.figure1,'Pointer','arrow')
+                        set(hObject,'Enable','on')
+                        errordlg('Your system has only one output, use output-Krylov subspace!','Error Dialog','modal')
+                        uiwait
+                        return  
+                   else
+                        set(handles.figure1,'Pointer','arrow')
+                        set(hObject,'Enable','on')
+                        errordlg('MIMO is not supported','Error Dialog','modal')
+                        uiwait
+                        return
+                   end
+                end
+                s0_inp=s0;
+                s0_out=[];
+                method='Rational Krylov, Input Krylov Subspace';
+            elseif get(handles.rb_mor_krylov_twosided,'Value')==1
+                % output krylov
+                if sys.p>1 % multiple output?
+                   if sys.m==1
+                        set(handles.figure1,'Pointer','arrow')
+                        set(hObject,'Enable','on')
+                        errordlg('Your system has only one input, use input-Krylov subspace!','Error Dialog','modal')
+                        uiwait
+                        return  
+                   else
+                        set(handles.figure1,'Pointer','arrow')
+                        set(hObject,'Enable','on')
+                        errordlg('MIMO is not supported','Error Dialog','modal')
+                        uiwait
+                        return
+                   end
+                end
+                s0_out=s0;
+                s0_inp=[];
+                method='Rational Krylov, Output Krylov Subspace';
+            else
+                % two-sided
+                if sys.is_mimo
+                    if sys.p>1 && sys.m==1
+                        set(handles.figure1,'Pointer','arrow')
+                        set(hObject,'Enable','on')
+                        errordlg('Your system has only one input, use input-Krylov subspace!','Error Dialog','modal')
+                        uiwait
+                        return
+                    elseif sys.m>1 && sys.p==1
+                        set(handles.figure1,'Pointer','arrow')
+                        set(hObject,'Enable','on')
+                        errordlg('Your system has only one output, use output-Krylov subspace!','Error Dialog','modal')
+                        uiwait
+                        return  
+                    else
+                        set(handles.figure1,'Pointer','arrow')
+                        set(hObject,'Enable','on')
+                        errordlg('MIMO is not supported yet','Error Dialog','modal')
+                        uiwait
+                        return
+                    end
+                end
+                s0_inp=s0;
+                s0_out=s0;
+                method='Rational Krylov, two-sided';
+            end
+            try
+                [sysr, V, W] = RK(sys, s0_inp, s0_out);
+                sysr.mor_info=struct('time', clock, 'method', method, 'orgsys', sysname);
+            catch ex
+                set(handles.figure1,'Pointer','arrow')
+                set(hObject,'Enable','on')
+                errordlg(['Reduction Failed: ' ex.message],'Error Dialog','modal')
+                uiwait
+                assignin('base','LastError',ex)
+                return
+            end
+
+        case 2 %ICOP
+            if sys.is_mimo
+                set(handles.figure1,'Pointer','arrow')
+                set(hObject,'Enable','on')
+                errordlg('MIMO is not supported yet, coming soon','Error Dialog','modal')
+                uiwait
+                return
+            end
+            if get(handles.rb_mor_krylov_twosided,'Value')==1
+                projection='two';
+            elseif get(handles.rb_mor_krylov_twosided,'Value')==1
+                projection='out';
+            else
+                projection='in';
+            end
+            maxiter=str2double(get(handles.ed_mor_krylov_max,'String'));
+            epsilon=str2double(get(handles.ed_mor_krylov_epsilon,'String'));
+            if isempty(maxiter) || maxiter==0 || isempty(epsilon) %|| epsilon==0 ??
+                set(handles.figure1,'Pointer','arrow')
+                set(hObject,'Enable','on')
+                errordlg('Please choose the maximum number of iterations and epsilon first','Error dialog','modal')
+                uiwait
+                return
+            end
+            try
+                [sysr,V,W,alpha_opt] = RK_ICOP(sys, s0,'maxiter',maxiter,'epsilon',epsilon,'projection',projection );
+                sysr.mor_info=struct('time', clock, 'method', 'Krylov, ICOP', 'orgsys', sysname);
+                sysr.mor_info.alpha_opt=alpha_opt;
+            catch ex
+                set(handles.figure1,'Pointer','arrow')
+                set(hObject,'Enable','on')
+                errordlg('Failed','Error Dialog','modal')
+                uiwait
+                disp(ex.message)
+                return
+            end
+            if isempty(sysr)
+                set(handles.figure1,'Pointer','arrow')
+                set(hObject,'Enable','on')
+                errordlg('ICOP did not converge, reduction failed','Error dialog','modal')
+                uiwait
+                return
+            end
+
+        case 1 %IRKA
+            if sys.is_mimo % MIMO?
+                set(handles.figure1,'Pointer','arrow')
+                set(hObject,'Enable','on')
+                errordlg('MIMO is not supported yet.','Error Dialog','modal')
+                uiwait
+                return
+            end
+            maxiter=str2double(get(handles.ed_mor_krylov_max,'String'));
+            epsilon=str2double(get(handles.ed_mor_krylov_epsilon,'String'));
+            if isempty(maxiter) || maxiter==0 || isempty(epsilon) %|| epsilon==0 ??
+                set(handles.figure1,'Pointer','arrow')
+                set(hObject,'Enable','on')
+                errordlg('Please choose the maximum number of iterations and epsilon first','Error dialog','modal')
+                uiwait
+                return
+            end
+            try
+                [sysr,V,W,s0] = IRKA(sys, get(handles.sl_mor_q, 'Value'), s0, maxiter, epsilon);
+                sysr.mor_info=struct('time', clock, 'method', 'Krylov, IRKA', 'orgsys', sysname);
+                sysr.mor_info.s0=s0;
+            catch ex
+                set(handles.figure1,'Pointer','arrow')
+                set(hObject,'Enable','on')
+                errordlg(ex.message,'Error Dialog','modal')
+                uiwait
+                return
+            end
+        end
+    end
+
+    % write system to workspace
+    if get(handles.cb_mor_krylov,'Value')==1
+        % impose E_r=I?
+        sysr.resolve_dae
+    end
+
+    assignin('base',get(handles.ed_mor_sysred,'String'),sysr)
+    if get(handles.cb_mor_savew,'Value')==1
+        assignin('base',get(handles.ed_mor_w,'String'),W)
+    end
+    if get(handles.cb_mor_savev,'Value')==1
+        assignin('base',get(handles.ed_mor_v,'String'),V)
+    end
+    set(handles.figure1,'Pointer','arrow')
+    msgbox('Reduction was successful!','Information','modal')
+    uiwait
+    pb_refreshsys_Callback(hObject, eventdata, handles)
+    pb_refreshlb_Callback(hObject, eventdata, handles)
+    s=get(handles.ed_mor_sysred,'String');
+    % suggest names for next reduction
+    s=s(~isstrprop(s,'digit'));
+    s=suggest_varname(s,handles.ed_mor_sysred);
+    suggest_varname(sprintf('%s_w',s),handles.ed_mor_w);
+    suggest_varname(sprintf('%s_v',s),handles.ed_mor_v);
+    set(hObject,'Enable','on')
+
+function ed_mor_w_Callback(hObject, eventdata, handles)
+% check variable name
+isvalidvarname(hObject)
+
+function ed_mor_v_Callback(hObject, eventdata, handles)
+% check variable name
+isvalidvarname(hObject)
+
+function ed_mor_sysred_Callback(hObject, eventdata, handles)
+% check variable name
+isvalidvarname(hObject)
+
+function cb_mor_savew_Callback(hObject, eventdata, handles)
+if get(hObject,'Value') == 1
+    set(handles.ed_mor_w,'Enable','on')
+else
+    set(handles.ed_mor_w,'Enable','off')
+end
+
+function cb_mor_savev_Callback(hObject, eventdata, handles)
+if get(hObject,'Value') == 1
+    set(handles.ed_mor_v,'Enable','on')
+else
+    set(handles.ed_mor_v,'Enable','off')
+end
+
+%Callbacks for Balacing & Truncation
+
+function updateTBR(hObject, eventdata, handles)
+
+    %Show wait-cursor
+    
+    set(handles.figure1,'Pointer','watch')
+    drawnow
+
+    %Get the selected system
+
+    sys_x=get(handles.pu_mor_systems,'String');
+    sysname=sys_x{get(handles.pu_mor_systems,'Value')};
+    sys=evalin('base',sysname);
+    
+    %Get Axes and desired model order
+    
+    hr=get(handles.axes_mor_hsv,'UserData');
+    q=get(handles.sl_mor_q,'Value');
+    
+    if get(handles.pu_mor_method,'Value')==1 && ~isempty(sys.HankelSingularValues)
+        
+        %Calculate the signal-norms H_1 and H_inf
+        
+        e=2*sum(sys.HankelSingularValues((q+1):end));
+        erel=e/norm(sys, inf);
+        set(handles.st_mor_tbr_error,'String',num2str(e, '%.3e'))
+        set(handles.st_mor_tbr_relerror,'String',num2str(erel, '%.3e'))
+        
+        %Plot which shows the Hankel-Singular-Values
+        
+        if strcmp(get(handles.panel_mor_hsv,'Visible'),'off')
+            
+            set(handles.panel_mor_hsv, 'Visible','on') 
+            cla(handles.axes_mor_hsv)
+            hold(handles.axes_mor_hsv, 'on')
+            h=plot(handles.axes_mor_hsv, sys.HankelSingularValues);
+            % make callback react to click on red HSV line
+            set(h,'HitTest','off')
+            legend(handles.axes_mor_hsv, sysname)
+            % set scale
+            if get(handles.rb_mor_tbr_log,'Value')==1
+                set(handles.axes_mor_hsv,'YScale','log')
+            else
+                set(handles.axes_mor_hsv,'YScale','linear')
+            end
+        end
+        if ishandle(hr)
+            set(hr,'XData',[q,q])
+        else
+            hr=plot(handles.axes_mor_hsv, [q,q],sys.HankelSingularValues([end,1]),'r');
+            set(handles.axes_mor_hsv,'UserData',hr)
+        end
+    end
+    
+    %Set cursor back to arrow
+    
+    set(handles.figure1,'Pointer','arrow')
+
 function axes_mor_hsv_ButtonDownFcn(hObject, eventdata, handles)
 % refresh red line in HSV axes and update q-slider and q-textfield
 x=get(hObject,'CurrentPoint');
@@ -2114,7 +2171,8 @@ set(hObject,'Enable','off')
 set(handles.figure1,'Pointer','watch')
 drawnow
 
-% get and convert system
+% Get the system from the workspace
+
 try
     [sys, sysname] = get_sys_from_ws(handles.pu_mor_systems);
 catch ex
@@ -2128,6 +2186,8 @@ catch ex
     uiwait
     return
 end
+
+%Calculate the Hankel-Singular-Values
 
 try 
     tbr(sys);
@@ -2172,6 +2232,41 @@ else
     set(handles.axes_mor_hsv,'YScale','linear')
 end
 
+function pb_mor_hsv_zoomin_Callback(hObject, eventdata, handles)
+% zoom +
+if ~isa(handles.zoom,'graphics.zoom')
+    % do not zoom logos
+    handles.zoom=zoom(handles.figure1);
+    setAllowAxesZoom(handles.zoom,handles.logo_about,false)
+	setAllowAxesZoom(handles.zoom,handles.logo_tum,false)
+end
+set(handles.zoom,'Motion','both') % horizontally und vertically
+set(handles.zoom,'Direction','in') % zoom in on click
+set(handles.zoom,'Enable','on') % activate zoom
+guidata(hObject,handles)
+
+function pb_mor_hsv_zoomout_Callback(hObject, eventdata, handles)
+%zoom -
+if ~isa(handles.zoom,'graphics.zoom')
+    % do not zoom logos
+    handles.zoom=zoom(handles.figure1);
+    setAllowAxesZoom(handles.zoom,handles.logo_about,false)
+	setAllowAxesZoom(handles.zoom,handles.logo_tum,false)
+end
+set(handles.zoom,'Motion','both') % horizontally und vertically
+set(handles.zoom,'Direction','out') % zoom out on click
+set(handles.zoom,'Enable','on') % activate zoom
+guidata(hObject,handles)
+
+function pb_mor_hsv_zoomoff_Callback(hObject, eventdata, handles)
+% zoom off
+if isa(handles.zoom,'graphics.zoom')
+    set(handles.zoom,'Enable','off') % deactivate zoom
+end
+guidata(hObject,handles)
+
+%Callbacks for Modal
+
 function ed_mor_modal_neig_Callback(hObject, eventdata, handles)
 % check of double. replace ',' with '.'
 x=str2num(get(hObject,'String')); %#ok<ST2NM>
@@ -2189,7 +2284,8 @@ else
     set(hObject,'UserData',0)
 end
 
-% function pu_mor_krylov_Callback(hObject, eventdata, handles)
+%Callbacks for Krylov
+
 function pu_mor_krylov_algorithm_Callback(hObject, eventdata, handles)
 if get(hObject,'Value')==1
     % IRKA, nur twosided möglich
@@ -2333,52 +2429,8 @@ if size(q,2)==2
     set(handles.ed_mor_q,'String',q)
 end
 
-function pb_mor_hsv_zoomin_Callback(hObject, eventdata, handles)
-% zoom +
-if ~isa(handles.zoom,'graphics.zoom')
-    % do not zoom logos
-    handles.zoom=zoom(handles.figure1);
-    setAllowAxesZoom(handles.zoom,handles.logo_about,false)
-	setAllowAxesZoom(handles.zoom,handles.logo_tum,false)
-end
-set(handles.zoom,'Motion','both') % horizontally und vertically
-set(handles.zoom,'Direction','in') % zoom in on click
-set(handles.zoom,'Enable','on') % activate zoom
-guidata(hObject,handles)
 
-function pb_mor_hsv_zoomout_Callback(hObject, eventdata, handles)
-%zoom -
-if ~isa(handles.zoom,'graphics.zoom')
-    % do not zoom logos
-    handles.zoom=zoom(handles.figure1);
-    setAllowAxesZoom(handles.zoom,handles.logo_about,false)
-	setAllowAxesZoom(handles.zoom,handles.logo_tum,false)
-end
-set(handles.zoom,'Motion','both') % horizontally und vertically
-set(handles.zoom,'Direction','out') % zoom out on click
-set(handles.zoom,'Enable','on') % activate zoom
-guidata(hObject,handles)
 
-function pb_mor_hsv_zoomoff_Callback(hObject, eventdata, handles)
-% zoom off
-if isa(handles.zoom,'graphics.zoom')
-    set(handles.zoom,'Enable','off') % deactivate zoom
-end
-guidata(hObject,handles)
-
-function cb_mor_savew_Callback(hObject, eventdata, handles)
-if get(hObject,'Value') == 1
-    set(handles.ed_mor_w,'Enable','on')
-else
-    set(handles.ed_mor_w,'Enable','off')
-end
-
-function cb_mor_savev_Callback(hObject, eventdata, handles)
-if get(hObject,'Value') == 1
-    set(handles.ed_mor_v,'Enable','on')
-else
-    set(handles.ed_mor_v,'Enable','off')
-end
 
 %--------------------------------------------------------------------------
 %                            SYSTEM ANALYSIS
@@ -3066,11 +3118,11 @@ function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
     if p(1,1)>915 && p(1,1)<1044
         web www.tum.de
     elseif p(1,1)>5 && p(1,1)<170
-        %TODO: insert weblink   
+        web www.rt.mw.tum.de/forschung/forschungsgebiete/modellreduktion/sssmor/
     elseif p(1,1)>580 && p(1,1)<850 
         web www.rt.mw.tum.de
     elseif p(1,1)>250 && p(1,1)<480
-        %TODO: insert weblink 
+        web www.rt.mw.tum.de/forschung/forschungsgebiete/modellreduktion/
     end
     
     
@@ -3404,3 +3456,7 @@ sys = evalin('base', sysname);
 if ~strcmp(class(sys), 'sss')
     sys=sss(sys);
 end
+
+
+
+
