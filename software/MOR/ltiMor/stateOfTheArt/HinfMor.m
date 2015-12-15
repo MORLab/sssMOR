@@ -403,7 +403,8 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                             'lb',lb,'ub',ub);
                 gs = GlobalSearch('NumStageOnePoints',20,...%start points
                                   'NumTrialPoints',1e3,... %set of all potential start points
-                                  'StartPointsToRun','bounds-ineqs');%exclude certain points?
+                                  'StartPointsToRun','bounds-ineqs',...%exclude certain points?
+                                  'Display','iter');
                                  
                 tic,  [DrOpt,Hinf] = run(gs,problem); tOpt = toc;
                 
@@ -433,9 +434,11 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                     options = gaoptimset('UseParallel',true,...
                                          'PopulationSize',25,...
                                          'Generations',20,...
-                                         'InitialPopulation',Dr0(:).');
+                                         'InitialPopulation',Dr0(:).',...
+                                         'Display','iter');
                     
-                    hybridoptions = optimoptions('fmincon','UseParallel',1);
+                    hybridoptions = optimoptions('fmincon','UseParallel',1,...
+                                    'Display','iter');
                     options = gaoptimset(options,...
                     'HybridFcn',{@fmincon, hybridoptions});
 
