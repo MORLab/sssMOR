@@ -89,7 +89,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
     sysm = createSurrogate;
     
     %
-    figure; bode(sys,'b',sysm,'--r',sysr0,'--g'); drawnow
+%     figure; bode(sys,'b',sysm,'--r',sysr0,'--g'); drawnow
 
     %%  Make Hinf correction
     %
@@ -416,7 +416,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
                             'nonlcon',@stabilityConstraint,...
                             'lb',lb,'ub',ub);
                 gs = GlobalSearch('NumStageOnePoints',20,...%start points
-                                  'NumTrialPoints',1e3,... %set of all potential start points
+                                  'NumTrialPoints',400,... %set of all potential start points
                                   'StartPointsToRun','bounds-ineqs',...%exclude certain points?
                                   'Display','iter');
                                  
