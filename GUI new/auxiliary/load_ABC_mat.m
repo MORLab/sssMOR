@@ -55,19 +55,47 @@ else
 end
 
 function load_ABC_mat_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
-% figure has been opened. evaluate parameters
-handles.output = hObject;
-handles.inputGUI=varargin{2};
-guidata(hObject, handles);
-set(handles.panel_ABCD,'Visible','on')
-set(handles.panel_MDK,'Visible','off')
-set(handles.pb_loadfile,'Visible','on')
-set(handles.pb_create,'Visible','on')
-set(handles.st_a,'Visible','off')
-set(handles.st_b,'Visible','off')
-set(handles.ed_a,'UserData',0)
-set(handles.ed_a,'UserData',0)
-list_matrices(handles)
+    % figure has been opened. evaluate parameters
+    handles.output = hObject;
+    handles.inputGUI=varargin{2};
+    guidata(hObject, handles);
+    set(handles.panel_ABCD,'Visible','on')
+    set(handles.panel_MDK,'Visible','off')
+    set(handles.pb_loadfile,'Visible','on')
+    set(handles.pb_create,'Visible','on')
+    set(handles.st_a,'Visible','off')
+    set(handles.st_b,'Visible','off')
+    set(handles.ed_a,'UserData',0)
+    set(handles.ed_a,'UserData',0)
+    list_matrices(handles)
+
+    %Make latex code possible for all static text-fields whose tag names start
+    %with "latex"  
+    
+    lbls = findall(hObject);
+    
+    for i=1:length(lbls)
+        
+          l = lbls(i);
+          t = get(l,'tag');
+          
+          if strfind(t,'latex_') == 1
+              
+             % Get current text, position and tag
+             t = 'nothing'; 
+             set(l,'units','pixels');
+             s = get(l,'string');
+             p = get(l,'position');
+             parent = get(l,'parent');
+             
+             % Remove the UICONTROL
+             delete(l);
+             
+             % Replace it with an axis with an text object on it
+             handles.(t) = axes('parent',parent,'units','pixels','position',[p(1) p(2) p(3) p(4)],'visible','off');
+             handles.(t) = text(0,0.6,s,'interpreter','latex','FontSize',15);            
+          end
+    end
 
 function varargout = load_ABC_mat_OutputFcn(hObject, eventdata, handles) %#ok<*INUSD>
 varargout = {};
