@@ -24,24 +24,32 @@ function [V,S_V,Crt,k] = spark(sys,s0,Opts)
 %           -.spark.type:   chooses between standard SPARK, where the original 
 %                           model is reduced directly, or MESPARK, where a 
 %                           model function is created and updated after convergence.
-%                           { 'model' (def.) | 'standard' }
+%                           [{'model'} / 'standard']
 %           -.spark.test:   specifies weather the user desires to get insight 
 %                           in what is happening. This is realized by  
 %                           plotting intermediate results during optimization.
-%                           { 0 (def.) | 1 }
+%                           [{'0'} / '1']
 %           -.spark.verbose: text output during the optimization
-%                           { 0 (def.) | 1 }
-%           -.spark.mfe:    maximum functions evaluations - {5e3}
-%           -.spark.mi:     maximum iterations in solver - {150}
-%           -.spark.xTol:   step tolerance in solver - {1e-10}
-%           -.spark.fTol:   function value tolerance - {1e-10}
-%           -.spark.modelTol: convergence tolerance for model funciton - {1e-5}
+%                           [{'0'} / '1']
+%           -.spark.mfe:    maximum functions evaluations
+%                           [{'5e3'} / positive integer]
+%           -.spark.mi:     maximum iterations in solver
+%                           [{'150'} / positive integer]
+%           -.spark.xTol:   step tolerance in solver
+%                           [{'1e-10'} / positive float]
+%           -.spark.fTol:   function value tolerance
+%                           [{'1e-10'} / positive float]
+%           -.spark.modelTol: convergence tolerance for model funciton
+%                           [{'1e-5'} / positive float]
 %           -.mespark.ritz: use eigenvalues of model function to initialize
-%                           the shifts { 1 (def.) | 0 }
+%                           the shifts 
+%                           [{'1'} / '0']
 %           -.mespark.pertIter: number of iterations after which a
 %                           pertubation of the shifts starts to avoid
-%                           stagnation of the model function - {5}
-%           -.mespark.maxIter: maximum number of model function updates - {20}
+%                           stagnation of the model function
+%                           [{'5'} / positive integer]
+%           -.mespark.maxIter: maximum number of model function updates
+%                           [{'20'} / positive integer]
 %
 % Output Arguments:      
 %       -V,S_V,Crt: Input Krylov subspace,  A*V - E*V*S_V - B*Crt = 0
