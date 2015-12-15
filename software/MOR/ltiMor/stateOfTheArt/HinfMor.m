@@ -1,4 +1,4 @@
-function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin) 
+function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin) 
     % HINFMOR - H-infinity reduction by tangential interpolation
     % ------------------------------------------------------------------
     % TODO
@@ -37,14 +37,15 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
     end
     
     Def.plotCostOverDr = 0;
-    Def.irka    = struct(); %run irka with defaul parameters
+    Def.irka    = struct('stopCrit','combAll'); %run irka with defaul parameters
     Def.corrType = 'normOptCycle';
-    Def.solver   = 'fminunc'; %optimization solver
-                    %fminsearch, gs, ms, ga
+    Def.solver   = 'fmincon'; %optimization solver
     Def.DrInit  = '0'; %0, '0', Ge0, matchGe0, maxGe
     Def.plot    = 0; % generate analysis plot
     Def.sampling= 'random'; %sampling for sweepDr
     Def.sweepPoints = 2e3;
+    Def.surrogate = 0; %0, 'model', 'vf', 'loewner'
+    Def.tol     = 1e-6;
     
     % create the options structure
     if ~exist('Opts','var') || isempty(Opts)
@@ -58,7 +59,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
         % initialize
         try s0 = -eigs(sys,n,'sm').'; catch , s0 = zeros(1,n); end
         % run IRKA
-        [sysr0, ~, ~, ~, ~, ~, ~, B_, Rt, C_, Lt] = irka(sys,s0,Opts.irka);
+        [sysr0, ~, ~, ~, ~, ~, B_, Rt, C_, Lt,s0Traj] = irka(sys,s0,Opts.irka);
     else %MIMO
         % initialize
         %   compute one step of tangential Krylov at 0 to get initial tangent 
@@ -67,7 +68,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
         sysr = rk(sys,s0,s0,Rt,Lt);  [X,D,Y] = eig(sysr);
         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
         %run IRKA
-        [sysr0, ~, ~, ~, ~, ~, ~, B_, Rt, C_, Lt] = irka(sys,s0,Rt,Lt,Opts.irka);
+        [sysr0, ~, ~, ~, ~, ~, B_, Rt, C_, Lt, s0Traj, RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
     end
 
     %   Transform (A- s0*E) to (s0*E- A)
@@ -80,6 +81,15 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
     %     warning('Residuals could be wrong')
     %     keyboard
     % end
+    
+    %%  Create Surrogate Model
+    %   To reduce the cost of Hinf optimization, create a surrogate model
+    %   from the data collected during irka
+    
+    sysm = createSurrogate;
+    
+    %
+%     figure; bode(sys,'b',sysm,'--r',sysr0,'--g'); drawnow
 
     %%  Make Hinf correction
     %
@@ -105,7 +115,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             warning('this option is obsolete and shows bad performance');
             % however, is seems to work fine for build...
 
-            G0 = freqresp(sys,0); %the only costly part
+            G0 = freqresp(sysm,0); %the only costly part
             Dr0 = G0-freqresp(sysr0,0);
 
             cost = @(Dr) abs(...
@@ -131,14 +141,13 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                                     sysr0.A+Lt(iOut,:)'*Dr*Rt(jIn,:),...
                                     sysr0.B(:,jIn)+Lt(iOut,:).'*Dr, ...
                                     sysr0.C(iOut,:)+Dr*Rt(jIn,:), Dr, sysr0.E);
-                    cost = @(Dr) norm(sys(iOut,jIn)-sysrCurr(Dr),Inf);
+                    cost = @(Dr) norm(sysm(iOut,jIn)-sysrCurr(Dr),Inf);
                     [DrOptCurr, ~, tOptCurr] = normOpt(Dr0,cost);
                     tOpt = tOpt + tOptCurr;
                     DrOpt(iOut,jIn) = DrOptCurr;
                 end
             end
             sysr = sysrfun(DrOpt);
-            Hinf = norm(sys-sysr)/norm(sys);
         case 'DrRange'
             % Get steady state response of the error system
             Dr0 = DrInit('Ge0');
@@ -151,20 +160,20 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             plotOverDrRange;
         case 'normOpt'
             Dr0 = DrInit(Opts.DrInit);
-            cost = @(Dr) norm(sys-sysrfun(Dr),Inf);
+            cost = @(Dr) norm(sysm-sysrfun(Dr),Inf);
             [DrOpt, Hinf,tOpt] = normOpt(Dr0,cost);
             sysr = sysrfun(DrOpt);         
         case 'normOptCycle'
             % running optimization wr to each entry of D individually
             % the cost function takes into account the whole MIMO system
-            DrOpt = DrInit(Opts.DrInit); HinfVec = norm(sys-sysr0,Inf); tOpt = 0;
+            DrOpt = DrInit(Opts.DrInit); HinfVec = norm(sysm-sysr0,Inf); tOpt = 0;
             nCycles = 3; cycleCount = 0; stop = 0; %max number of cycles defined
             while cycleCount < nCycles && ~stop;
             cycleCount = cycleCount+1;
             for iOut = 1:sys.p
                 for jIn = 1:sys.m
                     Dr0 = DrOpt(iOut,jIn);
-                    cost = @(Dr) norm(sys-sysrfun(Dr,iOut,jIn,DrOpt),Inf);
+                    cost = @(Dr) norm(sysm-sysrfun(Dr,iOut,jIn,DrOpt),Inf);
                     [DrOptCurr, Hinf,tOptCurr] = normOpt(Dr0,cost);
                     tOpt = tOpt+tOptCurr;
                     DrOpt(iOut,jIn) = DrOptCurr;
@@ -190,11 +199,11 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             % multivariate optimization
             
             % 1) cycle optimization
-            DrOpt = DrInit(Opts.DrInit); HinfVec = norm(sys-sysr0,Inf); tOpt = 0;
+            DrOpt = DrInit(Opts.DrInit); HinfVec = norm(sysm-sysr0,Inf); tOpt = 0;
             for iOut = 1:sys.p
                 for jIn = 1:sys.m
                     Dr0 = DrOpt(iOut,jIn);
-                    cost = @(Dr) norm(sys-sysrfun(Dr,iOut,jIn,DrOpt),Inf);
+                    cost = @(Dr) norm(sysm-sysrfun(Dr,iOut,jIn,DrOpt),Inf);
                     [DrOptCurr, ~,tOptCurr] = normOpt(Dr0,cost);
                     tOpt = tOpt+tOptCurr;
                     DrOpt(iOut,jIn) = DrOptCurr;
@@ -202,13 +211,13 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             end
             
             % 2) multivariate optimization
-            cost = @(Dr) norm(sys-sysrfun(Dr),Inf);
+            cost = @(Dr) norm(sysm-sysrfun(Dr),Inf);
             [DrOpt, Hinf,tOptCurr] = normOpt(DrOpt,cost);
             tOpt = tOpt + tOptCurr;
             
             sysr = sysrfun(DrOpt); 
         case 'sweepDr'
-            cost = @(Dr) norm(sys-sysrfun(Dr),Inf);
+            cost = @(Dr) norm(sysm-sysrfun(Dr),Inf);
             [DrOpt, tOpt, DrArray,costArray] = sweepDr(cost);
             assignin('caller','DrArray',DrArray);
             assignin('caller','costArray',costArray);
@@ -233,10 +242,14 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
     end
 
     %% Additional outputs
-    if nargout > 2
-        HinfO = norm(sys,inf); %original
-        Hinf = norm(sys-sysr,inf)/HinfO; %optimized
-        HinfRatio = Hinf/norm(sys-sysr0,inf)*HinfO; %ratio to irka ROM
+    if nargout > 1
+        if ~exist('Hinf','var')
+            Hinf = norm(sysm-sysr,inf);%optimized
+        end
+        HinfO = norm(sysm,inf); %original
+        HinfRel = Hinf/HinfO;
+        HinfRatio = Hinf/norm(sysm-sysr0,inf)*HinfO; %ratio to irka ROM
+        
         if nargout > 5
             bound = HinfBound(sys,B_,C_);
         end
@@ -252,19 +265,19 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 Dr0 = DrInit('0');    
                 type = '0'; %overwrite for stability check at the end
             case 'Ge0'   
-                Dr0 = freqresp(sys,0)-freqresp(sysr0,0);      
+                Dr0 = freqresp(sysm,0)-freqresp(sysr0,0);      
             case 'Ge0half'
                 Dr0 = DrInit('Ge0')/2;
             case 'matchGe0_old'        
                 % this computation does not work well for MIMO systems
                 % since is sweeping Dr0 only along a hyperline with
                 % direction of the absolute value of Dr0
-                G0 = freqresp(sys,0); %the only costly part
+                G0 = freqresp(sysm,0); %the only costly part
 
                 Dr0 = DrInit('Ge0'); %get an initial feedthrough
                 deltaDr = 20*abs(Dr0); nStep = 100; 
                 DrSet(:,:,1) = DrInit('0'); dSet(:,:,1) = Dr0; dMin = norm(Dr0); %initial error
-                if Opts.plot, figure; sigma(sys-sysr0,'b', 'LineWidth',2); end
+                if Opts.plot, figure; sigma(sysm-sysr0,'b', 'LineWidth',2); end
                 
                 for k = 0:nStep
                     Dr = Dr0-deltaDr + k*(2*deltaDr)/nStep;
@@ -277,7 +290,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                         dSet(:,:,end+1) = d;
                         DrSet(:,:,end+1)= Dr;
                         if Opts.plot
-                            syse = sys-sysr; sigma(syse,'Color',rand(1,3)); 
+                            syse = sysm-sysr; sigma(syse,'Color',rand(1,3)); 
                             drawnow
                         end
                     end
@@ -286,7 +299,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 %   response at 0 and Inf
                 Dr0 = DrSet(:,:,end); 
                 if Opts.plot 
-                    syse = sys-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
+                    syse = sysm-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
                                                    'LineWidth',2); 
                     drawnow 
                 end
@@ -295,7 +308,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 %   The claim is that all computations are cheap since we
                 %   compute G0 once.
                 
-                G0 = freqresp(sys,0); %the only costly part
+                G0 = freqresp(sysm,0); %the only costly part
                 sweepcost = @(Dr0) norm(G0 - (freqresp(sysrfun(Dr0),0) + Dr0));
                 
                 Dr0 = sweepDr(sweepcost);
@@ -305,8 +318,8 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 % sweep to minimize the error at w
                 
                 %expensive computations
-                [~, w] = norm(sys-sysr0,inf);
-                Gew = freqresp(sys,w);
+                [~, w] = norm(sysm-sysr0,inf);
+                Gew = freqresp(sysm,w);
                 
                 sweepcost = @(Dr0) norm(Gew - freqresp(sysrfun(Dr0),w));
                 
@@ -328,7 +341,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
         
         %   Determine the relevant frequency range for Dr based on the Hinf
         %   error after IRKA
-        [~,wmax] = norm(sys,inf); deltaDr = freqresp(sys-sysr0,wmax);
+        [~,wmax] = norm(sysm,inf); deltaDr = freqresp(sysm-sysr0,wmax);
         
         probSize = sys.m*sys.p; %dimension of the search space
 
@@ -385,18 +398,30 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 optOpts = optimoptions(@fminunc, 'algorithm','quasi-newton');
                 tic, [DrOpt, Hinf] = fminunc(cost,Dr0,optOpts); tOpt = toc;
                 
+                case 'fmincon'
+                optOpts = optimoptions('fmincon','UseParallel',1);
+%                 
+                tic, [DrOpt, Hinf] = fmincon(cost,Dr0,[],[],[],...
+                    [],[],[],@stabilityConstraint,optOpts); tOpt = toc;
+                
                 case 'gs'
                     
+                % Restrict the search space to improve execution
+                [lb,ub] = searchSpaceLimits(sysm-sysr0);    
+                
+                % Define optimization parameters
                 optOpts = optimoptions('fmincon','UseParallel',1);
                 problem = createOptimProblem('fmincon',...
                             'objective',cost,'x0',Dr0,'options',optOpts,...
-                            'nonlcon',@stabilityConstraint);
-                gs = GlobalSearch('NumStageOnePoints',25,...%start points
-                                  'NumTrialPoints',25,... %potential start points
-                                  'StartPointsToRun','bounds-ineqs');%exclude certain points?
+                            'nonlcon',@stabilityConstraint,...
+                            'lb',lb,'ub',ub);
+                gs = GlobalSearch('NumStageOnePoints',20,...%start points
+                                  'NumTrialPoints',400,... %set of all potential start points
+                                  'StartPointsToRun','bounds-ineqs',...%exclude certain points?
+                                  'Display','iter');
                                  
                 tic,  [DrOpt,Hinf] = run(gs,problem); tOpt = toc;
-                % stability constraint is included in the optimization
+                
                 
                 case 'ms'
                 optOpts = optimoptions('fminunc', 'algorithm','quasi-newton');
@@ -423,9 +448,11 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                     options = gaoptimset('UseParallel',true,...
                                          'PopulationSize',25,...
                                          'Generations',20,...
-                                         'InitialPopulation',Dr0(:).');
+                                         'InitialPopulation',Dr0(:).',...
+                                         'Display','iter');
                     
-                    hybridoptions = optimoptions('fmincon','UseParallel',1);
+                    hybridoptions = optimoptions('fmincon','UseParallel',1,...
+                                    'Display','iter');
                     options = gaoptimset(options,...
                     'HybridFcn',{@fmincon, hybridoptions});
 
@@ -450,12 +477,12 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
         if isnumeric(DrRange) %vector of Dr values
             %initializing
             normVec = zeros(1,length(DrRange));
-            normO = norm(ss(sys),inf); 
-            normVec(1) = norm(ss(sys-sysr0),inf)/normO; 
+            normO = norm(ss(sysm),inf); 
+            normVec(1) = norm(ss(sysm-sysr0),inf)/normO; 
             minVal = normVec(1); minDr = 0; DrRange = [0,DrRange];
             for iDr = 2:length(DrRange)
                 sysrTest = sysrfun(DrRange(iDr));
-                normVec(iDr) = norm(ss(sys-sysrTest),inf)/normO;
+                normVec(iDr) = norm(ss(sysm-sysrTest),inf)/normO;
                 if normVec(iDr) < minVal
                     minDr = DrRange(iDr); minVal = normVec(iDr);
                 end
@@ -473,9 +500,9 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             end
             
             % Add zero and Dr0 to the plot
-            currDr = 0; currVal = norm(ss(sys-sysrfun(currDr)),inf)/normO;
+            currDr = 0; currVal = norm(ss(sysm-sysrfun(currDr)),inf)/normO;
             h(4) = plot(currDr, currVal,'ok');          
-            currDr = freqresp(sys-sysrfun(0),0); currVal = norm(ss(sys-sysrfun(currDr)),inf)/normO;
+            currDr = freqresp(sysm-sysrfun(0),0); currVal = norm(ss(sysm-sysrfun(currDr)),inf)/normO;
             h(5) = plot(currDr,currVal,'sm');
             legNames = [legNames, {'val@0','Ge0(0)'}];
             
@@ -493,7 +520,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             
             Dr1Range = DrRange{1}; Dr2Range = DrRange{2};
             normMat = zeros(size(Dr1Range));
-            normO = norm(ss(sys),inf); 
+            normO = norm(ss(sysm),inf); 
             % in this case, we don't add 0 as a value to the grid
             minVal = Inf;
             for iDr = 1:size(Dr1Range,1)
@@ -501,7 +528,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                     currDr(1) = Dr1Range(iDr,jDr);
                     currDr(2) = Dr2Range(iDr,jDr);
                     sysrTest = sysrfun(currDr);
-                    normMat(iDr,jDr) = norm(ss(sys-sysrTest),inf)/normO;
+                    normMat(iDr,jDr) = norm(ss(sysm-sysrTest),inf)/normO;
                     if normMat(iDr,jDr) < minVal
                         minDr(1) = Dr1Range(iDr,jDr);
                         minDr(2) = Dr2Range(iDr,jDr);
@@ -523,10 +550,10 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
             end
             
             % Add zero and Dr0 to the plot
-            currDr = zeros(size(currDr)); currVal = norm(ss(sys-sysrfun(currDr)),inf)/normO;
+            currDr = zeros(size(currDr)); currVal = norm(ss(sysm-sysrfun(currDr)),inf)/normO;
             h(4) = plot3(currDr(1),currDr(2),currVal,'ok','MarkerFaceColor','k');            
-            currDr = abs(freqresp(sys,0) - freqresp(sysr0,0));
-            currVal = norm(ss(sys-sysrfun(currDr)),inf)/normO;
+            currDr = abs(freqresp(sysm,0) - freqresp(sysr0,0));
+            currVal = norm(ss(sysm-sysrfun(currDr)),inf)/normO;
             h(5) = plot3(currDr(1),currDr(2),currVal,'sm','MarkerFaceColor','m');
             legNames = [legNames, {'val@0','Ge0(0)'}];
             
@@ -570,13 +597,70 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
         % define a nonlinear constraint to impose stability
         [c,ceq]=stabilityConstraint(reshape(x,size(Dr0,1),size(Dr0,2)));
     end
+    function [lb,ub] = searchSpaceLimits(syse)
+        %syse: error system
+        %[lb,ub] matrix values lower and upper bounds on Dr
+        
+        fac = 5; %scaling/robustness factor
+        %initialize
+        
+        p = syse.p; m = syse.m;
+        lb = zeros(p,m); ub = zeros(p,m);
+        
+        % define values
+        for iO = 1:p
+            parfor jI = 1:m
+                val = norm(syse(iO,jI),inf);
+                lb(iO,jI) = -fac*val; ub(iO,jI) = fac*val;
+            end
+        end
+        
+    end
+    function sysm = createSurrogate
+        switch Opts.surrogate
+            case 0
+                sysm = sys;
+            case 'model'
+                [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj);
+                sysm = rk(sys,s0m,s0m,Rtm,Ltm);
+            case 'vf'
+                error('bu')
+            case 'lowner'
+                error('bu')
+        end
+    end
 
+    function [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj)
+        % get interpolation data out of the trajectories
+        kIrka = size(s0Traj,3);
+        % initialize
+        s0m = s0Traj(:,:,1); Rtm = RtTraj(:,:,1); Ltm = LtTraj(:,:,1);
+        for iStep = 2:kIrka
+            s0new = s0Traj(:,:,iStep);
+            Rtnew = RtTraj(:,:,iStep); Ltnew = LtTraj(:,:,iStep);
+            
+            idxS = ismemberf(s0new,s0m,'tol',Opts.tol); %available in the matlab central
+            idxR = ismemberf(Rtnew.',Rtm.','rows','tol',Opts.tol).';
+            idxL = ismemberf(Ltnew.',Ltm.','rows','tol',Opts.tol).';
+            idxNew = or(or(~idxS, ~idxR),~idxL);
+            
+            s0m = [s0m, s0new(idxNew)];
+            Rtm = [Rtm, Rtnew(:,idxNew)]; Ltm = [Ltm, Ltnew(:,idxNew)];
+        end
+        
+        %   Do complexpair
+        s0mUnsrt = s0m;
+        s0m = cplxpair(s0mUnsrt);
+        % get permutation indices, since cplxpair does not do it for you
+        [~,cplxSorting] = ismember(s0m,s0mUnsrt);
+        Rtm = Rtm(:,cplxSorting); Ltm = Ltm(:,cplxSorting);        
+    end
 
     %% Trash
     function Dr0 = sweepDr0(sweepcost)
         %   Compute Dr0 from a sweep that tries to minimize "cost"
         
-        if Opts.plot, figure; sigma(sys-sysr0,'b', 'LineWidth',2); end
+        if Opts.plot, figure; sigma(sysm-sysr0,'b', 'LineWidth',2); end
 
         Dr0 = DrInit('0'); % Initialize with the data at the origin
         DrSet(:,:,1)= Dr0; dMin = sweepcost(Dr0); dSet(:,:,1) = dMin;
@@ -612,7 +696,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
 %                 DrSet(:,:,end+1)= Dr0;
                 DrSet = Dr0;
                 if Opts.plot
-                    syse = sys-sysr; sigma(syse,'Color',rand(1,3)); 
+                    syse = sysm-sysr; sigma(syse,'Color',rand(1,3)); 
                     drawnow
                 end
             end
@@ -621,7 +705,7 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
         %   best feedthrough
         Dr0 = DrSet(:,:,end); 
         if Opts.plot 
-            syse = sys-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
+            syse = sysm-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
                                            'LineWidth',2); drawnow 
         end          
     end

@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, Rt, Lt, B_, Rsylv, C_, Lsylv, s0Traj, RtTraj, LtTraj] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -8,9 +8,10 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = irka(sys, s0, 
 %       sysr                            = IRKA(sys, s0,..., Opts)
 %       [sysr, V, W]                    = IRKA(sys, s0,... )
 %       [sysr, V, W, s0]                = IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj]        = IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj, Rt, Lt]= IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt]        = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt, B_, Rsylv, C_, Lsylv] = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt, B_, Rsylv, C_, Lsylv, s0Traj, RtTraj,LtTraj] = IRKA(sys, s0,... )
+%
 %
 % Description:
 %       This function executes the Iterative Rational Krylov
@@ -122,6 +123,7 @@ if Opts.tol<=0 || ~isreal(Opts.tol)
 end
 
 s0 = s0_vect(s0);
+r = length(s0);
 
 % sort expansion points & tangential directions
 s0old = s0;
@@ -131,20 +133,34 @@ if exist('Rt','var') && ~isempty(Rt)
     Rt = Rt(:,cplxSorting);
     Lt = Lt(:,cplxSorting);
 else
-    Rt = ones(sys.m,length(s0));
-    Lt = ones(sys.p,length(s0));
+    Rt = ones(sys.m,r);
+    Lt = ones(sys.p,r);
 end
 clear s0old
 
 % Initialize variables
 sysr = sss([],[],[]);
-s0Traj = zeros(Opts.maxiter+2, length(s0));
-s0Traj(1,:) = s0;
+
+if nargout > 10
+    s0Traj = zeros(1,r,Opts.maxiter);
+    RtTraj = zeros(sys.m,r,Opts.maxiter);
+    LtTraj = zeros(sys.p,r,Opts.maxiter);
+
+    s0Traj(:,:,1) = s0;
+    RtTraj(:,:,1) = Rt;
+    LtTraj(:,:,1) = Lt;
+end
 
 %% IRKA iteration
 k=0;
 while true
     k=k+1; sysr_old = sysr;
+    
+    if nargout > 10
+        s0Traj(:,:,k) = s0;
+        RtTraj(:,:,k) = Rt;
+        LtTraj(:,:,k) = Lt;
+    end
     %   Reduction
     if sys.isSiso
         [sysr, V, W, B_, Rsylv,C_,Lsylv] = rk(sys, s0, s0,Opts);
@@ -170,8 +186,7 @@ while true
     if strcmp(Opts.type,'stab')
         % mirror shifts with negative real part
         s0 = s0.*sign(real(s0));
-    end
-    s0Traj(k+1,:) = s0;
+    end    
     
     [stop, stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts);
     if Opts.verbose
@@ -181,7 +196,12 @@ while true
     if stop || k>= Opts.maxiter
         s0 = s0_old; % function return value
         if ~sys.isSiso, Rt = Rt_old; Lt = Lt_old; end
-        s0Traj = s0Traj(1:(k+1),:);
+        
+        if nargout > 10
+            % keep only what has been computed
+            s0Traj = s0Traj(:,:,1:k);
+            RtTraj = RtTraj(:,:,1:k); LtTraj = LtTraj(:,:,1:k);
+        end
         break
     end      
 end
