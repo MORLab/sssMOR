@@ -413,8 +413,8 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                     Hinf  = allmins(k).Fval;
                     if k >= nOpt
                         warning('none of the local optima from MS was stable')
-                        DrOpt = allmins.X(1);
-                        Hinf  = allmins.Fval(1);
+                        DrOpt = allmins(k).X;
+                        Hinf  = allmins(k).Fval;
                         break
                     end
                 end
