@@ -40,6 +40,9 @@ else
     Opts = parseOpts(Opts,Def);
 end
 
+% check if benchmarks are in the local benchmarks folder
+benchmarks_check;
+
 % load benchmarks and change to folder 'testScripts'
 loadBenchmarks(Opts);
 
