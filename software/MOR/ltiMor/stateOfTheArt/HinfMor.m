@@ -392,16 +392,21 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
                 
                 case 'gs'
                     
+                % Restrict the search space to improve execution
+                [lb,ub] = searchSpaceLimits(sys-sysr0);    
+                
+                % Define optimization parameters
                 optOpts = optimoptions('fmincon','UseParallel',1);
                 problem = createOptimProblem('fmincon',...
                             'objective',cost,'x0',Dr0,'options',optOpts,...
-                            'nonlcon',@stabilityConstraint);
-                gs = GlobalSearch('NumStageOnePoints',25,...%start points
-                                  'NumTrialPoints',25,... %potential start points
+                            'nonlcon',@stabilityConstraint,...
+                            'lb',lb,'ub',ub);
+                gs = GlobalSearch('NumStageOnePoints',20,...%start points
+                                  'NumTrialPoints',1e3,... %set of all potential start points
                                   'StartPointsToRun','bounds-ineqs');%exclude certain points?
                                  
                 tic,  [DrOpt,Hinf] = run(gs,problem); tOpt = toc;
-                % stability constraint is included in the optimization
+                
                 
                 case 'ms'
                 optOpts = optimoptions('fminunc', 'algorithm','quasi-newton');
@@ -574,6 +579,25 @@ function [sysr, Hinf, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin
     function [c,ceq]=stabilityConstraintGA(x)
         % define a nonlinear constraint to impose stability
         [c,ceq]=stabilityConstraint(reshape(x,size(Dr0,1),size(Dr0,2)));
+    end
+    function [lb,ub] = searchSpaceLimits(syse)
+        %syse: error system
+        %[lb,ub] matrix values lower and upper bounds on Dr
+        
+        fac = 5; %scaling/robustness factor
+        %initialize
+        
+        p = syse.p; m = syse.m;
+        lb = zeros(p,m); ub = zeros(p,m);
+        
+        % define values
+        for iO = 1:p
+            parfor jI = 1:m
+                val = norm(syse(iO,jI),inf);
+                lb(iO,jI) = -fac*val; ub(iO,jI) = fac*val;
+            end
+        end
+        
     end
 
 
