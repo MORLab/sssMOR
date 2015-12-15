@@ -22,8 +22,10 @@ function [sysr, varargout] = tbr(sys, varargin)
 %
 %
 % Input Arguments:
+%		*Required Input Arguments:*
 %       -sys:   an sss-object containing the LTI system
-%       -q:     (opt.) order of reduced system
+%		*Optional Input Arguments:*
+%       -q:     order of reduced system
 %
 % Output Arguments:
 %       -sysr:  reduced system

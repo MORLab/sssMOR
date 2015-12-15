@@ -48,8 +48,17 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 %       -s0:       Vector of complex conjuate expansion points
 %
 %       *Optional Input Arguments:*
-%       -Rt,Lt:    Matrix of right/left tangential directions
-%       -IP:       function handle for inner product
+%       -Rt,Lt:             Matrix of right/left tangential directions
+%       -IP:                function handle for inner product
+%       -Opts:              a structure containing following options
+%           -.makeOrth:     make orthogonal?
+%                           [{'1'} / '0']
+%           -.makeReal:     keep the projection matrices real?
+%                           [{'1'} / '0']
+%           -.reorth:       gram schmidt reorthogonalization;
+%                           [{'gs'} / 0 / 'qr']
+%           -.lu:           use sparse or full LU;
+%                           [{'sparse'} / 'full']
 %
 % Output Arguments:
 %       -V:        Orthonormal basis spanning the input Krylov subsp. 

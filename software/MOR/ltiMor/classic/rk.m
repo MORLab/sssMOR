@@ -42,9 +42,18 @@ function [sysr, V, W, Bb, SRsylv, Rsylv, Cb, SLsylv, Lsylv] = rk(sys, s0_inp, va
 %       -s0_inp:    expansion points for input Krylov subspace
 %
 %       *Optional Input Arguments:*
-%       -s0_out:    expansion points for output Krylov subspace
-%       -Rt/Lt:     right/left tangential directions
-%       -IP:        inner product (optional)
+%       -s0_out:            expansion points for output Krylov subspace
+%       -Rt/Lt:             right/left tangential directions
+%       -IP:                inner product (optional)
+%       -Opts:              a structure containing following options
+%           -.makeOrth:     make orthogonal?
+%                           [{'1'} / '0']
+%           -.makeReal:     keep the projection matrices real?
+%                           [{'1'} / '0']
+%           -.reorth:       gram schmidt reorthogonalization;
+%                           [{'gs'} / 0 / 'qr']
+%           -.lu:           use sparse or full LU;
+%                           [{'sparse'} / 'full']
 %
 % Output Arguments:
 %       -sysr:      reduced system
