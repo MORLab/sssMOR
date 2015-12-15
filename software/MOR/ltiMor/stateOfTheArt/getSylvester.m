@@ -32,8 +32,8 @@ function [R, B_, S] = getSylvester(sys,sysr,V,type)
 %       -sysr:     reduced order model
 %       -V:        input Krylov subspace
 %       *Optional Input Arguments:*
-%       -type:     specifies if V spans an input (def) or output Krylov 
-%                  subspace {'V' (def), 'W'} 
+%       -type:     specifies if V spans an input (def) or output Krylov subspace 
+%                  [{'V'} / 'W'] 
 %
 % Output Arguments: 
 %       -R,S:      matrices of Sylvester equation (1) or (3)

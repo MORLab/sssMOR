@@ -28,25 +28,33 @@ function sysr = cure(sys,Opts)
 %       *Optional Input Arguments:*
 %       -Opts: A structure containing following fields
 %           -.cure.redfun:  reduction algorithm
-%                          {'spark' (def) | 'irka' | 'rk+pork'}
-%           -.cure.nk:      reduced order at each iteration - {2 (def)}
-%           -.cure.fact:    factorization mode - {'V' (def) | 'W'}
+%                           [{'spark'} / 'irka' / 'rk+pork']
+%           -.cure.nk:      reduced order at each iteration 
+%                           [{'2'} / positive integer]
+%           -.cure.fact:    factorization mode 
+%                           [{'V'} / 'W']
 %           -.cure.init:    shift initialization mode 
-%                          {'sm' (def) | 'zero' | 'lm' | 'slm'}
-%           -.cure.stop:    stopping criterion - {'nmax' (def) | 'h2Error'}
-%           -.cure.stopval: value according to which the stopping
-%                           criterion is evaluated - {sqrt(sys.n) (def)}
-%           -.cure.verbose: display text during cure {0 (def) | 1}
+%                           [{'sm'} / 'zero' / 'lm' / 'slm']
+%           -.cure.stop:    stopping criterion
+%                           [{'nmax'} / 'h2Error']
+%           -.cure.stopval: value according to which the stopping criterion is evaluated
+%                           [{'round(sqrt(sys.n))'} / positive integer]
+%           -.cure.verbose: display text during cure 
+%                           [{'0'} / '1']
 %           -.cure.SE_DAE:  reduction of index 1 semiexplicit DAE 
-%                          {0 (def) | 1}
-%           -.cure.test:    execute analysis code {0 (def) | 1}
+%                           [{'0'} / '1']
+%           -.cure.test:    execute analysis code 
+%                           [{'0'} / '1']
 %           -.cure.gif:     produce a .gif file of the CURE iteration
-%                          {0 (def) | 1}
-%           -.cure.maxIter: maximum number of CURE iterations - {20 (def)}
-%           -.warn:         show warnings - {0 (def) | 1}
-%           -.w:            frequencies for analysis plots - {[] (def)}
+%                           [{'0'} / '1']
+%           -.cure.maxIter: maximum number of CURE iterations
+%                           [{'20'} / positive integer]
+%           -.warn:         show warnings
+%                           [{'0'} / '1']
+%           -.w:            frequencies for analysis plots
+%                           [{''} / '{wmin,wmax}' / vector of frequencies]
 %           -.zeroThers:    value that can be used to replace 0 
-%                          {1e-4 (def)}
+%                           [{'1e-4'} / postivie float]
 %
 % Output Arguments:     
 %       -sysr: Reduced system
