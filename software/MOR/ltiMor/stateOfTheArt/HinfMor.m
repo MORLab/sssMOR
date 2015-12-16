@@ -207,7 +207,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
                 for jIn = 1:sys.m
                     Dr0 = DrOpt(iOut,jIn);
                     cost = @(Dr) norm(sysm-sysrfun(Dr,iOut,jIn,DrOpt),Inf);
-                    [DrOptCurr, ~,tOptCurr] = normOpt(Dr0,cost);
+                    constr = @(Dr) stabilityConstraintCycle(Dr,iOut,jIn,DrOpt);
+                    [DrOptCurr, ~,tOptCurr] = normOpt(Dr0,cost,constr);
                     tOpt = tOpt+tOptCurr;
                     DrOpt(iOut,jIn) = DrOptCurr;
                 end
@@ -398,7 +399,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
         [~, idxMin] = min(squeeze(costArray));
         DrOpt = DrArray(:,:,idxMin);    
     end
-    function [DrOpt, Hinf,tOpt] = normOpt(Dr0,cost)       
+    function [DrOpt, Hinf,tOpt] = normOpt(Dr0,cost,constr)       
 
             switch Opts.solver
                 case 'fminsearch'
@@ -411,9 +412,11 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
                 case 'fmincon'
                 optOpts = optimoptions('fmincon','UseParallel',1,...
                                         'algorithm','sqp');
-%                 
+                if ~exist('constr','var')
+                    constr = @stabilityConstraint;
+                end
                 tic, [DrOpt, Hinf] = fmincon(cost,Dr0,[],[],[],...
-                    [],[],[],@stabilityConstraint,optOpts); tOpt = toc;
+                    [],[],[],constr,optOpts); tOpt = toc;
                
                 case 'gs'
                     
@@ -608,6 +611,10 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
     function [c,ceq]=stabilityConstraintGA(x)
         % define a nonlinear constraint to impose stability
         [c,ceq]=stabilityConstraint(reshape(x,size(Dr0,1),size(Dr0,2)));
+    end
+    function [c,ceq]= stabilityConstraintCycle(Dr,iOut,jIn,DrOpt)
+        ceq = 1-isstable(sysrfun(Dr,iOut,jIn,DrOpt));
+        c = [];
     end
     function [lb,ub] = searchSpaceLimits(syse)
         %syse: error system
