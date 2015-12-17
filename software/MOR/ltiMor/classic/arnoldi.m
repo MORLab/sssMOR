@@ -91,7 +91,7 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  13 Dec 2015
+% Last Change:  17 Dec 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -103,8 +103,8 @@ if ~isempty(varargin) && isstruct(varargin{end});
 end
 
 Def.makeReal = 1; %keep the projection matrices real?
-Def.orth = 'dgks'; %orthogonalization after every direction {0,'dgks','gs'}
-Def.reorth = 0; %reorthogonaliation at the end {0, 'gs', 'qr'}
+Def.orth = 'dgks'; %orthogonalization after every direction {0,'dgks','mgs','sgs','2mgsn','2sgsn','2mgso','2sgso'}
+Def.reorth = 0; %reorthogonaliation at the end {0, 'mgs', 'qr'}
 Def.lse = 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess'}
 Def.dgksTol = 1e-12; %orthogonality tolerance: norm(V'*V-I,'fro')<tol
 Def.krylov = 0; %standard or cascaded krylov basis (only for siso) {0,'cascade'}
@@ -258,7 +258,7 @@ end
             end
         end
 
-        if strcmp(Opts.orth,'gs') || strcmp(Opts.orth,'dgks')
+        if Opts.orth
             if hermite
                 [V, TRsylv, W, TLsylv] = gramSchmidt(jCol, V, W);
             else
@@ -274,7 +274,7 @@ end
     end
 
     %orthogonalize columns from imaginary components
-    if strcmp(Opts.orth,'gs') || strcmp(Opts.orth,'dgks')
+    if Opts.orth
         for jCol=length(s0)+1:q
             if hermite
                 [V, TRsylv, W, TLsylv] = gramSchmidt(jCol, V, W);
@@ -300,8 +300,8 @@ end
     % The QR algorithm is much faster, however it does change the basis
     
     switch Opts.reorth
-        case 'gs' %reorthogonalized GS
-            Opts.orth='gs'; %overwrite
+        case 'mgs' %reorthogonalized GS
+            Opts.orth='mgs'; %overwrite
             for jCol = 2:q        
                 if hermite
                     [V, TRsylv, W, TLsylv] = gramSchmidt(jCol, V, W);
@@ -317,7 +317,7 @@ end
             end
         case 'qr' 
            [V,~] = qr(V,0); if hermite, [W,~] = qr(W,0); end
-           if nOut==2 || nOut==3 || nOut==5
+           if nOut==2 || nOut==3 || nOut==5 || nOut==6
                warning(['The computation of the Sylvester matrices with the ',...
                    'reorthogonalizaton option "qr" is not possible. Please call',...
                    'for the calculation of those matrices the function ',...
@@ -440,7 +440,48 @@ end
                     end
                     count=count+1;
                 end
-            case 'gs'
+            case 'sgs'
+                h=IP(V(:,1:jCol-1),V(:,jCol));
+                V(:,jCol)=V(:,jCol)-V(:,1:jCol-1)*h;
+                TRsylv(:,jCol)=TRsylv(:,jCol)-TRsylv(:,1:jCol-1)*h;
+                if hermite
+                    h=IP(W(:,1:jCol-1),W(:,jCol));
+                    W(:,jCol)=W(:,jCol)-W(:,1:jCol-1)*h;
+                    TLsylv(:,jCol)=TLsylv(:,jCol)-TLsylv(:,1:jCol-1)*h;
+                end
+            case '2sgsn'
+                for k=0:1
+                    h=IP(V(:,1:jCol-1),V(:,jCol));
+                    V(:,jCol)=V(:,jCol)-V(:,1:jCol-1)*h;
+                    TRsylv(:,jCol)=TRsylv(:,jCol)-TRsylv(:,1:jCol-1)*h;
+                    if hermite
+                        h=IP(W(:,1:jCol-1),W(:,jCol));
+                        W(:,jCol)=W(:,jCol)-W(:,1:jCol-1)*h;
+                        TLsylv(:,jCol)=TLsylv(:,jCol)-TLsylv(:,1:jCol-1)*h;
+                    end
+                    if k==0
+                        h = sqrt(IP(V(:,jCol),V(:,jCol)));
+                        V(:,jCol)=V(:,jCol)/h;
+                        TRsylv(:,jCol) = TRsylv(:,jCol)/h;
+                        if hermite
+                            h = sqrt(IP(W(:,jCol),W(:,jCol)));
+                            W(:,jCol)=W(:,jCol)/h;
+                            TLsylv(:,jCol) = TLsylv(:,jCol)/h;
+                        end
+                    end
+                end
+           case '2sgso'
+                for k=0:1
+                    h=IP(V(:,1:jCol-1),V(:,jCol));
+                    V(:,jCol)=V(:,jCol)-V(:,1:jCol-1)*h;
+                    TRsylv(:,jCol)=TRsylv(:,jCol)-TRsylv(:,1:jCol-1)*h;
+                    if hermite
+                        h=IP(W(:,1:jCol-1),W(:,jCol));
+                        W(:,jCol)=W(:,jCol)-W(:,1:jCol-1)*h;
+                        TLsylv(:,jCol)=TLsylv(:,jCol)-TLsylv(:,1:jCol-1)*h;
+                    end
+                end
+            case 'mgs'
                 for iCol=1:jCol-1
                   h=IP(V(:,jCol),V(:,iCol));
                   V(:,jCol)=V(:,jCol)-V(:,iCol)*h;
@@ -450,6 +491,42 @@ end
                     W(:,jCol)=W(:,jCol)-W(:,iCol)*h;
                     TLsylv(:,jCol)=TLsylv(:,jCol)-h*TLsylv(:,iCol);
                   end 
+                end
+            case '2mgsn'
+                for k=0:1
+                    for iCol=1:jCol-1
+                      h=IP(V(:,jCol),V(:,iCol));
+                      V(:,jCol)=V(:,jCol)-V(:,iCol)*h;
+                      TRsylv(:,jCol)=TRsylv(:,jCol)-h*TRsylv(:,iCol);
+                      if hermite
+                        h=IP(W(:,jCol),W(:,iCol));
+                        W(:,jCol)=W(:,jCol)-W(:,iCol)*h;
+                        TLsylv(:,jCol)=TLsylv(:,jCol)-h*TLsylv(:,iCol);
+                      end 
+                    end
+                    if k==0
+                        h = sqrt(IP(V(:,jCol),V(:,jCol)));
+                        V(:,jCol)=V(:,jCol)/h;
+                        TRsylv(:,jCol) = TRsylv(:,jCol)/h;
+                        if hermite
+                            h = sqrt(IP(W(:,jCol),W(:,jCol)));
+                            W(:,jCol)=W(:,jCol)/h;
+                            TLsylv(:,jCol) = TLsylv(:,jCol)/h;
+                        end
+                    end
+                end
+           case '2mgso'
+                for k=0:1
+                    for iCol=1:jCol-1
+                      h=IP(V(:,jCol),V(:,iCol));
+                      V(:,jCol)=V(:,jCol)-V(:,iCol)*h;
+                      TRsylv(:,jCol)=TRsylv(:,jCol)-h*TRsylv(:,iCol);
+                      if hermite
+                        h=IP(W(:,jCol),W(:,iCol));
+                        W(:,jCol)=W(:,jCol)-W(:,iCol)*h;
+                        TLsylv(:,jCol)=TLsylv(:,jCol)-h*TLsylv(:,iCol);
+                      end 
+                    end
                 end
             otherwise
                 error('Opts.orth is invalid.');
