@@ -1,4 +1,4 @@
-function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varargin) 
+function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm] = HinfMor(sys, n, varargin) 
     % HINFMOR - H-infinity reduction by tangential interpolation
     % ------------------------------------------------------------------
     % TODO
@@ -92,7 +92,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
     
     sysm = createSurrogate;
     fprintf('Size of the surrogate model: %i \n',sysm.n)
-    figure; bode(sys,'b',sysr0,'--g',sysm,'--r'); keyboard
+%     figure; bode(sys,'b',sysr0,'--g',sysm,'--r'); keyboard
 
     %%  Make Hinf correction
     %
@@ -202,7 +202,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
             % multivariate optimization
             
             % 1) cycle optimization
-            Opts.solver = 'fminsearch';
+            Opts.solver = 'fmincon';
             DrOpt = DrInit(Opts.DrInit); HinfVec = norm(sysm-sysr0,Inf); tOpt = 0;
             for iOut = 1:sys.p
                 for jIn = 1:sys.m
@@ -216,7 +216,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
             end
             
             % 2) multivariate optimization
-            Opts.solver = 'fmincon';
             cost = @(Dr) norm(sysm-sysrfun(Dr),Inf);
             [DrOpt, Hinf,tOptCurr] = normOpt(DrOpt,cost);
             tOpt = tOpt + tOptCurr;
@@ -264,7 +263,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
         HinfRatio = Hinf/norm(sys-sysr0,inf); %ratio to irka ROM
         
         if nargout > 5
-            bound = HinfBound(sys,B_,C_);
+%             bound = HinfBound(sys,B_,C_);
+            bound  =[];
         end
     end
 
@@ -426,9 +426,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
                 [lb,ub] = searchSpaceLimits(sysm-sysr0);    
                 
                 % Define optimization parameters
-                optOpts = optimoptions('fmincon','UseParallel',1);
+                optOpts = optimoptions('fmincon','UseParallel',1,...
+                                        'algorithm','sqp');
                 problem = createOptimProblem('fmincon',...
-                            'algorithm','sqp',...
                             'objective',cost,'x0',Dr0,'options',optOpts,...
                             'nonlcon',@stabilityConstraint,...
                             'lb',lb,'ub',ub);
@@ -661,7 +661,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
                             end
                         end
                     else
-                        error('Loewner conditions not satisfied');
+                        warning('Loewner conditions not satisfied');
+                        sysm = sysr0; return
                     end
                     [Ws, ~, Vs] = svd(s0m(iS)*L-sL,'econ');
                     V= V*Vs(:,1:r); W= W*Ws(:,1:r);
