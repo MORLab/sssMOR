@@ -202,7 +202,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
             % multivariate optimization
             
             % 1) cycle optimization
-            Opts.solver = 'fminsearch';
+            Opts.solver = 'fmincon';
             DrOpt = DrInit(Opts.DrInit); HinfVec = norm(sysm-sysr0,Inf); tOpt = 0;
             for iOut = 1:sys.p
                 for jIn = 1:sys.m
@@ -216,7 +216,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
             end
             
             % 2) multivariate optimization
-            Opts.solver = 'fmincon';
             cost = @(Dr) norm(sysm-sysrfun(Dr),Inf);
             [DrOpt, Hinf,tOptCurr] = normOpt(DrOpt,cost);
             tOpt = tOpt + tOptCurr;
@@ -426,9 +425,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
                 [lb,ub] = searchSpaceLimits(sysm-sysr0);    
                 
                 % Define optimization parameters
-                optOpts = optimoptions('fmincon','UseParallel',1);
+                optOpts = optimoptions('fmincon','UseParallel',1,...
+                                        'algorithm','sqp');
                 problem = createOptimProblem('fmincon',...
-                            'algorithm','sqp',...
                             'objective',cost,'x0',Dr0,'options',optOpts,...
                             'nonlcon',@stabilityConstraint,...
                             'lb',lb,'ub',ub);
