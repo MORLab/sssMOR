@@ -651,6 +651,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
                     sL  = - W'*sys.A*V; %shifted Loewner matrix
                     
                     % check conditions
+%                     s1 = svd([L, sL]);s2 = svd([L; sL]);
+%                     figure; semilogy(s1/s1(1),'b'),hold on,semilogy(s2/s2(1),'r');
                     r = rank([L, sL]);
                     if r == rank([L; sL])
                         for iS = 1:length(s0m)
