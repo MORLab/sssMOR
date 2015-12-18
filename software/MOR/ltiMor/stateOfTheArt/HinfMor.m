@@ -23,8 +23,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
     % Last Change:  23 Nov 2015
     % Copyright (c) ?
     % ------------------------------------------------------------------
-
-    
+   
     %%  Input parsing and execution parameters
     if ~isempty(varargin) 
         if isstruct(varargin{1}) %Opts passsed
@@ -37,7 +36,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
     end
     
     Def.plotCostOverDr = 0;
-    Def.irka    = struct('stopCrit','combAll','tol',1e-6); %run irka with defaul parameters
+    Def.irka    = struct('stopCrit','combAny','tol',1e-6); %run irka with defaul parameters
     Def.corrType = 'normOptCycle';
     Def.solver   = 'fmincon'; %optimization solver
     Def.DrInit  = '0'; %0, '0', Ge0, matchGe0, maxGe
@@ -45,6 +44,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
     Def.sampling= 'random'; %sampling for sweepDr
     Def.sweepPoints = 2e3;
     Def.surrogate = 'original'; %original, 'model', 'vf', 'loewner'
+    Def.whatData = 'new'; %'all','new'
+    Def.deflate = 1;
     Def.tol     = 1e-6;
     
     % create the options structure
@@ -57,8 +58,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
     %%  Run IRKA
     if sys.isSiso
         % initialize
-%         try s0 = -eigs(sys,n,'sm').'; catch , s0 = zeros(1,n); end
-        s0 = zeros(1,n);
+        try s0 = -eigs(sys,n,'sm').'; catch , s0 = zeros(1,n); end
+%         s0 = zeros(1,n);
         % run IRKA
         [sysr0, ~, ~, ~, ~, ~, B_, Rt, C_, Lt,s0Traj,RtTraj, LtTraj] = irka(sys,s0,Opts.irka);
     else %MIMO
@@ -66,10 +67,10 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
         %   compute one step of tangential Krylov at 0 to get initial tangent 
         %   directions
         
-        s0 = zeros(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
-%         s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
-%         sysr = rk(sys,s0,s0,Rt,Lt);  [X,D,Y] = eig(sysr);
-%         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
+%         s0 = zeros(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+        s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+        sysr = rk(sys,s0,s0,Rt,Lt);  [X,D,Y] = eig(sysr);
+        Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
         %run IRKA
         [sysr0, ~, ~, ~, ~, ~, B_, Rt, C_, Lt, s0Traj, RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
     end
@@ -90,9 +91,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
     %   from the data collected during irka
     
     sysm = createSurrogate;
-    
-    %
-%     figure; bode(sys,'b',sysm,'--r',sysr0,'--g'); drawnow
+    fprintf('Size of the surrogate model: %i \n',sysm.n)
+    figure; bode(sys,'b',sysr0,'--g',sysm,'--r'); keyboard
 
     %%  Make Hinf correction
     %
@@ -643,7 +643,54 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
                 sysm = sys;
             case 'model'
                 [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj);
-                sysm = rk(sys,s0m,s0m,Rtm,Ltm);
+                arnoldiOpts.makeOrth = 0;
+                [~,V,W] = rk(sys,s0m,s0m,Rtm,Ltm,arnoldiOpts);
+                
+                if Opts.deflate
+                    L   = - W'*sys.E*V; %Loewner matrix
+                    sL  = - W'*sys.A*V; %shifted Loewner matrix
+                    
+                    % check conditions
+                    r = rank([L, sL]);
+                    if r == rank([L; sL])
+                        for iS = 1:length(s0m)
+                            if rank(s0m(iS)*L-sL) == r
+                                break
+                            end
+                        end
+                    else
+                        error('Loewner conditions not satisfied');
+                    end
+                    [Ws, ~, Vs] = svd(s0m(iS)*L-sL,'econ');
+                    V= V*Vs(:,1:r); W= W*Ws(:,1:r);
+                    
+%                     [Uw,Sw] = svd([L,sL],'econ');
+%                     [~,Sv,Vv] = svd([L;sL],'econ');
+%                     sv = diag(Sv)/Sv(1); sw = diag(Sw)/Sw(1);
+% %                     figure; semilogy(sv,'b'); hold on, semilogy(sw,'--r');
+%                     
+%                     tol = 1e-2;
+%                     nV = find(sv<tol,1); nW = find(sw<tol,1);
+%                     if isempty(nV), nVW = length(sv); else  nVW = max([nV,nW]);end
+                    
+%                     V= V*Vv(:,1:nVW); W= W*Uw(:,1:nVW);
+
+                    %{
+                    %   Deflate usind SVD to keep the model function small
+                    [Uv,Sv,Vv] = svd(V,0); [Uw,Sw,Vw] = svd(W,0);
+                    sv = diag(Sv)/Sv(1); sw = diag(Sw)/Sw(1);
+                    %figure; semilogy(sv,'b'); hold on, semilogy(sw,'--r');
+                    tol = 1e-2;
+                    nV = find(sv<tol,1); nW = find(sw<tol,1);
+                    if isempty(nV), nVW = length(sv); else  nVW = max([nV,nW]);end
+    %                 [V,~] = qr(Uv(:,1:nVW),0); [W,~] = qr(Uw(:,1:nVW),0);
+                    V= Uv(:,1:nVW)*Sv(1:nVW,1:nVW)*Vv(:,1:nVW)'; 
+                    W= Uw(:,1:nVW)*Sw(1:nVW,1:nVW)*Vw(:,1:nVW)';
+                    %}
+                end
+                
+                sysm = sss(W'*sys.A*V, W'*sys.B, sys.C*V,sys.D,W'*sys.E*V);
+                
             case 'vf'  
                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj);
                 
@@ -682,9 +729,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
                 end
                 
                 sysm = sss(SER.A,SER.B,SER.C,SER.D);
-                figure;bode(ss(sys),'b-',ss(sysm),'--r'); pause; 
-                
-            case 'lowner'
+                figure;bode(ss(sys),'b-',ss(sysm),'--r'); pause;            
+            case 'loewner'
                 [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj);
                 
                 % generate frequency sample
@@ -696,25 +742,29 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound] = HinfMor(sys, n, varar
     end
     function [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj)
         % get interpolation data out of the trajectories
-        kIrka = size(s0Traj,3);
+        kIrka = size(s0Traj,3); nRed = size(s0Traj,2);
         % initialize
         s0m = s0Traj(:,:,1); Rtm = RtTraj(:,:,1); Ltm = LtTraj(:,:,1);
         for iStep = 2:kIrka
             s0new = s0Traj(:,:,iStep);
             Rtnew = RtTraj(:,:,iStep); Ltnew = LtTraj(:,:,iStep);
             
-            idxS = ismemberf(s0new,s0m,'tol',Opts.tol); %available in the matlab central
-            idxR = ismemberf(Rtnew.',Rtm.','rows','tol',Opts.tol).';
-            idxL = ismemberf(Ltnew.',Ltm.','rows','tol',Opts.tol).';
-            idxNew = or(or(~idxS, ~idxR),~idxL);
+            switch Opts.whatData
+                case 'new'
+                    idxS = ismemberf(s0new,s0m,'tol',Opts.tol); %available in the matlab central
+                    idxR = ismemberf(Rtnew.',Rtm.','rows','tol',Opts.tol).';
+                    idxL = ismemberf(Ltnew.',Ltm.','rows','tol',Opts.tol).';
+                    idxNew = or(or(~idxS, ~idxR),~idxL);
+                case 'all'
+                    idxNew = 1:nRed; %take all
+            end
             
             s0m = [s0m, s0new(idxNew)];
             Rtm = [Rtm, Rtnew(:,idxNew)]; Ltm = [Ltm, Ltnew(:,idxNew)];
         end
         
         %   Do complexpair
-        s0mUnsrt = s0m;
-        s0m = cplxpair(s0mUnsrt);
+        s0mUnsrt = s0m; s0m = cplxpair(s0mUnsrt);
         % get permutation indices, since cplxpair does not do it for you
         [~,cplxSorting] = ismember(s0m,s0mUnsrt);
         Rtm = Rtm(:,cplxSorting); Ltm = Ltm(:,cplxSorting);        
