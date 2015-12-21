@@ -74,7 +74,7 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  02 Dec 2015
+% Last Change:  20 Dec 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -82,6 +82,7 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 Def.type = 'SM'; 
 Def.orth = 'qr'; %orthogonalization ('0','qr')
 Def.real = 'real'; %real reduced system ('0', 'real')
+Def.tol = 1e-6; % tolerance for SM/LM eigenspace
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -90,37 +91,18 @@ else
     Opts = parseOpts(Opts,Def);
 end
 
-%calculate right eigenvalues
-[V, rlambda] = eigs(sys.A, sys.E, q, Opts.type);
-rlambda=diag(rlambda);
-
-%sort eigenvalues and right eigenvectors 
-V=V';
-tbl=table(rlambda,V);
-tbl=sortrows(tbl);
-V=tbl.V';
-rlambda=tbl.rlambda;
-
-%calculate left eigenvalues
-
-W = zeros(size(V)); llambda = zeros(size(rlambda));
-warning('off','MATLAB:nearlySingularMatrix');
-warning('off','MATLAB:eigs:SigmaNearExactEig');
-opts.tol=1e3*eps/norm(full(sys.A));
-for iEig = 1:length(rlambda)
-    [W(:,iEig),llambda(iEig)] = eigs((sys.A-(rlambda(iEig))*sys.E).',1,1e3*eps, opts);
-    %Ritz residual: r=Ax-lambda*x
-    if (sys.A.'*W(:,iEig)-rlambda(iEig)*sys.E.'*W(:,iEig))/norm(W(:,iEig)) >= norm(full(sys.A))*1e3*eps
-        error('Eigenvectors belong to different eigenvalues. Please try again.');
-    end
+if strcmp(Opts.type,'LM') && (strcmp(Opts.orth,'qr') || strcmp(Opts.real, 'real'))
+    [V, W]=eigenspaceLM(q);
+elseif strcmp(Opts.type,'SM') && (strcmp(Opts.orth,'qr') || strcmp(Opts.real, 'real'))
+    [V, W]=eigenspaceSM(q);
+else
+    [V, W]=exactEigenvector(q);
 end
-warning('on','MATLAB:nearlySingularMatrix');
-warning('on','MATLAB:eigs:SigmaNearExactEig');
 
 %split complex conjugated columns into real and imaginary
 if strcmp(Opts.real,'real');
     fac = 2/sqrt(2); %factor needed to guarantee preservation of eig
-    k=find(imag(rlambda));
+    k=find(imag(sum(V)));
     if ~isempty(k)
          if mod(length(k),2)==0
               for i=1:2:length(k)
@@ -139,8 +121,85 @@ end
 
 %orthogonalize
 if strcmp(Opts.orth,'qr');
-    V=qr(V,0);
-    W=qr(W,0);
+    [V,~]=qr(V,0);
+    [W,~]=qr(W,0);
 end
 
 sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);   
+
+%% ------------------ AUXILIARY FUNCTIONS --------------------------
+function [V, W, rlambda]=exactEigenvector(q)
+    %calculate right eigenvalues
+    [V, rlambda] = eigs(sys.A, sys.E, q, Opts.type);
+    rlambda=diag(rlambda);
+
+    %calculate left eigenvalues
+    W = zeros(size(V)); llambda = zeros(size(rlambda));
+    warning('off','MATLAB:nearlySingularMatrix');
+    warning('off','MATLAB:eigs:SigmaNearExactEig');
+    opts.tol=1e3*eps/norm(full(sys.A));
+    for iEig = 1:length(rlambda)
+        [W(:,iEig),llambda(iEig), flag] = eigs((sys.A-(rlambda(iEig))*sys.E).',1,1e3*eps, opts);
+        %Ritz residual: r=Ax-lambda*x
+        if (sys.A.'*W(:,iEig)-rlambda(iEig)*sys.E.'*W(:,iEig))/norm(W(:,iEig)) >= norm(full(sys.A))*1e3*eps
+            error('Eigenvectors belong to different eigenvalues. Please try again.');
+        end
+        if flag~=0
+            error('Computation of eigenvectors failed.');
+        end
+    end
+    warning('on','MATLAB:nearlySingularMatrix');
+    warning('on','MATLAB:eigs:SigmaNearExactEig');
+end
+
+function [V, W]=eigenspaceLM(q)
+    if ~sys.isDescriptor
+        A=sys.E\sys.A;
+    else
+        A=sys.A;
+    end
+
+    % orthogonal iteration for LM
+    V=rand(sys.n,q);
+    W=rand(sys.n,q);
+    V_old=V;
+    W_old=W;
+    
+    while norm((eye(sys.n)-V*V')*V_old)>Opts.tol || norm((eye(sys.n)-W*W')*W_old)>Opts.tol
+        V_old=V;
+        W_old=W;  
+        [V,~]=qr(A*V,0);
+        [W,~]=qr(A'*W,0);
+    end
+    for j=1:q
+        W(:,j)=W(:,j)/norm(W(:,j));
+        V(:,j)=V(:,j)/norm(V(:,j));
+    end 
+end
+
+function [V, W]=eigenspaceSM(q)
+    % sparse LU decomposition
+    [L,U,a,o,S]=lu(sys.A,'vector');
+
+    % inverse orthogonal iteration for SM
+    V=rand(sys.n,q);
+    W=rand(sys.n,q);
+    V_old=V;
+    W_old=W;
+    
+    while norm((eye(sys.n)-V*V')*V_old)>Opts.tol || norm((eye(sys.n)-W*W')*W_old)>Opts.tol
+        V_old=V;
+        W_old=W;
+        V=sys.E*V;
+        W=sys.E*W;
+        V(o,:) = U\(L\(S(:,a)\V));
+        W=(S(:,a)).'\(L.'\(U.'\(W(o,:))));
+        [V,~]=qr(V,0);
+        [W,~]=qr(W,0);
+    end
+    for j=1:q
+        W(:,j)=W(:,j)/norm(W(:,j));
+        V(:,j)=V(:,j)/norm(V(:,j));
+    end        
+end
+end
