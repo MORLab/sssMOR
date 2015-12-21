@@ -106,9 +106,26 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
              handles.(t) = axes('parent',parent,'units','pixels','position',[p(1) p(2) p(3) p(4)],'visible','off');
              handles.(t) = text(0,0.3,s,'interpreter','latex');            
           end
-
+    end
+    
+    %Add the subfolder from the GUI-folder-structure to the search-paths
+    
+    guiPath = which('sssMOR_GUI.m');
+    pathArray = strsplit(guiPath,'\');
+    path = '';
+    
+    for i = 1:(size(pathArray,2)-1)
+       
+        if i > 1
+           path = strcat(path,'\',pathArray{1,i});
+        else
+           path = strcat(path,pathArray{1,i}); 
+        end       
     end
 
+    path = strcat(path,'\auxiliary');
+    addpath(path);
+    
 
     % Update handles structure
     guidata(hObject, handles);
@@ -197,6 +214,7 @@ function logo_tum_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
     A=imread('Pictures\Heading.png');
     h=image(A);
     set(h,'HitTest','off')
+    set(hObject,'YDir','reverse');
 
 function logo_tum_ButtonDownFcn(hObject, eventdata, handles)
     % link to web page
@@ -273,6 +291,7 @@ function logo_about_CreateFcn(hObject, eventdata, handles)
     % load About logo
     A=imread('MOR.jpg');
     image(A);
+    set(hObject,'YDir','reverse');
 
 function text_about_weblink_ButtonDownFcn(hObject, eventdata, handles)
     % Open a weblink if the mouse is klicked over the text element
@@ -329,7 +348,7 @@ end
 set(handles.sysinfo, 'String', sys.disp);
 
 % adapt pu_in and pu_out for MIMO systems
-if sys.is_mimo
+if sys.isMimo
     if get(handles.pu_in,'Value') > sys.m
         set(handles.pu_in,'Value', 1)
     end
@@ -394,7 +413,7 @@ else
                 return
             end
             set(handles.sysinfo, 'String', sys.disp);
-            if sys.is_mimo
+            if sys.isMimo
                 if get(handles.pu_in,'Value')>size(sys.B,2)+1
                     set(handles.pu_in,'Value',1)
                 end
@@ -1624,7 +1643,7 @@ try
             errordlg('Variable is not a valid state space model.')            
         else 
             set(handles.sysinfo, 'String', sys.disp);
-            if sys.is_mimo
+            if sys.isMimo
                 if get(handles.pu_in,'Value') > sys.m + 1
                     set(handles.pu_in,'Value', 1)
                 end
@@ -1924,7 +1943,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 method='Rational Krylov, Output Krylov Subspace';
             else
                 % two-sided
-                if sys.is_mimo
+                if sys.isMimo
                     if sys.p>1 && sys.m==1
                         set(handles.figure1,'Pointer','arrow')
                         set(hObject,'Enable','on')
@@ -1962,7 +1981,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             end
 
         case 2 %ICOP
-            if sys.is_mimo
+            if sys.isMimo
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
                 errordlg('MIMO is not supported yet, coming soon','Error Dialog','modal')
@@ -2006,7 +2025,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             end
 
         case 1 %IRKA
-            if sys.is_mimo % MIMO?
+            if sys.isMimo % MIMO?
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
                 errordlg('MIMO is not supported yet.','Error Dialog','modal')
@@ -2023,7 +2042,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 return
             end
             try
-                [sysr,V,W,s0] = IRKA(sys, get(handles.sl_mor_q, 'Value'), s0, maxiter, epsilon);
+                [sysr,V,W,s0] = irka(sys, get(handles.sl_mor_q, 'Value'), s0, maxiter, epsilon);
                 sysr.mor_info=struct('time', clock, 'method', 'Krylov, IRKA', 'orgsys', sysname);
                 sysr.mor_info.s0=s0;
             catch ex
