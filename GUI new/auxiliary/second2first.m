@@ -1,4 +1,4 @@
-function sys = fem2ss(M, D, K, B, Cx, Cv, F)
+function sys = second2first(M, D, K, B, Cx, Cv, Opts)
 % Converts from 2nd order system to state space representation
 % ------------------------------------------------------------------
 % sys = fem2ss(M, D, K, B, Cx, Cv, F)
@@ -24,6 +24,18 @@ function sys = fem2ss(M, D, K, B, Cx, Cv, F)
 % Last Change:  23 Feb 2011
 % ------------------------------------------------------------------
 
+%Check wheather options are specified or not 
+
+if ~exist('Opts','var')
+    Opts = struct(); 
+end
+
+Def = struct('transf2nd','I');
+Opts = parseOpts(Opts,Def);
+
+
+%Check the matrix-dimensions of M and D
+
 if size(M,1)~=size(M,2)
     error('M must be symmetric.')
 elseif any(size(M)-size(K))
@@ -36,18 +48,26 @@ elseif any(size(D)-size(K))
     error('D must have same size as M and K.');
 end
 
-if ~exist('F', 'var') || isempty(F)
-    % if no F is given, use F:=K to obtain E>0 and A+A'<=0
-    F=K;
-elseif any(size(F)-size(K))
-    error('F must have same size as M and K.');
+%Evaluate the specified option
+
+switch Opts.transf2nd
+        case 'I'
+            F = speye(size(K));
+        case 'K'
+            F = K;
+        case '-K'
+            F = -K;
 end
+
+%Create the matrices A and E for the first-order-system
 
 n = size(M,1);
 O = sparse(n,n);
 
 E = [F O; O M];
 A = [O F; -K -D];
+
+%Check the matrix-dimensions of Cx and Cv and B
 
 if isempty(Cx) && isempty(Cv)
     % both output vectors are empty
@@ -70,8 +90,12 @@ elseif size(B,1)~=size(M,1)
     error('B must have same row dimension as M, D, K')
 end
 
+%Create the matrices C, D and B for the first-order-system
+
 B = [sparse(n,size(B,2)); B];
 C = [Cx, Cv];
 D = zeros(size(C,1),size(B,2));
+
+%Create the first-order-system
 
 sys = sss(A, B, C, D, E);

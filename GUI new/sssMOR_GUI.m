@@ -1309,7 +1309,7 @@ function pb_readascii_Callback(hObject, eventdata, handles)
 function pb_create_Callback(hObject, eventdata, handles)
     % disable to avoid double click
     set(handles.allbuttons,'Enable','off')
-    load_ABC_mat('load',handles)
+    composeModel('load',handles)
     set(handles.allbuttons,'Enable','on')
 
     
@@ -3211,7 +3211,7 @@ try
         if openfig(i)==handles.figure1
             % sssMOR_GUI
             continue
-        elseif strcmp(get(openfig(i),'Tag'),'load_ABC_mat')
+        elseif strcmp(get(openfig(i),'Tag'),'composeModel')
             continue
         end
         temp=get(openfig(i),'Name');
