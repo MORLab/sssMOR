@@ -36,17 +36,22 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
     end
     
     Def.plotCostOverDr = 0;
-    Def.irka    = struct('stopCrit','combAny','tol',1e-6); %run irka with defaul parameters
-    Def.corrType = 'normOptCycle';
-    Def.solver   = 'fmincon'; %optimization solver
-    Def.DrInit  = '0'; %0, '0', Ge0, matchGe0, maxGe
-    Def.plot    = 0; % generate analysis plot
-    Def.sampling= 'random'; %sampling for sweepDr
+    Def.irka        = struct('stopCrit','combAny','tol',1e-6); %run irka with defaul parameters
+    Def.corrType    = 'normOptCycle';
+    Def.solver      = 'fmincon'; %optimization solver
+    Def.DrInit      = '0'; %0, '0', Ge0, matchGe0, maxGe
+    Def.plot        = 0; % generate analysis plot
+    Def.sampling    = 'random'; %sampling for sweepDr
     Def.sweepPoints = 2e3;
-    Def.surrogate = 'original'; %original, 'model', 'vf', 'loewner'
-    Def.whatData = 'new'; %'all','new'
-    Def.deflate = 1;
-    Def.tol     = 1e-6;
+    
+    Def.surrogate   = 'original';   %original, 'model', 'vf', 'loewner'
+    Def.whatData    = 'new';        %'all','new'
+    Def.deflate     = 1;
+    Def.tol         = 1e-6;
+    
+    Def.vf.poles   = 'vectfit3'; %vectfit,eigs
+    Def.vf.maxiter = 20;
+    Def.vf.tol     = 1e-10;
     
     % create the options structure
     if ~exist('Opts','var') || isempty(Opts)
@@ -92,6 +97,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
     
     sysm = createSurrogate;
     fprintf('Size of the surrogate model: %i \n',sysm.n)
+    isstable(sysm)
 %     figure; bode(sys,'b',sysr0,'--g',sysm,'--r'); keyboard
 
     %%  Make Hinf correction
@@ -203,11 +209,11 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
             
             % 1) cycle optimization
             Opts.solver = 'fmincon';
-            DrOpt = DrInit(Opts.DrInit); HinfVec = norm(sysm-sysr0,Inf); tOpt = 0;
+            DrOpt = DrInit(Opts.DrInit); HinfVec = norm(ss(sysm-sysr0),Inf); tOpt = 0;
             for iOut = 1:sys.p
                 for jIn = 1:sys.m
                     Dr0 = DrOpt(iOut,jIn);
-                    cost = @(Dr) norm(sysm-sysrfun(Dr,iOut,jIn,DrOpt),Inf);
+                    cost = @(Dr) norm(ss(sysm-sysrfun(Dr,iOut,jIn,DrOpt)),Inf);
                     constr = @(Dr) stabilityConstraintCycle(Dr,iOut,jIn,DrOpt);
                     [DrOptCurr, ~,tOptCurr] = normOpt(Dr0,cost,constr);
                     tOpt = tOpt+tOptCurr;
@@ -216,13 +222,13 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
             end
             
             % 2) multivariate optimization
-            cost = @(Dr) norm(sysm-sysrfun(Dr),Inf);
+            cost = @(Dr) norm(ss(sysm-sysrfun(Dr)),Inf);
             [DrOpt, Hinf,tOptCurr] = normOpt(DrOpt,cost);
             tOpt = tOpt + tOptCurr;
             
             sysr = sysrfun(DrOpt); 
         case 'sweepDr'
-            cost = @(Dr) norm(sysm-sysrfun(Dr),Inf);
+            cost = @(Dr) norm(ss(sysm-sysrfun(Dr)),Inf);
             [DrOpt, tOpt, DrArray,costArray] = sweepDr(cost);
             assignin('caller','DrArray',DrArray);
             assignin('caller','costArray',costArray);
@@ -257,10 +263,10 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
 %         HinfRatio = Hinf/norm(sysm-sysr0,inf); %ratio to irka ROM
 
         % Real error
-        Hinf = norm(sys-sysr,inf);%optimized
-        HinfO = norm(sys,inf); %original
+        Hinf = norm(ss(sys-sysr),inf);%optimized
+        HinfO = norm(ss(sys),inf); %original
         HinfRel = Hinf/HinfO;
-        HinfRatio = Hinf/norm(sys-sysr0,inf); %ratio to irka ROM
+        HinfRatio = Hinf/norm(ss(sys-sysr0),inf); %ratio to irka ROM
         
         if nargout > 5
 %             bound = HinfBound(sys,B_,C_);
@@ -331,7 +337,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
                 % sweep to minimize the error at w
                 
                 %expensive computations
-                [~, w] = norm(sysm-sysr0,inf);
+                [~, w] = norm(ss(sysm-sysr0),inf);
                 Gew = freqresp(sysm,w);
                 
                 sweepcost = @(Dr0) norm(Gew - freqresp(sysrfun(Dr0),w));
@@ -354,7 +360,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
         
         %   Determine the relevant frequency range for Dr based on the Hinf
         %   error after IRKA
-        [~,wmax] = norm(sysm,inf); deltaDr = freqresp(sysm-sysr0,wmax);
+        [~,wmax] = norm(ss(sysm),inf); deltaDr = freqresp(sysm-sysr0,wmax);
         
         probSize = sys.m*sys.p; %dimension of the search space
 
@@ -607,7 +613,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
     end
     function [c,ceq]=stabilityConstraint(x)
         % define a nonlinear constraint to impose stability
-        ceq = 1-isstable(sysrfun(x));
+        ceq = 1-isstable(ss(sysrfun(x)));
         c = [];
     end
     function [c,ceq]=stabilityConstraintGA(x)
@@ -615,7 +621,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
         [c,ceq]=stabilityConstraint(reshape(x,size(Dr0,1),size(Dr0,2)));
     end
     function [c,ceq]= stabilityConstraintCycle(Dr,iOut,jIn,DrOpt)
-        ceq = 1-isstable(sysrfun(Dr,iOut,jIn,DrOpt));
+        ceq = 1-isstable(ss(sysrfun(Dr,iOut,jIn,DrOpt)));
         c = [];
     end
     function [lb,ub] = searchSpaceLimits(syse)
@@ -646,86 +652,47 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
                 arnoldiOpts.makeOrth = 0;
                 [~,V,W] = rk(sys,s0m,s0m,Rtm,Ltm,arnoldiOpts);
                 
-                if Opts.deflate
-                    L   = - W'*sys.E*V; %Loewner matrix
-                    sL  = - W'*sys.A*V; %shifted Loewner matrix
-                    
-                    % check conditions
-%                     s1 = svd([L, sL]);s2 = svd([L; sL]);
-%                     figure; semilogy(s1/s1(1),'b'),hold on,semilogy(s2/s2(1),'r');
-                    r = rank([L, sL]);
-                    if r == rank([L; sL])
-                        for iS = 1:length(s0m)
-                            if rank(s0m(iS)*L-sL) == r
-                                break
-                            end
-                        end
-                    else
-                        warning('Loewner conditions not satisfied');
-                        sysm = sysr0; return
-                    end
-                    [Ws, ~, Vs] = svd(s0m(iS)*L-sL,'econ');
-                    V= V*Vs(:,1:r); W= W*Ws(:,1:r);
-                    
-%                     [Uw,Sw] = svd([L,sL],'econ');
-%                     [~,Sv,Vv] = svd([L;sL],'econ');
-%                     sv = diag(Sv)/Sv(1); sw = diag(Sw)/Sw(1);
-% %                     figure; semilogy(sv,'b'); hold on, semilogy(sw,'--r');
-%                     
-%                     tol = 1e-2;
-%                     nV = find(sv<tol,1); nW = find(sw<tol,1);
-%                     if isempty(nV), nVW = length(sv); else  nVW = max([nV,nW]);end
-                    
-%                     V= V*Vv(:,1:nVW); W= W*Uw(:,1:nVW);
-
-                    %{
-                    %   Deflate usind SVD to keep the model function small
-                    [Uv,Sv,Vv] = svd(V,0); [Uw,Sw,Vw] = svd(W,0);
-                    sv = diag(Sv)/Sv(1); sw = diag(Sw)/Sw(1);
-                    %figure; semilogy(sv,'b'); hold on, semilogy(sw,'--r');
-                    tol = 1e-2;
-                    nV = find(sv<tol,1); nW = find(sw<tol,1);
-                    if isempty(nV), nVW = length(sv); else  nVW = max([nV,nW]);end
-    %                 [V,~] = qr(Uv(:,1:nVW),0); [W,~] = qr(Uw(:,1:nVW),0);
-                    V= Uv(:,1:nVW)*Sv(1:nVW,1:nVW)*Vv(:,1:nVW)'; 
-                    W= Uw(:,1:nVW)*Sw(1:nVW,1:nVW)*Vw(:,1:nVW)';
-                    %}
-                end
-                
                 sysm = sss(W'*sys.A*V, W'*sys.B, sys.C*V,sys.D,W'*sys.E*V);               
             case 'vf'  
                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj);
+                % take only one complex conjugate partner
+                s0m = cplxpair(s0m); idx = find(imag(s0m)); s0m(idx(1:2:end)) = [];
+                figure; plot(s0m,'o');xlabel('real');ylabel('imag')
                 
                 % generate frequency sample
-                %}
-
-                fss = freqresp(sys,s0m); fss = reshape(fss,numel(fss(:,:,1)),length(fss));
-                f = freqresp(ss(sys),s0m);
-                f = reshape(f,numel(f(:,:,1)),length(f));
+%                 fss = freqresp(sys,s0m); fss = reshape(fss,numel(fss(:,:,1)),length(fss));
+                f = freqresp(sys,s0m); f = reshape(f,numel(f(:,:,1)),length(f));
                            
-                nm = min([round(length(s0m)),40]);  %model function order
+                nm = min([round(length(s0m)),60]);  %model function order
+                
+                m = sys.m; p = sys.p;
+                if m>1, nm = round(nm/m);end %avoid blowing-up for MIMO
                 if mod(nm,2) ~= 0, nm = nm-1; end   %make even
                 
-                figure; loglog(abs(s0m),abs(f)); hold on
-                        loglog(abs(s0m),abs(fss),'--r');
-                keyboard
-                
-                
-                nm = 20;
-                weight=ones(size(f));
-                               
-%                 Opts.poles = 'eigs';
-%                 poles = initializePoles(Opts.poles,nm);
-                poles = -logspace(-2,2,nm);
-                
-                
-                nIter = 20;
-                for iter =1:nIter
-                    [SER,poles,rmserr] =vectfit3(f,s0m,poles,weight);
+%                 figure; loglog(abs(imag(s0m)),abs(f),'bx'); hold on
+%                         loglog(abs(imag(s0m)),abs(fss),'or');
+                         
+                poles = initializePoles(Opts.vf.poles,nm);
+%                 poles = -logspace(-2,2,nm);
+                          
+                %MIMO systems have to be fitted columnwise
+                AA = []; BB = []; CC = []; DD = [];
+                weight=ones(p,size(f,2));
+                for iCol = 1:m
+                    fm = f((iCol-1)*p+1 : iCol*p,:);
+                for iter = 1:Opts.vf.maxiter
+                    [SER,poles,rmserr] =vectfit3(fm,s0m,poles,weight);
                     fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
+                    if rmserr <= Opts.vf.tol, break, end
+                end
+                    AA = blkdiag(AA,SER.A); 
+                    BB = blkdiag(BB,SER.B);
+                    CC = [CC, SER.C];
+                    DD = [DD, SER.D];
                 end
                 
-                sysm = sss(SER.A,SER.B,SER.C,SER.D);
+                sysm = sss(AA,BB,CC,DD);
+%                 isstable(sysm)
                 figure;bode(ss(sys),'b-',ss(sysm),'--r'); keyboard;            
             case 'loewner'
                 %   Get the data
@@ -791,7 +758,11 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
             case 'eigs'
                 poles = eigs(sys,nm,'sm').';
             case 'vectfit3'
-                wMax = abs(imag(eigs(sys,1,'li')));
+                try
+                    wMax = abs(imag(eigs(sys,1,'li')));
+                catch
+                    wMax = 1e3;
+                end
                 
                 %generate initial poles
                 bet=logspace(-2,log10(wMax),nm/2);
