@@ -692,32 +692,16 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm] = HinfMor(sys, n,
                     %}
                 end
                 
-                sysm = sss(W'*sys.A*V, W'*sys.B, sys.C*V,sys.D,W'*sys.E*V);
-                
+                sysm = sss(W'*sys.A*V, W'*sys.B, sys.C*V,sys.D,W'*sys.E*V);                
             case 'vf'  
                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj);
                 
-                if length(s0m) < 20
-                    im = 400*rand(1,20);
-                    s0m = [s0m, 1i*im, -1i*im];
-                end
-                
                 % generate frequency sample
-%                 [f,s] = freqData(s0m);
-                f = freqresp(sys,s0m);
+                f = freqresp(ss(sys),s0m);
                 f = reshape(f,numel(f(:,:,1)),length(f));
-                
-                %requires vectfit3
-                vfOpts.cmplx_ss = 0;
-                vfOpts.spy1 = 0;
-                vfOpts.spy2 = 0;
-                vfOpts.errplot = 0;
-                vfOpts.skip_res = 0; %speedup until last iteration
-                vfOpts.legend = 0;
-                vfOpts.stable = 1;
-                
-                nm = round(length(s0m)*.8); %model function order
-%                 if mod(nm,2) ~= 0, nm = nm-1; end %make even
+                           
+                nm = min([round(length(s0m)),40]);  %model function order
+                if mod(nm,2) ~= 0, nm = nm-1; end   %make even
                                
                 Opts.poles = 'vectfit3';
                 poles = initializePoles(Opts.poles,nm);
@@ -726,21 +710,40 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm] = HinfMor(sys, n,
                 
                 nIter = 100;
                 for iter =1:nIter
-                    [SER,poles,rmserr] =vectfit3(f,s0m,poles,weight,vfOpts);
+                    [SER,poles,rmserr] =vectfit3(f,s0m,poles,weight);
                     fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
-                    if iter==nIter-1, vfOpts.skip_res = 0; end          
                 end
                 
                 sysm = sss(SER.A,SER.B,SER.C,SER.D);
-                figure;bode(ss(sys),'b-',ss(sysm),'--r'); pause;            
+                figure;bode(ss(sys),'b-',ss(sysm),'--r'); keyboard;            
             case 'loewner'
+                %   Get the data
                 [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj);
+                [~,V,W] = rk(sys,s0m,s0m,Rtm,Ltm);
+                % note that V,W are orthogonal and real, so there is no
+                % need to postprocess the Loewner matrices
                 
-                % generate frequency sample
-                f = freqresp(sys,s0m);
-                f = reshape(f,numel(f(:,:,1)),length(f));
+                %   Create Loewner matrices
+                L   = - W'*sys.E*V; %Loewner matrix
+                sL  = - W'*sys.A*V; %shifted Loewner matrix
+
+                %   Deflate
+                r = rank([L, sL],Opts.rankTol);
+                if r == rank([L; sL],Opts.rankTol)
+                    for iS = 1:length(s0m)
+                        if rank(s0m(iS)*L-sL,Opts.rankTol) == r
+                            break
+                        end
+                    end
+                else
+                    warning('Loewner conditions not satisfied');
+                    sysm = sysr0; return
+                end
+                [Ws, ~, Vs] = svd(s0m(iS)*L-sL,'econ');
+                V= V*Vs(:,1:r); W= W*Ws(:,1:r);
                 
-                sysm = loewner(f,s0m,Rtm,Ltm);
+                %   Build the model function
+                sysm = sss(W'*sys.A*V, W'*sys.B, sys.C*V,sys.D,W'*sys.E*V);
         end
     end
     function [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj)
@@ -777,7 +780,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm] = HinfMor(sys, n,
             case 'eigs'
                 poles = eigs(sys,nm,'sm').';
             case 'vectfit3'
-                wMax = imag(eigs(sys,1,'li'));
+                wMax = abs(imag(eigs(sys,1,'li')));
                 
                 %generate initial poles
                 bet=logspace(-2,log10(wMax),nm/2);
@@ -788,11 +791,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm] = HinfMor(sys, n,
                 end
             case 'gershgorin'
         end
-    end
-    function sysm = loewner(f,s0m)
-        % compute Loewner and shifted Lowener matrices
-        sysm = sss([],[],[]);
-        % Compute state space realization
     end
 
     %% Trash
