@@ -1,4 +1,4 @@
-function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm] = HinfMor(sys, n, varargin) 
+function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMor(sys, n, varargin) 
     % HINFMOR - H-infinity reduction by tangential interpolation
     % ------------------------------------------------------------------
     % TODO
@@ -61,7 +61,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm] = HinfMor(sys, n,
         try s0 = -eigs(sys,n,'sm').'; catch , s0 = zeros(1,n); end
 %         s0 = zeros(1,n);
         % run IRKA
-        [sysr0, ~, ~, ~, ~, ~, B_, Rt, C_, Lt,s0Traj,RtTraj, LtTraj] = irka(sys,s0,Opts.irka);
+        [sysr0, Virka, ~, ~, ~, ~, B_, Rt, C_, Lt,s0Traj,RtTraj, LtTraj] = irka(sys,s0,Opts.irka);
     else %MIMO
         % initialize
         %   compute one step of tangential Krylov at 0 to get initial tangent 
@@ -72,7 +72,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm] = HinfMor(sys, n,
         sysr = rk(sys,s0,s0,Rt,Lt);  [X,D,Y] = eig(sysr);
         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
         %run IRKA
-        [sysr0, ~, ~, ~, ~, ~, B_, Rt, C_, Lt, s0Traj, RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
+        [sysr0, Virka, ~, ~, ~, ~, B_, Rt, C_, Lt, s0Traj, RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
     end
 
     %   Transform (A- s0*E) to (s0*E- A)
@@ -692,23 +692,34 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm] = HinfMor(sys, n,
                     %}
                 end
                 
-                sysm = sss(W'*sys.A*V, W'*sys.B, sys.C*V,sys.D,W'*sys.E*V);                
+                sysm = sss(W'*sys.A*V, W'*sys.B, sys.C*V,sys.D,W'*sys.E*V);               
             case 'vf'  
                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj);
                 
                 % generate frequency sample
+                %}
+
+                fss = freqresp(sys,s0m); fss = reshape(fss,numel(fss(:,:,1)),length(fss));
                 f = freqresp(ss(sys),s0m);
                 f = reshape(f,numel(f(:,:,1)),length(f));
                            
                 nm = min([round(length(s0m)),40]);  %model function order
                 if mod(nm,2) ~= 0, nm = nm-1; end   %make even
-                               
-                Opts.poles = 'vectfit3';
-                poles = initializePoles(Opts.poles,nm);
                 
+                figure; loglog(abs(s0m),abs(f)); hold on
+                        loglog(abs(s0m),abs(fss),'--r');
+                keyboard
+                
+                
+                nm = 20;
                 weight=ones(size(f));
+                               
+%                 Opts.poles = 'eigs';
+%                 poles = initializePoles(Opts.poles,nm);
+                poles = -logspace(-2,2,nm);
                 
-                nIter = 100;
+                
+                nIter = 20;
                 for iter =1:nIter
                     [SER,poles,rmserr] =vectfit3(f,s0m,poles,weight);
                     fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
