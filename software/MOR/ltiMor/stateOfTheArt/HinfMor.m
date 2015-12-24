@@ -66,7 +66,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
         try s0 = -eigs(sys,n,'sm').'; catch , s0 = zeros(1,n); end
 %         s0 = zeros(1,n);
         % run IRKA
-        [sysr0, Virka, ~, ~, ~, ~, B_, Rt, C_, Lt,s0Traj,RtTraj, LtTraj] = irka(sys,s0,Opts.irka);
+        [sysr0, Virka, ~, ~, ~, ~, ~, Rt, ~, Lt,s0Traj,RtTraj, LtTraj] = irka(sys,s0,Opts.irka);
     else %MIMO
         % initialize
         %   compute one step of tangential Krylov at 0 to get initial tangent 
@@ -77,7 +77,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
         sysr = rk(sys,s0,s0,Rt,Lt);  [X,D,Y] = eig(sysr);
         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
         %run IRKA
-        [sysr0, Virka, ~, ~, ~, ~, B_, Rt, C_, Lt, s0Traj, RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
+        [sysr0, Virka, ~, ~, ~, ~, ~, Rt, ~, Lt, s0Traj, RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
     end
 
     %   Transform (A- s0*E) to (s0*E- A)
