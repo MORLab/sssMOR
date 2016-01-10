@@ -295,7 +295,7 @@ function logo_about_CreateFcn(hObject, eventdata, handles)
 
 function text_about_weblink_ButtonDownFcn(hObject, eventdata, handles)
     % Open a weblink if the mouse is klicked over the text element
-    web www.rt.mw.tum.de/forschung/forschungsgebiete/modellreduktion/sssmor/
+    web https://www.rt.mw.tum.de/?sssMOR
 
     
     
@@ -1239,6 +1239,7 @@ test_width(hObject)
 %Callbacks of the buttons
 
 function pb_load_Callback(hObject, eventdata, handles)
+
     % disable to avoid double call of uigetfile
     set(handles.allbuttons,'Enable','off')
     filename=sprintf('%s.mat',handles.letzterpfad);
@@ -1255,13 +1256,63 @@ function pb_load_Callback(hObject, eventdata, handles)
         uiwait
         return
     end 
-    evalin('base',sprintf('load(''%s%s'');',path,filename));
+    
+    loadingSuccessfull = 1;
+    
+    %Check which option is selected
+    
+    if get(handles.rb_loadOptions_matrices,'Value') == 1
+       
+        %Load matrices to workspace
+        
+        evalin('base',sprintf('load(''%s%s'');',path,filename));
+        
+    else
+        
+        %Create system with the function loadSss
+        
+        try
+            
+           %Create a name for the system based on the filename
+            
+           splittedString = strsplit(filename,'.');
+           name = char(strcat('sys_',splittedString(1,1)));
+           
+           count = 1;
+           sTemp = name;
+                    
+           %Check wheater the name already exists in workspace
+           
+           while exist_in_base_ws(sTemp)~=0
+                sTemp = strcat(name,num2str(count));
+                count = count+1;
+           end
+           
+           name = sTemp;
+           
+           %Create system using loadSss
+          
+           evalin('base',strcat(name,sprintf(' = loadSss(''%s%s'');',path,filename)));
+            
+        catch
+            
+            msgbox('Error while evaluating function loadSss','Error','error');
+            loadingSuccessfull = 0;
+            
+        end      
+    end
+    
+    %Refresh the display of the variables in workspace
+    
     set(handles.lb_systems,'Value',[])
     set(handles.lb_systems,'String',systems_in_workspace)
     set(handles.lb_matrixes,'Value',[])
     set(handles.lb_matrixes,'String',matrices_in_workspace)
-    msgbox('Loading was successful','Information','modal')
-    uiwait
+    
+    if loadingSuccessfull == 1
+        msgbox('Loading was successful','Information','modal')
+        uiwait
+    end
 
 function pb_readascii_Callback(hObject, eventdata, handles)
     % import matrix market format
@@ -1312,6 +1363,20 @@ function pb_create_Callback(hObject, eventdata, handles)
     composeModel('load',handles)
     set(handles.allbuttons,'Enable','on')
 
+function pb_infoLoadOptions_Callback(hObject, eventdata, handles)
+
+    %Show a message-box with information about the selectable options
+
+    s = {'Load matrices:'...
+         '  '...
+         'Loads the matrices from the .mat-file to the workspace'...
+         '  '...
+         '  '...
+         'Load system:'...
+         '  '...
+         'Creates a system with the matrices from the .mat-file using the loadSss-function'...
+         '  '};
+    h = msgbox(s, 'Information','help');
     
 %Callbacks of the list-boxes
     
@@ -3475,7 +3540,4 @@ sys = evalin('base', sysname);
 if ~strcmp(class(sys), 'sss')
     sys=sss(sys);
 end
-
-
-
 
