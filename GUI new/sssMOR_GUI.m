@@ -1647,52 +1647,123 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
     set(handles.panel_mor_hsv,'Visible','off')
 
 function pb_refreshsys_Callback(hObject, eventdata, handles)
-    % refresh list of open figures and systems
+
+    %Refresh list of open figures and systems
+    
+    %Get all systems from workspace
+    
     l=systems_in_workspace();
-    l_alt=get(handles.syschoice,'String'); % old String
-    x=l_alt{get(handles.syschoice,'Value')};
-    x=find(strcmp(x,l));
-    if ~isempty(x)
-        set(handles.syschoice,'Value',x+1)
+    
+    %Check wether the previous selected systems exist in workspace
+    
+    
+    %Syschoisce
+    
+    l_alt = get(handles.syschoice,'String');
+
+    if ~isempty(l_alt)
+
+        sOld=l_alt{get(handles.syschoice,'Value')};
+        indexOld=find(strcmp(sOld,l));
+
+        if ~isempty(indexOld)
+            set(handles.syschoice,'Value',indexOld);
+        else
+            set(handles.syschoice,'Value',1);
+        end
+
+    else
+      set(handles.syschoice,'Value',1);
     end
-    x=l_alt{get(handles.pu_mor_systems,'Value')};
-    x=find(strcmp(x,l));
-    if ~isempty(x)
-        set(handles.pu_mor_systems,'Value',x+1)
+    
+      
+    %System Analysis
+
+    l_alt = get(handles.pu_an_sys,'String');
+
+    if ~isempty(l_alt)
+
+        sOld=l_alt{get(handles.pu_an_sys,'Value')};
+        indexOld=find(strcmp(sOld,l));
+
+        if ~isempty(indexOld)
+            set(handles.pu_an_sys,'Value',indexOld);
+        else
+            set(handles.pu_an_sys,'Value',1);
+        end
+
+    else
+      set(handles.pu_an_sys,'Value',1);
+    end 
+    
+    
+    %Model Order Reduction
+
+    l_alt = get(handles.pu_mor_systems,'String');
+
+    if ~isempty(l_alt)
+
+        sOld=l_alt{get(handles.pu_mor_systems,'Value')};
+        indexOld=find(strcmp(sOld,l));
+
+        if ~isempty(indexOld)
+            set(handles.pu_mor_systems,'Value',indexOld);
+        else
+            set(handles.pu_mor_systems,'Value',1);
+        end
+
+    else
+      set(handles.pu_mor_systems,'Value',1);
     end
-    x=l_alt{get(handles.pu_an_sys,'Value')};
-    x=find(strcmp(x,l));
-    if ~isempty(x)
-        set(handles.pu_an_sys,'Value',x+1)
+    
+    
+    %If there are no systems in workspace, set the list of selectable
+    %options to the empty string, else set it to the list of systems
+
+    if ~isempty(l) && size(l,1) >= 1
+
+        set(handles.syschoice, 'String', l);  
+        set(handles.pu_mor_systems,'String', l);
+        set(handles.pu_an_sys,'String',l);
+        
+        %Display informations about the selected system
+        
+        sys = evalin('base',l{get(handles.pu_mor_systems,'Value')});
+        
+        if ~strcmp(class(sys), 'sss')
+            
+            try
+                sys = sss(sys);
+                set(handles.st_mor_sysinfo,'String',sys.disp)
+            catch
+                set(handles.st_mor_sysinfo,'String','Invalid model')
+            end
+            
+        else
+            set(handles.st_mor_sysinfo,'String',sys.disp)           
+        end
+        
+    else
+        set(handles.pu_mor_systems,'Value',1)
+
+        set(handles.syschoice, 'String', [{''}; l]);  
+        set(handles.pu_mor_systems,'String', [{''}; l]);
+        set(handles.pu_an_sys,'String',[{''}; l]);
+
+        set(handles.pb_mor_reduce,'Enable','off');
+        set(handles.panel_mor_hsv,'Visible','off');
     end
 
-
-
-if get(handles.syschoice,'Value')>length(l)+1
-    set(handles.syschoice,'Value',1)
-    set(handles.sysinfo,'String','Please choose a system!')
-end
-if get(handles.pu_mor_systems,'Value')>length(l)+1
-    set(handles.pu_mor_systems,'Value',1)
-    set(handles.st_mor_sysinfo,'String','Please choose a system!')
-    set(handles.pb_mor_reduce,'Enable','off')
-    set(handles.panel_mor_hsv,'Visible','off')
-end
-if get(handles.pu_an_sys,'Value')>length(l)+1
-    set(handles.pu_an_sys,'Value',1)
-    set(handles.tx_an_sysinfo,'String','Please choose a system!')
-end
+    %refresh list of open figures
+    
+    list_open_figures(handles);
+    
+    %list vectors in workspace that might be s0
+    
+    set(handles.pu_mor_krylov_s0,'String',list_s0_inworkspace);
 
 
 
-set(handles.syschoice, 'String', [{''}; l]);  
-set(handles.pu_mor_systems,'String', [{''}; l]);
-set(handles.pu_an_sys,'String',[{''}; l]);
-
-%refresh list of open figures
-list_open_figures(handles);
-%list vectors in workspace that might be s0
-set(handles.pu_mor_krylov_s0,'String',list_s0_inworkspace);
 
 return
 
@@ -2194,6 +2265,12 @@ function updateTBR(hObject, eventdata, handles)
     
     if get(handles.pu_mor_method,'Value')==1 && ~isempty(sys.HankelSingularValues)
         
+%         C = {};
+%         C(1,1) = {'test_system'};
+%         C(1,2) = {4};
+%         
+%         guidata(handles.st_mor_tbr_error);
+        
         %Calculate the signal-norms H_1 and H_inf
         
         e=2*sum(sys.HankelSingularValues((q+1):end));
@@ -2208,21 +2285,35 @@ function updateTBR(hObject, eventdata, handles)
             set(handles.panel_mor_hsv, 'Visible','on') 
             cla(handles.axes_mor_hsv)
             hold(handles.axes_mor_hsv, 'on')
-            h=plot(handles.axes_mor_hsv, sys.HankelSingularValues);
+            
+            if get(handles.rb_mor_tbr_norm,'Value')==1
+               
+                maxValue = max(sys.HankelSingularValues);
+                h = plot(handles.axes_mor_hsv,sys.HankelSingularValues./maxValue);
+                
+            else
+                h = plot(handles.axes_mor_hsv, sys.HankelSingularValues);
+            end
+
             % make callback react to click on red HSV line
+            
             set(h,'HitTest','off')
             legend(handles.axes_mor_hsv, sysname)
+            
             % set scale
+            
             if get(handles.rb_mor_tbr_log,'Value')==1
                 set(handles.axes_mor_hsv,'YScale','log')
             else
-                set(handles.axes_mor_hsv,'YScale','linear')
+                set(handles.axes_mor_hsv,'YScale','linear')                
             end
         end
         if ishandle(hr)
             set(hr,'XData',[q,q])
+            set(hr,'YData',get(handles.axes_mor_hsv,'YLim'));
         else
-            hr=plot(handles.axes_mor_hsv, [q,q],sys.HankelSingularValues([end,1]),'r');
+            %hr=plot(handles.axes_mor_hsv, [q,q],sys.HankelSingularValues([end,1]),'r');
+            hr=plot(handles.axes_mor_hsv,[q,q], get(handles.axes_mor_hsv,'YLim'),'r');
             set(handles.axes_mor_hsv,'UserData',hr)
         end
     end
@@ -2309,12 +2400,57 @@ set(handles.figure1,'Pointer','arrow')
 set(hObject,'Enable','on')
 
 function bg_mor_plot_SelectionChangeFcn(hObject, eventdata, handles) 
-% linear or logarithmic scale of HSV axes
-if eventdata.NewValue==handles.rb_mor_tbr_log
-    set(handles.axes_mor_hsv,'YScale','log')
-else
-    set(handles.axes_mor_hsv,'YScale','linear')
-end
+
+    %Get system from workspace
+
+    sys_x=get(handles.pu_mor_systems,'String');
+    sysname=sys_x{get(handles.pu_mor_systems,'Value')};
+    sys=evalin('base',sysname);
+    
+    %Get Axes and desired model order
+
+    hr=get(handles.axes_mor_hsv,'UserData');
+    q=get(handles.sl_mor_q,'Value');
+
+    set(handles.panel_mor_hsv, 'Visible','on') 
+    cla(handles.axes_mor_hsv)
+    hold(handles.axes_mor_hsv, 'on')
+
+    if get(handles.rb_mor_tbr_norm,'Value')==1
+
+        maxValue = max(sys.HankelSingularValues);
+        h = plot(handles.axes_mor_hsv,sys.HankelSingularValues./maxValue);
+
+    else
+        h = plot(handles.axes_mor_hsv, sys.HankelSingularValues);
+    end
+
+    % make callback react to click on red HSV line
+
+    set(h,'HitTest','off')
+    legend(handles.axes_mor_hsv, sysname)
+
+    % set scale
+
+    if get(handles.rb_mor_tbr_log,'Value')==1
+        set(handles.axes_mor_hsv,'YScale','log')
+    else
+        set(handles.axes_mor_hsv,'YScale','linear')                
+    end
+    
+    % plot red line
+    
+    if ishandle(hr)
+        set(hr,'XData',[q,q])
+        set(hr,'YData',get(handles.axes_mor_hsv,'YLim'));
+    else
+        %hr=plot(handles.axes_mor_hsv, [q,q],sys.HankelSingularValues([end,1]),'r');
+        hr=plot(handles.axes_mor_hsv,[q,q], get(handles.axes_mor_hsv,'YLim'),'r');
+        set(handles.axes_mor_hsv,'UserData',hr)
+    end
+
+
+
 
 function pb_mor_hsv_zoomin_Callback(hObject, eventdata, handles)
 % zoom +

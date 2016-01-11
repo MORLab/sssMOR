@@ -626,6 +626,13 @@ preselection(handles.lb_Cvmdk,'Cv')
 set(handles.lb_Cvmdk,'Visible','on')
 %set(handles.pu_Fmdk,'String', {'identity matrix',xquad{:}})
 %preselection(handles.pu_Fmdk,'F')
+
+%Select a matric named C if no Cx exists
+if get(handles.lb_Cxmdk,'Value') == 1
+   
+    preselection(handles.lb_Cxmdk,'C');   
+end
+
 set(handles.pu_Fmdk,'Visible','on')
 set(handles.pb_create,'Visible','on')
 set(handles.ed_a,'Visible','off')
