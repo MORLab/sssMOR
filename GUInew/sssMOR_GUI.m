@@ -1979,7 +1979,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
 
             A_red=A11-A12/A22*A21;
             B_red=B1-A12/A22*B2;       
-            if sys.is_dae
+            if sys.isDescriptor
                 E_bal=W'*sys.E*V;
                 E11=E_bal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
                 E21=E_bal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
