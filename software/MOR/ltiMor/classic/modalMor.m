@@ -83,7 +83,7 @@ Def.type = 'SM';
 Def.orth = 'qr'; %orthogonalization ('0','qr')
 Def.real = 'real'; %real reduced system ('0', 'real')
 Def.tol = 1e-6; % tolerance for SM/LM eigenspace
-Def.dominance = 0; %dominance analysis ('0', 'analyze','large')
+Def.dominance = 0; %dominance analysis ('0','analyze','2q','3q',..,'9q')
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -92,8 +92,8 @@ else
     Opts = parseOpts(Opts,Def);
 end
 
-if strcmp(Opts.dominance,'large')
-    q=3*q;
+if nnz(Opts.dominance) && ~strcmp(Opts.dominance,'analyze')
+    q=str2double(Opts.dominance(1))*q;
     if q>size(sys.A,1)
         q=size(sys.A,1);
     end
@@ -105,9 +105,9 @@ if q>=size(sys.A,1)-1 %eigs: q<n-1
     V=V(:,1:q);
     W=W(:,1:q);
 else
-    if strcmp(Opts.type,'LM') && (strcmp(Opts.orth,'qr') || strcmp(Opts.real, 'real')) && nnz(~Opts.dominance)
+    if strcmp(Opts.type,'LM') && (strcmp(Opts.orth,'qr') || strcmp(Opts.real, 'real')) && ~nnz(Opts.dominance)
         [V, W]=eigenspaceLM(q);
-    elseif strcmp(Opts.type,'SM') && (strcmp(Opts.orth,'qr') || strcmp(Opts.real, 'real')) && nnz(~Opts.dominance)
+    elseif strcmp(Opts.type,'SM') && (strcmp(Opts.orth,'qr') || strcmp(Opts.real, 'real')) && ~nnz(Opts.dominance)
         [V, W]=eigenspaceSM(q);
     else
         [V, W]=exactEigenvector(q);
@@ -240,12 +240,12 @@ function [V, W, D] = dominanceAnalysis(q, V, W)
     for j=1:q
         D(j)=norm((W(:,j)'*tempSys*V(:,j))/(W(:,j)'*sys.A*V(:,j)));
     end
-    if strcmp(Opts.dominance,'large')
+    if ~strcmp(Opts.dominance,'analyze')
         %take eigenvectors of most dominant eigenvalues
         T=speye(q);
         tbl=table(-D,T);
         tbl=sortrows(tbl);
-        q=q/3;
+        q=q/str2double(Opts.dominance(1));
         D=-tbl.Var1(1:q);
         V=V*tbl.T';
         W=W*tbl.T';
