@@ -82,7 +82,7 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  17 Dec 2015
+% Last Change:  13 Jan 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -94,7 +94,7 @@ if ~isempty(varargin) && isstruct(varargin{end});
 end
 
 Def.makeReal = 1; %keep the projection matrices real?
-Def.orth = 'dgks'; %orthogonalization after every direction {0,'dgks','mgs','sgs','2mgsn','2sgsn','2mgso','2sgso'}
+Def.orth = '2mgs'; %orthogonalization after every direction {0,'dgks','mgs','2mgs'}
 Def.reorth = 0; %reorthogonaliation at the end {0, 'mgs', 'qr'}
 Def.lse = 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess'}
 Def.dgksTol = 1e-12; %orthogonality tolerance: norm(V'*V-I,'fro')<tol
@@ -306,15 +306,19 @@ end
                     SLsylv=TLsylv\SLsylv*TLsylv;
                 end
             end
-        case 'qr' 
-           [V,~] = qr(V,0); if hermite, [W,~] = qr(W,0); end
-           if nOut==2 || nOut==3 || nOut==5 || nOut==6
-               warning(['The computation of the Sylvester matrices with the ',...
-                   'reorthogonalizaton option "qr" is not possible. Please call',...
-                   'for the calculation of those matrices the function ',...
-                   'getSylvester() instead.']);
-               CRsylv=[]; CLsylv=[];
-               SRsylv=[]; SLsylv=[];
+        case 'qr'
+           [V,R] = qr(V); %A=QR -> Q=A*inv(R) with transformation matrix inv(R)
+           V=V(:,1:q);
+           R=R(1:q,1:q);
+           Rinv=R\eye(q);
+           CRsylv=CRsylv*Rinv;
+           SRsylv=R*SRsylv*Rinv;
+           if hermite
+               [W,R] = qr(W);
+               W=W(:,1:q);
+               R=R(1:q,1:q);
+               CLsylv=CLsylv*Rinv;
+               SLsylv=R*SLsylv*Rinv;
            end  
         case 0
         otherwise
@@ -431,47 +435,6 @@ end
                     end
                     count=count+1;
                 end
-            case 'sgs'
-                h=IP(V(:,1:jCol-1),V(:,jCol));
-                V(:,jCol)=V(:,jCol)-V(:,1:jCol-1)*h;
-                TRsylv(:,jCol)=TRsylv(:,jCol)-TRsylv(:,1:jCol-1)*h;
-                if hermite
-                    h=IP(W(:,1:jCol-1),W(:,jCol));
-                    W(:,jCol)=W(:,jCol)-W(:,1:jCol-1)*h;
-                    TLsylv(:,jCol)=TLsylv(:,jCol)-TLsylv(:,1:jCol-1)*h;
-                end
-            case '2sgsn'
-                for k=0:1
-                    h=IP(V(:,1:jCol-1),V(:,jCol));
-                    V(:,jCol)=V(:,jCol)-V(:,1:jCol-1)*h;
-                    TRsylv(:,jCol)=TRsylv(:,jCol)-TRsylv(:,1:jCol-1)*h;
-                    if hermite
-                        h=IP(W(:,1:jCol-1),W(:,jCol));
-                        W(:,jCol)=W(:,jCol)-W(:,1:jCol-1)*h;
-                        TLsylv(:,jCol)=TLsylv(:,jCol)-TLsylv(:,1:jCol-1)*h;
-                    end
-                    if k==0
-                        h = sqrt(IP(V(:,jCol),V(:,jCol)));
-                        V(:,jCol)=V(:,jCol)/h;
-                        TRsylv(:,jCol) = TRsylv(:,jCol)/h;
-                        if hermite
-                            h = sqrt(IP(W(:,jCol),W(:,jCol)));
-                            W(:,jCol)=W(:,jCol)/h;
-                            TLsylv(:,jCol) = TLsylv(:,jCol)/h;
-                        end
-                    end
-                end
-           case '2sgso'
-                for k=0:1
-                    h=IP(V(:,1:jCol-1),V(:,jCol));
-                    V(:,jCol)=V(:,jCol)-V(:,1:jCol-1)*h;
-                    TRsylv(:,jCol)=TRsylv(:,jCol)-TRsylv(:,1:jCol-1)*h;
-                    if hermite
-                        h=IP(W(:,1:jCol-1),W(:,jCol));
-                        W(:,jCol)=W(:,jCol)-W(:,1:jCol-1)*h;
-                        TLsylv(:,jCol)=TLsylv(:,jCol)-TLsylv(:,1:jCol-1)*h;
-                    end
-                end
             case 'mgs'
                 for iCol=1:jCol-1
                   h=IP(V(:,jCol),V(:,iCol));
@@ -483,30 +446,7 @@ end
                     TLsylv(:,jCol)=TLsylv(:,jCol)-h*TLsylv(:,iCol);
                   end 
                 end
-            case '2mgsn'
-                for k=0:1
-                    for iCol=1:jCol-1
-                      h=IP(V(:,jCol),V(:,iCol));
-                      V(:,jCol)=V(:,jCol)-V(:,iCol)*h;
-                      TRsylv(:,jCol)=TRsylv(:,jCol)-h*TRsylv(:,iCol);
-                      if hermite
-                        h=IP(W(:,jCol),W(:,iCol));
-                        W(:,jCol)=W(:,jCol)-W(:,iCol)*h;
-                        TLsylv(:,jCol)=TLsylv(:,jCol)-h*TLsylv(:,iCol);
-                      end 
-                    end
-                    if k==0
-                        h = sqrt(IP(V(:,jCol),V(:,jCol)));
-                        V(:,jCol)=V(:,jCol)/h;
-                        TRsylv(:,jCol) = TRsylv(:,jCol)/h;
-                        if hermite
-                            h = sqrt(IP(W(:,jCol),W(:,jCol)));
-                            W(:,jCol)=W(:,jCol)/h;
-                            TLsylv(:,jCol) = TLsylv(:,jCol)/h;
-                        end
-                    end
-                end
-           case '2mgso'
+           case '2mgs'
                 for k=0:1
                     for iCol=1:jCol-1
                       h=IP(V(:,jCol),V(:,iCol));
