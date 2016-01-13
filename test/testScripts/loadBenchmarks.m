@@ -1,6 +1,6 @@
 function [testpath] = loadBenchmarks(Opts)
 %% testpath
-clc; clear;
+clear;
 p = mfilename('fullpath'); k = strfind(p, '\test'); 
 testpath = [p(1:k(end)-1),'\testScripts'];
 cd(testpath);

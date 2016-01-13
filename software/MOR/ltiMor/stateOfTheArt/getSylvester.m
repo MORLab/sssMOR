@@ -32,8 +32,8 @@ function [R, B_, S] = getSylvester(sys,sysr,V,type)
 %       -sysr:     reduced order model
 %       -V:        input Krylov subspace
 %       *Optional Input Arguments:*
-%       -type:     specifies if V spans an input (def) or output Krylov 
-%                  subspace {'V' (def), 'W'} 
+%       -type:     specifies if V spans an input (def) or output Krylov subspace 
+%                  [{'V'} / 'W'] 
 %
 % Output Arguments: 
 %       -R,S:      matrices of Sylvester equation (1) or (3)
@@ -89,18 +89,17 @@ end
 
 %%  computations
 B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
-R = (B_.'*B_)\(B_.'*(sys.A*V - sys.E*V*(sysr.E\sysr.A)));
+R = B_\(sys.A*V - sys.E*V*(sysr.E\sysr.A));
 
 if nargout > 2
     S = sysr.E\(sysr.A - sysr.B*R);
 end
 
 %% control the accuracy by computing the residual
-res = zeros(1,3);
+res = zeros(1,2);
 res(1) = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-B_*R);
 if nargout > 2
-    res(2) = norm(sysr.A - sysr.E*S - sysr.B*R);
-    res(3) = norm(sys.A*V - sys.E*V*S - sys.B*R);
+    res(2) = norm(sys.A*V - sys.E*V*S - sys.B*R);
 end
 
 %%  Change shape of C_ and Sw 
