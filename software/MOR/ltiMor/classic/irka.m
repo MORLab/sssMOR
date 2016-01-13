@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv, kIter] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -145,9 +145,9 @@ s0Traj = zeros(Opts.maxiter+2, length(s0));
 s0Traj(1,:) = s0;
 
 %% IRKA iteration
-k=0;
+kIter=0;
 while true
-    k=k+1; sysr_old = sysr;
+    kIter=kIter+1; sysr_old = sysr;
     %   Reduction
     if sys.isSiso
         [sysr, V, W, B_, Rsylv,C_,Lsylv] = rk(sys, s0, s0,Opts);
@@ -174,26 +174,26 @@ while true
         % mirror shifts with negative real part
         s0 = s0.*sign(real(s0));
     end
-    s0Traj(k+1,:) = s0;
+    s0Traj(kIter+1,:) = s0;
     
     [stop, stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts);
     if Opts.verbose
         fprintf('IRKA step %03u - Convergence: %s \n', ...
-            k, sprintf('% 3.1e', stopCrit));
+            kIter, sprintf('% 3.1e', stopCrit));
     end
-    if stop || k>= Opts.maxiter
+    if stop || kIter>= Opts.maxiter
         s0 = s0_old; % function return value
         if ~sys.isSiso, Rt = Rt_old; Lt = Lt_old; end
-        s0Traj = s0Traj(1:(k+1),:);
+        s0Traj = s0Traj(1:(kIter+1),:);
         break
     end      
 end
 if ~Opts.suppressverbose %display at least the last value
     fprintf('IRKA step %03u - Convergence (%s): %s \n', ...
-            k, Opts.stopCrit, sprintf('% 3.1e', stopCrit));
+            kIter, Opts.stopCrit, sprintf('% 3.1e', stopCrit));
 end
-if k>=Opts.maxiter
-    warning('IRKA:no_converged', ['IRKA has not converged after ' num2str(k) ' steps.']);
+if kIter>=Opts.maxiter
+    warning('IRKA:no_converged', ['IRKA has not converged after ' num2str(kIter) ' steps.']);
     return
 end
 

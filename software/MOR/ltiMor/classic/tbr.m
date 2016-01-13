@@ -22,8 +22,10 @@ function [sysr, varargout] = tbr(sys, varargin)
 %
 %
 % Input Arguments:
+%		*Required Input Arguments:*
 %       -sys:   an sss-object containing the LTI system
-%       -q:     (opt.) order of reduced system
+%		*Optional Input Arguments:*
+%       -q:     order of reduced system
 %
 % Output Arguments:
 %       -sysr:  reduced system
@@ -69,7 +71,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  11 Nov 2015
+% Last Change:  02 Dec 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
@@ -160,9 +162,27 @@ end
 
 %% if MOR is to be performed, calculate V, W and reduced system
 if nargin == 1
-    q = sys.n;
+    h=figure(1);
+    bar(1:sys.n,abs(hsv./hsv(1)),'r');
+    title('Hankel Singular Values');
+    xlabel('Order');
+    ylabel({'Relative hsv decay';sprintf('abs(hsv/hsv(1)) with hsv(1)=%.4d',hsv(1))});
+    set(gca,'YScale','log');
+    set(gca, 'YLim', [-Inf;1.5]);
+    prompt='Please enter the desired order: (>=0) ';
+    q=input(prompt);
+    if ishandle(h)
+        close Figure 1;
+    end
+    if q<0 || round(q)~=q
+        error('Invalid reduction order.');
+    end
 else
     q=varargin{1};
+end
+if q>sys.n
+    warning('Reduction order exceeds system order. It is replaced by the system order.');
+    q=sys.n;
 end
 
 V = sys.TBalInv(:,1:q);

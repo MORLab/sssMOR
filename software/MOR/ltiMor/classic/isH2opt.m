@@ -32,7 +32,8 @@ function isH2opt = isH2opt(sys,sysr,s0,Opts)
 %
 %		*Optional Input Arguments:*
 %		- Opts:			Option structure with follwing fields
-%			-.tol:		Relative tolerance {1e-3 (def)}
+%			-.tol:		Relative tolerance 
+%                       [{'1e-3'} / positive float]
 %
 % Output Arguments:
 %       - isH2opt:      Boolean
