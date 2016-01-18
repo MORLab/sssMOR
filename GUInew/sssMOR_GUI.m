@@ -1310,8 +1310,15 @@ function pb_load_Callback(hObject, eventdata, handles)
     set(handles.lb_matrixes,'String',matrices_in_workspace)
     
     if loadingSuccessfull == 1
-        msgbox('Loading was successful','Information','modal')
-        uiwait
+        
+        if get(handles.rb_loadOptions_matrices,'Value') == 1
+            
+            msgbox('Loading of the matrices was successful','Information','modal')
+            uiwait            
+        else            
+            msgbox('Loading of the system was successful','Information','modal')
+            uiwait           
+        end
     end
 
 function pb_readascii_Callback(hObject, eventdata, handles)
@@ -1367,16 +1374,27 @@ function pb_infoLoadOptions_Callback(hObject, eventdata, handles)
 
     %Show a message-box with information about the selectable options
 
-    s = {'Load matrices:'...
-         '  '...
-         'Loads the matrices from the .mat-file to the workspace'...
-         '  '...
-         '  '...
-         'Load system:'...
-         '  '...
-         'Creates a system with the matrices from the .mat-file using the loadSss-function'...
-         '  '};
-    h = msgbox(s, 'Information','help');
+%     s = {'Load matrices:'...
+%          '  '...
+%          'Loads the matrices from the .mat-file to the workspace'...
+%          '  '...
+%          '  '...
+%          'Load system:'...
+%          '  '...
+%          'Creates a system with the matrices from the .mat-file using the loadSss-function'...
+%          '  '};
+    CreateStruct.Interpreter = 'latex';
+    CreateStruct.WindowStyle = 'modal';
+    
+    s = {'$-~\textbf{load matrices} $' '$~$' '~~~~~~Loads the matrices from the .mat-file to the workspace' ...
+         '$~$' '$~$' '$-~\textbf{load sss-model}$' '$~$' '~~~~~~The loadSss-function is used to create a system out' ...
+         '~~~~~~of matrices from the .mat-file' '~' '~~~~~~loadSss lets you define the path to a .mat file in which the' ...
+         '~~~~~~system matrices are stored, either in the form' '~~~~~~(A,B,C,D,E) - 1st order - or (M,Da,K,B,C) - 2nd order.' ...
+         '~' '~~~~~~If not all of the matrices are found in the .mat file,' '~~~~~~following assumptions will be applied:' ...
+         '~' '~~~~~~~~$\bullet ~ C = B^T$' '~~~~~~~~$\bullet ~ D = zeros(size(C,1),size(B,2))$' ...
+         '~~~~~~~~$\bullet ~ E = speye(size(A))$' '~' '~' '~' '~'};
+
+    h = msgbox(s, 'Information',CreateStruct);
     
 %Callbacks of the list-boxes
     
@@ -1636,7 +1654,10 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
         set(handles.sl_mor_q,'Value',1)
         set(handles.ed_mor_q,'String','1')
     end
-    set(handles.st_mor_sysinfo, 'String', sys.disp);
+    
+    %set(handles.st_mor_sysinfo, 'String', sys.disp);
+    displaySystemInformation(handles.st_mor_sysinfo,sys);
+    
     set(handles.sl_mor_q,'Max',size(sys.A,1))
     set(handles.pb_mor_reduce,'Enable','on')
     % suggest names for reduced system and projection matrices
@@ -1728,20 +1749,24 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
         
         %Display informations about the selected system
         
-        sys = evalin('base',l{get(handles.pu_mor_systems,'Value')});
+        pu_mor_systems_Callback(handles.pu_mor_systems, eventdata, handles);
         
-        if ~strcmp(class(sys), 'sss')
-            
-            try
-                sys = sss(sys);
-                set(handles.st_mor_sysinfo,'String',sys.disp)
-            catch
-                set(handles.st_mor_sysinfo,'String','Invalid model')
-            end
-            
-        else
-            set(handles.st_mor_sysinfo,'String',sys.disp)           
-        end
+%         sys = evalin('base',l{get(handles.pu_mor_systems,'Value')});
+%         
+%         if ~strcmp(class(sys), 'sss')
+%             
+%             try
+%                 sys = sss(sys);
+%                 %set(handles.st_mor_sysinfo,'String',sys.disp)
+%                 displaySystemInformation(handles.st_mor_sysinfo,sys);
+%             catch
+%                 set(handles.st_mor_sysinfo,'String','Invalid model')
+%             end
+%             
+%         else
+%             %set(handles.st_mor_sysinfo,'String',sys.disp)
+%             displaySystemInformation(handles.st_mor_sysinfo,sys);
+%         end
         
     else
         set(handles.pu_mor_systems,'Value',1)
@@ -1951,7 +1976,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     switch get(handles.pu_mor_method,'Value')
         
     case 1 %TBR
-        if isempty(sys.HankelSingularValues) || isempty(sys.T_bal) || isempty(sys.T_bal_inv)
+        if isempty(sys.HankelSingularValues) || isempty(sys.TBal) || isempty(sys.TBalInv)
             set(handles.figure1,'Pointer','arrow')
             set(hObject,'Enable','on')
             errordlg('Please calculate Hankel Singular Values first.','Error Dialog','modal')
@@ -1961,7 +1986,9 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
         if get(handles.rb_mor_tbrtruncate,'Value')==1
             % truncation
             [sysr, V, W] = tbr(sys, q);
-            sysr.mor_info = struct('time', clock, 'method', 'TBR', 'orgsys', sysname);
+            
+            %TODO check what happend to that code
+            %sysr.morInfo = struct('time', clock, 'method', 'TBR', 'orgsys', sysname);
         else
             % match DC gain
             W=sys.T_bal_inv;
@@ -1997,6 +2024,10 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
         end
         
     case 2 % modal truncation
+        
+        %Check if the value specified for neighborhood is correct if the
+        %option "in neighborhood of" is specified
+        
         if get(handles.rb_mor_modal_neig,'Value')==1
             if get(handles.ed_mor_modal_neig,'UserData')==1
                 set(handles.figure1,'Pointer','arrow')
@@ -2006,18 +2037,46 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 return
             end
         end
-
+        
+        %Options for eigenvalues
+        
         if get(handles.rb_mor_modal_neig,'Value')==1
-            eig_opt = str2double(get(handles.ed_mor_modal_neig,'String'));
+            opts.type = str2double(get(handles.ed_mor_modal_neig,'String'));
         elseif get(handles.rb_mor_modal_large,'Value')==1
-            eig_opt='LM';
-        else
-            eig_opt='SM';
+            opts.type ='LM';
+        elseif get(handles.rb_mor_modal_small,'Value')==1
+            opts.type ='SM';
+        elseif get(handles.rb_mor_modal_LA,'Value')==1
+            opts.type ='LA';
+        elseif get(handles.rb_mor_modal_SA,'Value')==1
+            opts.type ='SA';
+        elseif get(handles.rb_mor_modal_LR,'Value')==1
+            opts.type ='LR';
+        elseif get(handles.rb_mor_modal_SR,'Value')==1
+            opts.type ='SR';
         end
+        
+        %Options for orthogonalization
+        
+        if get(handles.rb_mor_modal_orth_y,'Value')==1
+            opts.orth = 'qr';
+        else
+            opts.orth = '0';
+        end
+        
+        %Options for real reduced system
+        
+        if get(handles.rb_mor_modal_real_y,'Value')==1
+            opts.real = 'real';
+        else
+            opts.real = '0'; 
+        end
+        
+        %Reduce system
 
         try
-            [sysr, V, W] = modalMOR(sys, q, eig_opt);
-            sysr.mor_info=struct('time', clock, 'method', 'Modal Truncation', 'orgsys', sysname);
+            [sysr, V, W] = modalMor(sys, q, opts);
+            %sysr.mor_info=struct('time', clock, 'method', 'Modal Truncation', 'orgsys', sysname);
         catch ex
             set(handles.figure1,'Pointer','arrow')
             set(hObject,'Enable','on')
@@ -2025,6 +2084,8 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             uiwait
             return
         end
+        
+        
     case 3 % Krylov
         % get expansion points. on error s0:=[]
         s0=get_expansion_points(handles);
@@ -2265,49 +2326,88 @@ function updateTBR(hObject, eventdata, handles)
     
     if get(handles.pu_mor_method,'Value')==1 && ~isempty(sys.HankelSingularValues)
         
-%         C = {};
-%         C(1,1) = {'test_system'};
-%         C(1,2) = {4};
-%         
-%         guidata(handles.st_mor_tbr_error);
+        %Check wheter the norm has already been calculated and stored in
+        %the handles.
+        
+        normSystem = 1;
+        
+        try
+            
+            storedSystems = handles.data;
+                         
+        catch
+            
+            handles.data = {};
+        end
+        
+        
+        systemFound = 0;
+        
+        for i = 1:size(handles.data,1)
+               
+            test = handles.data(i,1);
+            
+                if strcmp(handles.data(i,1),sysname)
+                    
+                    normSystem = cell2mat(handles.data(i,2));
+                    systemFound = 1;
+                    break;
+                    
+                end     
+        end 
+        
+        %If the norm has not been calculated yet, calculate it and store
+        %the solution in the handles
+        
+        if systemFound == 0
+           
+            normSystem = norm(sys,inf);
+            handles.data(size(handles.data,1)+1,1) = {sysname};
+            handles.data(size(handles.data,1),2) = {normSystem};
+            guidata(hObject,handles);            
+        end
+       
         
         %Calculate the signal-norms H_1 and H_inf
         
         e=2*sum(sys.HankelSingularValues((q+1):end));
-        erel=e/norm(sys, inf);
+        erel=e/normSystem;
         set(handles.st_mor_tbr_error,'String',num2str(e, '%.3e'))
         set(handles.st_mor_tbr_relerror,'String',num2str(erel, '%.3e'))
         
         %Plot which shows the Hankel-Singular-Values
-        
-        if strcmp(get(handles.panel_mor_hsv,'Visible'),'off')
             
-            set(handles.panel_mor_hsv, 'Visible','on') 
-            cla(handles.axes_mor_hsv)
-            hold(handles.axes_mor_hsv, 'on')
-            
-            if get(handles.rb_mor_tbr_norm,'Value')==1
-               
-                maxValue = max(sys.HankelSingularValues);
-                h = plot(handles.axes_mor_hsv,sys.HankelSingularValues./maxValue);
-                
-            else
-                h = plot(handles.axes_mor_hsv, sys.HankelSingularValues);
-            end
+        set(handles.panel_mor_hsv, 'Visible','on') 
+        cla(handles.axes_mor_hsv)
+        hold(handles.axes_mor_hsv, 'on')
 
-            % make callback react to click on red HSV line
-            
-            set(h,'HitTest','off')
-            legend(handles.axes_mor_hsv, sysname)
-            
-            % set scale
-            
-            if get(handles.rb_mor_tbr_log,'Value')==1
-                set(handles.axes_mor_hsv,'YScale','log')
-            else
-                set(handles.axes_mor_hsv,'YScale','linear')                
-            end
+        if get(handles.rb_mor_tbr_norm,'Value')==1
+
+            maxValue = max(sys.HankelSingularValues);
+            h = plot(handles.axes_mor_hsv,sys.HankelSingularValues./maxValue);
+
+        else
+            h = plot(handles.axes_mor_hsv, sys.HankelSingularValues);
         end
+
+        % make callback react to click on red HSV line
+
+        set(h,'HitTest','off');
+
+        % legend
+
+        legend(handles.axes_mor_hsv, regexprep(sysname, '_', ' '));
+
+        % set scale
+
+        if get(handles.rb_mor_tbr_log,'Value')==1
+            set(handles.axes_mor_hsv,'YScale','log')
+        else
+            set(handles.axes_mor_hsv,'YScale','linear')                
+        end
+        
+        %Plot the red line
+            
         if ishandle(hr)
             set(hr,'XData',[q,q])
             set(hr,'YData',get(handles.axes_mor_hsv,'YLim'));
@@ -2365,7 +2465,7 @@ end
 %Calculate the Hankel-Singular-Values
 
 try 
-    tbr(sys);
+    tbr(sys,1);
     assignin('base', sysname, sys)
 catch ex %***
     if strcmp(ex.identifier,'MATLAB:nomem')
@@ -2380,76 +2480,18 @@ catch ex %***
     set(hObject,'Enable','on')
     return
 end
-set(handles.panel_mor_hsv,'Visible','on')
+set(handles.panel_mor_hsv,'Visible','off')
 
-% plot Hankel Singular Values
-cla(handles.axes_mor_hsv)
-h=plot(handles.axes_mor_hsv, sys.HankelSingularValues);
-hold(handles.axes_mor_hsv, 'on')
-% make callback react to click on red HSV line
-set(h,'HitTest','off')
-% legend
-legend(handles.axes_mor_hsv, regexprep(sysname, '_', ' '))
-% set scale
-if get(handles.rb_mor_tbr_log,'Value')==1
-    set(handles.axes_mor_hsv,'YScale','log')
-else
-    set(handles.axes_mor_hsv,'YScale','linear')
-end
+%Plot the Hankel-Singular-Values
+
+updateTBR(hObject,eventdata,handles);
+
 set(handles.figure1,'Pointer','arrow')
 set(hObject,'Enable','on')
 
 function bg_mor_plot_SelectionChangeFcn(hObject, eventdata, handles) 
 
-    %Get system from workspace
-
-    sys_x=get(handles.pu_mor_systems,'String');
-    sysname=sys_x{get(handles.pu_mor_systems,'Value')};
-    sys=evalin('base',sysname);
-    
-    %Get Axes and desired model order
-
-    hr=get(handles.axes_mor_hsv,'UserData');
-    q=get(handles.sl_mor_q,'Value');
-
-    set(handles.panel_mor_hsv, 'Visible','on') 
-    cla(handles.axes_mor_hsv)
-    hold(handles.axes_mor_hsv, 'on')
-
-    if get(handles.rb_mor_tbr_norm,'Value')==1
-
-        maxValue = max(sys.HankelSingularValues);
-        h = plot(handles.axes_mor_hsv,sys.HankelSingularValues./maxValue);
-
-    else
-        h = plot(handles.axes_mor_hsv, sys.HankelSingularValues);
-    end
-
-    % make callback react to click on red HSV line
-
-    set(h,'HitTest','off')
-    legend(handles.axes_mor_hsv, sysname)
-
-    % set scale
-
-    if get(handles.rb_mor_tbr_log,'Value')==1
-        set(handles.axes_mor_hsv,'YScale','log')
-    else
-        set(handles.axes_mor_hsv,'YScale','linear')                
-    end
-    
-    % plot red line
-    
-    if ishandle(hr)
-        set(hr,'XData',[q,q])
-        set(hr,'YData',get(handles.axes_mor_hsv,'YLim'));
-    else
-        %hr=plot(handles.axes_mor_hsv, [q,q],sys.HankelSingularValues([end,1]),'r');
-        hr=plot(handles.axes_mor_hsv,[q,q], get(handles.axes_mor_hsv,'YLim'),'r');
-        set(handles.axes_mor_hsv,'UserData',hr)
-    end
-
-
+    updateTBR(hObject,eventdata,handles);
 
 
 function pb_mor_hsv_zoomin_Callback(hObject, eventdata, handles)
@@ -3676,4 +3718,17 @@ sys = evalin('base', sysname);
 if ~strcmp(class(sys), 'sss')
     sys=sss(sys);
 end
+
+
+
+function [] = displaySystemInformation(object,sys)
+%Displays informations about the system sys on the text-object object.
+%Prevents the display of the full name of the system which could include
+%full path names
+
+    systemName = sys.Name;
+    sys.Name = '';
+    set(object, 'String', sys.disp);
+    sys.Name = systemName;
+    
 
