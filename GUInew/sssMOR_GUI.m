@@ -1991,8 +1991,8 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             %sysr.morInfo = struct('time', clock, 'method', 'TBR', 'orgsys', sysname);
         else
             % match DC gain
-            W=sys.T_bal_inv;
-            V=sys.T_bal;
+            W=sys.TBalInv;
+            V=sys.TBal;
             A_bal=W*sys.A*V;
             B_bal=W*sys.B;
             C_bal=sys.C*V;
