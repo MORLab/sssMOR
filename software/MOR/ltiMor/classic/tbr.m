@@ -67,128 +67,294 @@ function [sysr, varargout] = tbr(sys, varargin)
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Sylvia Cremer, Rudy Eid, 
-%               Alessandro Castagnotto
+%               Alessandro Castagnotto, Lisa Jeschek
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  02 Dec 2015
+% Last Change:  19 Jan 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
+
+% Default execution parameters
+Def.real = 0; %real reduced system ('0', 'real')
+Def.hsvtol = eps; %reduce to hsv(q)<tol, ('eps' is default)
+Def.adi = 0; %use ADI to solve lyapunov eqation (0,'adi')
+Def.sym = 0; %sys.A and sys.E symmetric ('0','sym')
+
+% check input for q and Opts
+if nargin>1
+    if nargin==2 && ~isa(varargin{1},'double')
+        Opts=varargin{1};
+    else
+        q=varargin{1};
+        if nargin==3
+            Opts=varargin{2};
+        end
+    end
+end
+
+% create the options structure
+if ~exist('Opts','var') || isempty(Opts)
+    Opts = Def;
+else
+    Opts = parseOpts(Opts,Def);
+end
+
+if strcmp(Opts.adi,'adi')
+    % lyapack options (lyaOpts):
+    %   method='heur': find ADI parameters with a heuristic method
+    %   (l0,kp,km)=(20,50,25): shifts p consist of l0 or l0+1 values of kp('LM')+km('SM') Ritz values
+    %   zk='Z': return cholesky factor of solution X=Z*Z' of lyapunov equation
+    %   rc='R'('C'): return real (complex) Z
+    %   adi.type='B'('C'): layponov equation type ('B','C')
+    %   adi.max_it=100: maximum number of iterations for ADI iteration (stopping criteria)
+    %   adi.min_res=10e-12: minimum residual for ADI iteration (stopping criteria)
+    %   adi.with_rs='S': stop ADI iteration if stagnation of error (stopping criteria)
+    %   adi.min_in=[]: tolerance for difference between ADI iterates (stopping criteria)
+    %   adi.cc_upd=0: column compression parameter (0=never)
+    %   adi.cc_tol=sqrt(eps): column compression tolerance (default=sqrt(eps))
+    %   adi.info=0; information level
+    %   usfs.au: no descriptor (E=I), sparse, possibly unsymmetric
+    %   usfs.as: no descriptor (E=I), sparse, sys.A symmetric
+    %   usfs.munu: descriptor (E~=I), sparse, possibly unsymmetric
+    %   usfs.msns: descriptor (E~=I), sparse, sys.A and sys.E symmetric
     
-%% Is Controllability Gramian available?
-if isempty(sys.ConGramChol)
-    if isempty(sys.ConGram)
-        % No, it is not. Solve Lyapunov equation.
-        try
-            if sys.isDescriptor
-                sys.ConGramChol = lyapchol(sys.A,sys.B,sys.E);
-            else
-                sys.ConGramChol = lyapchol(sys.A,sys.B);
-            end
-            R = sys.ConGramChol;
-        catch ex
-            warning(ex.message, 'Error in lyapchol. Trying without Cholesky factorization...')
-            if sys.isDescriptor
-                try
-                    sys.ConGram = lyap(sys.A, sys.B*sys.B', [], sys.E);
-                catch ex2
-                    warning(ex2.message, 'Error solving Lyapunov equation. Premultiplying by E^(-1)...')
-                    tmp = sys.E\sys.B;
-                    sys.ConGram = lyap(sys.E\sys.A, tmp*tmp');
-                end
-            else
-                sys.ConGram = lyap(full(sys.A), full(sys.B*sys.B'));
-            end
-            try
-                R = chol(sys.ConGram);
-            catch ex2
-                myex = MException(ex2.identifier, ['System seems to be unstable. ' ex2.message]);
-                throw(myex)
-            end
+    % required changes of lyapack functions (functions will error without changes):
+    %   routine\lp_lradi.m - line 427: insert 'full': svd(full(...)) - else 
+    %       error if Opts.real='real' because svd(sparse)
+    %   usfs\as_s - line 37: replace 'LP_U' with 'LP_UC' - else error if
+    %       Opts.sym='sym' and system is not descriptor because LP_U does not exist
+    
+    % optional changes of lyapack functions (function work without changes):
+    %   usfs\au_l_i, usfs\au_l, usfs\au_l_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
+    %   usfs\munu_l_i, usfs\munu_l, usfs\munu_l_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
+    %   usfs\au_s_i, usfs\au_s, usfs\au_s_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
+    %   usfs\munu_s_i, usfs\munu_s, usfs\munu_s_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
+
+    if sys.n<100 %TODO: change to reasonable value (see lyapack guide)
+        error('System is too small to use ADI.');
+    else
+        lyaOpts.l0=20;
+        lyaOpts.kp=50;
+        lyaOpts.km=25;
+    end
+    
+    lyaOpts.method='heur';
+    lyaOpts.zk='Z';
+    if strcmp(Opts.real,'real')
+        lyaOpts.rc='R';
+    else
+        lyaOpts.rc='C';
+    end
+   
+    lyaOpts.adi=struct('type','B','max_it', 100,'min_res',1e-12,'with_rs','S',...
+        'min_in',[],'info',0,'cc_upd',0,'cc_tol',sqrt(eps));
+
+    if strcmp(Opts.sym,'sym')
+        if ~sys.isDescriptor
+            lyaOpts.usfs=struct('s','as_s','m','as_m');
+            [A0,B0,C0]=as_pre(sys.A,sys.B,sys.C); %preprocessing: reduce bandwith of A
+            as_m_i(A0);
+            as_l_i;
+            p=lp_para(as,[],[],lyaOpts, ones(size(B0))); %determine ADI parameters p (Ritz values of A)
+            lyaOpts.p=p.p;
+            as_s_i(lyaOpts.p);
+        else
+            lyaOpts.usfs=struct('s','msns_s','m','msns_m');
+            [M0,MU0,N0,B0,C0]=msns_pre(sys.E,sys.A,sys.B,sys.C);
+            msns_m_i(M0,MU0,N0); 
+            msns_l_i;
+            p=lp_para(msns,[],[],lyaOpts,rand(size(B0)));
+            lyaOpts.p=p.p;
+            msns_s_i(lyaOpts.p);
         end
     else
-        R = chol(sys.ConGram);
-    end
+        if ~sys.isDescriptor
+            lyaOpts.usfs=struct('s','au_s','m','au_m');
+            [A0,B0,C0]=au_pre(sys.A,sys.B,sys.C);
+            au_m_i(A0);
+            au_l_i;
+            p=lp_para(au,[],[],lyaOpts, ones(size(B0)));
+            lyaOpts.p=p.p;
+            au_s_i(lyaOpts.p);
+        else
+            lyaOpts.usfs=struct('s','munu_s','m','munu_m');
+            [M0,ML0,MU0,N0,B0,C0]=munu_pre(sys.E,sys.A,sys.B,sys.C);
+            munu_m_i(M0,ML0,MU0,N0); 
+            munu_l_i;
+            p=lp_para(munu,[],[],lyaOpts,rand(size(B0)));
+            lyaOpts.p=p.p;
+            munu_s_i(lyaOpts.p);
+        end
+    end 
+    
+    % adi
+    R=lp_lradi([],[],B0,lyaOpts); %ADI solution of lyapunov equation
+    lyaOpts.adi.type='C';
+    L=lp_lradi([],[],C0,lyaOpts);
+    R=R';
+    L=L';
+
+    % svd
+    qmax=min([size(R,1),size(L,1)]); %make sure R and L have the same size
+    R=R(1:qmax,:);
+    L=L(1:qmax,:);
 else
-    R = sys.ConGramChol;
-end
-
-
-%% Is Observability Gramian available?
-if isempty(sys.ObsGramChol)
-    if isempty(sys.ObsGram)
-        % No, it is not. Solve Lyapunov equation. 
-       try
-            if sys.isDescriptor
-                L = lyapchol(sys.A'/sys.E', sys.C');
-            else
-                L = lyapchol(sys.A',sys.C');
-            end
-            sys.ObsGramChol = sparse(L);
-        catch ex
-            warning(ex.message, 'Error in lyapchol. Trying without Cholesky factorization...')
-            if sys.isDescriptor
-                sys.ObsGram = lyap(sys.A'/sys.E', sys.C'*sys.C);
-            else
-                sys.ObsGram = lyap(full(sys.A'), full(sys.C'*sys.C));
-            end
+    qmax=sys.n;
+    % Is Controllability Gramian available?
+    if isempty(sys.ConGramChol)
+        if isempty(sys.ConGram)
+            % No, it is not. Solve Lyapunov equation.
             try
-                L = chol(sys.ObsGram);
+                if sys.isDescriptor
+                    sys.ConGramChol = lyapchol(sys.A,sys.B,sys.E);
+                else
+                    sys.ConGramChol = lyapchol(sys.A,sys.B);
+                end
+                R = sys.ConGramChol;
             catch ex
-                myex = MException(ex2.identifier, ['System seems to be unstable. ' ex2.message]);
-                throw(myex)
+                warning(ex.message, 'Error in lyapchol. Trying without Cholesky factorization...')
+                if sys.isDescriptor
+                    try
+                        sys.ConGram = lyap(sys.A, sys.B*sys.B', [], sys.E);
+                    catch ex2
+                        warning(ex2.message, 'Error solving Lyapunov equation. Premultiplying by E^(-1)...')
+                        tmp = sys.E\sys.B;
+                        sys.ConGram = lyap(sys.E\sys.A, tmp*tmp');
+                    end
+                else
+                    sys.ConGram = lyap(full(sys.A), full(sys.B*sys.B'));
+                end
+                try
+                    R = chol(sys.ConGram);
+                catch ex2
+                    myex = MException(ex2.identifier, ['System seems to be unstable. ' ex2.message]);
+                    throw(myex)
+                end
             end
-       end
+        else
+            R = chol(sys.ConGram);
+        end
     else
-        L = chol(sys.ObsGram);
+        R = sys.ConGramChol;
     end
-else
-    L = sys.ObsGramChol;
-end
 
+
+    % Is Observability Gramian available?
+    if isempty(sys.ObsGramChol)
+        if isempty(sys.ObsGram)
+            % No, it is not. Solve Lyapunov equation. 
+           try
+                if sys.isDescriptor
+                    L = lyapchol(sys.A'/sys.E', sys.C');
+                else
+                    L = lyapchol(sys.A',sys.C');
+                end
+                sys.ObsGramChol = sparse(L);
+            catch ex
+                warning(ex.message, 'Error in lyapchol. Trying without Cholesky factorization...')
+                if sys.isDescriptor
+                    sys.ObsGram = lyap(sys.A'/sys.E', sys.C'*sys.C);
+                else
+                    sys.ObsGram = lyap(full(sys.A'), full(sys.C'*sys.C));
+                end
+                try
+                    L = chol(sys.ObsGram);
+                catch ex
+                    myex = MException(ex2.identifier, ['System seems to be unstable. ' ex2.message]);
+                    throw(myex)
+                end
+           end
+        else
+            L = chol(sys.ObsGram);
+        end
+    else
+        L = sys.ObsGramChol;
+    end
+end
 
 % calculate balancing transformation and Hankel Singular Values
-[K,S,M]=svd(R*L');
+[K,S,M]=svd(full(R*L'));
 hsv = diag(S);
 sys.HankelSingularValues = real(hsv);
 sys.TBalInv = R'*K/diag(sqrt(hsv));
-sys.TBal = diag(sqrt(hsv))\M'*L/sys.E;
-
+if strcmp(Opts.adi,'adi')
+    sys.TBal = diag(sqrt(hsv))\M'*L;
+else
+    sys.TBal = diag(sqrt(hsv))\M'*L/sys.E;
+end
 
 % store system
 if inputname(1)
     assignin('caller', inputname(1), sys);
 end
 
-%% if MOR is to be performed, calculate V, W and reduced system
-if nargin == 1
-    h=figure(1);
-    bar(1:sys.n,abs(hsv./hsv(1)),'r');
-    title('Hankel Singular Values');
-    xlabel('Order');
-    ylabel({'Relative hsv decay';sprintf('abs(hsv/hsv(1)) with hsv(1)=%.4d',hsv(1))});
-    set(gca,'YScale','log');
-    set(gca, 'YLim', [-Inf;1.5]);
-    prompt='Please enter the desired order: (>=0) ';
-    q=input(prompt);
-    if ishandle(h)
-        close Figure 1;
-    end
-    if q<0 || round(q)~=q
-        error('Invalid reduction order.');
-    end
+% reduction order
+if exist('Opts.hsvtol','var')
+        if ~exist('q','var')
+            q=sum(hsv>=Opts.hsvtol*hsv(1));
+        else
+            q = min([q, sum(hsv>=Opts.hsvtol*hsv(1)), qmax]);
+        end
 else
-    q=varargin{1};
+    if ~exist('q','var')
+        h=figure(1);
+        bar(1:qmax,abs(hsv./hsv(1)),'r');
+        title('Hankel Singular Values');
+        xlabel('Order');
+        ylabel({'Relative hsv decay';sprintf('abs(hsv/hsv(1)) with hsv(1)=%.4d',hsv(1))});
+        set(gca,'YScale','log');
+        set(gca, 'YLim', [-Inf;1.5]);
+        set(gca, 'XLim', [0; qmax]);
+        prompt=['Please enter the desired order: (0<= q <=', num2str(qmax,'%d)'),' '];
+        q=input(prompt);
+        if ishandle(h)
+            close Figure 1;
+        end
+        if q<0 || round(q)~=q
+            error('Invalid reduction order.');
+        end
+    end
 end
-if q>sys.n
-    warning('Reduction order exceeds system order. It is replaced by the system order.');
-    q=sys.n;
+if q>qmax
+    if ~strcmp(Opts.adi,'adi')
+        warning(['Reduction order exceeds system order.',...
+            'It is replace by the system order q=', num2str(sys.n,'%d.')]);
+        q=sys.n;
+    else
+        if q<sys.n
+            warning(['q is changed to qmax=', num2str(qmax,'%d'), ' due to ADI.']);
+        else
+            warning(['Reduction order exceeds system order.',...
+            'It is replace by q=', num2str(sys.n,'%d')], ' due to ADI.');
+        end
+        q=qmax;
+    end
 end
 
 V = sys.TBalInv(:,1:q);
 W = sys.TBal(1:q,:)';
 
-sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+if strcmp(Opts.adi,'adi')
+    sysr=sss(W'*feval(lyaOpts.usfs.m,'N',V),W'*B0,C0*V,sys.D);
+    
+    %delete global data
+    as_m_d;
+    as_l_d;
+    as_s_d(p.p);
+    msns_m_d;
+    msns_l_d;
+    msns_s_d(p.p)
+    au_m_d;
+    au_l_d;
+    au_s_d(p.p);
+    munu_m_d;
+    munu_l_d;
+    munu_s_d(p.p)
+else
+    sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+end
+
 if nargout>1
     varargout{1} = V;
     varargout{2} = W;
