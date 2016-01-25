@@ -30,9 +30,9 @@ function [sysr, V, W] = modalMor(sys, q, Opts)
 %			-.type:		option to eigs command;
 %						[{'SM'} / 'LM' / 'SA' / 'LA' / 'SR' / 'LR' / real or complex scalar]
 %			-.orth:		orhtogonalization;
-%						[{'0'} / 'qr']
+%						['0' / {'qr'}]
 %			-.real:		real reduced system;
-% 						[{'0'} / 'real']
+% 						['0' / {'real'}]
 %
 % Output Arguments:
 %       -sysr:          reduced system
