@@ -1338,7 +1338,7 @@ function pb_readascii_Callback(hObject, eventdata, handles)
     % suggest filenames (without extension)
     if length(filename)>k
         suggestion=filename(1:(k-1));
-        suggestion=suggest_varname(suggestion,[]);
+        suggestion=suggestVarname(suggestion,[]);
     else
         suggestion=[];
     end
@@ -1551,11 +1551,11 @@ catch ex
     end
 end
 % suggest variable names that do not exist in workspace
-suggest_varname(sprintf('%s_A',y),handles.ed_extract_A);
-suggest_varname(sprintf('%s_B',y),handles.ed_extract_B);
-suggest_varname(sprintf('%s_C',y),handles.ed_extract_C);
-suggest_varname(sprintf('%s_D',y),handles.ed_extract_D);
-suggest_varname(sprintf('%s_E',y),handles.ed_extract_E);
+suggestVarname(sprintf('%s_A',y),handles.ed_extract_A);
+suggestVarname(sprintf('%s_B',y),handles.ed_extract_B);
+suggestVarname(sprintf('%s_C',y),handles.ed_extract_C);
+suggestVarname(sprintf('%s_D',y),handles.ed_extract_D);
+suggestVarname(sprintf('%s_E',y),handles.ed_extract_E);
 
 function pb_load_extract_Callback(hObject, eventdata, handles)
 x = get(handles.lb_systems,'String');
@@ -1655,15 +1655,15 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
         set(handles.ed_mor_q,'String','1')
     end
     
-    %set(handles.st_mor_sysinfo, 'String', sys.disp);
     displaySystemInformation(handles.st_mor_sysinfo,sys);
     
-    set(handles.sl_mor_q,'Max',size(sys.A,1))
-    set(handles.pb_mor_reduce,'Enable','on')
+    set(handles.sl_mor_q,'Max',size(sys.A,1));
+    set(handles.pb_mor_reduce,'Enable','on');
+    
     % suggest names for reduced system and projection matrices
-    z=suggest_varname(sprintf('%s_red',y),handles.ed_mor_sysred);
-    suggest_varname(sprintf('%s_w',z),handles.ed_mor_w);
-    suggest_varname(sprintf('%s_v',z),handles.ed_mor_v);
+    
+    suggestNamesMOR(y,handles);
+
     % hide plot of Hankel Singular Values
     set(handles.panel_mor_hsv,'Visible','off')
 
@@ -1880,6 +1880,13 @@ else
     set(handles.sl_mor_q,'Enable','on')
 end
 
+%Change the suggested Names for the reducted system
+
+x = get(handles.pu_mor_systems,'String');
+y = x{get(handles.pu_mor_systems,'Value')};
+
+suggestNamesMOR(y,handles);
+
 function sl_mor_q_Callback(hObject, eventdata, handles)
     % order selection slider has been changed
     q=get(hObject,'Value'); 
@@ -1983,44 +1990,33 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             uiwait
             return
         end
-        if get(handles.rb_mor_tbrtruncate,'Value')==1
-            % truncation
-            [sysr, V, W] = tbr(sys, q);
-            
-            %TODO check what happend to that code
-            %sysr.morInfo = struct('time', clock, 'method', 'TBR', 'orgsys', sysname);
-        else
-            % match DC gain
-            W=sys.T_bal_inv;
-            V=sys.T_bal;
-            A_bal=W*sys.A*V;
-            B_bal=W*sys.B;
-            C_bal=sys.C*V;
+        
+        try
+        
+            if get(handles.rb_mor_tbrtruncate,'Value')==1
+                % truncation
 
-            A11=A_bal(1:q,1:q);
-            A12=A_bal(1:q,q+1:end);
-            A21=A_bal(q+1:end,1:q);
-            A22=A_bal((q+1):end,(q+1):end);
-            B1=B_bal(1:q);B2=B_bal(q+1:end);
-            C1=C_bal(1:q);C2=C_bal(q+1:end);
+                Opts.type = 'tbr';
 
-            A_red=A11-A12/A22*A21;
-            B_red=B1-A12/A22*B2;       
-            if sys.isDescriptor
-                E_bal=W'*sys.E*V;
-                E11=E_bal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
-                E21=E_bal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
-                E_red=E11-A12/A22*E21;
-                C_red=C1-C2/A22*A21+C2*A22i*E21/E_red*A_red;
-                D_red=sys.D-C2/A22*B2+C2/A22*E21/E_red*B_red;
-                sysr = sss(A_red, B_red, C_red, D_red, E_red);
-                sysr.mor_info = struct('time', clock, 'method', 'TBR, matched DC-gain', 'orgsys', sysname);
-            else % Er=I
-                C_red=C1-C2/A22*A21;
-                D_red=sys.D-C2/A22*B2;
-                sysr = sss(A_red, B_red, C_red, D_red);
-                sysr.mor_info = struct('time', clock, 'method', 'TBR, matched DC-gain', 'orgsys', sysname);
+                [sysr, V, W] = tbr(sys, q, Opts);
+
+                %TODO check what happend to that code
+                %sysr.morInfo = struct('time', clock, 'method', 'TBR', 'orgsys', sysname);
+            else
+                % match DC gain
+
+                Opts.type  = 'matchDcGain';
+
+                [sysr, V, W] = tbr(sys, q, Opts);
+
             end
+        
+        catch ex
+            set(handles.figure1,'Pointer','arrow')
+            set(hObject,'Enable','on')
+            errordlg(ex.message,'Error Dialog','balancing & truncation')
+            uiwait
+            return
         end
         
     case 2 % modal truncation
@@ -2097,7 +2093,9 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
         
         
         switch get(handles.pu_mor_krylov_algorithm,'Value')
+            
         case 3 % explicit moment matching
+            
             if get(handles.rb_mor_krylov_input,'Value')==1
                 % input krylov
                if sys.m>1 % multiple input?
@@ -2166,8 +2164,8 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 method='Rational Krylov, two-sided';
             end
             try
-                [sysr, V, W] = RK(sys, s0_inp, s0_out);
-                sysr.mor_info=struct('time', clock, 'method', method, 'orgsys', sysname);
+                [sysr, V, W] = rk(sys, s0_inp, s0_out);
+                %sysr.mor_info=struct('time', clock, 'method', method, 'orgsys', sysname);
             catch ex
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
@@ -2178,6 +2176,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             end
 
         case 2 %ICOP
+            
             if sys.isMimo
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
@@ -2203,8 +2202,8 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             end
             try
                 [sysr,V,W,alpha_opt] = RK_ICOP(sys, s0,'maxiter',maxiter,'epsilon',epsilon,'projection',projection );
-                sysr.mor_info=struct('time', clock, 'method', 'Krylov, ICOP', 'orgsys', sysname);
-                sysr.mor_info.alpha_opt=alpha_opt;
+                %sysr.mor_info=struct('time', clock, 'method', 'Krylov, ICOP', 'orgsys', sysname);
+                %sysr.mor_info.alpha_opt=alpha_opt;
             catch ex
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
@@ -2222,6 +2221,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             end
 
         case 1 %IRKA
+            
             if sys.isMimo % MIMO?
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
@@ -2240,8 +2240,8 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             end
             try
                 [sysr,V,W,s0] = irka(sys, get(handles.sl_mor_q, 'Value'), s0, maxiter, epsilon);
-                sysr.mor_info=struct('time', clock, 'method', 'Krylov, IRKA', 'orgsys', sysname);
-                sysr.mor_info.s0=s0;
+                %sysr.mor_info=struct('time', clock, 'method', 'Krylov, IRKA', 'orgsys', sysname);
+                %sysr.mor_info.s0=s0;
             catch ex
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
@@ -2273,9 +2273,9 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     s=get(handles.ed_mor_sysred,'String');
     % suggest names for next reduction
     s=s(~isstrprop(s,'digit'));
-    s=suggest_varname(s,handles.ed_mor_sysred);
-    suggest_varname(sprintf('%s_w',s),handles.ed_mor_w);
-    suggest_varname(sprintf('%s_v',s),handles.ed_mor_v);
+    s=suggestVarname(s,handles.ed_mor_sysred);
+    suggestVarname(sprintf('%s_w',s),handles.ed_mor_w);
+    suggestVarname(sprintf('%s_v',s),handles.ed_mor_v);
     set(hObject,'Enable','on')
 
 function ed_mor_w_Callback(hObject, eventdata, handles)
@@ -2562,7 +2562,7 @@ if get(hObject,'Value')==1
 else % sonst rbs aktivieren
     set(handles.rb_mor_krylov_twosided,'Enable','on')
     set(handles.rb_mor_krylov_input,'Enable','on')
-    set(handles.rb_mor_krylov_twosided,'Enable','on')
+    set(handles.rb_mor_krylov_output,'Enable','on')
     set(handles.panel_mor_krylov_exps,'Title','Choice of expansion points')
     set(handles.panel_mor_krylov_exp,'Title','Choice of expansion point')
     set(handles.bg_mor_krylov_exps,'Title','2. Expansion point(s)')
@@ -3731,4 +3731,48 @@ function [] = displaySystemInformation(object,sys)
     set(object, 'String', sys.disp);
     sys.Name = systemName;
     
+    
+    
+function [] = suggestNamesMOR(sysName,handles)
+%Sets the suggests names for the reduced system and the projection-matrices
+%in the model-order-reduction menue 
 
+    %Set the name of the system
+
+    splittedString = strsplit(sysName,'_');
+    
+    if length(splittedString) >= 2
+        
+       name = char(strcat('sysr_',splittedString(1,2)));
+       
+    else
+        
+        name = char(strcat('sysr_',sysName));
+        
+    end
+    
+    %Get the selected reduction method 
+    
+    if get(handles.pu_mor_method,'Value') == 1
+        
+        method = 'tbr';
+        
+    elseif get(handles.pu_mor_method,'Value') == 2
+        
+        method = 'modal';
+        
+    else
+        
+        method = 'krylov';
+        
+    end
+    
+    name = strcat(name,'_',method);
+    
+    %Set the names to the text-fields of the GUI-objects
+    
+    suggestVarname(name,handles.ed_mor_sysred);
+    suggestVarname(sprintf('%s_w',name),handles.ed_mor_w);
+    suggestVarname(sprintf('%s_v',name),handles.ed_mor_v);
+        
+        

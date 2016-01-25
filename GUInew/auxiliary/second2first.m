@@ -1,9 +1,12 @@
 function sys = second2first(M, D, K, B, Cx, Cv, Opts)
 % Converts from 2nd order system to state space representation
 % ------------------------------------------------------------------
-% sys = fem2ss(M, D, K, B, Cx, Cv, F)
+% sys = second2first(M, D, K, B, Cx, Cv, Opts)
 % Inputs:       * M, D, K, B, Cx, Cv: Matrices of Second Order System
-%    [optional] * F: regular matrix establishing equality of x' (see [1])
+%               * Opts: a structure containing the following options
+%                   * transf2nd: Type of transformation from 2nd to
+%                                1st order form: 
+%                                [{'I'}, 'K', '-K', 'alpha']
 % Outputs:      * sys: Sparse State Space Model
 % ------------------------------------------------------------------
 % The matrices of the second order system are defined as:
@@ -21,7 +24,7 @@ function sys = second2first(M, D, K, B, Cx, Cv, Opts)
 % For updates and further information please visit www.rt.mw.tum.de
 % ------------------------------------------------------------------
 % Authors:      Heiko Panzer (heiko@mytum.de), Rudy Eid
-% Last Change:  23 Feb 2011
+% Last Change:  24 Jan 2016
 % ------------------------------------------------------------------
 
 %Check wheather options are specified or not 
@@ -57,6 +60,12 @@ switch Opts.transf2nd
             F = K;
         case '-K'
             F = -K;
+        case 'alpha'
+            % TODO: add the transformation to strictly dissipative form by
+            % Panzer
+            warning('alpha option not implemented yet, using K instead');
+            alpha = 1; 
+            F = alpha*LoadData.K;
 end
 
 %Create the matrices A and E for the first-order-system
