@@ -185,7 +185,7 @@ fprintf('This was just a short introduction to sss-objects and their usage.\n');
 fprintf('For more details on sss-objects and the functions implemented,\n');
 fprintf('please refer to the documentation of the sss-class.\n');
 rule
-demoEnd
+demoEndsss
 close all;
 rule
 function rule
