@@ -71,7 +71,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  19 Jan 2016
+% Last Change:  27 Jan 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -108,9 +108,9 @@ if strcmp(Opts.adi,'adi')
     %   rc='R'('C'): return real (complex) Z
     %   adi.type='B'('C'): layponov equation type ('B','C')
     %   adi.max_it=100: maximum number of iterations for ADI iteration (stopping criteria)
-    %   adi.min_res=10e-12: minimum residual for ADI iteration (stopping criteria)
-    %   adi.with_rs='S': stop ADI iteration if stagnation of error (stopping criteria)
-    %   adi.min_in=[]: tolerance for difference between ADI iterates (stopping criteria)
+    %   adi.min_res=0: minimum residual for ADI iteration - expensive(stopping criteria)
+    %   adi.with_rs='N': (S/N) stop ADI iteration if stagnation of error - very expensive (stopping criteria)
+    %   adi.min_in=1e-12: tolerance for difference between ADI iterates - inexpensive(stopping criteria)
     %   adi.cc_upd=0: column compression parameter (0=never)
     %   adi.cc_tol=sqrt(eps): column compression tolerance (default=sqrt(eps))
     %   adi.info=0; information level
@@ -131,7 +131,7 @@ if strcmp(Opts.adi,'adi')
     %   usfs\au_s_i, usfs\au_s, usfs\au_s_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
     %   usfs\munu_s_i, usfs\munu_s, usfs\munu_s_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
 
-    if sys.n<100 %TODO: change to reasonable value (see lyapack guide)
+    if sys.n<100
         error('System is too small to use ADI.');
     else
         lyaOpts.l0=20;
@@ -152,37 +152,49 @@ if strcmp(Opts.adi,'adi')
 
     if strcmp(Opts.sym,'sym')
         if ~sys.isDescriptor
+%             if eigs(0.5*(sys.A+sys.A'),1,'SA')<0 && eigs(0.5*(sys.A+sys.A'),1,'LA')>0
+%                 warning('Symmetric part of sys.A is indefinit. ADI can be slow.');
+%             end
             lyaOpts.usfs=struct('s','as_s','m','as_m');
             [A0,B0,C0]=as_pre(sys.A,sys.B,sys.C); %preprocessing: reduce bandwith of A
             as_m_i(A0);
             as_l_i;
-            p=lp_para(as,[],[],lyaOpts, ones(size(B0))); %determine ADI parameters p (Ritz values of A)
+            p=lp_para(as,[],[],lyaOpts, ones(length(B0),1)); %determine ADI parameters p (Ritz values of A)
             lyaOpts.p=p.p;
             as_s_i(lyaOpts.p);
         else
             lyaOpts.usfs=struct('s','msns_s','m','msns_m');
             [M0,MU0,N0,B0,C0]=msns_pre(sys.E,sys.A,sys.B,sys.C);
+%             if eigs(MU0'\sys.A/MU0,1,'SA')<0 && eigs(MU0'\sys.A/MU0,1,'LA')>0
+%                 warning('Inv(sys.E)*sys.A is indefinit. ADI can be slow.');
+%             end
             msns_m_i(M0,MU0,N0); 
             msns_l_i;
-            p=lp_para(msns,[],[],lyaOpts,rand(size(B0)));
+            p=lp_para(msns,[],[],lyaOpts,ones(length(B0),1));
             lyaOpts.p=p.p;
             msns_s_i(lyaOpts.p);
         end
     else
         if ~sys.isDescriptor
+%             if eigs(0.5*(sys.A+sys.A'),1,'SR')<0 && eigs(0.5*(sys.A+sys.A'),1,'LR')>0
+%                 warning('Symmetric part of sys.A is indefinit. ADI can be slow.');
+%             end
             lyaOpts.usfs=struct('s','au_s','m','au_m');
             [A0,B0,C0]=au_pre(sys.A,sys.B,sys.C);
             au_m_i(A0);
             au_l_i;
-            p=lp_para(au,[],[],lyaOpts, ones(size(B0)));
+            p=lp_para(au,[],[],lyaOpts, ones(length(B0),1));
             lyaOpts.p=p.p;
             au_s_i(lyaOpts.p);
         else
             lyaOpts.usfs=struct('s','munu_s','m','munu_m');
             [M0,ML0,MU0,N0,B0,C0]=munu_pre(sys.E,sys.A,sys.B,sys.C);
+%             if eigs(0.5*(ML0\sys.A/MU0+MU0'\sys.A'/ML0'),1,'SR')<0 && eigs(0.5*(ML0\sys.A/MU0+MU0'\sys.A'/ML0'),1,'LR')>0
+%                 warning('Symmetric part of inv(sys.E)*sys.A is indefinit. ADI can be slow.');
+%             end
             munu_m_i(M0,ML0,MU0,N0); 
             munu_l_i;
-            p=lp_para(munu,[],[],lyaOpts,rand(size(B0)));
+            p=lp_para(munu,[],[],lyaOpts,ones(length(B0),1));
             lyaOpts.p=p.p;
             munu_s_i(lyaOpts.p);
         end

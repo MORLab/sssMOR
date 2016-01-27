@@ -49,11 +49,9 @@ if ~is_init1 || ~is_init2 || ~is_init3 || ~is_init4 || ~is_init5
 end 
 
 if tr=='N'
-%   Y = LP_UC{i}\(LP_LC{i}\X);
-  Y(LP_oC{i},:) = LP_UC{i}\(LP_LC{i}\(LP_SC{i}(:,LP_aC{i})\X)); %LU x(o,:) = S(:,a)\b
+  Y(LP_oC{i},:) = LP_UC{i}\(LP_LC{i}\(LP_SC{i}(:,LP_aC{i})\X));
 elseif tr=='T'
-%   Y = LP_LC{i}.'\(LP_UC{i}.'\X);
-  Y = (LP_SC{i}(:,LP_aC{i})).'\(LP_LC{i}.'\(LP_UC{i}.'\(X(LP_oC{i},:)))); %U'L'S(:,a) x = c'(o,:)
+  Y = (LP_SC{i}(:,LP_aC{i}))'\(LP_LC{i}'\(LP_UC{i}'\(X(LP_oC{i},:))));
 else
   error('tp must be either ''N'' or ''T''.');
 end

@@ -41,11 +41,9 @@ if isempty(LP_L) || isempty(LP_U) ||  isempty(LP_a) || isempty(LP_o) || isempty(
 end 
 
 if tr=='N'
-%   Y = LP_U\(LP_L\X);
   Y(LP_o,:) = LP_U\(LP_L\(LP_S(:,LP_a)\X));
 elseif tr=='T'
-%   Y = LP_L'\(LP_U'\X);
-  Y = (LP_S(:,LP_a)).'\(LP_L.'\(LP_U.'\(X(LP_o,:))));
+  Y = (LP_S(:,LP_a))'\(LP_L'\(LP_U'\(X(LP_o,:))));
 else
   error('tp must be either ''N'' or ''T''.');
 end

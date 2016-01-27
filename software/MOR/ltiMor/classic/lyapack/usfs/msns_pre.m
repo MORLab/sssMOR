@@ -90,10 +90,10 @@ if t~=0
   error('M is not (numerically) positive definite!');
 end
 
-if length(B)
+if ~isempty(B)
   B = MU'\B(prm,:);
 end
 
-if length(C)
+if ~isempty(C)
   C = C(:,prm)/MU;
 end

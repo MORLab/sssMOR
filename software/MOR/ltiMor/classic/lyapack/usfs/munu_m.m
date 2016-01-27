@@ -39,7 +39,7 @@ function Y = munu_m(tr,X)
 
 ni = nargin;
 
-if ni~=2 & ni~=0
+if ni~=2 && ni~=0
   error('Wrong number of input arguments.');
 end
 
