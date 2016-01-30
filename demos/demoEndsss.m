@@ -1,5 +1,5 @@
 function demoEndsss
-% DEMOENDSSS - Print lines at end of demos of the sssMOR toolbox
+% DEMOENDSSS - Print lines at end of demos of the sss toolbox
 % 
 % Syntax:
 %       DEMOENDSSS
