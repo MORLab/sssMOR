@@ -54,7 +54,7 @@ else
   if tr=='N'
     Y = LP_A*X;
   elseif tr=='T'
-    Y = LP_A'*X;
+    Y = LP_A.'*X;
   else
     error('tp must be either ''N'' or ''T''.');
   end

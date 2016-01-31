@@ -76,10 +76,9 @@ function [sysr, varargout] = tbr(sys, varargin)
 %------------------------------------------------------------------
 
 % Default execution parameters
-Def.real = 0; %real reduced system ('0', 'real')
-Def.hsvtol = eps; %reduce to hsv(q)<tol, ('eps' is default)
+Def.real = 'real'; %real reduced system ('0', 'real')
+Def.hsvtol = 1e-15; %reduce to hsv(q)<tol (1e-15 is default) -> stable sysr
 Def.adi = 0; %use ADI to solve lyapunov eqation (0,'adi')
-Def.sym = 0; %sys.A and sys.E symmetric ('0','sym')
 
 % check input for q and Opts
 if nargin>1
@@ -98,6 +97,10 @@ if ~exist('Opts','var') || isempty(Opts)
     Opts = Def;
 else
     Opts = parseOpts(Opts,Def);
+end
+
+if sys.isDae
+    error('tbr does not work with DAE systems.');
 end
 
 if strcmp(Opts.adi,'adi')
@@ -132,25 +135,30 @@ if strcmp(Opts.adi,'adi')
     %   usfs\munu_s_i, usfs\munu_s, usfs\munu_s_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
 
     if sys.n<100
-        error('System is too small to use ADI.');
-    else
-        lyaOpts.l0=20;
-        lyaOpts.kp=50;
-        lyaOpts.km=25;
+        error('System is too small for ADI.');
     end
     
+    lyaOpts.l0=20;
+    lyaOpts.kp=50;
+    lyaOpts.km=25;
     lyaOpts.method='heur';
     lyaOpts.zk='Z';
+    
     if strcmp(Opts.real,'real')
         lyaOpts.rc='R';
     else
         lyaOpts.rc='C';
     end
-   
-    lyaOpts.adi=struct('type','B','max_it', 100,'min_res',1e-12,'with_rs','S',...
-        'min_in',[],'info',0,'cc_upd',0,'cc_tol',sqrt(eps));
 
-    if strcmp(Opts.sym,'sym')
+    lyaOpts.adi=struct('type','B','max_it', 300,'min_res',0,'with_rs','N',...
+        'min_in',1e-12,'min_end',0,'info',0,'cc_upd',0,'cc_tol',0);
+    
+    if exist('q','var') %size of cholesky factor [sys.n x q] -> qmax=q
+        lyaOpts.adi.max_it=q;
+        lyaOpts.adi.min_end=1;
+    end
+
+    if sys.isSym
         if ~sys.isDescriptor
 %             if eigs(0.5*(sys.A+sys.A'),1,'SA')<0 && eigs(0.5*(sys.A+sys.A'),1,'LA')>0
 %                 warning('Symmetric part of sys.A is indefinit. ADI can be slow.');
@@ -200,17 +208,38 @@ if strcmp(Opts.adi,'adi')
         end
     end 
     
-    % adi
-    R=lp_lradi([],[],B0,lyaOpts); %ADI solution of lyapunov equation
-    lyaOpts.adi.type='C';
-    L=lp_lradi([],[],C0,lyaOpts);
-    R=R';
-    L=L';
+    % ADI solution of lyapunov equation
+    [R,Ropts]=lp_lradi([],[],B0,lyaOpts);
+    if sys.isSym && norm(full(sys.B-sys.C'))==0
+        L=R;
+        Lopts=Ropts;
+    else
+        lyaOpts.adi.type='C';
+        [L,Lopts]=lp_lradi([],[],C0,lyaOpts);
+    end
+    
+    if lyaOpts.adi.min_end==1
+        q_min_in=max([Ropts.adi.min_iter,Lopts.adi.min_iter]);
+        if q_min_in>0 && q_min_in < q
+        warning(['After q=', num2str(q_min_in,'%d'),...
+            ' the contribution of the ADI iterates was very small.']);
+        end
+    end
 
-    % svd
-    qmax=min([size(R,1),size(L,1)]); %make sure R and L have the same size
-    R=R(1:qmax,:);
-    L=L(1:qmax,:);
+    qmax=min([size(R,2),size(L,2)]); %make sure R and L have the same size
+    R=R(:,1:qmax);
+    L=L(:,1:qmax);
+    sys.ConGramChol=R;
+    sys.ObsGramChol=L;
+    qmaxAdi=qmax;
+    
+    % calculate balancing transformation and Hankel Singular Values
+    [K,S,M]=svd(full(L'*R));
+    hsv = diag(S);
+    sys.HankelSingularValues = real(hsv);
+    sys.TBalInv = R*M/diag(sqrt(hsv));
+    sys.TBal = diag(sqrt(hsv))\K'*L';
+    
 else
     qmax=sys.n;
     % Is Controllability Gramian available?
@@ -283,16 +312,12 @@ else
     else
         L = sys.ObsGramChol;
     end
-end
-
-% calculate balancing transformation and Hankel Singular Values
-[K,S,M]=svd(full(R*L'));
-hsv = diag(S);
-sys.HankelSingularValues = real(hsv);
-sys.TBalInv = R'*K/diag(sqrt(hsv));
-if strcmp(Opts.adi,'adi')
-    sys.TBal = diag(sqrt(hsv))\M'*L;
-else
+    
+    % calculate balancing transformation and Hankel Singular Values
+    [K,S,M]=svd(full(R*L'));
+    hsv = diag(S);
+    sys.HankelSingularValues = real(hsv);
+    sys.TBalInv = R'*K/diag(sqrt(hsv));
     sys.TBal = diag(sqrt(hsv))\M'*L/sys.E;
 end
 
@@ -302,46 +327,40 @@ if inputname(1)
 end
 
 % reduction order
-if exist('Opts.hsvtol','var')
-        if ~exist('q','var')
-            q=sum(hsv>=Opts.hsvtol*hsv(1));
-        else
-            q = min([q, sum(hsv>=Opts.hsvtol*hsv(1)), qmax]);
-        end
-else
-    if ~exist('q','var')
-        h=figure(1);
-        bar(1:qmax,abs(hsv./hsv(1)),'r');
-        title('Hankel Singular Values');
-        xlabel('Order');
-        ylabel({'Relative hsv decay';sprintf('abs(hsv/hsv(1)) with hsv(1)=%.4d',hsv(1))});
-        set(gca,'YScale','log');
-        set(gca, 'YLim', [-Inf;1.5]);
-        set(gca, 'XLim', [0; qmax]);
-        prompt=['Please enter the desired order: (0<= q <=', num2str(qmax,'%d)'),' '];
-        q=input(prompt);
-        if ishandle(h)
-            close Figure 1;
-        end
-        if q<0 || round(q)~=q
-            error('Invalid reduction order.');
-        end
+qmax = min([sum(hsv>=Opts.hsvtol*hsv(1)), qmax]);
+if ~exist('q','var')
+    h=figure(1);
+    bar(1:qmax,abs(hsv(1:qmax)./hsv(1)),'r');
+    title('Hankel Singular Values');
+    xlabel('Order');
+    ylabel({'Relative hsv decay';sprintf('abs(hsv/hsv(1)) with hsv(1)=%.4d',hsv(1))});
+    set(gca,'YScale','log');
+    set(gca, 'YLim', [-Inf;1.5]);
+    set(gca, 'XLim', [0; qmax]);
+    prompt=['Please enter the desired order: (0<= q <=', num2str(qmax,'%d)'),' '];
+    q=input(prompt);
+    if ishandle(h)
+        close Figure 1;
+    end
+    if q<0 || round(q)~=q
+        error('Invalid reduction order.');
     end
 end
-if q>qmax
-    if ~strcmp(Opts.adi,'adi')
-        warning(['Reduction order exceeds system order.',...
-            'It is replace by the system order q=', num2str(sys.n,'%d.')]);
-        q=sys.n;
+    
+if q>sys.n && qmax==sys.n
+    warning(['Reduction order exceeds system order. q has been changed to ',...
+        'the system order qmax = ', num2str(qmax,'%d'), '.']);
+    q=qmax;
+elseif q>qmax
+    if strcmp(Opts.adi,'adi') && qmax==qmaxAdi
+        warning(['A reduction is only possible to qmax = ', num2str(qmax,'%d'),...
+            ' due to ADI. q has been changed accordingly.']);
     else
-        if q<sys.n
-            warning(['q is changed to qmax=', num2str(qmax,'%d'), ' due to ADI.']);
-        else
-            warning(['Reduction order exceeds system order.',...
-            'It is replace by q=', num2str(sys.n,'%d')], ' due to ADI.');
-        end
-        q=qmax;
+        warning(['q has been changed to qmax = ', num2str(qmax,'%d'),...
+                ' due to Hankel-Singular values smaller than the given '...
+                'tolerance (see Opts.hsvtol).']);
     end
+    q=qmax;
 end
 
 V = sys.TBalInv(:,1:q);

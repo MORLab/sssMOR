@@ -46,9 +46,9 @@ if tr=='N'
   Y(LP_No,:) = LP_NU\(LP_NL\(LP_NS(:,LP_Na)\(LP_ML*X)));
   Y = LP_MU*Y;
 elseif tr=='T'
-  X = LP_MU'*X;
-  Y = (LP_NS(:,LP_Na))'\(LP_NL'\(LP_NU'\(X(LP_No,:))));
-  Y = LP_ML'*Y;
+  X = LP_MU.'*X;
+  Y = (LP_NS(:,LP_Na)).'\(LP_NL.'\(LP_NU.'\(X(LP_No,:))));
+  Y = LP_ML.'*Y;
 else
   error('tp must be either ''N'' or ''T''.');
 end

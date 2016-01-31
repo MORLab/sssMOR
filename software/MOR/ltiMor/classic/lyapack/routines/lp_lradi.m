@@ -274,6 +274,8 @@ if isempty(info), info = 3; end
 
 with_BK = ~isempty(Bf);
 
+adi.min_iter=0;
+
 % p = adi.shifts.p;
 p=opts.p;
 l = length(p);
@@ -331,8 +333,7 @@ is_first = 1;              % is_first = (current parameter is the first
 
 
                    
-for i = 1:max_it       % The iteration itself      
-
+for i = 1:max_it+1       % The iteration itself      
   if i==1
 
     if tp=='B'
@@ -487,15 +488,23 @@ for i = 1:max_it       % The iteration itself
   end
 
   % Check stopping criteria based on increase in ||Z_i||_F.
-  if with_min_in              
+  if with_min_in && adi.min_iter==0             
     nrmF_V_2 = sum(sum(abs(V).*abs(V)));    % Note the "abs"; V is complex.
     nrmF_Z_2 = nrmF_Z_2 + nrmF_V_2;
     nrmF_rec(1:stcf-1) = nrmF_rec(2:stcf);
     nrmF_rec(stcf) = nrmF_V_2/nrmF_Z_2; 
     if ~(is_compl && is_first) && i>stcf && all(nrmF_rec < min_in)
-      flag = 'N';
-      break;
+      adi.min_iter=i;
+      if opts.adi.min_end==0
+        flag = 'N';
+        break;
+      end
     end
+  end
+  if i==max_it
+      if  ~(is_compl && is_first)
+          break;
+      end
   end
 end
 

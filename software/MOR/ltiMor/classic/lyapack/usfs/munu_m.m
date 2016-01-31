@@ -55,7 +55,7 @@ else
   if tr=='N'
     Y = LP_ML\(LP_N*(LP_MU\X));
   elseif tr=='T'
-    Y = LP_MU'\(LP_N'*(LP_ML'\X));
+    Y = LP_MU.'\(LP_N.'*(LP_ML.'\X));
   else
     error('tp must be either ''N'' or ''T''.');
   end

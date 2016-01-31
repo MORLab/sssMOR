@@ -63,10 +63,10 @@ end
 
 A = A(prm,prm);
 
-if length(B)
+if ~isempty(B)
   B = B(prm,:);
 end
 
-if length(C)
+if ~isempty(C)
   C = C(:,prm);
 end

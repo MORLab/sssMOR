@@ -51,7 +51,7 @@ end
 if tr=='N'
   Y(LP_oC{i},:) = LP_UC{i}\(LP_LC{i}\(LP_SC{i}(:,LP_aC{i})\X));
 elseif tr=='T'
-  Y = (LP_SC{i}(:,LP_aC{i}))'\(LP_LC{i}'\(LP_UC{i}'\(X(LP_oC{i},:))));
+  Y = (LP_SC{i}(:,LP_aC{i})).'\(LP_LC{i}.'\(LP_UC{i}.'\(X(LP_oC{i},:))));
 else
   error('tp must be either ''N'' or ''T''.');
 end

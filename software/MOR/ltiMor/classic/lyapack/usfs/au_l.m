@@ -43,7 +43,7 @@ end
 if tr=='N'
   Y(LP_o,:) = LP_U\(LP_L\(LP_S(:,LP_a)\X));
 elseif tr=='T'
-  Y = (LP_S(:,LP_a))'\(LP_L'\(LP_U'\(X(LP_o,:))));
+  Y = (LP_S(:,LP_a)).'\(LP_L.'\(LP_U.'\(X(LP_o,:))));
 else
   error('tp must be either ''N'' or ''T''.');
 end
