@@ -230,11 +230,11 @@ classdef testArnoldi < matlab.unittest.TestCase
                 s0 = -(conj(p)); Lt = r{1}; Rt = r{2}.';         
                 
                 %   run Hermite arnoldi
-                [V,Rsylv,W,Lsylv] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0, Rt, Lt,@(x,y) (x'*y));
+                [V,~, Rsylv,W,~, Lsylv] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0, Rt, Lt,@(x,y) (x'*y));
                 actSolution={W};
                 
                 %   run output arnoldi
-                [Wexp,LsylvExp] = arnoldi(sys.E.',sys.A.',sys.C.',s0, Lt, @(x,y) (x'*y));
+                [Wexp,~, LsylvExp] = arnoldi(sys.E.',sys.A.',sys.C.',s0, Lt, @(x,y) (x'*y));
                 expSolution= {Wexp};
                 
                 %   Verify W
@@ -287,11 +287,11 @@ classdef testArnoldi < matlab.unittest.TestCase
                 s0 = -(conj(p)); Lt = r{1}; Rt = r{2}.';         
                 
                 %   run Hermite arnoldi
-                [V,Rsylv,W,Lsylv] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0, Rt, Lt,@(x,y) (x'*y));
+                [V,~,Rsylv,W,~,Lsylv] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0, Rt, Lt,@(x,y) (x'*y));
                 actSolution={W}; sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V,sys.D,W'*sys.E*V);
                 
                 %   run output arnoldi
-                [Wexp,LsylvExp] = arnoldi(sys.E.',sys.A.',sys.C.',s0, Lt, @(x,y) (x'*y));
+                [Wexp,~, LsylvExp] = arnoldi(sys.E.',sys.A.',sys.C.',s0, Lt, @(x,y) (x'*y));
                 expSolution= {Wexp};
                 
                 %   Verify W
