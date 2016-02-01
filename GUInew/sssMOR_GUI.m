@@ -73,12 +73,6 @@ end
         
         
 function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INUSL>
-    handles.splash = splash('splash.jpg');
-    handles.output = hObject;
-    handles.virtgr_an_red_buttons=[handles.pb_an_stability,handles.pb_an_h2,handles.pb_an_hinf,handles.pb_an_simtime,handles.pb_an_h2error,handles.pb_an_hinferror,handles.pb_an_simtimeobt,handles.pb_an_simtimeorig];
-    handles.allbuttons=[handles.pb_save,handles.pb_load,handles.pb_create,handles.pb_readascii];
-    handles.zoom=[];
-    handles.letzterpfad='*';
 
     %Make latex code possible for all static text-fields whose tag names start
     %with "latex"  
@@ -122,10 +116,19 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
            path = strcat(path,pathArray{1,i}); 
         end       
     end
-
-    path = strcat(path,'\auxiliary');
-    addpath(path);
     
+    %Add path with all subfolders
+    
+    addpath(genpath(path));
+    
+    %Set default-values for the variables in saved in handles
+    
+    handles.splash = splash('splash.jpg');
+    handles.output = hObject;
+    handles.virtgr_an_red_buttons=[handles.pb_an_stability,handles.pb_an_h2,handles.pb_an_hinf,handles.pb_an_simtime,handles.pb_an_h2error,handles.pb_an_hinferror,handles.pb_an_simtimeobt,handles.pb_an_simtimeorig];
+    handles.allbuttons=[handles.pb_save,handles.pb_load,handles.pb_create,handles.pb_readascii];
+    handles.zoom=[];
+    handles.letzterpfad='*';
 
     % Update handles structure
     guidata(hObject, handles);
@@ -165,7 +168,7 @@ function varargout = sssMOR_GUI_OutputFcn(hObject, eventdata, handles)
 
 function figure1_CloseRequestFcn(hObject, eventdata, handles)
     % delete temp variables in workspace
-    if exist_in_base_ws('GUI_dont_delete')
+    if existInBaseWs('GUI_dont_delete')
         evalin('base','clear GUI_dont_delete')
     end
     % delete GUI
@@ -211,7 +214,7 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
 
 function logo_tum_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
     % load TUM logo
-    A=imread('Pictures\Heading.png');
+    A=imread('pictures\Heading.png');
     h=image(A);
     set(h,'HitTest','off')
     set(hObject,'YDir','reverse');
@@ -289,7 +292,7 @@ function pb_about_Callback(hObject, eventdata, handles)
 
 function logo_about_CreateFcn(hObject, eventdata, handles)
     % load About logo
-    A=imread('MOR.jpg');
+    A=imread('pictures\MOR.jpg');
     image(A);
     set(hObject,'YDir','reverse');
 
@@ -365,12 +368,12 @@ else
     set(handles.panel_intoout,'Visible','off')
 end
 % replay _ by space
-s= regexprep(sysname, '_', ' ');
-if ~isempty(sys.mor_info)
-    s=sprintf('%s; %s', s ,sys.mor_info.method);
-end
+% s= regexprep(sysname, '_', ' ');
+% if ~isempty(sys.mor_info)
+%     s=sprintf('%s; %s', s ,sys.mor_info.method);
+% end
 % suggest legend
-set(handles.ed_legend,'String',s);
+%set(handles.ed_legend,'String',s);
 % refresh list of open figures
 list_open_figures(handles)
 
@@ -1283,7 +1286,7 @@ function pb_load_Callback(hObject, eventdata, handles)
                     
            %Check wheater the name already exists in workspace
            
-           while exist_in_base_ws(sTemp)~=0
+           while existInBaseWs(sTemp)~=0
                 sTemp = strcat(name,num2str(count));
                 count = count+1;
            end
@@ -1305,9 +1308,9 @@ function pb_load_Callback(hObject, eventdata, handles)
     %Refresh the display of the variables in workspace
     
     set(handles.lb_systems,'Value',[])
-    set(handles.lb_systems,'String',systems_in_workspace)
+    set(handles.lb_systems,'String',systemsInWorkspace)
     set(handles.lb_matrixes,'Value',[])
-    set(handles.lb_matrixes,'String',matrices_in_workspace)
+    set(handles.lb_matrixes,'String',matricesInWorkspace)
     
     if loadingSuccessfull == 1
         
@@ -1399,22 +1402,22 @@ function pb_infoLoadOptions_Callback(hObject, eventdata, handles)
 %Callbacks of the list-boxes
     
 function lb_systems_Callback(hObject, eventdata, handles)
-    set(hObject,'String',systems_in_workspace)
+    set(hObject,'String',systemsInWorkspace)
 
 function lb_systems_CreateFcn(hObject, eventdata, handles)
     if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
         set(hObject,'BackgroundColor','white');
     end
-    set(hObject,'String',systems_in_workspace)
+    set(hObject,'String',systemsInWorkspace)
 
 function lb_matrixes_Callback(hObject, eventdata, handles)
-    set(hObject,'String',matrices_in_workspace)
+    set(hObject,'String',matricesInWorkspace)
 
 function lb_matrixes_CreateFcn(hObject, eventdata, handles)
     if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
         set(hObject,'BackgroundColor','white');
     end
-    set(hObject,'String',matrices_in_workspace)
+    set(hObject,'String',matricesInWorkspace)
     
  
 %Callbacks of the buttons in "Save matrices and systems in workspace"
@@ -1492,9 +1495,9 @@ pb_refreshlb_Callback(0, 0, handles)
 
 function pb_refreshlb_Callback(hObject, eventdata, handles)
 set(handles.lb_systems,'Value',[])
-set(handles.lb_systems,'String',systems_in_workspace)
+set(handles.lb_systems,'String',systemsInWorkspace)
 set(handles.lb_matrixes,'Value',[])
-set(handles.lb_matrixes,'String',matrices_in_workspace)
+set(handles.lb_matrixes,'String',matricesInWorkspace)
 
 
 %Callbacks of the elements in "Extrakt matrices from system"
@@ -1673,7 +1676,7 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     
     %Get all systems from workspace
     
-    l=systems_in_workspace();
+    l=systemsInWorkspace();
     
     %Check wether the previous selected systems exist in workspace
     
@@ -1951,7 +1954,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
         errordlg('Please correct name for reduced system first','Error Dialog','modal')
         uiwait
         return
-    elseif exist_in_base_ws(get(handles.ed_mor_sysred,'String'))==1
+    elseif existInBaseWs(get(handles.ed_mor_sysred,'String'))==1
         s=sprintf('%s already exists in base workspac. Do you want to overwrite it?',get(handles.ed_mor_sysred,'String'));
         % show dialog box
         k=stqd('String',s,'Title','Question Dialog');
@@ -2657,7 +2660,10 @@ elseif isempty(x)
 end
 set(hObject,'String',x)
 
-function bg_mor_krylov_exps_SelectionChangeFcn(hObject, eventdata, handles)
+function bg_mor_krylov_exps_SelectionChangedFcn(hObject, eventdata, handles)
+% hObject    handle to the selected object in bg_mor_krylov_exps 
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
 if eventdata.NewValue==handles.rb_mor_krylov_single
     % single expansion points
     set(handles.panel_mor_krylov_exp,'Visible','on')
@@ -3019,7 +3025,7 @@ if ~isfield(sys,'originalsysname')
     end
     return
 end
-if ~exist_in_base_ws(sys.originalsysname)
+if ~existInBaseWs(sys.originalsysname)
     errordlg('Original system is not in the base workspace','Error Dialog','modal')
     uiwait
     if isempty(eventdata) || eventdata~=1
@@ -3263,7 +3269,7 @@ if ~isfield(sys,'Simulationtime_original_system')
         end
         return
     end
-    if ~exist_in_base_ws(sys.originalsysname)
+    if ~existInBaseWs(sys.originalsysname)
         errordlg('Original system is not in the base workspace','Error Dialog','modal')
         uiwait
         if isempty(eventdata) || eventdata~=1
@@ -3775,4 +3781,34 @@ function [] = suggestNamesMOR(sysName,handles)
     suggestVarname(sprintf('%s_w',name),handles.ed_mor_w);
     suggestVarname(sprintf('%s_v',name),handles.ed_mor_v);
         
-        
+function x = systemsInWorkspace()
+% finds and lists all dynamical systems that are contained in workspace
+    % read all variable names
+    s=evalin('base', 'whos');
+    % preallocate memory
+    x=cell(length(s),1);
+    for i=1:length(s)
+        if strcmp(s(i).class,'ss') || strcmp(s(i).class,'sss') && ...
+            ~strcmp(s(i).name,'load_var_dont_destroy') && ...
+            ~strcmp(s(i).name,'GUI_dont_destroy')
+            % save name
+            x{i}=s(i).name;
+        end
+    end
+    % remove empty (non-system) entries
+    x(cellfun(@isempty,x)) = [];   
+    
+function x=matricesInWorkspace
+% Returns all matrices from workspace
+
+s=evalin('base', 'whos');
+% preallocate memory
+x=cell(length(s),1); %alle, auch quadtratische
+for i=1:length(s)
+    if strcmp(s(i).class,'double') && length(s(i).size)==2 && any(s(i).size)
+        % save name
+        x{i}=s(i).name;
+    end
+end
+% remove empty (non-system) entries
+x(cellfun(@isempty,x)) = [];

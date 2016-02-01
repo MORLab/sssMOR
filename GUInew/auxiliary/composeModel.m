@@ -115,9 +115,9 @@ varargout = {};
 function figure1_DeleteFcn(hObject, eventdata, handles)
     try
         set(handles.inputGUI.lb_systems,'Value',[])
-        set(handles.inputGUI.lb_systems,'String',systems_in_workspace)
+        set(handles.inputGUI.lb_systems,'String',systemsInWorkspace)
         set(handles.inputGUI.lb_matrixes,'Value',[])
-        set(handles.inputGUI.lb_matrixes,'String',matrices_in_workspace)
+        set(handles.inputGUI.lb_matrixes,'String',matricesInWorkspace)
     catch exception
         if strcmp(exception.identifier,'MATLAB:class:InvalidHandle')
             % GUI has been closes, handles are not valid anymore
@@ -434,9 +434,9 @@ end
 % MORLAB_GUI aktualisieren
 try
     set(handles.inputGUI.lb_systems,'Value',[])
-    set(handles.inputGUI.lb_systems,'String',systems_in_workspace)
+    set(handles.inputGUI.lb_systems,'String',systemsInWorkspace)
     set(handles.inputGUI.lb_matrixes,'Value',[])
-    set(handles.inputGUI.lb_matrixes,'String',matrices_in_workspace)
+    set(handles.inputGUI.lb_matrixes,'String',matricesInWorkspace)
 catch exception
     if strcmp(exception.identifier,'MATLAB:class:InvalidHandle')
         % GUI wurde geschlossen, handles sind nicht mehr gültig

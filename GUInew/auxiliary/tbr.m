@@ -259,6 +259,8 @@ elseif strcmp(Opts.type,'matchDcGain')
         CRed=C1-C2/A22*A21+C2*A22i*E21/ERed*ARed;
         DRed=sys.D-C2/A22*B2+C2/A22*E21/ERed*BRed;
         sysr = sss(ARed, BRed, CRed, DRed, ERed);
+    elseif sys.isDae
+        error('The "Match DC Gain"-Algorithm is not defined for systems of type "DAE"');
     else % Er=I
         CRed=C1-C2/A22*A21;
         DRed=sys.D-C2/A22*B2;
