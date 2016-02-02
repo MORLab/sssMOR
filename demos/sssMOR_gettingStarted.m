@@ -228,7 +228,7 @@ customPause
 
 
 rule
-demoEnd
+demoEndsssMOR
 close all
 rule
 function rule
