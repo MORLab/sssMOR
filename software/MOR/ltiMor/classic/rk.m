@@ -11,10 +11,10 @@ function [sysr, V, W, Bb, SRsylv, Rsylv, Cb, SLsylv, Lsylv] = rk(sys, s0_inp, va
 %       sysr = RK(sys, s0_inp, s0_out, Rt, Lt)
 %       sysr = RK(sys, s0_inp, s0_out, Rt, Lt, IP)
 %
-%       [sysr, V, W]						= RK(sys,s0_inp,...)
-%		[sysr, V, W, Bb, Rsylv] 			= RK(sys,s0_inp,...)
-%       [sysr, V, W, Bb, Rsylv, Cb, Lsylv]	= RK(sys,s0_inp, s0_out, ...)
-%		[sysr,...] 							= RK(sys, s0_inp, ..., Opts)
+%       [sysr, V, W]                                        = RK(sys,s0_inp,...)
+%		[sysr, V, W, Bb, SRsylv, Rsylv]                     = RK(sys,s0_inp,...)
+%       [sysr, V, W, Bb, SRsylv, Rsylv, Cb, SLsyslv, Lsylv]	= RK(sys,s0_inp, s0_out, ...)
+%		[sysr,...]                                          = RK(sys, s0_inp, ..., Opts)
 %
 % Description:
 %       Reduction by Rational Krylov subspace methods. 
@@ -56,10 +56,10 @@ function [sysr, V, W, Bb, SRsylv, Rsylv, Cb, SLsylv, Lsylv] = rk(sys, s0_inp, va
 %                           [{'sparse'} / 'full']
 %
 % Output Arguments:
-%       -sysr:      reduced system
-%       -V,W:       projection matrices spanning Krylov subspaces
-%       -Bb,Rsylv:	resulting matrices of the input Sylvester equation
-%       -Cb,Lsylv:  resulting matrices of the output Sylvester equation
+%       -sysr:              reduced system
+%       -V,W:               projection matrices spanning Krylov subspaces
+%       -Bb,SRsylv,Rsylv:   resulting matrices of the input Sylvester equation
+%       -Cb,SLsylv,Lsylv:   resulting matrices of the output Sylvester equation
 %
 % Examples:
 %       This code reduces the benchmark model build by orthogonal
@@ -224,7 +224,7 @@ if isempty(s0_out)
     W = V;
     sysr = sss(V'*sys.A*V, V'*sys.B, sys.C*V, sys.D, V'*sys.E*V);
     Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
-    Cb = []; Lsylv = [];  
+    Cb = []; Lsylv = [];  SLsylv=[];
     
 elseif isempty(s0_inp)
     % output Krylov subspace
@@ -234,7 +234,7 @@ elseif isempty(s0_inp)
     V = W;
     sysr = sss(W'*sys.A*W, W'*sys.B, sys.C*W, sys.D, W'*sys.E*W);
     Cb = sys.C - sysr.C/sysr.E*W'*sys.E;
-    Bb = []; Rsylv = [];
+    Bb = []; Rsylv = []; SRsylv=[];
 else
     if all(s0_inp == s0_out) %use only 1 LU decomposition for V and W
         [V, SRsylv, Rsylv, W, SLsylv, Lsylv] = arnoldi(sys.E, sys.A, sys.B, sys.C,...

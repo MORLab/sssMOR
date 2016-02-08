@@ -2,15 +2,15 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 % ARNOLDI - Arnoldi algorithm for Krylov subspaces with multiple shifts
 % 
 % Syntax:
-%       V					= ARNOLDI(E,A,B,s0)
-%       [V,Rsylv]			= ARNOLDI(E,A,B,s0)
-%       [V,Rsylv]			= ARNOLDI(E,A,B,s0,IP)
-%       [V,Rsylv]			= ARNOLDI(E,A,B,s0,Rt)
-%       [V,Rsylv]			= ARNOLDI(E,A,B,s0,Rt,IP)
-%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0)
-%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0,IP)
-%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0,Rt,Lt)
-%       [V,Rsylv,W,Lsylv]	= ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
+%       V                                = ARNOLDI(E,A,B,s0)
+%       [V,SRsylv,Rsylv]                 = ARNOLDI(E,A,B,s0)
+%       [V,SRsylv,Rsylv]                 = ARNOLDI(E,A,B,s0,IP)
+%       [V,SRsylv,Rsylv]                 = ARNOLDI(E,A,B,s0,Rt)
+%       [V,SRsylv,Rsylv]                 = ARNOLDI(E,A,B,s0,Rt,IP)
+%       [V,SRsylv,Rsylv,W,SLsyslv,Lsylv] = ARNOLDI(E,A,B,C,s0)
+%       [V,SRsylv,Rsylv,W,SLsyslv,Lsylv] = ARNOLDI(E,A,B,C,s0,IP)
+%       [V,SRsylv,Rsylv,W,SLsyslv,Lsylv] = ARNOLDI(E,A,B,C,s0,Rt,Lt)
+%       [V,SRsylv,Rsylv,W,SLsyslv,Lsylv] = ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
 %       [V,...]	= ARNOLDI(E,A,B,C,s0,...,Opts)
 % 
 % Description:
@@ -34,10 +34,10 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 %
 %       The columns of V build an orthonormal basis of the input Krylov 
 %       subspace. The orthogonalization is conducted using a 
-%       reorthogonalized modified Gram-Schmidt procedure [4] with respect 
-%       to the inner product  defined in IP (optional). If no inner product 
-%       is specified, then the euclidian product corresponding to I is 
-%       chosen by default:
+%       reorthogonalized modified Gram-Schmidt procedure [4] or dgks
+%       orthogonalization [5] with respect to the inner product defined in 
+%       IP (optional). If no inner product is specified, then the euclidian
+%       product corresponding to I is chosen by default:
 %
 %                       IP=@(x,y) (x'*y)
 %
@@ -51,19 +51,25 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 %       -Rt,Lt:             Matrix of right/left tangential directions
 %       -IP:                function handle for inner product
 %       -Opts:              a structure containing following options
-%           -.makeOrth:     make orthogonal?
-%                           [{'1'} / '0']
-%           -.makeReal:     keep the projection matrices real?
-%                           [{'1'} / '0']
-%           -.reorth:       gram schmidt reorthogonalization;
+%           -.real:         keep the projection matrices real
+%                           [{'real'} / '0']
+%           -.orth:         orthogonalization of new projection direction
+%                           [{'2mgs'} / 0 / 'dgks' / 'mgs']
+%           -.reorth:       reorthogonalization
 %                           [{'gs'} / 0 / 'qr']
-%           -.lu:           use sparse or full LU;
-%                           [{'sparse'} / 'full']
+%           -.lse:          use LU or hessenberg decomposition
+%                           [{'sparse'} / 'full' / 'hess']
+%           -.dgksTol:      tolerance for dgks orthogonalization
+%                           [{1e-12} / positive float]
+%           -.krylov:       standard or cascaded krylov basis
+%                           [{0} / 'cascade]
 %
 % Output Arguments:
 %       -V:        Orthonormal basis spanning the input Krylov subsp. 
+%       -SRsylv:   Matrix of input Sylvester Eq.
 %       -Rsylv:    Right tangential directions of Sylvester Eq.
 %       -W:        Orthonormal basis spanning the output Krylov subsp.
+%       -SLsylv:   Matrix of output Sylvester Eq.
 %       -Lsylv:    Left tangential directions of Sylvester Eq.
 %
 % See Also: 
@@ -73,7 +79,8 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 %       * *[1] Grimme (1997)*, Krylov projection methods for model reduction
 %       * *[2] Antoulas (2005)*, Approximation of large-scale dynamical systems
 %       * *[3] Antoulas (2010)*, Interpolatory model reduction of large-scale...
-%       * *[4] Giraud (2005)*, The loss of orthogonality in the Gram-Schmidt...    
+%       * *[4] Giraud (2005)*, The loss of orthogonality in the Gram-Schmidt... 
+%       * *[5] Daniel (1976)*, Reorthogonalization and stable algorithms...
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
@@ -102,7 +109,7 @@ if ~isempty(varargin) && isstruct(varargin{end});
     varargin = varargin(1:end-1);
 end
 
-Def.makeReal = 1; %keep the projection matrices real?
+Def.real = 'real'; %keep the projection matrices real?
 Def.orth = '2mgs'; %orthogonalization after every direction {0,'dgks','mgs','2mgs'}
 Def.reorth = 0; %reorthogonaliation at the end {0, 'mgs', 'qr'}
 Def.lse = 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess'}
@@ -201,7 +208,7 @@ nOut=nargout;
 
 %% ---------------------------- CODE -------------------------------
 % Real reduced system
-if Opts.makeReal
+if strcmp(Opts.real,'real')
     s0 = updateS0(s0);
 end
 
@@ -250,7 +257,7 @@ end
         end
 
         % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
-        if Opts.makeReal
+        if strcmp(Opts.real,'real')
             if hermite
                 [V, SRsylv, CRsylv,W, SLsylv, CLsylv] = realSubspace(jCol, q, s0, V, SRsylv, CRsylv, W, SLsylv, CLsylv);
             else
