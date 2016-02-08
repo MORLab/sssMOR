@@ -4,7 +4,7 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 % Syntax:
 %       sysr			= MODALMOR(sys, q)
 %       sysr			= MODALMOR(sys, q, Opts)
-%       [sysr, V, W]	= MODALMOR(sys,... )
+%       [sysr, V, W, D]	= MODALMOR(sys,... )
 %
 % Description:
 %       This function computes the reduced order system sysr and the 
@@ -20,6 +20,11 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 %       combinations to keep the reduced system matrices real and/or
 %       orthogonalize the projection matrices.
 %
+%       A dominance analysis of the eigenvalues can be performed.
+%       In addition, the system can be reduced so that the most dominant 
+%       eigenvalues of the chosen options are preserved.
+%       
+%
 % Input Arguments:
 %		*Required Input Arguments:*
 %		-sys:			an sss-object containing the LTI system
@@ -32,11 +37,16 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 %			-.orth:		orhtogonalization;
 %						[{'0'} / 'qr']
 %			-.real:		real reduced system;
-% 						[{'0'} / 'real']
+% 						[{'real'} / '0']
+%           -.tol:      tolerance for the eigenspace computation
+%                       [{1e-6} / positive float]
+%           -.dominance: perform dominance analysis
+%                       [{0} / 'analyze' / '2q' / '3q' / '4q']
 %
 % Output Arguments:
 %       -sysr:          reduced system
 %       -V, W:          projection matrices
+%       -D:             dominance values
 %
 % Examples:
 %		This code loads the MIMO benchmark model 'CDplayer' and produces a

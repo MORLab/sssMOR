@@ -131,7 +131,7 @@ classdef testRk < matlab.unittest.TestCase
               [sysr, V, W] = rk(sys,s0 , s0, IP);
               actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W};
               
-              [expV,~,expW,~] = arnoldi(speye(size(A)),A,B, C, s0, IP);
+              [expV,~,~,expW,~] = arnoldi(speye(size(A)),A,B, C, s0, IP);
               expSolution={expW'*A*expV, expW'*B, C*expV, expV, expW};
               
               % check for moment matching as well
@@ -157,7 +157,7 @@ classdef testRk < matlab.unittest.TestCase
                 s0 = -eig(sysrIrka).'; s0moment = s0; n = 2;
             
               [sysr, V, W, Bb, ~, Rsylv, Cb, ~, Lsylv] = rk(sys,s0,s0);              
-              [expV,~,expW,~] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0);
+              [expV,~,~,expW,~] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0);
               
               % The transpose LU problem can be ill conditioned, check the
               % subspaces instead of the actual matrices!
@@ -184,7 +184,7 @@ classdef testRk < matlab.unittest.TestCase
 %               %two-sided reduction for all benchmarks
                 for i=1:length(testCase.sysCell)
                 %  test system
-                sys=testCase.sysCell{i}
+                sys=testCase.sysCell{i};
                 %  get good shifts
                 n = 6; r = ones(sys.m,n); l = ones(sys.p,n);
                 sysrIrka = irka(sys, zeros(1,n),r, l);
@@ -205,11 +205,11 @@ classdef testRk < matlab.unittest.TestCase
                 end
               
                [sysr, V, W, Bb, ~, Rsylv, Cb, ~, Lsylv] = rk(sys,s0,s0,Rt,Lt);
-               [expV,~,expW,~] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0,Rt,Lt);
+               [expV,~,~,expW,~] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0,Rt,Lt);
               
               % The transpose LU problem can be ill conditioned, check the
               % subspaces instead of the actual matrices!
-              actSolution={rank([V,expV]), rank([W,expW])};
+              actSolution={sum(svd([V,expV])>1e-12), sum(svd([W,expW])>1e-12)};
               expSolution={size(V,2), size(W,2)};
               
               % Add Sylvester EQ matrices

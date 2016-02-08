@@ -10,7 +10,7 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, 
 %       [sysr, V, W, s0]                = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, s0Traj]        = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, s0Traj, Rt, Lt]= IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Rsylv, C_, Lsylv] = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRslyv, Rsylv, C_, SLsylv, Lsylv, kIter] = IRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Iterative Rational Krylov
@@ -35,7 +35,7 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, 
 %       -Opts:			structure with execution parameters
 %			-.maxiter:	maximum number of iterations;
 %						[{50} / positive integer]
-%			-.tol:		convergence tolerange;
+%			-.tol:		convergence tolerance;
 %						[{1e-3} / positive float]
 %			-.type:		choose between different irka modifications;
 %						[{''} / 'stab']
@@ -47,10 +47,13 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, 
 %                       [{0} / 1]
 %
 % Output Arguments:      
-%       -sysr:			reduced order model (sss)
-%       -V,W:			resulting projection matrices
-%       -s0:			final choice of shifts
-%       -s0Traj:		trajectory of all shifst for all iterations
+%       -sysr:              reduced order model (sss)
+%       -V,W:               resulting projection matrices
+%       -s0:                final choice of shifts
+%       -s0Traj:            trajectory of all shifst for all iterations
+%       -B_,SRsylv,Rsylv:   matrices of the input Sylvester equation
+%       -C_,SLsylv,Lsylv:   matrices of the output Sylvester equation
+%       -kIter:             number of iterations
 %
 % Examples:
 %       This code computes an H2-optimal approximation of order 8 to
