@@ -107,8 +107,9 @@ classdef testTbr < matlab.unittest.TestCase
         function testTbr3(testCase) %q=25
             load('fom.mat');
             q=25;
+            Opts.adi=0;
             
-            [sysr, V, W] = tbr(sss(A,B,C,0),q);
+            [sysr, V, W] = tbr(sss(A,B,C,0),q, Opts);
             actSolution={full(sysr.A),full(sysr.B),full(sysr.C),V,W};
             
             S=lyapchol(full(A),full(B));

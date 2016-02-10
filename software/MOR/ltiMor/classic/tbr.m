@@ -6,6 +6,8 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       sysr			= TBR(sys,q)
 %       [sysr,V,W]		= TBR(sys,q)
 %       [sysr,V,W,hsv]	= TBR(sys,q)
+%       [sysr,...]      = TBR(sys,Opts)
+%       [sysr,...]      = TBR(sys,q,Opts)
 %
 % Description:
 %       Computes a reduced model of order q by balancing and truncation,
@@ -14,11 +16,22 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       the first q modes responsible for the highest energy transfer in
 %       system [1]. 
 %
-%       If q is not specified, then TBR computes only a balanced
-%       realization of the system without truncation.
+%       If q is specified as system order, then TBR computes a balanced 
+%       realization of the system.
 %
 %       Hankel singular values and the matrices for transformation to
 %       balanced realization are stored in the sss object sys.
+%
+%       If a reduction order q is passed to the function, the reduced
+%       system will be of this size with the options 'hsvTol' and
+%       'redErr' ignored. If not, the option 'redErr' is crucial. To avoid 
+%       this option it can be set to zero ('redErr'=0). If so, the
+%       Hankel-Singular values (satisfying the option 'hsvTol') will be
+%       plotted for the user to enter a desired reduction order.
+%
+%       If the option 'adi' is set, a low rank approximation of the
+%       cholseky factor will be performed. If the option 'adi' is not 
+%       defined, ADI will be performed for systems with sys.n>500.
 %
 %
 % Input Arguments:
@@ -26,21 +39,26 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       -sys:   an sss-object containing the LTI system
 %		*Optional Input Arguments:*
 %       -q:     order of reduced system
+%       -Opts:              a structure containing following options
+%           -.real:         return real reduced system
+%                           [{'real'} / '0']
+%           -.adi:          low rank cholseky factor approximation
+%                           [{'0'} / 'adi']
+%           -.redErr:       upper bound of reduction error
+%                           [{'0'} / positive float]
+%           -.hsvTol:       tolerance for Hankel-Singular values
+%                           [{'1e-15'} / positive float]
 %
 % Output Arguments:
 %       -sysr:  reduced system
-%       -V,W:   (opt.) projection matrices (only if q is given!)
+%       -V,W:   projection matrices
 %       -hsv:   Hankel singular values
-%
-%//Note: If no q is given, the balancing transformation and calculation of
-%		the Hankel singular values is performed without subsequent model
-%		reduction.
 %
 % Examples:
 %       To compute a balanced realization, use
 %
 %> sys = loadSss('building');
-%> sysBal = tbr(sys)
+%> sysBal = tbr(sys,sys.n)
 %
 %       To performe balanced reduction, specify a reduced order q
 %
@@ -71,14 +89,15 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  27 Jan 2016
+% Last Change:  10 Feb 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 % Default execution parameters
-Def.real = 'real'; %real reduced system ('0', 'real')
-Def.hsvtol = 1e-15; %reduce to hsv(q)<tol (1e-15 is default) -> stable sysr
-Def.adi = 0; %use ADI to solve lyapunov eqation (0,'adi')
+Def.adi = 0; % use ADI to solve lyapunov eqation (0,'adi')
+Def.redErr = 0; % reduction error (redErr>2*sum(hsv(q+1:end)))
+Def.hsvTol = 1e-15; % hsv tolerance (hsv(q)<hsvTol)
+Def.real = 'real'; % real reduced system ('0', 'real')
 
 % check input for q and Opts
 if nargin>1
@@ -95,7 +114,19 @@ end
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
     Opts = Def;
+    if sys.n>500
+        if isempty(sys.ConGramChol) && isempty(sys.ObsGramChol) && isempty(sys.ConGram) && isempty(sys.ObsGram)
+            Opts.adi='adi';
+        end
+    end
 else
+    if ~isfield(Opts,'adi') && sys.n>500
+        if isempty(sys.ConGramChol) && isempty(sys.ObsGramChol) && isempty(sys.ConGram) && isempty(sys.ObsGram)
+            Opts.adi='adi';
+        end
+    else
+        Opts.adi=0;
+    end
     Opts = parseOpts(Opts,Def);
 end
 
@@ -160,9 +191,6 @@ if strcmp(Opts.adi,'adi')
 
     if sys.isSym
         if ~sys.isDescriptor
-%             if eigs(0.5*(sys.A+sys.A'),1,'SA')<0 && eigs(0.5*(sys.A+sys.A'),1,'LA')>0
-%                 warning('Symmetric part of sys.A is indefinit. ADI can be slow.');
-%             end
             lyaOpts.usfs=struct('s','as_s','m','as_m');
             [A0,B0,C0]=as_pre(sys.A,sys.B,sys.C); %preprocessing: reduce bandwith of A
             as_m_i(A0);
@@ -173,9 +201,6 @@ if strcmp(Opts.adi,'adi')
         else
             lyaOpts.usfs=struct('s','msns_s','m','msns_m');
             [M0,MU0,N0,B0,C0]=msns_pre(sys.E,sys.A,sys.B,sys.C);
-%             if eigs(MU0'\sys.A/MU0,1,'SA')<0 && eigs(MU0'\sys.A/MU0,1,'LA')>0
-%                 warning('Inv(sys.E)*sys.A is indefinit. ADI can be slow.');
-%             end
             msns_m_i(M0,MU0,N0); 
             msns_l_i;
             p=lp_para(msns,[],[],lyaOpts,ones(length(B0),1));
@@ -184,9 +209,6 @@ if strcmp(Opts.adi,'adi')
         end
     else
         if ~sys.isDescriptor
-%             if eigs(0.5*(sys.A+sys.A'),1,'SR')<0 && eigs(0.5*(sys.A+sys.A'),1,'LR')>0
-%                 warning('Symmetric part of sys.A is indefinit. ADI can be slow.');
-%             end
             lyaOpts.usfs=struct('s','au_s','m','au_m');
             [A0,B0,C0]=au_pre(sys.A,sys.B,sys.C);
             au_m_i(A0);
@@ -197,9 +219,6 @@ if strcmp(Opts.adi,'adi')
         else
             lyaOpts.usfs=struct('s','munu_s','m','munu_m');
             [M0,ML0,MU0,N0,B0,C0]=munu_pre(sys.E,sys.A,sys.B,sys.C);
-%             if eigs(0.5*(ML0\sys.A/MU0+MU0'\sys.A'/ML0'),1,'SR')<0 && eigs(0.5*(ML0\sys.A/MU0+MU0'\sys.A'/ML0'),1,'LR')>0
-%                 warning('Symmetric part of inv(sys.E)*sys.A is indefinit. ADI can be slow.');
-%             end
             munu_m_i(M0,ML0,MU0,N0); 
             munu_l_i;
             p=lp_para(munu,[],[],lyaOpts,ones(length(B0),1));
@@ -229,8 +248,6 @@ if strcmp(Opts.adi,'adi')
     qmax=min([size(R,2),size(L,2)]); %make sure R and L have the same size
     R=R(:,1:qmax);
     L=L(:,1:qmax);
-    sys.ConGramChol=R;
-    sys.ObsGramChol=L;
     qmaxAdi=qmax;
     
     % calculate balancing transformation and Hankel Singular Values
@@ -280,7 +297,6 @@ else
         R = sys.ConGramChol;
     end
 
-
     % Is Observability Gramian available?
     if isempty(sys.ObsGramChol)
         if isempty(sys.ObsGram)
@@ -326,9 +342,39 @@ if inputname(1)
     assignin('caller', inputname(1), sys);
 end
 
-% reduction order
-qmax = min([sum(hsv>=Opts.hsvtol*hsv(1)), qmax]);
-if ~exist('q','var')
+% determine reduction order
+if exist('q','var') || Opts.redErr>0
+    if ~exist('q','var')
+        hsvSum=0;
+        for i=qmax:-1:1
+            if hsvSum>Opts.redErr
+                q=i+1;
+                break;
+            else
+                hsvSum=hsvSum+2*real(hsv(i));
+            end
+        end
+        
+        if strcmp(Opts.adi,'adi')
+            warning(['Reduction order was set to q = ', num2str(q,'%d'),...
+            ' to satisfy the upper bound for the reduction error. ',10,...
+            'The upper bound can be unprecise due to the use of ADI.']);
+        else
+            warning(['Reduction order was set to q = ', num2str(q,'%d'),...
+                ' to satisfy the upper bound for the reduction error. ']);
+        end
+    end
+    if q>sys.n
+        warning(['Reduction order exceeds system order. q has been changed to ',...
+            'the system order qmax = ', num2str(qmax,'%d'), '.']);
+        q=sys.n;
+    end
+    if sum(hsv>=Opts.hsvTol*hsv(1))<q
+        warning(['The Hankel-Singular values are very small. You may want to',... 
+            'check the stability of the reduced system.']);
+    end
+else
+    qmax = min([sum(hsv>=Opts.hsvTol*hsv(1)), qmax]);
     h=figure(1);
     bar(1:qmax,abs(hsv(1:qmax)./hsv(1)),'r');
     title('Hankel Singular Values');
@@ -345,22 +391,21 @@ if ~exist('q','var')
     if q<0 || round(q)~=q
         error('Invalid reduction order.');
     end
-end
-    
-if q>sys.n && qmax==sys.n
-    warning(['Reduction order exceeds system order. q has been changed to ',...
-        'the system order qmax = ', num2str(qmax,'%d'), '.']);
-    q=qmax;
-elseif q>qmax
-    if strcmp(Opts.adi,'adi') && qmax==qmaxAdi
-        warning(['A reduction is only possible to qmax = ', num2str(qmax,'%d'),...
-            ' due to ADI. q has been changed accordingly.']);
-    else
-        warning(['q has been changed to qmax = ', num2str(qmax,'%d'),...
-                ' due to Hankel-Singular values smaller than the given '...
-                'tolerance (see Opts.hsvtol).']);
+    if q>sys.n && qmax==sys.n
+        warning(['Reduction order exceeds system order. q has been changed to ',...
+            'the system order qmax = ', num2str(qmax,'%d'), '.']);
+        q=qmax;
+    elseif q>qmax
+        if strcmp(Opts.adi,'adi') && qmax==qmaxAdi
+            warning(['A reduction is only possible to qmax = ', num2str(qmax,'%d'),...
+                ' due to ADI. q has been changed accordingly.']);
+        else
+            warning(['q has been changed to qmax = ', num2str(qmax,'%d'),...
+                    ' due to Hankel-Singular values smaller than the given '...
+                    'tolerance (see Opts.hsvTol).']);
+        end
+        q=qmax;
     end
-    q=qmax;
 end
 
 V = sys.TBalInv(:,1:q);
@@ -370,18 +415,10 @@ if strcmp(Opts.adi,'adi')
     sysr=sss(W'*feval(lyaOpts.usfs.m,'N',V),W'*B0,C0*V,sys.D);
     
     %delete global data
-    as_m_d;
-    as_l_d;
-    as_s_d(p.p);
-    msns_m_d;
-    msns_l_d;
-    msns_s_d(p.p)
-    au_m_d;
-    au_l_d;
-    au_s_d(p.p);
-    munu_m_d;
-    munu_l_d;
-    munu_s_d(p.p)
+    as_m_d; as_l_d; as_s_d(p.p);
+    msns_m_d; msns_l_d; msns_s_d(p.p)
+    au_m_d; au_l_d; au_s_d(p.p);
+    munu_m_d; munu_l_d; munu_s_d(p.p)
 else
     sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
 end
