@@ -20,7 +20,7 @@ classdef testTbr < matlab.unittest.TestCase
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 %               Lisa Jeschek
-% Last Change:  05 Sep 2015
+% Last Change:  11 Feb 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------ 
     properties 
@@ -167,6 +167,24 @@ classdef testTbr < matlab.unittest.TestCase
             verification(testCase, actSolution, expSolution, sysr);
             verifyEqual(testCase, full(sysr.E),  expW'*E*expV,'RelTol',0.2,'AbsTol',0.0000000001,...
                     'sysr.E');
+        end
+        function testTbr6(testCase) %adi
+            for i=1:length(testCase.sysCell)
+                sys=testCase.sysCell{i};
+                if ~sys.isDae && sys.n>100
+                    q=50;
+                    opts.adi='adi';
+                    [~,~,~,actHsv]=tbr(sys,q,opts);
+                    opts.adi=0;
+                    [~,~,~,expHsv]=tbr(sys,q,opts);
+                    
+                    actSolution={actHsv(1:5)};
+                    expSolution={expHsv(1:5)};
+
+                    verifyEqual(testCase, actSolution, expSolution,'RelTol',0.3,...
+                        'Difference between actual and expected exceeds relative tolerance');
+                end
+            end
         end
     end
 end

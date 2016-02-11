@@ -30,8 +30,8 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       plotted for the user to enter a desired reduction order.
 %
 %       If the option 'adi' is set, a low rank approximation of the
-%       cholseky factor will be performed. If the option 'adi' is not 
-%       defined, ADI will be performed for systems with sys.n>500.
+%       cholseky factor is performed. If the option 'adi' is not 
+%       defined, ADI is applied to systems with sys.n>500.
 %
 %
 % Input Arguments:
@@ -123,9 +123,9 @@ else
     if ~isfield(Opts,'adi') && sys.n>500
         if isempty(sys.ConGramChol) && isempty(sys.ObsGramChol) && isempty(sys.ConGram) && isempty(sys.ObsGram)
             Opts.adi='adi';
+        else
+            Opts.adi=0;
         end
-    else
-        Opts.adi=0;
     end
     Opts = parseOpts(Opts,Def);
 end
