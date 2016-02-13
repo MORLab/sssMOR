@@ -1296,6 +1296,15 @@ function pb_load_Callback(hObject, eventdata, handles)
            %Create system using loadSss
           
            evalin('base',strcat(name,sprintf(' = loadSss(''%s%s'');',path,filename)));
+           
+           %Check whether the system is DAE and warn the user if the case
+           
+           sys = evalin('base', name);
+           
+           if sys.isDae
+               msgbox('System is DAE. This User-Interface does not fully support systems in DAE-format','Warning','Warn');
+               uiwait
+           end           
             
         catch
             
@@ -1323,7 +1332,7 @@ function pb_load_Callback(hObject, eventdata, handles)
             uiwait           
         end
     end
-
+    
 function pb_readascii_Callback(hObject, eventdata, handles)
     % import matrix market format
 
@@ -1669,6 +1678,27 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
 
     % hide plot of Hankel Singular Values
     set(handles.panel_mor_hsv,'Visible','off')
+    
+    %Set new default values for expension points for krylov
+    
+    value = get(handles.uitable_mor_krylov,'Data');
+   
+    if size(value,1) == 1 && (isempty(cell2mat(value(1,1))) && isempty(cell2mat(value(1,2))) || ...
+            value{1,1} == 0)
+        
+        x = get(handles.pu_mor_systems,'String');
+        y = x{get(handles.pu_mor_systems,'Value')};
+        
+        if ~isempty(y)
+           sys = evalin('base', y);
+           redOrder = round(size(sys.A,1)/3); 
+           value{1,1} = 0;
+           value{1,2} = redOrder;
+           set(handles.uitable_mor_krylov,'Data',value); 
+           set(handles.uitable_mor_krylov_output,'Data',value); 
+           uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles);
+        end        
+    end      
 
 function pb_refreshsys_Callback(hObject, eventdata, handles)
 
@@ -1788,7 +1818,7 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     
     %list vectors in workspace that might be s0
     
-    set(handles.pu_mor_krylov_s0,'String',list_s0_inworkspace);
+    set(handles.pu_mor_krylov_s0,'String',listS0InWorkspace);
 
 
 
@@ -1873,14 +1903,39 @@ elseif get(hObject,'Value')==3
     set(handles.panel_mor_modal,'Visible','off')
     set(handles.panel_mor_krylov,'Visible','on')
 end
-% if multiple expansion points are selected, order can no more
-% be chosen by slider or textfield
-if get(hObject,'Value')==3 && get(handles.rb_mor_krylov_multi,'Value')==1
+
+%If Krylov is selected, the reduced order can't be specified by the slider 
+%anymore
+
+if get(hObject,'Value')==3
     set(handles.ed_mor_q,'Enable','off')
     set(handles.sl_mor_q,'Enable','off')
 else
     set(handles.ed_mor_q,'Enable','on')
     set(handles.sl_mor_q,'Enable','on')
+end
+
+%If Krylov is selected, set the default values for the expension points
+
+if get(hObject,'Value')==3
+   
+    value = get(handles.uitable_mor_krylov,'Data');
+   
+    if isempty(cell2mat(value(1,1))) && isempty(cell2mat(value(1,2)))
+        
+        x = get(handles.pu_mor_systems,'String');
+        y = x{get(handles.pu_mor_systems,'Value')};
+        
+        if ~isempty(y)
+           sys = evalin('base', y);
+           redOrder = round(size(sys.A,1)/3); 
+           value{1,1} = 0;
+           value{1,2} = redOrder;
+           set(handles.uitable_mor_krylov,'Data',value);
+           set(handles.uitable_mor_krylov_output,'Data',value);
+           uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles);
+        end        
+    end    
 end
 
 %Change the suggested Names for the reducted system
@@ -1938,17 +1993,10 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
         return
     end
     q=str2double(get(handles.ed_mor_q,'String'));
-    if isnan(q) || isempty(q)
-        if get(handles.pu_mor_method,'Value')==3 && get(handles.pu_mor_krylov_algorithm,'Value')==3
-            % expansion point and order from table
-            errordlg('Please correct expansion points first','Error Dialo','modal')
-            uiwait
-            return
-        else
+    if (isnan(q) || isempty(q)) && get(handles.pu_mor_method,'Value')~=3
             errordlg('Please choose order of reduced system first.','Error Dialog','modal')
             uiwait
             return
-        end
     end
     if get(handles.ed_mor_sysred,'UserData')==1
         errordlg('Please correct name for reduced system first','Error Dialog','modal')
@@ -2086,14 +2134,18 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
         
         
     case 3 % Krylov
-        % get expansion points. on error s0:=[]
-        s0=get_expansion_points(handles);
-        if isempty(s0)
+        
+        
+        %Get expansion points. on error s0:=[]
+        
+        [s_inp,s_out] = getExpansionPoints(handles);
+        if isempty(s_inp) && isempty(s_out)
             set(handles.figure1,'Pointer','arrow')
             set(hObject,'Enable','on')
             return
         end
         
+        test = get(handles.pu_mor_krylov_algorithm,'Value');
         
         switch get(handles.pu_mor_krylov_algorithm,'Value')
             
@@ -2115,9 +2167,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                         uiwait
                         return
                    end
-                end
-                s0_inp=s0;
-                s0_out=[];
+               end
                 method='Rational Krylov, Input Krylov Subspace';
             elseif get(handles.rb_mor_krylov_twosided,'Value')==1
                 % output krylov
@@ -2136,8 +2186,6 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                         return
                    end
                 end
-                s0_out=s0;
-                s0_inp=[];
                 method='Rational Krylov, Output Krylov Subspace';
             else
                 % two-sided
@@ -2162,12 +2210,14 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                         return
                     end
                 end
-                s0_inp=s0;
-                s0_out=s0;
                 method='Rational Krylov, two-sided';
             end
             try
-                [sysr, V, W] = rk(sys, s0_inp, s0_out);
+                if get(handles.rb_mor_krylov_input,'Value')==1
+                    [sysr, V, W] = rk(sys, s_inp);
+                else
+                    [sysr, V, W] = rk(sys, s_inp, s_out);
+                end
                 %sysr.mor_info=struct('time', clock, 'method', method, 'orgsys', sysname);
             catch ex
                 set(handles.figure1,'Pointer','arrow')
@@ -2232,9 +2282,9 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 uiwait
                 return
             end
-            maxiter=str2double(get(handles.ed_mor_krylov_max,'String'));
-            epsilon=str2double(get(handles.ed_mor_krylov_epsilon,'String'));
-            if isempty(maxiter) || maxiter==0 || isempty(epsilon) %|| epsilon==0 ??
+            Opts.maxiter=str2double(get(handles.ed_mor_krylov_max,'String'));
+            Opts.epsilon=str2double(get(handles.ed_mor_krylov_epsilon,'String'));
+            if isempty(Opts.maxiter) || Opts.maxiter==0 || isempty(Opts.epsilon) %|| epsilon==0 ??
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
                 errordlg('Please choose the maximum number of iterations and epsilon first','Error dialog','modal')
@@ -2242,7 +2292,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 return
             end
             try
-                [sysr,V,W,s0] = irka(sys, get(handles.sl_mor_q, 'Value'), s0, maxiter, epsilon);
+                [sysr,V,W,s0] = irka(sys, s_inp, Opts);
                 %sysr.mor_info=struct('time', clock, 'method', 'Krylov, IRKA', 'orgsys', sysname);
                 %sysr.mor_info.s0=s0;
             catch ex
@@ -2329,52 +2379,10 @@ function updateTBR(hObject, eventdata, handles)
     
     if get(handles.pu_mor_method,'Value')==1 && ~isempty(sys.HankelSingularValues)
         
-        %Check wheter the norm has already been calculated and stored in
-        %the handles.
-        
-        normSystem = 1;
-        
-        try
-            
-            storedSystems = handles.data;
-                         
-        catch
-            
-            handles.data = {};
-        end
-        
-        
-        systemFound = 0;
-        
-        for i = 1:size(handles.data,1)
-               
-            test = handles.data(i,1);
-            
-                if strcmp(handles.data(i,1),sysname)
-                    
-                    normSystem = cell2mat(handles.data(i,2));
-                    systemFound = 1;
-                    break;
-                    
-                end     
-        end 
-        
-        %If the norm has not been calculated yet, calculate it and store
-        %the solution in the handles
-        
-        if systemFound == 0
-           
-            normSystem = norm(sys,inf);
-            handles.data(size(handles.data,1)+1,1) = {sysname};
-            handles.data(size(handles.data,1),2) = {normSystem};
-            guidata(hObject,handles);            
-        end
-       
-        
         %Calculate the signal-norms H_1 and H_inf
         
         e=2*sum(sys.HankelSingularValues((q+1):end));
-        erel=e/normSystem;
+        erel=e/max(sys.HankelSingularValues);
         set(handles.st_mor_tbr_error,'String',num2str(e, '%.3e'))
         set(handles.st_mor_tbr_relerror,'String',num2str(erel, '%.3e'))
         
@@ -2552,56 +2560,40 @@ end
 %Callbacks for Krylov
 
 function pu_mor_krylov_algorithm_Callback(hObject, eventdata, handles)
-if get(hObject,'Value')==1
-    % IRKA, nur twosided möglich
-    %andere radio buttons(rbs) deaktivieren und Texte anpassen
-    set(handles.rb_mor_krylov_twosided,'Value',1)
-    set(handles.rb_mor_krylov_twosided,'Enable','inactive')
-    set(handles.rb_mor_krylov_input,'Enable','off')
-    set(handles.rb_mor_krylov_twosided,'Enable','off')
-    set(handles.panel_mor_krylov_exps,'Title','Choice of starting points')
-    set(handles.panel_mor_krylov_exp,'Title','Choice of starting point')
-    set(handles.bg_mor_krylov_exps,'Title','2. Staring point(s)')
-else % sonst rbs aktivieren
-    set(handles.rb_mor_krylov_twosided,'Enable','on')
-    set(handles.rb_mor_krylov_input,'Enable','on')
-    set(handles.rb_mor_krylov_output,'Enable','on')
-    set(handles.panel_mor_krylov_exps,'Title','Choice of expansion points')
-    set(handles.panel_mor_krylov_exp,'Title','Choice of expansion point')
-    set(handles.bg_mor_krylov_exps,'Title','2. Expansion point(s)')
-end
-if get(hObject,'Value')==2
-    % ICOP, only sigle expansion point and Arnoldi
-    set(handles.rb_mor_krylov_single,'Value',1)
-    set(handles.rb_mor_krylov_single,'Enable','inactive')
-    set(handles.rb_mor_krylov_multi,'Enable','off')
-    set(handles.pu_mor_krylov_alg,'Visible','off')
-else
-    set(handles.rb_mor_krylov_single,'Enable','on')
-    set(handles.rb_mor_krylov_multi,'Enable','on')
-    set(handles.pu_mor_krylov_alg,'Visible','on')
-end
-if get(hObject,'Value')==3
-    % explicit moment matching
-    set(handles.panel_mor_krylov_iter,'Visible','off')
-%***    set(handles.text100,'Visible','off')
-else
-    set(handles.panel_mor_krylov_iter,'Visible','on')
-%***    set(handles.text100,'Visible','on')
-end
-% if multiple expansion points are selected, order can no more
-% be chosen by slider or textfield
-if get(handles.rb_mor_krylov_single,'Value')==1 %single expt
-    set(handles.panel_mor_krylov_exp,'Visible','on')
-    set(handles.panel_mor_krylov_exps,'Visible','off')
-    set(handles.ed_mor_q,'Enable','on')
-    set(handles.sl_mor_q,'Enable','on')
-else
-    set(handles.panel_mor_krylov_exp,'Visible','off')
-    set(handles.panel_mor_krylov_exps,'Visible','on')
-    set(handles.ed_mor_q,'Enable','off')
-    set(handles.sl_mor_q,'Enable','off')
-end
+
+    if get(hObject,'Value')==1
+        % IRKA, nur twosided möglich
+        %andere radio buttons(rbs) deaktivieren und Texte anpassen
+        set(handles.rb_mor_krylov_twosided,'Value',1)
+        set(handles.rb_mor_krylov_twosided,'Enable','inactive')
+        set(handles.rb_mor_krylov_input,'Enable','off')
+        set(handles.rb_mor_krylov_twosided,'Enable','off')
+        set(handles.st_mor_krylov_points,'String','2. Starting points')
+    else % sonst rbs aktivieren
+        set(handles.rb_mor_krylov_twosided,'Enable','on')
+        set(handles.rb_mor_krylov_input,'Enable','on')
+        set(handles.rb_mor_krylov_output,'Enable','on')
+        set(handles.st_mor_krylov_points,'String','2. Expansion points')
+    end
+    
+    % if get(hObject,'Value')==2
+    %     % ICOP, only sigle expansion point and Arnoldi
+    %     set(handles.rb_mor_krylov_single,'Value',1)
+    %     set(handles.rb_mor_krylov_single,'Enable','inactive')
+    %     set(handles.rb_mor_krylov_multi,'Enable','off')
+    %     set(handles.pu_mor_krylov_alg,'Visible','off')
+    % else
+    %     set(handles.rb_mor_krylov_single,'Enable','on')
+    %     set(handles.rb_mor_krylov_multi,'Enable','on')
+    %     set(handles.pu_mor_krylov_alg,'Visible','on')
+    % end
+    
+    if get(hObject,'Value')==3
+        % explicit moment matching
+        set(handles.panel_mor_krylov_iter,'Visible','off')
+    else
+        set(handles.panel_mor_krylov_iter,'Visible','on')
+    end    
 
 function ed_mor_krylov_max_Callback(hObject, eventdata, handles)
 % maximum iterations
@@ -2615,36 +2607,21 @@ x=str2double(get(hObject,'String'));
 x=abs(real(x));
 set(hObject,'String',x)
 
-function uitable_mor_krylov_CreateFcn(hObject, eventdata, handles)
-% adapt size of table
-set(hObject,'Data',cell(1,2))
-
 function pb_mor_krylov_add_Callback(hObject, eventdata, handles) 
 % add empty row to table
-x=get(handles.uitable_mor_krylov,'Data');
-x{size(x,1)+1,1}=[];
-set(handles.uitable_mor_krylov,'Data',x)
+if strcmp(get(handles.uitable_mor_krylov,'Visible'),'on')
+    x=get(handles.uitable_mor_krylov,'Data');
+    x{size(x,1)+1,1}=[];
+    set(handles.uitable_mor_krylov,'Data',x)
+else
+    x=get(handles.uitable_mor_krylov_output,'Data');
+    x{size(x,1)+1,1}=[];
+    set(handles.uitable_mor_krylov_output,'Data',x)
+end
 
 function pu_mor_krylov_s0_CreateFcn(hObject, eventdata, handles)
 % list of vectors in workspace that might be expansion points
-set(hObject,'String',list_s0_inworkspace)
-
-function pu_mor_krylov_s0_Callback(hObject, eventdata, handles)
-% if vector from workspace was selected, add it to table
-if get(hObject,'Value')>1
-    contents = cellstr(get(hObject,'String'));
-    x=evalin('base',contents{get(hObject,'Value')});
-    if size(x,2)~=2
-        x=x';
-    end
-    x=num2cell(x);
-    x=s0_ergaenzen(x,[]);
-    set(handles.uitable_mor_krylov,'Data',x)
-    q=cell2mat(x);
-    q=sum(q(:,2));
-    % adapt order in textfiels
-    set(handles.ed_mor_q,'String',q);
-end
+set(hObject,'String',listS0InWorkspace)
 
 function ed_mor_krylov_exp_Callback(hObject, eventdata, handles)
 % expansion point must be real scalar
@@ -2660,45 +2637,188 @@ elseif isempty(x)
 end
 set(hObject,'String',x)
 
-function bg_mor_krylov_exps_SelectionChangedFcn(hObject, eventdata, handles)
-% hObject    handle to the selected object in bg_mor_krylov_exps 
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-if eventdata.NewValue==handles.rb_mor_krylov_single
-    % single expansion points
-    set(handles.panel_mor_krylov_exp,'Visible','on')
-    set(handles.panel_mor_krylov_exps,'Visible','off')
-    set(handles.ed_mor_q,'Enable','on')
-    set(handles.sl_mor_q,'Enable','on')
-elseif eventdata.NewValue==handles.rb_mor_krylov_multi
-    % multiple expansion points
-    set(handles.panel_mor_krylov_exp,'Visible','off')
-    set(handles.panel_mor_krylov_exps,'Visible','on')
-    set(handles.ed_mor_q,'Enable','off')
-    set(handles.sl_mor_q,'Enable','off')
+function pb_mor_krylov_reset_Callback(hObject, eventdata, handles)
+
+if strcmp(get(handles.uitable_mor_krylov,'Visible'),'on')
+    set(handles.uitable_mor_krylov,'Data',cell(1,2))
 else
-    % nothing selected
-    set(handles.panel_mor_krylov_exp,'Visible','off')
-    set(handles.panel_mor_krylov_exps,'Visible','off')
+    set(handles.uitable_mor_krylov_output,'Data',cell(1,2))
 end
 
-function pb_mor_krylov_reset_Callback(hObject, eventdata, handles)
-set(handles.uitable_mor_krylov,'Data',cell(1,2))
-set(handles.sl_mor_q,'Value',1)
-set(handles.ed_mor_q,'String','')
+function pb_mor_krylov_AddCompConj_Callback(hObject, eventdata, handles)
+
+if strcmp(get(handles.uitable_mor_krylov,'Visible'),'on')
+    x=get(handles.uitable_mor_krylov,'Data');
+    xConj = conj(cell2mat(x));
+    x = [x;mat2cell(xConj,ones(size(xConj,1),1),[1,1])];
+    set(handles.uitable_mor_krylov,'Data',x);
+else
+    x=get(handles.uitable_mor_krylov_output,'Data');
+    xConj = conj(cell2mat(x));
+    x = [x;mat2cell(xConj,ones(size(xConj,1),1),[1,1])];
+    set(handles.uitable_mor_krylov_output,'Data',x);
+end
+
+uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles)
 
 function uitable_mor_krylov_CellEditCallback(hObject, eventdata, handles)
-x=get(hObject,'Data');
-x=s0_ergaenzen(x,eventdata);
-set(hObject,'Data',x)
-q=cell2mat(x);
-if size(q,2)==2
-    q=sum(q(:,2));
-    set(handles.ed_mor_q,'String',q)
+    
+try
+    x=get(hObject,'Data');
+    %x=addExpensionPoints(x,eventdata);
+    %set(hObject,'Data',x)
+    q=cell2mat(x);
+    if size(q,2)==2
+        q=sum(q(:,2));
+        set(handles.st_mor_krylov_redOrder,'String',q);
+
+        if get(handles.rb_mor_krylov_twosided,'Value') == 1    %Two sided
+            set(handles.st_mor_krylov_matchedMom,'String',2*q);
+        else                                               %One sided
+            set(handles.st_mor_krylov_matchedMom,'String',q);
+        end
+        
+        %Check weather the reduced order is bigger than the original order
+        
+        x = get(handles.pu_mor_systems,'String');
+        y = x{get(handles.pu_mor_systems,'Value')};
+        
+        if ~isempty(y)
+           sys = evalin('base',y);
+           if sys.n < q
+              msgbox('Reduced order is bigger than the original order of the system. Please correct that before reducing the system.','Warning','Warn');
+              uiwait;
+           end
+        end
+        
+    end
 end
 
+function uitable_mor_krylov_CreateFcn(hObject, eventdata, handles)
+% adapt size of table
+set(hObject,'Data',cell(1,2))
 
+function uitable_mor_krylov_output_CellEditCallback(hObject, eventdata, handles)
 
+function uitable_mor_krylov_output_CreateFcn(hObject, eventdata, handles)
+% adapt size of table
+set(hObject,'Data',cell(1,2))
+
+function bg_mor_krylov_side_SelectionChangedFcn(hObject, eventdata, handles)
+
+    if get(handles.rb_mor_krylov_twosided,'Value')==1
+        
+        set(handles.uitable_mor_krylov_output,'Visible','Off');
+        set(handles.uitable_mor_krylov,'Visible','On');
+        
+        if get(handles.rb_mor_krylov_hermite,'Value') == 0
+        
+            set(handles.pb_mor_krylov_input,'Visible','On');
+            set(handles.pb_mor_krylov_output,'Visible','On');
+
+            set(handles.pb_mor_krylov_input,'BackgroundColor',[1;0.843;0]);
+            set(handles.pb_mor_krylov_output,'BackgroundColor',[0.94;0.94;0.94]);
+        
+        end
+        
+        set(handles.rb_mor_krylov_hermite,'Enable','On');
+    else
+        
+        set(handles.uitable_mor_krylov_output,'Visible','Off');
+        set(handles.uitable_mor_krylov,'Visible','On');
+        
+        set(handles.pb_mor_krylov_input,'Visible','Off');
+        set(handles.pb_mor_krylov_output,'Visible','Off');
+        
+        set(handles.rb_mor_krylov_hermite,'Enable','Off');
+    end
+
+    uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles);
+
+function pb_mor_krylov_importVector_Callback(hObject, eventdata, handles)
+    % if vector from workspace was selected, add it to table
+    contents = cellstr(get(handles.pu_mor_krylov_s0,'String'));
+    x=evalin('base',contents{get(handles.pu_mor_krylov_s0,'Value')});
+    if size(x,2)~=2
+        x=x';
+    end
+    if size(x,2)==2 && size(x,1)==2
+       if ~(mod(x(1,2),1)==0 && mod(x(2,2),1)==0)
+          if mod(x(1,1),1)==0 && mod(x(2,1),1)==0
+              xTemp = x;
+              x(1,1) = xTemp(1,2);
+              x(2,1) = xTemp(2,2);
+              x(1,2) = xTemp(1,1);
+              x(2,2) = xTemp(2,1);
+          elseif mod(x(1,1),1)==0 && mod(x(1,2),1)==0
+              xTemp = x;
+              x(1,1) = xTemp(2,1);
+              x(2,1) = xTemp(2,2);
+              x(1,2) = xTemp(1,1);
+              x(2,2) = xTemp(1,2);
+          elseif mod(x(2,1),1)==0 && mod(x(2,2),1)==0
+              xTemp = x;
+              x(1,2) = xTemp(2,1);
+              x(2,1) = xTemp(1,2);
+          end
+       end        
+    end
+    x=num2cell(x);
+    %x=addExpensionPoints(x,[]);
+ 
+    if strcmp(get(handles.uitable_mor_krylov,'Visible'),'on')
+        set(handles.uitable_mor_krylov,'Data',x);
+    else
+        set(handles.uitable_mor_krylov_output,'Data',x);
+    end
+    uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov,eventdata,handles);    
+
+function pb_mor_krylov_input_Callback(hObject, eventdata, handles)
+
+%Set the right table visible
+
+set(handles.uitable_mor_krylov,'Visible','On');
+set(handles.uitable_mor_krylov_output,'Visible','Off');
+
+%Change the color of the buttons to signal witch table is selected
+
+set(handles.pb_mor_krylov_input,'BackgroundColor',[1;0.843;0]);
+set(handles.pb_mor_krylov_output,'BackgroundColor',[0.94;0.94;0.94]);
+
+function pb_mor_krylov_output_Callback(hObject, eventdata, handles)
+
+%Set the right table visible
+
+set(handles.uitable_mor_krylov_output,'Visible','On');
+set(handles.uitable_mor_krylov,'Visible','Off');
+
+%Change the color of the buttons to signal witch table is selected
+
+set(handles.pb_mor_krylov_output,'BackgroundColor',[1;0.843;0]);
+set(handles.pb_mor_krylov_input,'BackgroundColor',[0.94;0.94;0.94]);
+
+function rb_mor_krylov_hermite_Callback(hObject, eventdata, handles)
+
+if get(hObject,'Value') == 0
+    
+    set(handles.uitable_mor_krylov_output,'Visible','Off');
+    set(handles.uitable_mor_krylov,'Visible','On');
+
+    set(handles.pb_mor_krylov_input,'Visible','On');
+    set(handles.pb_mor_krylov_output,'Visible','On');
+
+    set(handles.pb_mor_krylov_input,'BackgroundColor',[1;0.843;0]);
+    set(handles.pb_mor_krylov_output,'BackgroundColor',[0.94;0.94;0.94]);
+    
+else
+    
+    set(handles.uitable_mor_krylov_output,'Visible','Off');
+    set(handles.uitable_mor_krylov,'Visible','On');
+
+    set(handles.pb_mor_krylov_input,'Visible','Off');
+    set(handles.pb_mor_krylov_output,'Visible','Off');
+    
+end
 
 %--------------------------------------------------------------------------
 %                            SYSTEM ANALYSIS
@@ -3510,20 +3630,11 @@ catch %#ok<CTCH>
 end
 
 
-function s0=get_expansion_points(handles)
+function [s0,sOut]=getExpansionPoints(handles)
 % read expansion point(s) from GUI
-if get(handles.rb_mor_krylov_single,'Value')==1
-    %single expansion point
-    if get(handles.ed_mor_krylov_exp,'UserData')==1
-        errordlg('Please correct expansion point first','Error Dialog','modal')
-        uiwait
-        s0=[];
-        return
-    end
-    % q= Ordnung des reduzierten Systems, s0 ist einziger Entwicklungspunkt
-    q=get(handles.sl_mor_q,'Value');
-    s0=[str2double(get(handles.ed_mor_krylov_exp,'String'));q];
-else %multiple expansion point
+
+    %Read the expension points from the first table
+
     if get(handles.uitable_mor_krylov,'UserData')==1
         errordlg('Please correct expansion points first','Error Dialog','modal')
         uiwait
@@ -3547,8 +3658,57 @@ else %multiple expansion point
        return
     end 
     s0=transpose(s0);
-end
+    
+    %Check if input, output or two-sided is selected
 
+    if get(handles.rb_mor_krylov_input,'Value') == 1    %Input
+        
+        sIn = s0;
+        sOut = [];     
+        
+    elseif get(handles.rb_mor_krylov_output,'Value') == 1   %Output
+        
+        sOut = s0;
+        sIn = [];
+        
+    else        %Two sided
+        
+        %Check whethter hermite-interpolation or not
+        
+        if get(handles.rb_mor_krylov_hermite,'Value') == 1
+           
+            sIn = s0;
+            sOut = s0;
+            
+        else
+            
+            %Read out the expension points from the output table
+            
+            sIn = s0;
+            
+            if get(handles.uitable_mor_krylov_output,'UserData')==1
+                errordlg('Please correct expansion points first','Error Dialog','modal')
+                uiwait
+                sOut=[];
+                return
+            end
+            sOut=cell2mat(get(handles.uitable_mor_krylov_output,'Data'));% Entwicklungspunkte
+            if isempty(sOut) || size(sOut,2)==1 % Tabelle leer, oder nur Momente ohne Punkt
+                errordlg('Please choose expansion points and number of matching moments','Error Dialog','modal')
+                uiwait
+                sOut=[];
+                return
+            end
+            if sum(sIn(2,:)) ~= sum(sOut(:,2))
+               errordlg('Number of matching moments must be equal for input and output','Error Dialog','modal')
+               uiwait
+               sOut=[];
+               return
+            end 
+            sOut=transpose(sOut);
+            
+        end       
+    end
 
 function test_colors(handles,hObject)
 % check inserted colors
@@ -3684,20 +3844,61 @@ else
 end
 
 
-function x=list_s0_inworkspace
+function x=listS0InWorkspace
 % list all vectors from workspace that might be expansion points
 s=evalin('base', 'whos');
 % preallocate memory
 x=cell(length(s),1);
 for i=1:length(s)
     if strcmp(s(i).class,'double') && length(s(i).size)==2 && (s(i).size(1)==2 || s(i).size(2)==2)
+        %check wheather one dimension is integer
+        vec = evalin('base',s(i).name);
+        isInt1 = 1;
+        isInt2 = 1;
+        if size(vec,1) == 2 && size(vec,2) == 2
+            isInt1 = 0;
+            isInt2 = 0;
+            if (mod(vec(1,1),1)==0 && mod(vec(2,1),1)==0) || ...
+               (mod(vec(1,2),1)==0 && mod(vec(2,2),1)==0)
+           
+                isInt1 = 1;
+            end
+            if (mod(vec(1,1),1)==0 && mod(vec(1,2),1)==0) || ...
+               (mod(vec(2,1),1)==0 && mod(vec(2,2),1)==0)
+           
+                isInt2 = 1;
+            end
+     
+        elseif size(vec,1) == 2
+            for j = 1:size(vec,2)
+               if mod(vec(1,j),1)~=0
+                  isInt1 = 0; 
+               end
+               if mod(vec(2,j),1)~=0
+                  isInt2 = 0; 
+               end
+            end
+            
+        else
+            for j = 1:size(vec,1)
+               if mod(vec(j,1),1)~=0
+                  isInt1 = 0; 
+               end
+               if mod(vec(j,2),1)~=0
+                  isInt2 = 0; 
+               end
+            end
+        end
+        
         % save name
-        x{i}=s(i).name;
+        
+        if isInt1 == 1 || isInt2 == 1
+            x{i}=s(i).name;
+        end
     end
 end
 % remove empty (non-system) entries
 x(cellfun(@isempty,x)) = [];
-x=[{''}; x];
 
 
 
@@ -3812,3 +4013,24 @@ for i=1:length(s)
 end
 % remove empty (non-system) entries
 x(cellfun(@isempty,x)) = [];
+
+
+
+
+
+% --- Executes on button press in pb_info_tbr.
+function pb_info_tbr_Callback(hObject, eventdata, handles)
+% hObject    handle to pb_info_tbr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+
+
+
+
+
+
+
+
+

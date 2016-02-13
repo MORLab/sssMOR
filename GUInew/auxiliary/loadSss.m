@@ -86,9 +86,19 @@ LoadData = load(fname);
 
 if isfield(LoadData,'A') %1st order form
     if ~isfield(LoadData,'B'), 
-        error('This benchmark does not have a B matrix. Please load it manually'),
+        if ~isfield(LoadData,'b')
+           error('This benchmark does not have a B matrix. Please load it manually'),
+        else
+           LoadData.B = LoadData.b; 
+        end
     end
-    if ~isfield(LoadData,'C'), LoadData.C = LoadData.B'; end
+    if ~isfield(LoadData,'C')
+        if ~isfield(LoadData,'c')
+            LoadData.C = LoadData.B'; 
+        else
+            LoadData.C = LoadData.c;
+        end
+    end
     if ~isfield(LoadData,'D'), 
         LoadData.D = zeros(size(LoadData.C,1),size(LoadData.B,2)); 
     end
@@ -101,6 +111,18 @@ elseif isfield(LoadData,'M') %2nd order form
     warning('The system is in 2nd order form and will be converted to 1st order.')
     
     if ~isfield(LoadData,'D'), LoadData.D = zeros(size(LoadData.K)); end
+    
+    if ~isfield(LoadData,'C')
+       if isfield(LoadData,'c')
+           LoadData.C = LoadData.c;
+       end
+    end
+    
+    if ~isfield(LoadData,'B')
+       if isfield(LoadData,'b')
+          LoadData.B = LoadData.b;
+       end
+    end
     
     %Use the function second2first to create the system
     
