@@ -1384,29 +1384,11 @@ function pb_create_Callback(hObject, eventdata, handles)
 
 function pb_infoLoadOptions_Callback(hObject, eventdata, handles)
 
-    %Show a message-box with information about the selectable options
+    %Show a information-box with information about the selectable options
 
-%     s = {'Load matrices:'...
-%          '  '...
-%          'Loads the matrices from the .mat-file to the workspace'...
-%          '  '...
-%          '  '...
-%          'Load system:'...
-%          '  '...
-%          'Creates a system with the matrices from the .mat-file using the loadSss-function'...
-%          '  '};
-    CreateStruct.Interpreter = 'latex';
-    CreateStruct.WindowStyle = 'modal';
-    
-    s = {'$-~\textbf{load matrices} $' '$~$' '~~~~~~Loads the matrices from the .mat-file to the workspace' ...
-         '$~$' '$~$' '$-~\textbf{load sss-model}$' '$~$' '~~~~~~The loadSss-function is used to create a system out' ...
-         '~~~~~~of matrices from the .mat-file' '~' '~~~~~~loadSss lets you define the path to a .mat file in which the' ...
-         '~~~~~~system matrices are stored, either in the form' '~~~~~~(A,B,C,D,E) - 1st order - or (M,Da,K,B,C) - 2nd order.' ...
-         '~' '~~~~~~If not all of the matrices are found in the .mat file,' '~~~~~~following assumptions will be applied:' ...
-         '~' '~~~~~~~~$\bullet ~ C = B^T$' '~~~~~~~~$\bullet ~ D = zeros(size(C,1),size(B,2))$' ...
-         '~~~~~~~~$\bullet ~ E = speye(size(A))$' '~' '~' '~' '~'};
+    infoBox({'pictures\InfoLoadOptions.png'});
+    uiwait;
 
-    h = msgbox(s, 'Information',CreateStruct);
     
 %Callbacks of the list-boxes
     
@@ -2538,6 +2520,12 @@ if isa(handles.zoom,'graphics.zoom')
 end
 guidata(hObject,handles)
 
+
+function pb_info_tbr_Callback(hObject, eventdata, handles)
+
+    infoBox({'pictures\InfoErrorBound.png'});
+    uiwait;
+
 %Callbacks for Modal
 
 function ed_mor_modal_neig_Callback(hObject, eventdata, handles)
@@ -2738,7 +2726,13 @@ function bg_mor_krylov_side_SelectionChangedFcn(hObject, eventdata, handles)
 function pb_mor_krylov_importVector_Callback(hObject, eventdata, handles)
     % if vector from workspace was selected, add it to table
     contents = cellstr(get(handles.pu_mor_krylov_s0,'String'));
-    x=evalin('base',contents{get(handles.pu_mor_krylov_s0,'Value')});
+    try
+        x=evalin('base',contents{get(handles.pu_mor_krylov_s0,'Value')});
+    catch ex
+       errordlg('No valid matrix selected');
+       return;
+    end
+    
     if size(x,2)~=2
         x=x';
     end
@@ -2784,6 +2778,11 @@ set(handles.uitable_mor_krylov_output,'Visible','Off');
 
 set(handles.pb_mor_krylov_input,'BackgroundColor',[1;0.843;0]);
 set(handles.pb_mor_krylov_output,'BackgroundColor',[0.94;0.94;0.94]);
+
+function pb_mor_krylov_infoHermite_Callback(hObject, eventdata, handles)
+
+    infoBox({'pictures\InfoHermiteInterpolation.png'});
+    uiwait;
 
 function pb_mor_krylov_output_Callback(hObject, eventdata, handles)
 
@@ -3899,6 +3898,9 @@ for i=1:length(s)
 end
 % remove empty (non-system) entries
 x(cellfun(@isempty,x)) = [];
+if isempty(x)
+   x = {''}; 
+end
 
 
 
@@ -4013,24 +4015,4 @@ for i=1:length(s)
 end
 % remove empty (non-system) entries
 x(cellfun(@isempty,x)) = [];
-
-
-
-
-
-% --- Executes on button press in pb_info_tbr.
-function pb_info_tbr_Callback(hObject, eventdata, handles)
-% hObject    handle to pb_info_tbr (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-
-
-
-
-
-
-
-
 
