@@ -114,7 +114,7 @@ function [output1,output2] = headerTemplate(input1,varargin)
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
 % Reduction and System Analysis Toolbox developed at the Chair of 
 % Automatic Control, Technische Universitaet Muenchen. For updates 
-% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% and further information please visit <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
 % For any suggestions, submission and/or bug reports, mail us at
 %                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
 %
@@ -123,7 +123,7 @@ function [output1,output2] = headerTemplate(input1,varargin)
 %------------------------------------------------------------------
 % Authors:      Author 1, Author 2
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
-% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  02 Nov 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
