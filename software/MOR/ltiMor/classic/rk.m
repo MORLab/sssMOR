@@ -46,14 +46,18 @@ function [sysr, V, W, Bb, SRsylv, Rsylv, Cb, SLsylv, Lsylv] = rk(sys, s0_inp, va
 %       -Rt/Lt:             right/left tangential directions
 %       -IP:                inner product (optional)
 %       -Opts:              a structure containing following options
-%           -.makeOrth:     make orthogonal?
-%                           [{'1'} / '0']
-%           -.makeReal:     keep the projection matrices real?
-%                           [{'1'} / '0']
-%           -.reorth:       gram schmidt reorthogonalization;
+%           -.real:         keep the projection matrices real
+%                           [{'real'} / '0']
+%           -.orth:         orthogonalization of new projection direction
+%                           [{'2mgs'} / 0 / 'dgks' / 'mgs']
+%           -.reorth:       reorthogonalization
 %                           [{'gs'} / 0 / 'qr']
-%           -.lu:           use sparse or full LU;
-%                           [{'sparse'} / 'full']
+%           -.lse:          use LU or hessenberg decomposition
+%                           [{'sparse'} / 'full' / 'hess']
+%           -.dgksTol:      tolerance for dgks orthogonalization
+%                           [{1e-12} / positive float]
+%           -.krylov:       standard or cascaded krylov basis
+%                           [{0} / 'cascade]
 %
 % Output Arguments:
 %       -sysr:              reduced system

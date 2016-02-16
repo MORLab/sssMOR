@@ -45,6 +45,18 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, 
 %						[{'combAny'} / 's0' / 'sysr' / 'combAll']
 %           -.suppressverbose: suppress any type of verbose for speedup;
 %                       [{0} / 1]
+%           -.real:     keep the projection matrices real
+%                       [{'real'} / '0']
+%           -.orth:     orthogonalization of new projection direction
+%                       [{'2mgs'} / 0 / 'dgks' / 'mgs']
+%           -.reorth:   reorthogonalization
+%                       [{'gs'} / 0 / 'qr']
+%           -.lse:      use LU or hessenberg decomposition
+%                       [{'sparse'} / 'full' / 'hess']
+%           -.dgksTol:  tolerance for dgks orthogonalization
+%                       [{1e-12} / positive float]
+%           -.krylov:   standard or cascaded krylov basis
+%                       [{0} / 'cascade]
 %
 % Output Arguments:      
 %       -sysr:              reduced order model (sss)
