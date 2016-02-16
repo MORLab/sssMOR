@@ -1,4 +1,4 @@
-# sssMOR
+﻿# sssMOR
 A sparse state-space, model order reduction toolbox developed at the Chair of 
 Automatic Control, Technische Universität München
 
@@ -28,3 +28,33 @@ LF10            | 10^9
 beam            | 10^8
 random          | 10^7
 SpiralInductorPeec | 10^6
+
+### Changelog
+
+Release 1.02 (the one that has actually not been released yet)
+- ARNOLDI
+	- **new outputs (matrices of Sylvester equation)**
+	- **new input (Opts structure)**
+	- Opts.orth (1xMGS,2x MGS,DGKS)
+	- Opts.dgksTol
+	- Opts.reorth (1xMGS, qr)
+	- Opts.real (0,'real')
+	- Opts.krylov (cascaded krylov basis for SISO)
+	- Opts.lse (sparse, full, hess) for solving linear systems of equations
+
+- RK
+	- **new outputs (matrices of Sylvester equation)**
+	- **new input (Opts structure for arnoldi)**
+
+- IRKA
+	- **new outputs (matrices of Sylvester equation)**
+	- **new output (kIter)**
+	- Opts.suppressverbose for speed-up
+
+- MODALMOR
+	- **new output (dominance analysis values)**
+	- Opts.dominance: dominance analysis, most dominant eigenvalue reduction
+	- Opts.tol for eigenspace computation
+
+- TBR
+	- plot decay of hsv and ask user (if q not defined)
