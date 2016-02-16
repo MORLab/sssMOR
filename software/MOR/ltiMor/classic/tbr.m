@@ -89,7 +89,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  10 Feb 2016
+% Last Change:  16 Feb 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -345,10 +345,18 @@ end
 % determine reduction order
 if exist('q','var') || Opts.redErr>0
     if ~exist('q','var')
-        hsvSum=0;
+        if strcmp(Opts.adi,'adi') && qmax<sys.n
+            % worst case for unknown hsv
+            hsvSum=2*real(hsv(qmax))*(sys.n-qmax+1);
+        else
+            hsvSum=0;
+        end
         for i=qmax:-1:1
             if hsvSum>Opts.redErr
                 q=i+1;
+                if q>qmax
+                    q=qmax;
+                end
                 break;
             else
                 hsvSum=hsvSum+2*real(hsv(i));
@@ -370,8 +378,10 @@ if exist('q','var') || Opts.redErr>0
         q=sys.n;
     end
     if sum(hsv>=Opts.hsvTol*hsv(1))<q
-        warning(['The Hankel-Singular values are very small. You may want to',... 
-            'check the stability of the reduced system.']);
+        warning(['The reduced system of desired order may not be a minimal ',...
+            'realization and it may not be stable. The recommended reduced',...
+            ' order is q = ',num2str(sum(hsv>=Opts.hsvTol*hsv(1)),'%d'),...
+            ' (see Opts.hsvTol).']);
     end
 else
     qmax = min([sum(hsv>=Opts.hsvTol*hsv(1)), qmax]);
