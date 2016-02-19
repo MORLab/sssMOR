@@ -337,7 +337,21 @@ classdef testArnoldi < matlab.unittest.TestCase
               verifyEqual(testCase, actMt, expMt, 'RelTol', 1e-6);
               end
             end
-        end 
+        end
+        function testArnoldi8(testCase) 
+            %test Sylvester matrices
+            Opts.orth='2mgs';
+            Opts.reorth='qr';
+            Opts.real='real';
+            s0=[50, 100, 200, 300, 1-1i, 1+1i];
+            for i=1:length(testCase.sysCell)
+                sys=testCase.sysCell{i};
+                [V, SRsylv, CRsylv] = arnoldi(sys.E,sys.A,sys.B,s0,Opts);
+                % residual of sylvester equation
+                actSolution=norm(sys.A*V-sys.E*V*SRsylv-sys.B*CRsylv);
+                verifyLessThan(testCase,actSolution,1e-8);
+            end
+        end
     end
 end
 
