@@ -204,8 +204,6 @@ else
     E = sparse(E); A=sparse(A);
 end
 
-nOut=nargout;
-
 %% ---------------------------- CODE -------------------------------
 % Real reduced system
 if strcmp(Opts.real,'real')
@@ -219,15 +217,15 @@ end
 
 % Compute the Krylov subspaces
 if hermite
-    [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = krylovSubspace(s0, q, nOut);
+    [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = krylovSubspace(s0, q);
 else
-    [V, SRsylv, CRsylv] = krylovSubspace(s0, q, nOut);
+    [V, SRsylv, CRsylv] = krylovSubspace(s0, q);
 end
     
 
 %% ------------------ AUXILIARY FUNCTIONS --------------------------
 % a) PRIMARY
-    function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = krylovSubspace(s0, q, nOut)
+    function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = krylovSubspace(s0, q)
     %   Calculate Krylov Subspace of s0
     %   Input:  s0:  Vector containing the expansion points
     %           q:   Original length of s0 with complex conjugated elements
