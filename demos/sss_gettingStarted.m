@@ -185,7 +185,14 @@ fprintf('This was just a short introduction to sss-objects and their usage.\n');
 fprintf('For more details on sss-objects and the functions implemented,\n');
 fprintf('please refer to the documentation of the sss-class.\n');
 rule
-demoEndsss
+fprintf('This is it! We hope you enjoyed this demo and are eager to test\n');
+fprintf('the capabilities of the sss toolbox by yourself! (Check out all \n');
+fprintf('other demos and benchmark systems that you can use!)\n');
+fprintf('For any further questions, please refer to the documentation of the\n');
+fprintf('toolbox. For comments and submissions, please send a mail to \n');
+fprintf('"sss@rt.mw.tum.de". If you want to stay up to date with new\n');
+fprintf('releases, sign up for our newsletter under "www.rt.mw.tum.de". \n');
+rule
 close all;
 rule
 function rule
