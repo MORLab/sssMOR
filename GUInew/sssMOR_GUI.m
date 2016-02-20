@@ -1659,28 +1659,7 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
     suggestNamesMOR(y,handles);
 
     % hide plot of Hankel Singular Values
-    set(handles.panel_mor_hsv,'Visible','off')
-    
-    %Set new default values for expension points for krylov
-    
-    value = get(handles.uitable_mor_krylov,'Data');
-   
-    if size(value,1) == 1 && (isempty(cell2mat(value(1,1))) && isempty(cell2mat(value(1,2))) || ...
-            value{1,1} == 0)
-        
-        x = get(handles.pu_mor_systems,'String');
-        y = x{get(handles.pu_mor_systems,'Value')};
-        
-        if ~isempty(y)
-           sys = evalin('base', y);
-           redOrder = round(size(sys.A,1)/3); 
-           value{1,1} = 0;
-           value{1,2} = redOrder;
-           set(handles.uitable_mor_krylov,'Data',value); 
-           set(handles.uitable_mor_krylov_output,'Data',value); 
-           uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles);
-        end        
-    end      
+    set(handles.panel_mor_hsv,'Visible','off');    
 
 function pb_refreshsys_Callback(hObject, eventdata, handles)
 
@@ -1910,9 +1889,17 @@ if get(hObject,'Value')==3
         
         if ~isempty(y)
            sys = evalin('base', y);
-           redOrder = round(size(sys.A,1)/3); 
-           value{1,1} = 0;
-           value{1,2} = redOrder;
+           if size(sys.A,1) > 6
+               value{1,1} = 0;
+               value{1,2} = 2;
+               value{2,1} = 1+i;
+               value{2,2} = 2;
+               value{3,1} = 1-i;
+               value{3,2} = 2;           
+           else
+               value{1,1} = 0;
+               value{1,2} = 1;
+           end
            set(handles.uitable_mor_krylov,'Data',value);
            set(handles.uitable_mor_krylov_output,'Data',value);
            uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles);
@@ -1968,6 +1955,9 @@ updateTBR(hObject, eventdata, handles)
 
 function pb_mor_reduce_Callback(hObject, eventdata, handles)
 
+    %Check if ths spectified names for the system and for the projection
+    %matrices are correct
+
     if (get(handles.ed_mor_w,'UserData')==1 && get(handles.cb_mor_savew,'Value')==1)...
      ||(get(handles.ed_mor_v,'UserData')==1 && get(handles.cb_mor_savev,'Value')==1)
         errordlg('Please correct names for projection matrices first','Error Dialog','modal')
@@ -1992,6 +1982,9 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             return
         end
     end
+        
+    %Get the system that should be reduced
+    
     set(handles.figure1,'Pointer','watch')
     set(hObject,'Enable','off')
     drawnow % this makes the watch appear
@@ -2000,6 +1993,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     sys=evalin('base',sysname);
 
     % convert to sss
+    
     if ~strcmp(class(sys), 'sss')
         try
             sys=sss(sys);
@@ -2013,6 +2007,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     end
 
     % Reduce
+    
     switch get(handles.pu_mor_method,'Value')
         
     case 1 %TBR
@@ -2065,6 +2060,21 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 uiwait
                 return
             end
+        end
+        
+        %Check if the A-matrix of the system is symmetric if SA or LA is
+        %selected
+        
+        if get(handles.rb_mor_modal_LA,'Value')==1 || ...
+                get(handles.rb_mor_modal_SA,'Value')==1
+          
+            if issymmetric(sys.A) == 0 || isreal(sys.A) == 0
+                set(handles.figure1,'Pointer','arrow')
+                set(hObject,'Enable','on')
+                errordlg('Options "LA" and "SA" are only valid for systems with real symmetric A!','Error Dialog','modal')
+                uiwait
+                return
+            end            
         end
         
         %Options for eigenvalues
@@ -2264,6 +2274,19 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 uiwait
                 return
             end
+            
+            %Options
+            
+            if get(handles.pu_mor_krylov_StopCrit,'Value') == 1
+                Opts.stopCrit = 'combAny';
+            elseif get(handles.pu_mor_krylov_StopCrit,'Value') == 2
+                Opts.stopCrit = 's0';
+            elseif get(handles.pu_mor_krylov_StopCrit,'Value') == 3
+                Opts.stopCrit = 'sysr';
+            else
+                Opts.stopCrit = 'combAll';
+            end
+            
             Opts.maxiter=str2double(get(handles.ed_mor_krylov_max,'String'));
             Opts.epsilon=str2double(get(handles.ed_mor_krylov_epsilon,'String'));
             if isempty(Opts.maxiter) || Opts.maxiter==0 || isempty(Opts.epsilon) %|| epsilon==0 ??
@@ -2273,6 +2296,9 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 uiwait
                 return
             end
+            
+            %Reduce
+            
             try
                 [sysr,V,W,s0] = irka(sys, s_inp, Opts);
                 %sysr.mor_info=struct('time', clock, 'method', 'Krylov, IRKA', 'orgsys', sysname);
@@ -2290,7 +2316,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     % write system to workspace
     if get(handles.cb_mor_krylov,'Value')==1
         % impose E_r=I?
-        sysr.resolve_dae
+        sysr.resolveDescriptor;
     end
 
     assignin('base',get(handles.ed_mor_sysred,'String'),sysr)
@@ -2555,7 +2581,8 @@ function pu_mor_krylov_algorithm_Callback(hObject, eventdata, handles)
         set(handles.rb_mor_krylov_twosided,'Value',1)
         set(handles.rb_mor_krylov_twosided,'Enable','inactive')
         set(handles.rb_mor_krylov_input,'Enable','off')
-        set(handles.rb_mor_krylov_twosided,'Enable','off')
+        set(handles.rb_mor_krylov_output,'Enable','off')
+        set(handles.rb_mor_krylov_hermite,'Value',1)
         set(handles.st_mor_krylov_points,'String','2. Starting points')
     else % sonst rbs aktivieren
         set(handles.rb_mor_krylov_twosided,'Enable','on')
@@ -2579,9 +2606,15 @@ function pu_mor_krylov_algorithm_Callback(hObject, eventdata, handles)
     if get(hObject,'Value')==3
         % explicit moment matching
         set(handles.panel_mor_krylov_iter,'Visible','off')
+        set(handles.st_mor_krylov_AlgoParams,'Visible','off')
+        set(handles.pb_mor_krylov_infoAlgoParams,'Visible','off')
     else
         set(handles.panel_mor_krylov_iter,'Visible','on')
+        set(handles.st_mor_krylov_AlgoParams,'Visible','on')
+        set(handles.pb_mor_krylov_infoAlgoParams,'Visible','on')
     end    
+    
+    bg_mor_krylov_side_SelectionChangedFcn(handles.bg_mor_krylov_side,eventdata,handles);
 
 function ed_mor_krylov_max_Callback(hObject, eventdata, handles)
 % maximum iterations
@@ -2653,17 +2686,25 @@ function uitable_mor_krylov_CellEditCallback(hObject, eventdata, handles)
     
 try
     x=get(hObject,'Data');
-    %x=addExpensionPoints(x,eventdata);
-    %set(hObject,'Data',x)
-    q=cell2mat(x);
-    if size(q,2)==2
-        q=sum(q(:,2));
-        set(handles.st_mor_krylov_redOrder,'String',q);
+    data1=cell2mat(x);
+    x = get(handles.uitable_mor_krylov_output,'Data');
+    data2=cell2mat(x);
+    if size(data1,2)==2
+        data1=sum(data1(:,2));
+        data2=sum(data2(:,2));
+        
+        set(handles.st_mor_krylov_redOrder,'String',data1);
 
         if get(handles.rb_mor_krylov_twosided,'Value') == 1    %Two sided
-            set(handles.st_mor_krylov_matchedMom,'String',2*q);
+            if get(handles.pu_mor_krylov_algorithm,'Value') == 3 && ...
+                    get(handles.rb_mor_krylov_hermite,'Value') == 0 %Input and Output specifiable
+                
+                set(handles.st_mor_krylov_matchedMom,'String',data2+data1);
+            else
+                set(handles.st_mor_krylov_matchedMom,'String',2*data1);
+            end
         else                                               %One sided
-            set(handles.st_mor_krylov_matchedMom,'String',q);
+            set(handles.st_mor_krylov_matchedMom,'String',data1);
         end
         
         %Check weather the reduced order is bigger than the original order
@@ -2673,7 +2714,7 @@ try
         
         if ~isempty(y)
            sys = evalin('base',y);
-           if sys.n < q
+           if sys.n < data1
               msgbox('Reduced order is bigger than the original order of the system. Please correct that before reducing the system.','Warning','Warn');
               uiwait;
            end
@@ -2685,16 +2726,39 @@ end
 function uitable_mor_krylov_CreateFcn(hObject, eventdata, handles)
 % adapt size of table
 set(hObject,'Data',cell(1,2))
+handles.SelectedIndex = 1;
+guidata(hObject,handles);
 
 function uitable_mor_krylov_output_CellEditCallback(hObject, eventdata, handles)
+
+uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles)
 
 function uitable_mor_krylov_output_CreateFcn(hObject, eventdata, handles)
 % adapt size of table
 set(hObject,'Data',cell(1,2))
+handles.SelectedIndex = 1;
+guidata(hObject,handles);
+
+function uitable_mor_krylov_CellSelectionCallback(hObject, eventdata, handles)
+%Reads out the selected indices and stores it in a the handles structure
+currentCell = eventdata.Indices;
+currentCell = currentCell(:,1);
+currentCell = unique(currentCell);
+handles.SelectedIndex = currentCell;
+guidata(hObject,handles);
+
+function uitable_mor_krylov_output_CellSelectionCallback(hObject, eventdata, handles)
+%Reads out the selected indices and stores it in a the handles structure
+currentCell = eventdata.Indices;
+currentCell = currentCell(:,1);
+currentCell = unique(currentCell);
+handles.SelectedIndex = currentCell;
+guidata(hObject,handles);
 
 function bg_mor_krylov_side_SelectionChangedFcn(hObject, eventdata, handles)
 
-    if get(handles.rb_mor_krylov_twosided,'Value')==1
+    if get(handles.rb_mor_krylov_twosided,'Value')==1 && ...
+            get(handles.pu_mor_krylov_algorithm,'Value')~=1 %nicht IRKA
         
         set(handles.uitable_mor_krylov_output,'Visible','Off');
         set(handles.uitable_mor_krylov,'Visible','On');
@@ -2733,37 +2797,12 @@ function pb_mor_krylov_importVector_Callback(hObject, eventdata, handles)
        return;
     end
     
-    if size(x,2)~=2
-        x=x';
-    end
-    if size(x,2)==2 && size(x,1)==2
-       if ~(mod(x(1,2),1)==0 && mod(x(2,2),1)==0)
-          if mod(x(1,1),1)==0 && mod(x(2,1),1)==0
-              xTemp = x;
-              x(1,1) = xTemp(1,2);
-              x(2,1) = xTemp(2,2);
-              x(1,2) = xTemp(1,1);
-              x(2,2) = xTemp(2,1);
-          elseif mod(x(1,1),1)==0 && mod(x(1,2),1)==0
-              xTemp = x;
-              x(1,1) = xTemp(2,1);
-              x(2,1) = xTemp(2,2);
-              x(1,2) = xTemp(1,1);
-              x(2,2) = xTemp(1,2);
-          elseif mod(x(2,1),1)==0 && mod(x(2,2),1)==0
-              xTemp = x;
-              x(1,2) = xTemp(2,1);
-              x(2,1) = xTemp(1,2);
-          end
-       end        
-    end
-    x=num2cell(x);
-    %x=addExpensionPoints(x,[]);
+    tableData = addMatrixToTable(x);
  
     if strcmp(get(handles.uitable_mor_krylov,'Visible'),'on')
-        set(handles.uitable_mor_krylov,'Data',x);
+        set(handles.uitable_mor_krylov,'Data',tableData);
     else
-        set(handles.uitable_mor_krylov_output,'Data',x);
+        set(handles.uitable_mor_krylov_output,'Data',tableData);
     end
     uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov,eventdata,handles);    
 
@@ -2818,6 +2857,75 @@ else
     set(handles.pb_mor_krylov_output,'Visible','Off');
     
 end
+
+uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles);
+
+function pb_mor_krylov_deleteRow_Callback(hObject, eventdata, handles)
+
+%Read out the selected indices from the handles
+
+indices = handles.SelectedIndex;
+
+%Delete selected rows
+
+if strcmp(get(handles.uitable_mor_krylov,'Visible'),'on')
+    x=get(handles.uitable_mor_krylov,'Data');
+    
+    for i = 1:size(indices,1)
+       x(indices(i,1)-i+1,:) = []; 
+    end
+    
+    set(handles.uitable_mor_krylov,'Data',x)
+else
+    x=get(handles.uitable_mor_krylov_output,'Data');
+    
+    for i = 1:size(indices,1)
+       x(indices(i,1)-i+1,:) = []; 
+    end
+    
+    set(handles.uitable_mor_krylov_output,'Data',x)
+end
+
+function et_mor_krylov_commandLine_Callback(hObject, eventdata, handles)
+
+    %Execute the typed in command in the workspace
+
+    text = get(handles.et_mor_krylov_commandLine,'String');
+
+    try
+        m = evalin('base',text);
+    catch er
+        errordlg(er.message);
+        return;
+    end
+
+    %Read out the expension points from the vector
+
+    if (size(m,1) == 1 || size(m,2) == 1) || correctExpensionPointMatrix(m) == 1
+        data = addMatrixToTable(m);
+    else
+        errordlg('The matrix created with the command line has not the correct format.');
+        return;
+    end
+
+    %Write the data to the table
+
+    if strcmp(get(handles.uitable_mor_krylov,'Visible'),'on')
+        set(handles.uitable_mor_krylov,'Data',data);
+    else
+        set(handles.uitable_mor_krylov_output,'Data',data);
+    end
+
+function pb_mor_krylov_refresh_Callback(hObject, eventdata, handles)
+% list of vectors in workspace that might be expansion points
+set(handles.pu_mor_krylov_s0,'String',listS0InWorkspace)
+
+function pb_mor_krylov_infoInOut_Callback(hObject, eventdata, handles)
+
+    infoBox({'pictures\InfoMomentMatching.png'});
+    uiwait;
+
+function pb_mor_krylov_infoAlgoParams_Callback(hObject, eventdata, handles)
 
 %--------------------------------------------------------------------------
 %                            SYSTEM ANALYSIS
@@ -3842,6 +3950,7 @@ else
     set(hObject,'UserData','0')
 end
 
+%Import a matrix with expesion-points from the workspace
 
 function x=listS0InWorkspace
 % list all vectors from workspace that might be expansion points
@@ -3849,51 +3958,23 @@ s=evalin('base', 'whos');
 % preallocate memory
 x=cell(length(s),1);
 for i=1:length(s)
-    if strcmp(s(i).class,'double') && length(s(i).size)==2 && (s(i).size(1)==2 || s(i).size(2)==2)
+    if strcmp(s(i).class,'double') && length(s(i).size)==2 && ...
+            (s(i).size(1)==2 || s(i).size(2)==2)    %Matrix
+        
         %check wheather one dimension is integer
         vec = evalin('base',s(i).name);
-        isInt1 = 1;
-        isInt2 = 1;
-        if size(vec,1) == 2 && size(vec,2) == 2
-            isInt1 = 0;
-            isInt2 = 0;
-            if (mod(vec(1,1),1)==0 && mod(vec(2,1),1)==0) || ...
-               (mod(vec(1,2),1)==0 && mod(vec(2,2),1)==0)
-           
-                isInt1 = 1;
-            end
-            if (mod(vec(1,1),1)==0 && mod(vec(1,2),1)==0) || ...
-               (mod(vec(2,1),1)==0 && mod(vec(2,2),1)==0)
-           
-                isInt2 = 1;
-            end
-     
-        elseif size(vec,1) == 2
-            for j = 1:size(vec,2)
-               if mod(vec(1,j),1)~=0
-                  isInt1 = 0; 
-               end
-               if mod(vec(2,j),1)~=0
-                  isInt2 = 0; 
-               end
-            end
-            
-        else
-            for j = 1:size(vec,1)
-               if mod(vec(j,1),1)~=0
-                  isInt1 = 0; 
-               end
-               if mod(vec(j,2),1)~=0
-                  isInt2 = 0; 
-               end
-            end
-        end
         
         % save name
         
-        if isInt1 == 1 || isInt2 == 1
+        if correctExpensionPointMatrix(vec) == 1
             x{i}=s(i).name;
         end
+        
+    elseif strcmp(s(i).class,'double') && length(s(i).size)==2 && ...
+            (s(i).size(1)==1 || s(i).size(2)==1)    %Vector
+        
+        x{i}=s(i).name;
+        
     end
 end
 % remove empty (non-system) entries
@@ -3902,8 +3983,111 @@ if isempty(x)
    x = {''}; 
 end
 
+function t=correctExpensionPointMatrix(m)
+%Checks if a matric has the korrekt format to contain possible expension
+%points for the Krylov-methods
 
+    t = 0;
 
+    if size(m,1)==2 || size(m,2)==2    
+        %check wheather one dimension is integer
+        isInt1 = 1;
+        isInt2 = 1;
+        if size(m,1) == 2 && size(m,2) == 2
+            isInt1 = 0;
+            isInt2 = 0;
+            if (mod(m(1,1),1)==0 && mod(m(2,1),1)==0) || ...
+               (mod(m(1,2),1)==0 && mod(m(2,2),1)==0)
+           
+                isInt1 = 1;
+            end
+            if (mod(m(1,1),1)==0 && mod(m(1,2),1)==0) || ...
+               (mod(m(2,1),1)==0 && mod(m(2,2),1)==0)
+           
+                isInt2 = 1;
+            end
+     
+        elseif size(m,1) == 2
+            for j = 1:size(m,2)
+               if mod(m(1,j),1)~=0
+                  isInt1 = 0; 
+               end
+               if mod(m(2,j),1)~=0
+                  isInt2 = 0; 
+               end
+            end
+            
+        else
+            for j = 1:size(m,1)
+               if mod(m(j,1),1)~=0
+                  isInt1 = 0; 
+               end
+               if mod(m(j,2),1)~=0
+                  isInt2 = 0; 
+               end
+            end
+        end
+               
+        if isInt1 == 1 || isInt2 == 1
+            t = 1;
+        end
+    end
+
+function data = addMatrixToTable(m)
+%Takes a matrix m with expension points and creates a cell array that can
+%be used as Data for an uitable out of the values of m
+    
+    if size(m,1) == 1 || size(m,2) == 1
+        
+        if size(m,1) == 1
+            m = m';
+        end
+        
+        values = unique(m);
+        
+        table = zeros(length(values),2);
+        
+        for i = 1:size(table,1)
+           table(i,1) = values(i);
+           xTemp = find(m == values(i));
+           table(i,2) = length(xTemp);
+        end
+        
+        m = table;
+        
+    elseif size(m,2)~=2
+        m=m';
+    end
+    if size(m,2)==2 && size(m,1)==2
+       if ~(mod(m(1,2),1)==0 && mod(m(2,2),1)==0)
+          if mod(m(1,1),1)==0 && mod(m(2,1),1)==0
+              xTemp = m;
+              m(1,1) = xTemp(1,2);
+              m(2,1) = xTemp(2,2);
+              m(1,2) = xTemp(1,1);
+              m(2,2) = xTemp(2,1);
+          elseif mod(m(1,1),1)==0 && mod(m(1,2),1)==0
+              xTemp = m;
+              m(1,1) = xTemp(2,1);
+              m(2,1) = xTemp(2,2);
+              m(1,2) = xTemp(1,1);
+              m(2,2) = xTemp(1,2);
+          elseif mod(m(2,1),1)==0 && mod(m(2,2),1)==0
+              xTemp = m;
+              m(1,2) = xTemp(2,1);
+              m(2,1) = xTemp(1,2);
+          end
+       end        
+    end
+    
+    %Create Cell-Array
+    
+    data=num2cell(m);
+    
+    
+    
+    
+    
 function [sys, sysname] = get_sys_from_ws(namehandle)
 % imports system from base workspace
 % namehandle may be system name or handle to an edit/combo-control
@@ -4015,4 +4199,5 @@ for i=1:length(s)
 end
 % remove empty (non-system) entries
 x(cellfun(@isempty,x)) = [];
+
 
