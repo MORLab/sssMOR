@@ -180,22 +180,22 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
 
     p = get(hObject,'CurrentPoint');
 
-    if p(1,1)>915 && p(1,1)<1044 && p(1,2)>730 && p(1,2)<1000
+    if p(1,1)>945 && p(1,1)<1040 && p(1,2)>700 && p(1,2)<750
         %TUM-Logo (Header)
         set(gcf,'Pointer','hand'); 
-    elseif p(1,1)> 5 && p(1,1)<75 && p(1,2)>730 && p(1,2)<1000 
+    elseif p(1,1)> 5 && p(1,1)<55 && p(1,2)>700 && p(1,2)<750 
         %Lehrstuhl-Logo (Header)
         set(gcf,'Pointer','hand');
-    elseif p(1,1)>5 && p(1,1)<170 && p(1,2)>0 && p(1,2)<70
+    elseif p(1,1)>5 && p(1,1)<80 && p(1,2)>0 && p(1,2)<40
         %sssMOR-Logo (Footer)
         set(gcf,'Pointer','hand');
-    elseif p(1,1)>915 && p(1,1)<1044 && p(1,2)>0 && p(1,2)<70
+    elseif p(1,1)>990 && p(1,1)<1040 && p(1,2)>0 && p(1,2)<40
         %TUM-Logo (Footer)
         set(gcf,'Pointer','hand');
-    elseif p(1,1)>250 && p(1,1)<480 && p(1,2)>0 && p(1,2)<70
+    elseif p(1,1)>305 && p(1,1)<420 && p(1,2)>0 && p(1,2)<40
         %MorLab-Logo (Footer)
         set(gcf,'Pointer','hand');
-    elseif p(1,1)>580 && p(1,1)<850 && p(1,2)>0 && p(1,2)<70
+    elseif p(1,1)>650 && p(1,1)<765 && p(1,2)>0 && p(1,2)<40
         %Lehrstuhl-Logo (Footer)
         set(gcf,'Pointer','hand');
     else
@@ -218,13 +218,16 @@ function logo_tum_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
     h=image(A);
     set(h,'HitTest','off')
     set(hObject,'YDir','reverse');
+    set(hObject,'XTick',[]);
+    set(hObject,'YTick',[]);
+    set(hObject,'HitTest','on');
 
 function logo_tum_ButtonDownFcn(hObject, eventdata, handles)
     % link to web page
     p=get(hObject,'CurrentPoint');
-    if p(1,1)>915 && p(1,1)<1044 && p(1,2)>5 && p(1,2)<80
+    if p(1,1)>945 && p(1,1)<1040 && p(1,2)>5 && p(1,2)<80
         web www.tum.de
-    elseif p(1,1)> 5 && p(1,1)<75 && p(1,2)>5 && p(1,2)<80  
+    elseif p(1,1)> 5 && p(1,1)<55 && p(1,2)>5 && p(1,2)<80  
         web www.rt.mw.tum.de
     end
 
@@ -3603,6 +3606,8 @@ function logos_footer_CreateFcn(hObject, eventdata, handles)
     A=imread('Pictures\Footer.png');
     h=image(A);
     set(h,'HitTest','off');
+    set(hObject,'XTick',[]);
+    set(hObject,'YTick',[]);
 
 
 function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
@@ -3610,13 +3615,13 @@ function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
 
     p=get(hObject,'CurrentPoint');
 
-    if p(1,1)>915 && p(1,1)<1044
+    if p(1,1)>990 && p(1,1)<1040
         web www.tum.de
-    elseif p(1,1)>5 && p(1,1)<170
+    elseif p(1,1)>5 && p(1,1)<80
         web www.rt.mw.tum.de/forschung/forschungsgebiete/modellreduktion/sssmor/
-    elseif p(1,1)>580 && p(1,1)<850 
+    elseif p(1,1)>650 && p(1,1)<765 
         web www.rt.mw.tum.de
-    elseif p(1,1)>250 && p(1,1)<480
+    elseif p(1,1)>305 && p(1,1)<420
         web www.rt.mw.tum.de/forschung/forschungsgebiete/modellreduktion/
     end
     
