@@ -209,9 +209,7 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                     
                     Crt = getSylvester(sys,sysrTemp,V); 
                 case 'rk+pork'
-                    [sysRedRK, V, ~, ~, Crt] = rk(sys,s0); 
-                    S_V = sysRedRK.E\(sysRedRK.A-sysRedRK.B*Crt);
-                    
+                    [~, V, ~, ~, S_V, Crt] = rk(sys,s0);
                     [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C_);
                     
                     %   Adapt Cr for SE DAEs
@@ -244,9 +242,8 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                     
                     Brt = (getSylvester(sys,sysrTemp,W,'W')).';               
                 case 'rk+pork'
-                    [sysRedRK, ~, W, ~, ~, ~, Brt] = rk(sys,[],s0);
+                    [~, ~, W, ~, ~, ~, ~, S_W, Brt] = rk(sys,[],s0);
                     Brt = Brt.'; %make it column matrix
-                    [~, ~, S_W] = getSylvester(sys,sysRedRK,W,'W');
                     
                     [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B_);  
                     
