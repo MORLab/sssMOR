@@ -29,7 +29,7 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 %       same expansion points. The resulting matrices V, W can be used for
 %       Hermite interpolation.
 %
-%       //Note: for MIMO systems, block Krylov subpspaces 
+%       //Note: For MIMO systems, block Krylov subpspaces 
 %       with multiplicities in the shifts are not supported so far.
 %
 %       The columns of V build an orthonormal basis of the input Krylov 

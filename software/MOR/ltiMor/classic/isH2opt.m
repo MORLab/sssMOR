@@ -21,9 +21,9 @@ function isH2opt = isH2opt(sys,sysr,s0,Opts)
 % 
 %       Then sysr is said to be a locally H2-optimal approximation of sys
 %
-%		//Note: this function currently works only for SISO systems, but
+%		//Note: This function currently works only for SISO systems, but
 %       the generalization to MIMO will be implemented in one of the next
-%       releases
+%       releases.
 %
 % Input Arguments:
 %		*Required Input Arguments:*

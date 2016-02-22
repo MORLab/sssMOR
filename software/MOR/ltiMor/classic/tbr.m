@@ -33,8 +33,8 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       -hsv:   Hankel singular values
 %
 %//Note: If no q is given, the balancing transformation and calculation of
-%		the Hankel singular values is performed without subsequent model
-%		reduction.
+%       the Hankel singular values is performed without subsequent model
+%       reduction.
 %
 % Examples:
 %       To compute a balanced realization, use

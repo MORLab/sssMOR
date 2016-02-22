@@ -103,8 +103,7 @@ function [sysr, V, W, Bb, SRsylv, Rsylv, Cb, SLsylv, Lsylv] = rk(sys, s0_inp, va
 %> sysr = rk(sys, s0, s0); 
 %
 %//Note: In the block Krylov case, the reduced order is in general higher
-%		than the lenght of s0
-%
+%       than the lenght of s0.
 %
 % See Also: 
 %       arnoldi, irka
