@@ -24,7 +24,9 @@ function [sysr, varargout] = tbr(sys, varargin)
 %
 %       If a reduction order q is passed to the function, the reduced
 %       system will be of this size with the options 'hsvTol' and
-%       'redErr' ignored. If not, the option 'redErr' is crucial. To avoid 
+%       'redErr' ignored. If not, the option reduction error 'redErr' is 
+%       crucial. This error is defined as two times the sum of all 
+%       Hankel-Singular values bigger than the reduction order. To avoid 
 %       this option it can be set to zero ('redErr'=0). If so, the
 %       Hankel-Singular values (satisfying the option 'hsvTol') will be
 %       plotted for the user to enter a desired reduction order.
@@ -33,6 +35,10 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       cholseky factor is performed. If the option 'adi' is not 
 %       defined, ADI is applied to systems with sys.n>500.
 %
+%//Note: When ADI is used, only a small number of Hankel-Singular values
+%       are computed. To determine the reduction error, the unknown
+%       Hankel-Singular values are assumed to have the same value as the 
+%       last one computed (worst-case scenario).
 %
 % Input Arguments:
 %		*Required Input Arguments:*
@@ -48,6 +54,8 @@ function [sysr, varargout] = tbr(sys, varargin)
 %                           [{'0'} / positive float]
 %           -.hsvTol:       tolerance for Hankel-Singular values
 %                           [{'1e-15'} / positive float]
+%           -.warnOrError:  display warnings or errors
+%                           [{'warn'} / 'error' / '0']
 %
 % Output Arguments:
 %       -sysr:  reduced system
@@ -98,6 +106,7 @@ Def.adi = 0; % use ADI to solve lyapunov eqation (0,'adi')
 Def.redErr = 0; % reduction error (redErr>2*sum(hsv(q+1:end)))
 Def.hsvTol = 1e-15; % hsv tolerance (hsv(q)<hsvTol)
 Def.real = 'real'; % real reduced system ('0', 'real')
+Def.warnOrError = 'warn'; % display warnings or errors (0,'warn','error')
 
 % check input for q and Opts
 if nargin>1
@@ -135,6 +144,15 @@ if sys.isDae
 end
 
 if strcmp(Opts.adi,'adi')
+    if sys.n<100 && strcmp(Opts.warnOrError,'error')
+        error('System is too small for ADI (sys.n >= 100 required).');
+    elseif sys.n<100 && strcmp(Opts.warnOrError,'warn')
+        warning('System is too small for ADI. Trying without ADI...');
+        Opts.adi=0;
+    end
+end
+
+if strcmp(Opts.adi,'adi')
     % lyapack options (lyaOpts):
     %   method='heur': find ADI parameters with a heuristic method
     %   (l0,kp,km)=(20,50,25): shifts p consist of l0 or l0+1 values of kp('LM')+km('SM') Ritz values
@@ -164,11 +182,7 @@ if strcmp(Opts.adi,'adi')
     %   usfs\munu_l_i, usfs\munu_l, usfs\munu_l_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
     %   usfs\au_s_i, usfs\au_s, usfs\au_s_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
     %   usfs\munu_s_i, usfs\munu_s, usfs\munu_s_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
-
-    if sys.n<100
-        error('System is too small for ADI.');
-    end
-    
+ 
     lyaOpts.l0=20;
     lyaOpts.kp=50;
     lyaOpts.km=25;
@@ -347,19 +361,19 @@ if exist('q','var') || Opts.redErr>0
     if ~exist('q','var')
         if strcmp(Opts.adi,'adi') && qmax<sys.n
             % worst case for unknown hsv
-            hsvSum=2*real(hsv(qmax))*(sys.n-qmax+1);
+            hsvSum=2*real(hsv(qmax))/real(hsv(1))*(sys.n-qmax+1);
         else
             hsvSum=0;
         end
-        for i=qmax:-1:1
-            if hsvSum>Opts.redErr
+        for i=qmax:-1:0
+            if hsvSum>Opts.redErr || i==0
                 q=i+1;
                 if q>qmax
                     q=qmax;
                 end
                 break;
             else
-                hsvSum=hsvSum+2*real(hsv(i));
+                hsvSum=hsvSum+2*real(hsv(i))/real(hsv(1));
             end
         end
         
@@ -373,15 +387,24 @@ if exist('q','var') || Opts.redErr>0
         end
     end
     if q>sys.n
-        warning(['Reduction order exceeds system order. q has been changed to ',...
-            'the system order qmax = ', num2str(qmax,'%d'), '.']);
+        if strcmp(Opts.warnOrError,'error')
+            error('Reduction order exceeds system order.');
+        elseif strcmp(Opts.warnOrError,'warn')
+            warning(['Reduction order exceeds system order. q has been changed to ',...
+                'the system order qmax = ', num2str(qmax,'%d'), '.']);
+        end
         q=sys.n;
     end
     if sum(hsv>=Opts.hsvTol*hsv(1))<q
-        warning(['The reduced system of desired order may not be a minimal ',...
-            'realization and it may not be stable. The recommended reduced',...
-            ' order is q = ',num2str(sum(hsv>=Opts.hsvTol*hsv(1)),'%d'),...
-            ' (see Opts.hsvTol).']);
+        if strcmp(Opts.warnOrError,'error')
+            error(['The reduction order of q = ', num2str(q,'%d'),' includes ',...
+                'Hankel-Singular values smaller than the chosen tolerance (see Opts.hsv).']);
+        elseif strcmp(Opts.warnOrError,'warn')
+            warning(['The reduced system of desired order may not be a minimal ',...
+                'realization and it may not be stable. The recommended reduced',...
+                ' order is q = ',num2str(sum(hsv>=Opts.hsvTol*hsv(1)),'%d'),...
+                ' (see Opts.hsvTol).']);
+        end
     end
 else
     qmax = min([sum(hsv>=Opts.hsvTol*hsv(1)), qmax]);
@@ -402,17 +425,32 @@ else
         error('Invalid reduction order.');
     end
     if q>sys.n && qmax==sys.n
-        warning(['Reduction order exceeds system order. q has been changed to ',...
-            'the system order qmax = ', num2str(qmax,'%d'), '.']);
+        if strcmp(Opts.warnOrError,'error')
+            error('Reduction order exceeds system order.');
+        elseif strcmp(Opts.warnOrError,'warn')
+            warning(['Reduction order exceeds system order. q has been changed to ',...
+                'the system order qmax = ', num2str(qmax,'%d'), '.']);
+        end
         q=qmax;
     elseif q>qmax
         if strcmp(Opts.adi,'adi') && qmax==qmaxAdi
-            warning(['A reduction is only possible to qmax = ', num2str(qmax,'%d'),...
-                ' due to ADI. q has been changed accordingly.']);
+            if strcmp(Opts.warnOrError,'error')
+                error(['Reduction order must be smaller than q = ', num2str(qmax,'%d'),...
+                    ' due to ADI.']);
+            elseif strcmp(Opts.warnOrError,'warn')
+                warning(['A reduction is only possible to qmax = ', num2str(qmax,'%d'),...
+                    ' due to ADI. q has been changed accordingly.']);
+            end
         else
-            warning(['q has been changed to qmax = ', num2str(qmax,'%d'),...
-                    ' due to Hankel-Singular values smaller than the given '...
-                    'tolerance (see Opts.hsvTol).']);
+            if strcmp(Opts.warnOrError,'error')
+                error(['Reduction order must be smaller than q = ', num2str(qmax,'%d'),...
+                    ' due to Hankel-Singular values smaller than the given tolerance',...
+                    ' (see Opts.hsvTol).']);
+            elseif strcmp(Opts.warnOrError,'warn')
+                warning(['q has been changed to qmax = ', num2str(qmax,'%d'),...
+                        ' due to Hankel-Singular values smaller than the given '...
+                        'tolerance (see Opts.hsvTol).']);
+            end
         end
         q=qmax;
     end
