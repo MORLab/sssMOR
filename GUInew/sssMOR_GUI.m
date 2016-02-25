@@ -1905,9 +1905,17 @@ if get(hObject,'Value')==3
            end
            set(handles.uitable_mor_krylov,'Data',value);
            set(handles.uitable_mor_krylov_output,'Data',value);
-           uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles);
+           countMatchedMoments(handles);
         end        
     end    
+end
+
+%Set the "Save Shifts" option visible if krylov and irka is selected
+
+if get(hObject,'Value')==3 && get(handles.pu_mor_krylov_algorithm,'Value')==1
+    set(handles.uipanel_mor_optimalShifts,'Visible','on');
+else
+    set(handles.uipanel_mor_optimalShifts,'Visible','off');
 end
 
 %Change the suggested Names for the reducted system
@@ -2022,6 +2030,10 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             return
         end
         
+        %Reduce
+        
+        lastwarn('');
+        
         try
         
             if get(handles.rb_mor_tbrtruncate,'Value')==1
@@ -2041,13 +2053,22 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 [sysr, V, W] = tbr(sys, q, Opts);
 
             end
+            
+            error('TBR:WarningOccured',lastwarn);
         
         catch ex
             set(handles.figure1,'Pointer','arrow')
             set(hObject,'Enable','on')
-            errordlg(ex.message,'Error Dialog','balancing & truncation')
-            uiwait
-            return
+            if strcmp(ex.identifier,'TBR:WarningOccured')
+                if ~isempty(ex.message)
+                    msgbox(ex.message,'Warning','warn');
+                    uiwait
+                end
+            else
+                errordlg(ex.message,'Error Dialog','modal')
+                uiwait
+                return
+            end
         end
         
     case 2 % modal truncation
@@ -2116,15 +2137,25 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
         
         %Reduce system
 
+        lastwarn('');
+        
         try
             [sysr, V, W] = modalMor(sys, q, opts);
             %sysr.mor_info=struct('time', clock, 'method', 'Modal Truncation', 'orgsys', sysname);
+            error('MODAL:WarningOccured',lastwarn);
         catch ex
             set(handles.figure1,'Pointer','arrow')
             set(hObject,'Enable','on')
-            errordlg(ex.message,'Error Dialog','modal')
-            uiwait
-            return
+            if strcmp(ex.identifier,'MODAL:WarningOccured')
+                if ~isempty(ex.message)
+                    msgbox(ex.message,'Warning','warn');
+                    uiwait
+                end
+            else
+                errordlg(ex.message,'Error Dialog','modal')
+                uiwait
+                return
+            end
         end
         
         
@@ -2140,7 +2171,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             return
         end
         
-        test = get(handles.pu_mor_krylov_algorithm,'Value');
+        %Reduce with the specified Algorithm
         
         switch get(handles.pu_mor_krylov_algorithm,'Value')
             
@@ -2207,6 +2238,11 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 end
                 method='Rational Krylov, two-sided';
             end
+            
+            %Reduce
+            
+            lastwarn('');
+            
             try
                 if get(handles.rb_mor_krylov_input,'Value')==1
                     [sysr, V, W] = rk(sys, s_inp);
@@ -2214,13 +2250,20 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                     [sysr, V, W] = rk(sys, s_inp, s_out);
                 end
                 %sysr.mor_info=struct('time', clock, 'method', method, 'orgsys', sysname);
+                error('RK:WarningOccured',lastwarn);
             catch ex
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
-                errordlg(['Reduction Failed: ' ex.message],'Error Dialog','modal')
-                uiwait
-                assignin('base','LastError',ex)
-                return
+                if strcmp(ex.identifier,'RK:WarningOccured')
+                    if ~isempty(ex.message)
+                        msgbox(ex.message,'Warning','warn');
+                        uiwait
+                    end
+                else
+                    errordlg(ex.message,'Error Dialog','modal')
+                    uiwait
+                    return
+                end
             end
 
         case 2 %ICOP
@@ -2248,18 +2291,32 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 uiwait
                 return
             end
+            
+            %Reduce
+            
+            lastwarn('');
+            
             try
                 [sysr,V,W,alpha_opt] = RK_ICOP(sys, s0,'maxiter',maxiter,'epsilon',epsilon,'projection',projection );
                 %sysr.mor_info=struct('time', clock, 'method', 'Krylov, ICOP', 'orgsys', sysname);
                 %sysr.mor_info.alpha_opt=alpha_opt;
+                error('ICOP:WarningOccured',lastwarn);
             catch ex
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
-                errordlg('Failed','Error Dialog','modal')
-                uiwait
-                disp(ex.message)
-                return
+                
+                if strcmp(ex.identifier,'ICOP:WarningOccured')
+                    if ~isempty(ex.message)
+                        msgbox(ex.message,'Warning','warn');
+                        uiwait
+                    end
+                else
+                    errordlg(ex.message,'Error Dialog','modal')
+                    uiwait
+                    return
+                end
             end
+            
             if isempty(sysr)
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
@@ -2280,11 +2337,11 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             
             %Options
             
-            if get(handles.pu_mor_krylov_StopCrit,'Value') == 1
+            if get(handles.pu_mor_krylov_StopCrit,'Value') == 3
                 Opts.stopCrit = 'combAny';
-            elseif get(handles.pu_mor_krylov_StopCrit,'Value') == 2
+            elseif get(handles.pu_mor_krylov_StopCrit,'Value') == 1
                 Opts.stopCrit = 's0';
-            elseif get(handles.pu_mor_krylov_StopCrit,'Value') == 3
+            elseif get(handles.pu_mor_krylov_StopCrit,'Value') == 2
                 Opts.stopCrit = 'sysr';
             else
                 Opts.stopCrit = 'combAll';
@@ -2302,40 +2359,82 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             
             %Reduce
             
+            lastwarn('');
+            
             try
                 [sysr,V,W,s0] = irka(sys, s_inp, Opts);
                 %sysr.mor_info=struct('time', clock, 'method', 'Krylov, IRKA', 'orgsys', sysname);
                 %sysr.mor_info.s0=s0;
-            catch ex
+                error('IRKA:WarningOccured',lastwarn);
+            catch ex                
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
-                errordlg(ex.message,'Error Dialog','modal')
-                uiwait
-                return
+                
+                if strcmp(ex.identifier,'IRKA:WarningOccured')
+                    if ~isempty(ex.message)
+                        msgbox(ex.message,'Warning','warn');
+                        uiwait
+                    end
+                else
+                    errordlg(ex.message,'Error Dialog','modal')
+                    uiwait
+                    return
+                end
             end
         end
     end
 
-    % write system to workspace
+    %Write system to workspace
+    
     if get(handles.cb_mor_krylov,'Value')==1
         % impose E_r=I?
         sysr.resolveDescriptor;
     end
 
     assignin('base',get(handles.ed_mor_sysred,'String'),sysr)
+    
+    %Write Projection matrices and optimal shifts(IRKA) to workspace
+    
     if get(handles.cb_mor_savew,'Value')==1
         assignin('base',get(handles.ed_mor_w,'String'),W)
     end
+    
     if get(handles.cb_mor_savev,'Value')==1
         assignin('base',get(handles.ed_mor_v,'String'),V)
     end
+    
+    if get(handles.cb_mor_saveShifts,'Value')==1 && get(handles.pu_mor_krylov_algorithm,'Value')==1
+        assignin('base',get(handles.ed_mor_saveShifts,'String'),s0); 
+    end
+
+    %Tell the user that the reduction was successfull
+    
     set(handles.figure1,'Pointer','arrow')
     msgbox('Reduction was successful!','Information','modal')
     uiwait
+    
+    %Update the displays of systems in workspace
+    
     pb_refreshsys_Callback(hObject, eventdata, handles)
     pb_refreshlb_Callback(hObject, eventdata, handles)
+    pb_mor_krylov_refresh_Callback(handles.pb_mor_krylov_refresh, eventdata, handles)
+    
+    %Set the optimal shifts as default for vector-import from workspace
+    
+    if get(handles.cb_mor_saveShifts,'Value')==1 && get(handles.pu_mor_krylov_algorithm,'Value')==1
+        name = get(handles.ed_mor_saveShifts,'String');
+        x = get(handles.pu_mor_krylov_s0,'String');
+        for i = 1:length(x)
+           if strcmp(x{i,1},name)
+               set(handles.pu_mor_krylov_s0,'Value',i);
+               break;
+           end
+        end
+    end
+    
+    %Suggest names for next reduction
+    
     s=get(handles.ed_mor_sysred,'String');
-    % suggest names for next reduction
     s=s(~isstrprop(s,'digit'));
     s=suggestVarname(s,handles.ed_mor_sysred);
     suggestVarname(sprintf('%s_w',s),handles.ed_mor_w);
@@ -2586,12 +2685,20 @@ function pu_mor_krylov_algorithm_Callback(hObject, eventdata, handles)
         set(handles.rb_mor_krylov_input,'Enable','off')
         set(handles.rb_mor_krylov_output,'Enable','off')
         set(handles.rb_mor_krylov_hermite,'Value',1)
+        set(handles.rb_mor_krylov_hermite,'Enable','off')
+        set(handles.pb_mor_krylov_input,'Visible','off')
+        set(handles.pb_mor_krylov_output,'Visible','off')
+        set(handles.uitable_mor_krylov_output,'Visible','off')
+        set(handles.uitable_mor_krylov,'Visible','on')
         set(handles.st_mor_krylov_points,'String','2. Starting points')
     else % sonst rbs aktivieren
         set(handles.rb_mor_krylov_twosided,'Enable','on')
         set(handles.rb_mor_krylov_input,'Enable','on')
         set(handles.rb_mor_krylov_output,'Enable','on')
+        set(handles.rb_mor_krylov_hermite,'Enable','on')
+        set(handles.rb_mor_krylov_hermite,'Value',1)
         set(handles.st_mor_krylov_points,'String','2. Expansion points')
+        
     end
     
     % if get(hObject,'Value')==2
@@ -2617,7 +2724,25 @@ function pu_mor_krylov_algorithm_Callback(hObject, eventdata, handles)
         set(handles.pb_mor_krylov_infoAlgoParams,'Visible','on')
     end    
     
-    bg_mor_krylov_side_SelectionChangedFcn(handles.bg_mor_krylov_side,eventdata,handles);
+    %Set the panel for saving the optimal shifts visible if irka is
+    %selected
+    
+    if get(hObject,'Value')==1
+        set(handles.uipanel_mor_optimalShifts,'Visible','on');
+    else
+        set(handles.uipanel_mor_optimalShifts,'Visible','off');
+    end
+    
+    %Change the suggested Names for the reducted system
+
+    x = get(handles.pu_mor_systems,'String');
+    y = x{get(handles.pu_mor_systems,'Value')};
+
+    suggestNamesMOR(y,handles);
+    
+    %Update matched Moments and reduced order
+    
+    countMatchedMoments(handles);
 
 function ed_mor_krylov_max_Callback(hObject, eventdata, handles)
 % maximum iterations
@@ -2671,60 +2796,41 @@ end
 
 function pb_mor_krylov_AddCompConj_Callback(hObject, eventdata, handles)
 
+%Get the indices of the selected cells
+
+indices = handles.SelectedIndex;
+
+%Add the complex conjugate of the selected cells as new rows
+
 if strcmp(get(handles.uitable_mor_krylov,'Visible'),'on')
     x=get(handles.uitable_mor_krylov,'Data');
-    xConj = conj(cell2mat(x));
-    x = [x;mat2cell(xConj,ones(size(xConj,1),1),[1,1])];
+    xConj = zeros(size(indices,1),2);
+    
+    for i = 1:size(indices,1)      
+       xConj(i,1) = conj(x{indices(i,1),1});
+       xConj(i,2) = x{indices(i,1),2};
+    end
+    
+    x = [x;num2cell(xConj)];
     set(handles.uitable_mor_krylov,'Data',x);
 else
     x=get(handles.uitable_mor_krylov_output,'Data');
-    xConj = conj(cell2mat(x));
-    x = [x;mat2cell(xConj,ones(size(xConj,1),1),[1,1])];
+    xConj = zeros(size(indices,1),2);
+    
+    for i = 1:size(indices,1)      
+       xConj(i,1) = conj(x{indices(i,1),1});
+       xConj(i,2) = x{indices(i,1),2};
+    end
+    
+    x = [x;num2cell(xConj)];
     set(handles.uitable_mor_krylov_output,'Data',x);
 end
 
-uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles)
+countMatchedMoments(handles);
 
 function uitable_mor_krylov_CellEditCallback(hObject, eventdata, handles)
     
-try
-    x=get(hObject,'Data');
-    data1=cell2mat(x);
-    x = get(handles.uitable_mor_krylov_output,'Data');
-    data2=cell2mat(x);
-    if size(data1,2)==2
-        data1=sum(data1(:,2));
-        data2=sum(data2(:,2));
-        
-        set(handles.st_mor_krylov_redOrder,'String',data1);
-
-        if get(handles.rb_mor_krylov_twosided,'Value') == 1    %Two sided
-            if get(handles.pu_mor_krylov_algorithm,'Value') == 3 && ...
-                    get(handles.rb_mor_krylov_hermite,'Value') == 0 %Input and Output specifiable
-                
-                set(handles.st_mor_krylov_matchedMom,'String',data2+data1);
-            else
-                set(handles.st_mor_krylov_matchedMom,'String',2*data1);
-            end
-        else                                               %One sided
-            set(handles.st_mor_krylov_matchedMom,'String',data1);
-        end
-        
-        %Check weather the reduced order is bigger than the original order
-        
-        x = get(handles.pu_mor_systems,'String');
-        y = x{get(handles.pu_mor_systems,'Value')};
-        
-        if ~isempty(y)
-           sys = evalin('base',y);
-           if sys.n < data1
-              msgbox('Reduced order is bigger than the original order of the system. Please correct that before reducing the system.','Warning','Warn');
-              uiwait;
-           end
-        end
-        
-    end
-end
+countMatchedMoments(handles);
 
 function uitable_mor_krylov_CreateFcn(hObject, eventdata, handles)
 % adapt size of table
@@ -2734,7 +2840,7 @@ guidata(hObject,handles);
 
 function uitable_mor_krylov_output_CellEditCallback(hObject, eventdata, handles)
 
-uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles)
+countMatchedMoments(handles);
 
 function uitable_mor_krylov_output_CreateFcn(hObject, eventdata, handles)
 % adapt size of table
@@ -2788,7 +2894,7 @@ function bg_mor_krylov_side_SelectionChangedFcn(hObject, eventdata, handles)
         set(handles.rb_mor_krylov_hermite,'Enable','Off');
     end
 
-    uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles);
+    countMatchedMoments(handles);
 
 function pb_mor_krylov_importVector_Callback(hObject, eventdata, handles)
     % if vector from workspace was selected, add it to table
@@ -2807,7 +2913,8 @@ function pb_mor_krylov_importVector_Callback(hObject, eventdata, handles)
     else
         set(handles.uitable_mor_krylov_output,'Data',tableData);
     end
-    uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov,eventdata,handles);    
+    
+    countMatchedMoments(handles);   
 
 function pb_mor_krylov_input_Callback(hObject, eventdata, handles)
 
@@ -2861,7 +2968,7 @@ else
     
 end
 
-uitable_mor_krylov_CellEditCallback(handles.uitable_mor_krylov, eventdata, handles);
+countMatchedMoments(handles);
 
 function pb_mor_krylov_deleteRow_Callback(hObject, eventdata, handles)
 
@@ -2888,6 +2995,8 @@ else
     
     set(handles.uitable_mor_krylov_output,'Data',x)
 end
+
+countMatchedMoments(handles);
 
 function et_mor_krylov_commandLine_Callback(hObject, eventdata, handles)
 
@@ -2918,6 +3027,8 @@ function et_mor_krylov_commandLine_Callback(hObject, eventdata, handles)
     else
         set(handles.uitable_mor_krylov_output,'Data',data);
     end
+    
+    countMatchedMoments(handles);
 
 function pb_mor_krylov_refresh_Callback(hObject, eventdata, handles)
 % list of vectors in workspace that might be expansion points
@@ -2929,6 +3040,24 @@ function pb_mor_krylov_infoInOut_Callback(hObject, eventdata, handles)
     uiwait;
 
 function pb_mor_krylov_infoAlgoParams_Callback(hObject, eventdata, handles)
+
+    infoBox({'pictures\InfoStoppingCriterium.png'});
+    uiwait;
+    
+function pb_mor_krylov_infoExpPoints_Callback(hObject, eventdata, handles)
+
+    if get(handles.pu_mor_krylov_algorithm,'Value')==1  %IRKA
+       
+        infoBox({'pictures\InfoStartingPointsIRKA.png'});
+        uiwait;
+        
+    else
+        
+        infoBox({'pictures\InfoExpensionPointsRK.png'});
+        uiwait;
+        
+    end
+    
 
 %--------------------------------------------------------------------------
 %                            SYSTEM ANALYSIS
@@ -3745,6 +3874,11 @@ end
 function [s0,sOut]=getExpansionPoints(handles)
 % read expansion point(s) from GUI
 
+    %Set Default values
+    
+    s0 = [];
+    sOut = [];
+
     %Read the expension points from the first table
 
     if get(handles.uitable_mor_krylov,'UserData')==1
@@ -4159,6 +4293,10 @@ function [] = suggestNamesMOR(sysName,handles)
         
         method = 'modal';
         
+    elseif get(handles.pu_mor_krylov_algorithm,'Value') == 1
+        
+        method = 'krylov_irka';
+        
     else
         
         method = 'krylov';
@@ -4172,6 +4310,7 @@ function [] = suggestNamesMOR(sysName,handles)
     suggestVarname(name,handles.ed_mor_sysred);
     suggestVarname(sprintf('%s_w',name),handles.ed_mor_w);
     suggestVarname(sprintf('%s_v',name),handles.ed_mor_v);
+    suggestVarname(sprintf('%s_shifts',name),handles.ed_mor_saveShifts);
         
 function x = systemsInWorkspace()
 % finds and lists all dynamical systems that are contained in workspace
@@ -4196,7 +4335,7 @@ function x=matricesInWorkspace
 s=evalin('base', 'whos');
 % preallocate memory
 x=cell(length(s),1); %alle, auch quadtratische
-for i=1:length(s)
+for i=1:length(s)   
     if strcmp(s(i).class,'double') && length(s(i).size)==2 && any(s(i).size)
         % save name
         x{i}=s(i).name;
@@ -4205,4 +4344,62 @@ end
 % remove empty (non-system) entries
 x(cellfun(@isempty,x)) = [];
 
+
+
+function [] = countMatchedMoments(handles)
+%Updates the number of matched moemts if for MOR with Krylov
+
+    try
+        %Read out the data from the tables for input and output shifts
+        
+        x=get(handles.uitable_mor_krylov,'Data');
+        data1=cell2mat(x);
+        x = get(handles.uitable_mor_krylov_output,'Data');
+        data2=cell2mat(x);
+        
+        if size(data1,2)==2     %Input
+            data1=sum(data1(:,2));
+        elseif isempty(data1)
+            data1 = 0;
+        else
+            error('Table data has the wrong format'); 
+        end
+        
+        if size(data2,2)==2     %Output
+            data2=sum(data2(:,2));
+        elseif isempty(data2)
+            data2 = 0;
+        else
+            error('Table data has the wrong format');
+        end
+        
+        %Updata the displays of reduced order and matched moments
+        
+        set(handles.st_mor_krylov_redOrder,'String',data1);
+
+        if get(handles.rb_mor_krylov_twosided,'Value') == 1    %Two sided
+            if get(handles.pu_mor_krylov_algorithm,'Value') == 3 && ...
+                    get(handles.rb_mor_krylov_hermite,'Value') == 0 %Input and Output specifiable
+
+                set(handles.st_mor_krylov_matchedMom,'String',data2+data1);
+            else
+                set(handles.st_mor_krylov_matchedMom,'String',2*data1);
+            end
+        else                                               %One sided
+            set(handles.st_mor_krylov_matchedMom,'String',data1);
+        end
+
+        %Check weather the reduced order is bigger than the original order
+
+        x = get(handles.pu_mor_systems,'String');
+        y = x{get(handles.pu_mor_systems,'Value')};
+
+        if ~isempty(y)
+           sys = evalin('base',y);
+           if sys.n < data1
+              msgbox('Reduced order is bigger than the original order of the system. Please correct that before reducing the system.','Warning','Warn');
+              uiwait;
+           end
+        end
+    end
 
