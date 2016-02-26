@@ -186,6 +186,21 @@ classdef testTbr < matlab.unittest.TestCase
                 end
             end
         end
+        function testTbr7(testCase)
+            for i=1:length(testCase.sysCell)
+                sys=testCase.sysCell{i};
+                if ~sys.isDae && sys.isSiso && sys.n>100
+                    Opts.adi=0;
+                    Opts.redErr=1e-10;
+                    Opts.real='real';
+                    [sysr,~,~,hsv]=tbr(sys,Opts);
+                    [impResSys,t]=step(sys);
+                    impResSysr=step(sysr,t');
+                    hsvError=(sum(hsv(sysr.n+1:end))+hsv(end)*(sys.n-length(hsv)))/hsv(1)*2;
+                    verifyLessThanOrEqual(testCase, norm(impResSys-impResSysr,Inf), hsvError);
+                end 
+            end
+        end
     end
 end
 
