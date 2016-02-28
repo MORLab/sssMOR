@@ -24,7 +24,7 @@ classdef testCure < matlab.unittest.TestCase
             end
 
             %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+            p = mfilename('fullpath'); k = strfind(p, fullfile('test',filesep));  
             pathBenchmarks = [p(1:k-1),'benchmarks'];
             cd(pathBenchmarks);
         end
