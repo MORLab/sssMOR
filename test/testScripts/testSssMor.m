@@ -42,7 +42,7 @@ else
 end
 
 % sssMor testScripts
-p = mfilename('fullpath'); k = strfind(p, '\test'); 
+p = mfilename('fullpath'); k = strfind(p, fullfile(filesep,'test')); 
 testpathSssMor = p(1:k(end)-1);
 
 % load benchmarks and change to folder 'testScripts'
