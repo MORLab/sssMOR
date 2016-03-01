@@ -197,7 +197,7 @@ classdef testTbr < matlab.unittest.TestCase
                     [impResSys,t]=step(sys);
                     impResSysr=step(sysr,t');
                     hsvError=(sum(hsv(sysr.n+1:end))+hsv(end)*(sys.n-length(hsv)))/hsv(1)*2;
-                    verifyLessThanOrEqual(testCase, norm(impResSys-impResSysr,Inf), hsvError);
+                    verifyLessThanOrEqual(testCase, norm(impResSys-impResSysr)/length(t), hsvError);
                 end 
             end
         end
