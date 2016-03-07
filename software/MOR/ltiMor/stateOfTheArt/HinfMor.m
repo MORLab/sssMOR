@@ -695,7 +695,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
                 sysm = sss(AA,BB,CC,DD);
 %                 isstable(sysm)
                 figure('Name','Original Vs surrogate models');
-                bode(ss(sys),'b-',ss(sysm),'--r'); keyboard;            
+                bode(ss(sys),'b-',ss(sysm),'--r'); %keyboard;            
             case 'loewner'
                 %   Get the data
                 [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj);
