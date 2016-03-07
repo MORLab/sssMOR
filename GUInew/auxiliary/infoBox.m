@@ -42,8 +42,6 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
-test = nargin;
-
 if nargin ~= 4
    errordlg('Wrong number of input arguments','Error Dialog','modal'); 
 end

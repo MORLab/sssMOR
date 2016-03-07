@@ -1657,6 +1657,43 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
     set(handles.sl_mor_q,'Max',size(sys.A,1));
     set(handles.pb_mor_reduce,'Enable','on');
     
+    %If Krylov is selected, set the default values for the expension points and
+    %show the right panel dependent on if the system is siso or mimo
+
+    if get(handles.pu_mor_method,'Value')==3
+
+        x = get(handles.pu_mor_systems,'String');
+        y = x{get(handles.pu_mor_systems,'Value')};
+
+        if ~isempty(y)
+           sys = evalin('base', y);
+
+           if sys.m > 1 || sys.p > 1    %MIMO
+
+               set(handles.panel_mor_krylov_MimoExps,'Visible','on');
+               %set(handles.panel_mor_krylov_exps,'Visible','off');
+
+               layoutMimoKrylov(handles);
+
+           else                         %SISO
+
+               set(handles.panel_mor_krylov_MimoExps,'Visible','off');
+               %set(handles.panel_mor_krylov_exps,'Visible','on');
+
+               layoutSisoKrylov(handles);
+           end
+        else
+
+            set(handles.panel_mor_krylov_MimoExps,'Visible','off');
+            %set(handles.panel_mor_krylov_exps,'Visible','on');
+            
+            layoutSisoKrylov(handles);
+        end
+
+        setKrylovDefaultValues(handles);
+    end
+    
+    
     % suggest names for reduced system and projection matrices
     
     suggestNamesMOR(y,handles);
@@ -1879,36 +1916,72 @@ else
     set(handles.sl_mor_q,'Enable','on')
 end
 
-%If Krylov is selected, set the default values for the expension points
+%If Krylov is selected, set the default values for the expension points and
+%show the right panel dependent on if the system is siso or mimo
 
 if get(hObject,'Value')==3
-   
-    value = get(handles.uitable_mor_krylov,'Data');
-   
-    if isempty(cell2mat(value(1,1))) && isempty(cell2mat(value(1,2)))
+
+    x = get(handles.pu_mor_systems,'String');
+    y = x{get(handles.pu_mor_systems,'Value')};
+    
+    if ~isempty(y)
+       sys = evalin('base', y);
+       
+       if sys.m > 1 || sys.p > 1    %MIMO
+           
+           set(handles.panel_mor_krylov_MimoExps,'Visible','on');
+           %set(handles.panel_mor_krylov_exps,'Visible','off');
+           
+           layoutMimoKrylov(handles);
+           
+       else                         %SISo
+           
+           set(handles.panel_mor_krylov_MimoExps,'Visible','off');
+           %set(handles.panel_mor_krylov_exps,'Visible','on');
+           
+           layoutSisoKrylov(handles);
+       end
+    else
         
-        x = get(handles.pu_mor_systems,'String');
-        y = x{get(handles.pu_mor_systems,'Value')};
+        set(handles.panel_mor_krylov_MimoExps,'Visible','off');
+        %set(handles.panel_mor_krylov_exps,'Visible','on');
         
-        if ~isempty(y)
-           sys = evalin('base', y);
-           if size(sys.A,1) > 6
-               value{1,1} = 0;
-               value{1,2} = 2;
-               value{2,1} = 1+i;
-               value{2,2} = 2;
-               value{3,1} = 1-i;
-               value{3,2} = 2;           
-           else
-               value{1,1} = 0;
-               value{1,2} = 1;
-           end
-           set(handles.uitable_mor_krylov,'Data',value);
-           set(handles.uitable_mor_krylov_output,'Data',value);
-           countMatchedMoments(handles);
-        end        
-    end    
+        layoutSisoKrylov(handles);
+    end
+    
+    setKrylovDefaultValues(handles);
 end
+
+%If Krylov is selected, show the riht
+
+% if get(hObject,'Value')==3
+%    
+%     value = get(handles.uitable_mor_krylov,'Data');
+%    
+%     if isempty(cell2mat(value(1,1))) && isempty(cell2mat(value(1,2)))
+%         
+%         x = get(handles.pu_mor_systems,'String');
+%         y = x{get(handles.pu_mor_systems,'Value')};
+%         
+%         if ~isempty(y)
+%            sys = evalin('base', y);
+%            if size(sys.A,1) > 6
+%                value{1,1} = 0;
+%                value{1,2} = 2;
+%                value{2,1} = 1+i;
+%                value{2,2} = 2;
+%                value{3,1} = 1-i;
+%                value{3,2} = 2;           
+%            else
+%                value{1,1} = 0;
+%                value{1,2} = 1;
+%            end
+%            set(handles.uitable_mor_krylov,'Data',value);
+%            set(handles.uitable_mor_krylov_output,'Data',value);
+%            countMatchedMoments(handles);
+%         end        
+%     end    
+% end
 
 %Set the "Save Shifts" option visible if krylov and irka is selected
 
@@ -2162,9 +2235,18 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     case 3 % Krylov
         
         
-        %Get expansion points. on error s0:=[]
+        %Get expansion points
         
-        [s_inp,s_out] = getExpansionPoints(handles);
+        if sys.m > 1 || sys.p > 1       %MIMO
+            
+            [s_inp,s_out,Rt,Lt] = getMimoExpensionPoints(handles);
+            
+        else                            %SISO
+            
+            [s_inp,s_out] = getExpansionPoints(handles);
+            
+        end
+        
         if isempty(s_inp) && isempty(s_out)
             set(handles.figure1,'Pointer','arrow')
             set(hObject,'Enable','on')
@@ -2176,81 +2258,27 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
         switch get(handles.pu_mor_krylov_algorithm,'Value')
             
         case 3 % explicit moment matching
-            
-            if get(handles.rb_mor_krylov_input,'Value')==1
-                % input krylov
-               if sys.m>1 % multiple input?
-                   if sys.p==1
-                        set(handles.figure1,'Pointer','arrow')
-                        set(hObject,'Enable','on')
-                        errordlg('Your system has only one output, use output-Krylov subspace!','Error Dialog','modal')
-                        uiwait
-                        return  
-                   else
-                        set(handles.figure1,'Pointer','arrow')
-                        set(hObject,'Enable','on')
-                        errordlg('MIMO is not supported','Error Dialog','modal')
-                        uiwait
-                        return
-                   end
-               end
-                method='Rational Krylov, Input Krylov Subspace';
-            elseif get(handles.rb_mor_krylov_twosided,'Value')==1
-                % output krylov
-                if sys.p>1 % multiple output?
-                   if sys.m==1
-                        set(handles.figure1,'Pointer','arrow')
-                        set(hObject,'Enable','on')
-                        errordlg('Your system has only one input, use input-Krylov subspace!','Error Dialog','modal')
-                        uiwait
-                        return  
-                   else
-                        set(handles.figure1,'Pointer','arrow')
-                        set(hObject,'Enable','on')
-                        errordlg('MIMO is not supported','Error Dialog','modal')
-                        uiwait
-                        return
-                   end
-                end
-                method='Rational Krylov, Output Krylov Subspace';
-            else
-                % two-sided
-                if sys.isMimo
-                    if sys.p>1 && sys.m==1
-                        set(handles.figure1,'Pointer','arrow')
-                        set(hObject,'Enable','on')
-                        errordlg('Your system has only one input, use input-Krylov subspace!','Error Dialog','modal')
-                        uiwait
-                        return
-                    elseif sys.m>1 && sys.p==1
-                        set(handles.figure1,'Pointer','arrow')
-                        set(hObject,'Enable','on')
-                        errordlg('Your system has only one output, use output-Krylov subspace!','Error Dialog','modal')
-                        uiwait
-                        return  
+                        
+            lastwarn('');
+
+            try
+                
+                if sys.m > 1 || sys.p > 1   %MIMO
+                    if get(handles.rb_mor_krylov_input,'Value')==1
+                        [sysr, V, W] = rk(sys, s_inp,Rt);
                     else
-                        set(handles.figure1,'Pointer','arrow')
-                        set(hObject,'Enable','on')
-                        errordlg('MIMO is not supported yet','Error Dialog','modal')
-                        uiwait
-                        return
+                        [sysr, V, W] = rk(sys, s_inp, s_out, Rt, Lt);
+                    end
+                else                        %SISO
+                    if get(handles.rb_mor_krylov_input,'Value')==1
+                        [sysr, V, W] = rk(sys, s_inp);
+                    else
+                        [sysr, V, W] = rk(sys, s_inp, s_out);
                     end
                 end
-                method='Rational Krylov, two-sided';
-            end
-            
-            %Reduce
-            
-            lastwarn('');
-            
-            try
-                if get(handles.rb_mor_krylov_input,'Value')==1
-                    [sysr, V, W] = rk(sys, s_inp);
-                else
-                    [sysr, V, W] = rk(sys, s_inp, s_out);
-                end
-                %sysr.mor_info=struct('time', clock, 'method', method, 'orgsys', sysname);
+                
                 error('RK:WarningOccured',lastwarn);
+                
             catch ex
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
@@ -2327,14 +2355,6 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
 
         case 1 %IRKA
             
-            if sys.isMimo % MIMO?
-                set(handles.figure1,'Pointer','arrow')
-                set(hObject,'Enable','on')
-                errordlg('MIMO is not supported yet.','Error Dialog','modal')
-                uiwait
-                return
-            end
-            
             %Options
             
             if get(handles.pu_mor_krylov_StopCrit,'Value') == 3
@@ -2362,9 +2382,16 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             lastwarn('');
             
             try
-                [sysr,V,W,s0] = irka(sys, s_inp, Opts);
-                %sysr.mor_info=struct('time', clock, 'method', 'Krylov, IRKA', 'orgsys', sysname);
-                %sysr.mor_info.s0=s0;
+                if sys.m > 1 || sys.p > 1           %MIMO
+                
+                    [sysr,V,W,s0] = irka(sys, s_inp, Rt, Lt, Opts);
+                
+                else                                %SISO
+                    
+                    [sysr,V,W,s0] = irka(sys, s_inp, Opts);
+                    
+                end
+
                 error('IRKA:WarningOccured',lastwarn);
             catch ex                
                 set(handles.figure1,'Pointer','arrow')
@@ -2677,28 +2704,29 @@ end
 
 function pu_mor_krylov_algorithm_Callback(hObject, eventdata, handles)
 
-    if get(hObject,'Value')==1
-        % IRKA, nur twosided möglich
-        %andere radio buttons(rbs) deaktivieren und Texte anpassen
-        set(handles.rb_mor_krylov_twosided,'Value',1)
-        set(handles.rb_mor_krylov_twosided,'Enable','inactive')
-        set(handles.rb_mor_krylov_input,'Enable','off')
-        set(handles.rb_mor_krylov_output,'Enable','off')
-        set(handles.rb_mor_krylov_hermite,'Value',1)
-        set(handles.rb_mor_krylov_hermite,'Enable','off')
-        set(handles.pb_mor_krylov_input,'Visible','off')
-        set(handles.pb_mor_krylov_output,'Visible','off')
-        set(handles.uitable_mor_krylov_output,'Visible','off')
-        set(handles.uitable_mor_krylov,'Visible','on')
-        set(handles.st_mor_krylov_points,'String','2. Starting points')
-    else % sonst rbs aktivieren
-        set(handles.rb_mor_krylov_twosided,'Enable','on')
-        set(handles.rb_mor_krylov_input,'Enable','on')
-        set(handles.rb_mor_krylov_output,'Enable','on')
-        set(handles.rb_mor_krylov_hermite,'Enable','on')
-        set(handles.rb_mor_krylov_hermite,'Value',1)
-        set(handles.st_mor_krylov_points,'String','2. Expansion points')
-        
+    %Set the values for the elements dependent on SISO or MIMO
+
+    if strcmp(get(handles.panel_mor_krylov_MimoExps,'Visible'),'off')
+
+        if get(hObject,'Value')==1
+            %IRKA
+            set(handles.rb_mor_krylov_hermite,'Value',1)
+            set(handles.rb_mor_krylov_hermite,'Enable','off')
+            set(handles.pb_mor_krylov_input,'Visible','off')
+            set(handles.pb_mor_krylov_output,'Visible','off')
+            set(handles.uitable_mor_krylov_output,'Visible','off')
+            set(handles.uitable_mor_krylov,'Visible','on')
+        else %explicit moment matching
+            set(handles.rb_mor_krylov_hermite,'Enable','on')
+            set(handles.rb_mor_krylov_hermite,'Value',1)       
+        end
+
+        %Update matched Moments and reduced order
+
+        countMatchedMoments(handles);
+    
+    else
+       layoutMimoKrylov(handles); 
     end
     
     % if get(hObject,'Value')==2
@@ -2713,15 +2741,31 @@ function pu_mor_krylov_algorithm_Callback(hObject, eventdata, handles)
     %     set(handles.pu_mor_krylov_alg,'Visible','on')
     % end
     
+    %Set the values for elements indepentent from SISO or MIMO
+    
     if get(hObject,'Value')==3
         % explicit moment matching
+        set(handles.rb_mor_krylov_twosided,'Enable','on')
+        set(handles.rb_mor_krylov_input,'Enable','on')
+        set(handles.rb_mor_krylov_output,'Enable','on')
+        
         set(handles.panel_mor_krylov_iter,'Visible','off')
         set(handles.st_mor_krylov_AlgoParams,'Visible','off')
         set(handles.pb_mor_krylov_infoAlgoParams,'Visible','off')
+        
+        set(handles.st_mor_krylov_points,'String','2. Expansion points')
     else
+        %IRKA
+        set(handles.rb_mor_krylov_twosided,'Value',1)
+        set(handles.rb_mor_krylov_twosided,'Enable','inactive')
+        set(handles.rb_mor_krylov_input,'Enable','off')
+        set(handles.rb_mor_krylov_output,'Enable','off')
+        
         set(handles.panel_mor_krylov_iter,'Visible','on')
         set(handles.st_mor_krylov_AlgoParams,'Visible','on')
         set(handles.pb_mor_krylov_infoAlgoParams,'Visible','on')
+        
+        set(handles.st_mor_krylov_points,'String','2. Starting points')
     end    
     
     %Set the panel for saving the optimal shifts visible if irka is
@@ -2738,11 +2782,7 @@ function pu_mor_krylov_algorithm_Callback(hObject, eventdata, handles)
     x = get(handles.pu_mor_systems,'String');
     y = x{get(handles.pu_mor_systems,'Value')};
 
-    suggestNamesMOR(y,handles);
-    
-    %Update matched Moments and reduced order
-    
-    countMatchedMoments(handles);
+    suggestNamesMOR(y,handles);  
 
 function ed_mor_krylov_max_Callback(hObject, eventdata, handles)
 % maximum iterations
@@ -2865,36 +2905,14 @@ handles.SelectedIndex = currentCell;
 guidata(hObject,handles);
 
 function bg_mor_krylov_side_SelectionChangedFcn(hObject, eventdata, handles)
+    
+    if strcmp(get(handles.panel_mor_krylov_MimoExps,'Visible'),'off')
 
-    if get(handles.rb_mor_krylov_twosided,'Value')==1 && ...
-            get(handles.pu_mor_krylov_algorithm,'Value')~=1 %nicht IRKA
-        
-        set(handles.uitable_mor_krylov_output,'Visible','Off');
-        set(handles.uitable_mor_krylov,'Visible','On');
-        
-        if get(handles.rb_mor_krylov_hermite,'Value') == 0
-        
-            set(handles.pb_mor_krylov_input,'Visible','On');
-            set(handles.pb_mor_krylov_output,'Visible','On');
-
-            set(handles.pb_mor_krylov_input,'BackgroundColor',[1;0.843;0]);
-            set(handles.pb_mor_krylov_output,'BackgroundColor',[0.94;0.94;0.94]);
-        
-        end
-        
-        set(handles.rb_mor_krylov_hermite,'Enable','On');
-    else
-        
-        set(handles.uitable_mor_krylov_output,'Visible','Off');
-        set(handles.uitable_mor_krylov,'Visible','On');
-        
-        set(handles.pb_mor_krylov_input,'Visible','Off');
-        set(handles.pb_mor_krylov_output,'Visible','Off');
-        
-        set(handles.rb_mor_krylov_hermite,'Enable','Off');
+        layoutSisoKrylov(handles);
+        countMatchedMoments(handles);    
+    else       
+        layoutMimoKrylov(handles);        
     end
-
-    countMatchedMoments(handles);
 
 function pb_mor_krylov_importVector_Callback(hObject, eventdata, handles)
     % if vector from workspace was selected, add it to table
@@ -3058,7 +3076,156 @@ function pb_mor_krylov_infoExpPoints_Callback(hObject, eventdata, handles)
         
     end
     
+    
+    
+function pb_mor_krylov_mimo_Callback(hObject, eventdata, handles)
 
+%Set the struct with the parameters
+
+if get(handles.pu_mor_krylov_algorithm,'Value') == 3
+    parameter.algorithm = 'rk';
+    if get(handles.rb_mor_krylov_input,'Value') == 1
+        parameter.side = 'input';
+    elseif get(handles.rb_mor_krylov_output,'Value') == 1
+        parameter.side = 'output';
+    else
+        parameter.side = 'twosided';
+    end
+else
+    parameter.algorithm = 'irka';
+    parameter.side = 'twosided';
+end
+
+x = get(handles.pu_mor_systems,'String');
+y = x{get(handles.pu_mor_systems,'Value')};
+    
+if ~isempty(y)
+    parameter.system = evalin('base',y);
+else
+    errordlg('Please select a valid system fist!','Error Dialog','modal')
+    uiwait
+    return
+end
+    
+%Read out the data from the tables
+
+tableIn = get(handles.uitable_mor_krylov_MimoExps,'Data');
+tableOut = get(handles.uitable_mor_krylov_MimoExps_output,'Data');
+
+%Enable Algorithm- and Side-Selection
+
+set(handles.rb_mor_krylov_input,'Enable','off');
+set(handles.rb_mor_krylov_output,'Enable','off');
+set(handles.rb_mor_krylov_twosided,'Enable','off');
+set(handles.pu_mor_krylov_algorithm,'Enable','off');
+
+%Start the Sub-GUI
+
+data = mimoKrylov({parameter,tableIn,tableOut});
+
+%Write the data from the Sub-GUI to the tables
+
+try
+
+    if ~isempty(data.inputData)
+       if size(data.inputData,2) == 2
+          tableData = data.inputData;
+          tableData = [tableData, cell(size(tableData,1),2)];
+          set(handles.uitable_mor_krylov_MimoExps,'Data',tableData); 
+          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{184,184,0,0});
+       elseif size(data.inputData,2) == 3
+          tableData = data.inputData;
+          tableData = [tableData, cell(size(tableData,1),1)];
+          set(handles.uitable_mor_krylov_MimoExps,'Data',tableData);
+          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{123,123,123,0});
+       else
+          set(handles.uitable_mor_krylov_MimoExps,'Data',data.inputData);
+          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{92,92,92,92});
+       end
+    end
+
+    if ~isempty(data.outputData)
+       if size(data.outputData,2) == 2
+          tableData = data.outputData;
+          tableData = [tableData, cell(size(tableData,1),1)];
+          set(handles.uitable_mor_krylov_MimoExps_output,'Data',tableData); 
+          set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{184,184,0});
+       else
+          tableData = data.outputData;
+          set(handles.uitable_mor_krylov_MimoExps_output,'Data',tableData);
+          set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{123,123,123});
+       end
+    end
+
+    %Set the correct table visible
+
+    if get(handles.rb_mor_krylov_output,'Value') == 1
+       set(handles.uitable_mor_krylov_MimoExps,'Visible','off'); 
+       set(handles.uitable_mor_krylov_MimoExps_output,'Visible','on'); 
+    else
+       set(handles.uitable_mor_krylov_MimoExps,'Visible','on'); 
+       set(handles.uitable_mor_krylov_MimoExps_output,'Visible','off');  
+    end
+
+    if data.hermite
+       set(handles.pb_mor_krylov_MimoExps_Input,'Visible','off'); 
+       set(handles.pb_mor_krylov_MimoExps_Output,'Visible','off');
+    else
+       set(handles.pb_mor_krylov_MimoExps_Input,'Visible','on'); 
+       set(handles.pb_mor_krylov_MimoExps_Output,'Visible','on');
+
+       set(handles.pb_mor_krylov_MimoExps_Input,'BackgroundColor',[1;0.843;0]);
+       set(handles.pb_mor_krylov_MimoExps_Output,'BackgroundColor',[0.94;0.94;0.94]);
+    end
+    
+    %Set the value new value for hermite-interpolation
+    
+    handles.MimoParam.hermite = data.hermite;
+    
+    guidata(hObject,handles);
+end
+
+%Enable back all disabled controls
+
+set(handles.rb_mor_krylov_twosided,'Enable','on');
+set(handles.pu_mor_krylov_algorithm,'Enable','on');
+
+if get(handles.pu_mor_krylov_algorithm,'Value') ~= 1    %not IRKA
+    set(handles.rb_mor_krylov_input,'Enable','on');
+    set(handles.rb_mor_krylov_output,'Enable','on');
+end
+
+
+
+function uitable_mor_krylov_MimoExps_CreateFcn(hObject, eventdata, handles)
+
+    set(hObject,'Data',cell(1,4));
+
+function pb_mor_krylov_MimoExps_Input_Callback(hObject, eventdata, handles)
+
+%Set the right table visible
+
+set(handles.uitable_mor_krylov_MimoExps,'Visible','On');
+set(handles.uitable_mor_krylov_MimoExps_output,'Visible','Off');
+
+%Change the color of the buttons to signal witch table is selected
+
+set(handles.pb_mor_krylov_MimoExps_Input,'BackgroundColor',[1;0.843;0]);
+set(handles.pb_mor_krylov_MimoExps_Output,'BackgroundColor',[0.94;0.94;0.94]);
+
+function pb_mor_krylov_MimoExps_Output_Callback(hObject, eventdata, handles)
+
+%Set the right table visible
+
+set(handles.uitable_mor_krylov_MimoExps,'Visible','Off');
+set(handles.uitable_mor_krylov_MimoExps_output,'Visible','On');
+
+%Change the color of the buttons to signal witch table is selected
+
+set(handles.pb_mor_krylov_MimoExps_Input,'BackgroundColor',[0.94;0.94;0.94]);
+set(handles.pb_mor_krylov_MimoExps_Output,'BackgroundColor',[1;0.843;0]);
+    
+    
 %--------------------------------------------------------------------------
 %                            SYSTEM ANALYSIS
 %--------------------------------------------------------------------------
@@ -3871,6 +4038,8 @@ catch %#ok<CTCH>
 end
 
 
+%Read out the expension-points from the GUI
+
 function [s0,sOut]=getExpansionPoints(handles)
 % read expansion point(s) from GUI
 
@@ -3955,6 +4124,61 @@ function [s0,sOut]=getExpansionPoints(handles)
             
         end       
     end
+    
+function [sIn, sOut, Rt, Lt] = getMimoExpensionPoints(handles)
+%Reads out the expension points for Mimo systems from the GUI
+
+    tableIn = get(handles.uitable_mor_krylov_MimoExps,'Data');
+    tableOut = get(handles.uitable_mor_krylov_MimoExps_output,'Data');
+    
+    sIn = cell2mat(tableIn(:,1:2))';
+    sOut = cell2mat(tableOut(:,1:2))';
+    
+    for i = 1:size(tableIn,1)
+       tableIn{i,3} = evalin('base',tableIn{i,3}); 
+    end
+    
+    for i = 1:size(tableOut,1)
+       tableOut{i,3} = evalin('base',tableOut{i,3});  
+    end
+    
+    Rt = zeros(size(tableIn{1,3},1),size(tableIn,1));
+    Lt = zeros(size(tableOut{1,3},1),size(tableOut,1));
+    
+    for i = 1:size(Rt,2)
+        for j = 1:size(Rt,1)
+            Rt(j,i) = tableIn{i,3}(j,1);
+        end
+    end
+    
+    for i = 1:size(Lt,2)
+        for j = 1:size(Lt,1)
+            Lt(j,i) = tableOut{i,3}(j,1);
+        end
+    end
+    
+    
+    if get(handles.rb_mor_krylov_output,'Value') == 1       %Output
+        
+        sIn = [];
+        Rt = [];     
+        
+    elseif get(handles.rb_mor_krylov_input,'Value') == 1    %Input
+        
+        sOut = [];
+        Lt = [];
+        
+    else                                                    %Twosided
+        
+        if handles.MimoParam.hermite == 1       %Hermite Interpolation
+            
+            sOut = sIn;
+        end      
+    end
+    
+    
+
+    
 
 function test_colors(handles,hObject)
 % check inserted colors
@@ -4225,6 +4449,283 @@ function data = addMatrixToTable(m)
     
     
     
+function [] = setKrylovDefaultValues(handles)
+       
+if get(handles.pu_mor_method,'Value')==3        %Krylov selected
+   
+    x = get(handles.pu_mor_systems,'String');
+    y = x{get(handles.pu_mor_systems,'Value')};
+    
+    if ~isempty(y)
+        
+        sys = evalin('base', y);
+    
+        if sys.m > 1 || sys.p > 1                       %Mimo system
+
+            valueInput = get(handles.uitable_mor_krylov_MimoExps,'Data');
+            valueOutput = get(handles.uitable_mor_krylov_MimoExps_output,'Data');
+            
+            %Check if the directions in the table are consistent with the
+            %number of inputs and outputs of the current system
+            
+            consistent = 0;
+            
+            if isempty(cell2mat(valueInput(1,3)))
+               if ~isempty(cell2mat(valueInput(1,4)))
+                  try
+                     vecTemp = evalin('base',valueInput{1,4});
+                     if length(vecTemp) == sys.p
+                        consistent = 1; 
+                     end
+                  end
+               end                
+            elseif isempty(cell2mat(valueInput(1,4)))
+                if ~isempty(cell2mat(valueInput(1,3)))
+                  try
+                     vecTemp = evalin('base',valueInput{1,3});
+                     if length(vecTemp) == sys.m
+                        consistent = 1; 
+                     end
+                  end
+                end
+            else
+                try
+                    vecTemp = evalin('base',valueInput{1,3});
+                    vecTemp2 = evalin('base',valueInput{1,4});
+                    if length(vecTemp) == sys.m && length(vecTemp2) == sys.p
+                        consistent = 1; 
+                    end
+                end
+            end
+            
+            %Set the default parameters for MOR with MIMO systems if the
+            %selected system has changed
+            
+            if ~consistent
+                handles.MimoParam.hermite = 1;
+                handles.MimoParam.block = 0;
+
+                guidata(handles.pu_mor_systems,handles);
+            end
+            
+            %Set the default Values if no values are specified or the
+            %system has been changed
+            
+            if (isempty(cell2mat(valueInput(1,1))) && isempty(cell2mat(valueInput(1,2))) ...
+                  && isempty(cell2mat(valueInput(1,3))) && isempty(cell2mat(valueInput(1,4))) ...
+                  && isempty(cell2mat(valueOutput(1,1))) && isempty(cell2mat(valueOutput(1,2))) ...
+                  && isempty(cell2mat(valueOutput(1,3))) && size(valueOutput,1) == 1 ...
+                  && size(valueInput,1) == 1) || ~consistent
+                  
+                    
+                if size(sys.A,1) > 6
+
+                   %Shifts and Moments 
+
+                   value{1,1} = 0;
+                   value{1,2} = 2;
+                   value{2,1} = 1+i;
+                   value{2,2} = 2;
+                   value{3,1} = 1-i;
+                   value{3,2} = 2;
+
+                   valueInput = value;
+                   valueOutput = value;
+
+                   %Tangential Directions
+
+                   valueInput{1,3} = vec2string((1:sys.m==1));
+                   valueInput{2,3} = vec2string((1:sys.m==min(2,sys.m)));
+                   valueInput{3,3} = vec2string((1:sys.m==min(3,sys.m)));
+
+                   valueInput{1,4} = vec2string((1:sys.p==1));
+                   valueInput{2,4} = vec2string((1:sys.p==min(2,sys.p)));
+                   valueInput{3,4} = vec2string((1:sys.p==min(3,sys.p)));
+
+                   valueOutput{1,3} = vec2string((1:sys.p==1));
+                   valueOutput{2,3} = vec2string((1:sys.p==min(2,sys.p)));
+                   valueOutput{3,3} = vec2string((1:sys.p==min(3,sys.p)));
+
+                else
+
+                   %Shifts and Moments
+
+                   value{1,1} = 0;
+                   value{1,2} = 1;
+
+                   valueInput = value;
+                   valueOutput = value;
+
+                   %Tangential Directions
+
+                   valueInput{1,3} = vec2string((1:sys.m==1));
+                   valueInput{1,4} = vec2string((1:sys.p==1));
+                   valueOutput{1,3} = vec2string((1:sys.p==1));
+
+                end
+            end
+            
+            set(handles.uitable_mor_krylov_MimoExps,'Data',valueInput);
+            set(handles.uitable_mor_krylov_MimoExps_output,'Data',valueOutput);
+
+        else                                        %Siso system
+
+            value = get(handles.uitable_mor_krylov,'Data');
+
+            if isempty(cell2mat(value(1,1))) && isempty(cell2mat(value(1,2)))
+
+                   if size(sys.A,1) > 6
+                       value{1,1} = 0;
+                       value{1,2} = 2;
+                       value{2,1} = 1+i;
+                       value{2,2} = 2;
+                       value{3,1} = 1-i;
+                       value{3,2} = 2;           
+                   else
+                       value{1,1} = 0;
+                       value{1,2} = 1;
+                   end
+                   set(handles.uitable_mor_krylov,'Data',value);
+                   set(handles.uitable_mor_krylov_output,'Data',value);
+                   countMatchedMoments(handles);       
+            end  
+        end
+    end
+end  
+        
+        
+function [string] = vec2string(vect)
+        
+    string = '[';
+    for i = 1:length(vect)-1
+        string = strcat(strcat(string,num2str(vect(i))),';');
+    end
+    string = strcat(strcat(string,num2str(vect(length(vect)))),']');
+   
+    
+%Different Layouts for SISO and MIMO
+    
+function [] = layoutMimoKrylov(handles)
+%Sets the right table with shifts and directions visible for Mimo-systems 
+
+    if get(handles.pu_mor_krylov_algorithm,'Value') == 1        %IRKA
+        
+        set(handles.uitable_mor_krylov_MimoExps,'Visible','on');
+        set(handles.uitable_mor_krylov_MimoExps_output,'Visible','off');
+        
+        set(handles.pb_mor_krylov_MimoExps_Input,'Visible','off');
+        set(handles.pb_mor_krylov_MimoExps_Output,'Visible','off');
+        
+        set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{92 92 92 92});
+        
+    else                                                        %RK
+        
+        if get(handles.rb_mor_krylov_input,'Value') == 1
+            
+            set(handles.uitable_mor_krylov_MimoExps,'Visible','on');
+            set(handles.uitable_mor_krylov_MimoExps_output,'Visible','off');
+            
+            set(handles.pb_mor_krylov_MimoExps_Input,'Visible','off');
+            set(handles.pb_mor_krylov_MimoExps_Output,'Visible','off');
+        
+            set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{123 123 123 0});
+            
+        elseif get(handles.rb_mor_krylov_output,'Value') == 1
+            
+            set(handles.uitable_mor_krylov_MimoExps,'Visible','off');
+            set(handles.uitable_mor_krylov_MimoExps_output,'Visible','on');
+            
+            set(handles.pb_mor_krylov_MimoExps_Input,'Visible','off');
+            set(handles.pb_mor_krylov_MimoExps_Output,'Visible','off');           
+            
+        else                                                    %twosided
+            
+            if handles.MimoParam.hermite == 1
+               
+                set(handles.uitable_mor_krylov_MimoExps,'Visible','on');
+                set(handles.uitable_mor_krylov_MimoExps_output,'Visible','off');
+        
+                set(handles.pb_mor_krylov_MimoExps_Input,'Visible','off');
+                set(handles.pb_mor_krylov_MimoExps_Output,'Visible','off');
+        
+                set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{92 92 92 92});              
+                
+            else
+                
+                set(handles.uitable_mor_krylov_MimoExps,'Visible','on');
+                set(handles.uitable_mor_krylov_MimoExps_output,'Visible','off');
+        
+                set(handles.pb_mor_krylov_MimoExps_Input,'Visible','on');
+                set(handles.pb_mor_krylov_MimoExps_Output,'Visible','on');
+                
+                set(handles.pb_mor_krylov_MimoExps_Input,'BackgroundColor',[1 0.843 0]);
+                set(handles.pb_mor_krylov_MimoExps_Output,'BackgroundColor',[0.94 0.94 0.94]);
+        
+                set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{123 123 123 0});
+                
+            end          
+        end   
+    end    
+    
+function [] = layoutSisoKrylov(handles)
+
+    if get(handles.pu_mor_krylov_algorithm,'Value')~=1 %RK
+        
+        if get(handles.rb_mor_krylov_input,'Value') == 1
+        
+            set(handles.uitable_mor_krylov_output,'Visible','off');
+            set(handles.uitable_mor_krylov,'Visible','on');
+            
+            set(handles.pb_mor_krylov_input,'Visible','off');
+            set(handles.pb_mor_krylov_output,'Visible','off');
+        
+            set(handles.rb_mor_krylov_hermite,'Enable','off');
+            
+        elseif get(handles.rb_mor_krylov_output,'Value') == 1
+            
+            set(handles.uitable_mor_krylov_output,'Visible','on');
+            set(handles.uitable_mor_krylov,'Visible','off');
+            
+            set(handles.pb_mor_krylov_input,'Visible','off');
+            set(handles.pb_mor_krylov_output,'Visible','off');
+        
+            set(handles.rb_mor_krylov_hermite,'Enable','off')
+            
+        else        %twosided
+        
+            set(handles.uitable_mor_krylov_output,'Visible','off');
+            set(handles.uitable_mor_krylov,'Visible','on');
+            
+            if get(handles.rb_mor_krylov_hermite,'Value') == 0
+                
+                set(handles.pb_mor_krylov_input,'Visible','on');
+                set(handles.pb_mor_krylov_output,'Visible','on');
+
+                set(handles.pb_mor_krylov_input,'BackgroundColor',[1;0.843;0]);
+                set(handles.pb_mor_krylov_output,'BackgroundColor',[0.94;0.94;0.94]);
+                
+            else    %Hermite Interpolation
+
+                set(handles.pb_mor_krylov_input,'Visible','off');
+                set(handles.pb_mor_krylov_output,'Visible','off');
+                
+            end
+
+            set(handles.rb_mor_krylov_hermite,'Enable','on');
+        
+        end
+        
+    else                                                %IRKA
+        
+        set(handles.uitable_mor_krylov_output,'Visible','off');
+        set(handles.uitable_mor_krylov,'Visible','on');
+        
+        set(handles.pb_mor_krylov_input,'Visible','off');
+        set(handles.pb_mor_krylov_output,'Visible','off');
+        
+        set(handles.rb_mor_krylov_hermite,'Enable','off');
+    end
+
     
     
 function [sys, sysname] = get_sys_from_ws(namehandle)
@@ -4270,6 +4771,8 @@ function [] = suggestNamesMOR(sysName,handles)
 %in the model-order-reduction menue 
 
     %Set the name of the system
+    
+    if ~isempty(sysName)
 
     splittedString = strsplit(sysName,'_');
     
@@ -4311,6 +4814,15 @@ function [] = suggestNamesMOR(sysName,handles)
     suggestVarname(sprintf('%s_w',name),handles.ed_mor_w);
     suggestVarname(sprintf('%s_v',name),handles.ed_mor_v);
     suggestVarname(sprintf('%s_shifts',name),handles.ed_mor_saveShifts);
+    
+    else
+       
+        set(handles.ed_mor_sysred,'String','');
+        set(handles.ed_mor_w,'String','');
+        set(handles.ed_mor_v,'String','');
+        set(handles.ed_mor_saveShifts,'String','');
+        
+    end
         
 function x = systemsInWorkspace()
 % finds and lists all dynamical systems that are contained in workspace
@@ -4357,37 +4869,42 @@ function [] = countMatchedMoments(handles)
         x = get(handles.uitable_mor_krylov_output,'Data');
         data2=cell2mat(x);
         
-        if size(data1,2)==2     %Input
-            data1=sum(data1(:,2));
-        elseif isempty(data1)
-            data1 = 0;
+        if ~isempty(data1)                  %Input
+           data1 = sum(data1(:,2)); 
         else
-            error('Table data has the wrong format'); 
+           data1 = 0;
         end
-        
-        if size(data2,2)==2     %Output
-            data2=sum(data2(:,2));
-        elseif isempty(data2)
-            data2 = 0;
-        else
-            error('Table data has the wrong format');
-        end
-        
-        %Updata the displays of reduced order and matched moments
-        
-        set(handles.st_mor_krylov_redOrder,'String',data1);
 
-        if get(handles.rb_mor_krylov_twosided,'Value') == 1    %Two sided
+        if ~isempty(data2)                  %Output
+           data2 = sum(data2(:,2)); 
+        else
+           data2 = 0;
+        end      
+        
+        %Update the displays of reduced order and matched moments
+        
+        redOrder = 0;
+
+        if get(handles.rb_mor_krylov_twosided,'Value') == 1     %Two sided
             if get(handles.pu_mor_krylov_algorithm,'Value') == 3 && ...
-                    get(handles.rb_mor_krylov_hermite,'Value') == 0 %Input and Output specifiable
+                    get(handles.rb_mor_krylov_hermite,'Value') == 0  %Input and Output specifiable
 
                 set(handles.st_mor_krylov_matchedMom,'String',data2+data1);
             else
                 set(handles.st_mor_krylov_matchedMom,'String',2*data1);
             end
-        else                                               %One sided
+            
+            redOrder = data1;
+            
+        elseif strcmp(handles.parameter.side,'input')    %Input
             set(handles.st_mor_krylov_matchedMom,'String',data1);
+            redOrder = data1;
+        else                                             %Output
+            set(handles.st_mor_krylov_matchedMom,'String',data2);
+            redOrder = data2;
         end
+        
+        set(handles.st_redOrder,'String',redOrder);
 
         %Check weather the reduced order is bigger than the original order
 
@@ -4396,10 +4913,15 @@ function [] = countMatchedMoments(handles)
 
         if ~isempty(y)
            sys = evalin('base',y);
-           if sys.n < data1
+           if sys.n < redOrder
               msgbox('Reduced order is bigger than the original order of the system. Please correct that before reducing the system.','Warning','Warn');
               uiwait;
            end
         end
     end
+
+
+
+    
+
 
