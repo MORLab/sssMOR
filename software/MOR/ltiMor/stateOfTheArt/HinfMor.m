@@ -1,4 +1,4 @@
-function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMor(sys, n, varargin) 
+function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfMor(sys, n, varargin) 
     % HINFMOR - H-infinity reduction by tangential interpolation
     % ------------------------------------------------------------------
     % TODO
@@ -657,7 +657,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj);
                 % take only one complex conjugate partner
                 s0m = cplxpair(s0m); idx = find(imag(s0m)); s0m(idx(1:2:end)) = [];
-                figure; plot(s0m,'o');xlabel('real');ylabel('imag')
+                figure('Name','Sampling frequencies for VF'); 
+                plot(s0m,'o');xlabel('real');ylabel('imag')
                 
                 % generate frequency sample
 %                 fss = freqresp(sys,s0m); fss = reshape(fss,numel(fss(:,:,1)),length(fss));
@@ -693,7 +694,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt , bound, sysm,Virka,Rt] = HinfMo
                 
                 sysm = sss(AA,BB,CC,DD);
 %                 isstable(sysm)
-                figure;bode(ss(sys),'b-',ss(sysm),'--r'); keyboard;            
+                figure('Name','Original Vs surrogate models');
+                bode(ss(sys),'b-',ss(sysm),'--r'); keyboard;            
             case 'loewner'
                 %   Get the data
                 [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj);
