@@ -49,7 +49,7 @@ classdef testArnoldi < matlab.unittest.TestCase
             end
 
             %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
+            p = mfilename('fullpath'); k = strfind(p, fullfile('test',filesep)); 
             pathBenchmarks = [p(1:k-1),'benchmarks'];
             cd(pathBenchmarks);
         end
@@ -230,11 +230,11 @@ classdef testArnoldi < matlab.unittest.TestCase
                 s0 = -(conj(p)); Lt = r{1}; Rt = r{2}.';         
                 
                 %   run Hermite arnoldi
-                [V,Rsylv,W,Lsylv] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0, Rt, Lt,@(x,y) (x'*y));
+                [V,~, Rsylv,W,~, Lsylv] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0, Rt, Lt,@(x,y) (x'*y));
                 actSolution={W};
                 
                 %   run output arnoldi
-                [Wexp,LsylvExp] = arnoldi(sys.E.',sys.A.',sys.C.',s0, Lt, @(x,y) (x'*y));
+                [Wexp,~, LsylvExp] = arnoldi(sys.E.',sys.A.',sys.C.',s0, Lt, @(x,y) (x'*y));
                 expSolution= {Wexp};
                 
                 %   Verify W
@@ -287,11 +287,11 @@ classdef testArnoldi < matlab.unittest.TestCase
                 s0 = -(conj(p)); Lt = r{1}; Rt = r{2}.';         
                 
                 %   run Hermite arnoldi
-                [V,Rsylv,W,Lsylv] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0, Rt, Lt,@(x,y) (x'*y));
+                [V,~,Rsylv,W,~,Lsylv] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0, Rt, Lt,@(x,y) (x'*y));
                 actSolution={W}; sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V,sys.D,W'*sys.E*V);
                 
                 %   run output arnoldi
-                [Wexp,LsylvExp] = arnoldi(sys.E.',sys.A.',sys.C.',s0, Lt, @(x,y) (x'*y));
+                [Wexp,~, LsylvExp] = arnoldi(sys.E.',sys.A.',sys.C.',s0, Lt, @(x,y) (x'*y));
                 expSolution= {Wexp};
                 
                 %   Verify W
@@ -337,7 +337,21 @@ classdef testArnoldi < matlab.unittest.TestCase
               verifyEqual(testCase, actMt, expMt, 'RelTol', 1e-6);
               end
             end
-        end 
+        end
+        function testArnoldi8(testCase) 
+            %test Sylvester matrices
+            Opts.orth='2mgs';
+            Opts.reorth='qr';
+            Opts.real='real';
+            s0=[50, 100, 200, 300, 1-1i, 1+1i];
+            for i=1:length(testCase.sysCell)
+                sys=testCase.sysCell{i};
+                [V, SRsylv, CRsylv] = arnoldi(sys.E,sys.A,sys.B,s0,Opts);
+                % residual of sylvester equation
+                actSolution=norm(sys.A*V-sys.E*V*SRsylv-sys.B*CRsylv);
+                verifyLessThan(testCase,actSolution,1e-8);
+            end
+        end
     end
 end
 
