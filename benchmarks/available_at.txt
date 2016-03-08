@@ -1,5 +1,0 @@
-http://slicot.org/20-site/126-benchmark-examples-for-model-reduction
-https://portal.uni-freiburg.de/imteksimulation/downloads/benchmark
-
-
-Benchmarks have been moved to sss (11. Feb. 2016).
