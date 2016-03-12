@@ -29,10 +29,9 @@ function varargout = mimoKrylov(varargin)
 %           -.hermite:      hermite-interpolation selected or not
 %                           [0 / 1]
 % ------------------------------------------------------------------
-% Authors:      Heiko Panzer, Sylvia Cremer, Maria Cruz Varona, 
-%               Alessandro Castagnotto
+% Authors:      Niklas Kochdumper
 % Last Change:  07 March 2016
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
 
@@ -82,8 +81,8 @@ function mimoKrylov_OpeningFcn(hObject, eventdata, handles, varargin)
 
     if strcmp(parameter.algorithm,'irka')          %IRKA
 
-        set(handles.rb_hermite,'Value',1);
-        set(handles.rb_hermite,'Enable','off');
+        set(handles.cb_hermite,'Value',1);
+        set(handles.cb_hermite,'Enable','off');
 
         set(handles.uitable_input,'Visible','on');
         set(handles.uitable_output,'Visible','off');
@@ -92,8 +91,8 @@ function mimoKrylov_OpeningFcn(hObject, eventdata, handles, varargin)
 
         if strcmp(parameter.side,'input')
 
-            set(handles.rb_hermite,'Value',0);
-            set(handles.rb_hermite,'Enable','off');
+            set(handles.cb_hermite,'Value',0);
+            set(handles.cb_hermite,'Enable','off');
 
             set(handles.rb_importDirections_input,'Value',1);
             set(handles.rb_importDirections_output,'Enable','off');
@@ -101,12 +100,12 @@ function mimoKrylov_OpeningFcn(hObject, eventdata, handles, varargin)
             set(handles.uitable_input,'Visible','on');
             set(handles.uitable_output,'Visible','off');
 
-            set(handles.uitable_input,'ColumnWidth',[199,199,199,0]);
+            set(handles.uitable_input,'ColumnWidth',{199,199,199,0});
 
         elseif strcmp(parameter.side,'output')
 
-            set(handles.rb_hermite,'Value',0);
-            set(handles.rb_hermite,'Enable','off');
+            set(handles.cb_hermite,'Value',0);
+            set(handles.cb_hermite,'Enable','off');
 
             set(handles.rb_importDirections_output,'Value',1);
             set(handles.rb_importDirections_input,'Enable','off');
@@ -116,7 +115,7 @@ function mimoKrylov_OpeningFcn(hObject, eventdata, handles, varargin)
 
         else        %twosided
 
-            set(handles.rb_hermite,'Value',1);      
+            set(handles.cb_hermite,'Value',1);      
 
             set(handles.uitable_input,'Visible','on');
             set(handles.uitable_output,'Visible','off');
@@ -147,7 +146,7 @@ function varargout = mimoKrylov_OutputFcn(hObject, eventdata, handles)
            data.outputData = handles.dataOutput; 
         end
 
-        data.hermite = get(handles.rb_hermite,'Value');
+        data.hermite = get(handles.cb_hermite,'Value');
 
         varargout{1} = data;
 
@@ -226,9 +225,9 @@ function pb_output_Callback(hObject, eventdata, handles)
     
 %Callbacks Panel Paramters
 
-function rb_hermite_Callback(hObject, eventdata, handles)
+function cb_hermite_Callback(hObject, eventdata, handles)
 
-    if get(handles.rb_hermite,'Value') == 1
+    if get(handles.cb_hermite,'Value') == 1
 
         set(handles.pb_input,'Visible','off');
         set(handles.pb_output,'Visible','off');
@@ -287,7 +286,7 @@ function bg_blockKrylov_SelectionChangedFcn(hObject, eventdata, handles)
         
     else
         
-        if get(handles.rb_hermite,'Value') == 1
+        if get(handles.cb_hermite,'Value') == 1
             set(handles.uitable_input,'ColumnWidth',{150,150,150,150});
         else
             set(handles.uitable_input,'ColumnWidth',{199,199,199,0});
@@ -831,7 +830,7 @@ function [] = countMatchedMoments(handles)
 
         if strcmp(handles.parameter.side,'twosided')     %Two sided
             if strcmp(handles.parameter.algorithm,'rk') && ...
-                    get(handles.rb_hermite,'Value') == 0 %Input and Output specifiable
+                    get(handles.cb_hermite,'Value') == 0 %Input and Output specifiable
 
                 set(handles.st_matchedMom,'String',data2+data1);
             else
@@ -931,7 +930,7 @@ function t = dataCorrect(handles)
 
             if strcmp(handles.parameter.side,'twosided')    %Twosided
 
-                if get(handles.rb_hermite,'Value') == 1         %Hermite
+                if get(handles.cb_hermite,'Value') == 1         %Hermite
 
                     if get(handles.rb_blockKrylov,'Value') == 0  %Tangential
 
