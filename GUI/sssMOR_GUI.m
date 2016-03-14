@@ -309,43 +309,8 @@ function text_about_weblink_ButtonDownFcn(hObject, eventdata, handles)
 %                    POSTPROCESSING AND VISUALISATION
 %--------------------------------------------------------------------------
 
-function pu_in_Callback(hObject, eventdata, handles)
-% MIMO input to be analyzed
-
-    %Refresh list of suitable open figures
-    
-    list_open_figures(handles)
-    
-    %Set the new default values for the legend text
-    
-    suggestDefaultLegendText(handles);
-
-function pu_out_Callback(hObject, eventdata, handles)
-% MIMO output to be analyzed
-
-    %Refresh list of suitable open figures
-    
-    list_open_figures(handles)
-
-    %Set the new default values for the legend text
-    
-    suggestDefaultLegendText(handles);
-
 function syschoice_Callback(hObject, eventdata, handles)
 % occurs when system has been chosen
-
-% get and convert system
-% try
-%     [sys, sysname] = getSysFromWs(hObject);
-% catch ex
-%     if strfind(ex.identifier, 'unassigned')
-%         set(handles.ed_legend,'String','');    
-%         return
-%     end
-%     errordlg(ex.message,'Error Dialog','modal')
-%     uiwait
-%     return
-% end
 
 %Check if a system is choosen
 
@@ -399,11 +364,35 @@ end
 % suggest legend
 %set(handles.ed_legend,'String',s);
 % refresh list of open figures
-list_open_figures(handles)
+listOpenFigures(handles)
 
 %Set the new default values for the legend text
     
 suggestDefaultLegendText(handles);
+
+
+function pu_in_Callback(hObject, eventdata, handles)
+% MIMO input to be analyzed
+
+    %Refresh list of suitable open figures
+    
+    listOpenFigures(handles)
+    
+    %Set the new default values for the legend text
+    
+    suggestDefaultLegendText(handles);
+
+function pu_out_Callback(hObject, eventdata, handles)
+% MIMO output to be analyzed
+
+    %Refresh list of suitable open figures
+    
+    listOpenFigures(handles)
+
+    %Set the new default values for the legend text
+    
+    suggestDefaultLegendText(handles);
+    
 
 function plot_type_Callback(hObject, eventdata, handles)
 
@@ -465,7 +454,7 @@ else
     end
 end
 % refresh list of open figures
-list_open_figures(handles)
+listOpenFigures(handles)
 
 function figure_Callback(hObject, eventdata, handles)
 % handle of chosen figure
@@ -481,7 +470,7 @@ if get(handles.plot_type,'Value')==3 ||get(handles.plot_type,'Value')==5
         set(handles.panel_scale,'Visible','on')
     end
 end
-list_open_figures(handles); % aktualisieren, falls figures geschlossen wurden
+listOpenFigures(handles); % aktualisieren, falls figures geschlossen wurden
 if fighand ~=0
     try
         %Show the selected figure and select it as current graphics object
@@ -489,6 +478,13 @@ if fighand ~=0
     end
 end
 
+function ed_legend_Callback(hObject, eventdata, handles)
+%That the UserData for this Object to the value 1 to signal that the text
+%has beeb edited by the user
+
+    set(hObject,'UserData',1);
+
+    
 function rb_auto_Callback(hObject, eventdata, handles)
 % automatic choice of time/frequency
 set(handles.panel_manual,'Visible','off')
@@ -501,21 +497,19 @@ set(handles.bg_distribution,'Visible','on')
 
 function ed_min_Callback(hObject, eventdata, handles)
 % check user input
-test_min(hObject,handles) % if ok, save 0 to userdata, otherwise 1
+testMin(hObject,handles) % if ok, save 0 to userdata, otherwise 1
 if get(handles.rb_manual,'Value')==0 % manual selected but inactive
     set(handles.rb_manual,'Value',1)
-    test_max(handles.ed_max,handles)
+    testMax(handles.ed_max,handles)
 end
-
 
 function ed_max_Callback(hObject, eventdata, handles)
 % see ed_min_Callback
-test_max(hObject,handles)
+testMax(hObject,handles)
 if get(handles.rb_manual,'Value')==0
     set(handles.rb_manual,'Value',1)
-    test_min(handles.ed_min,handles)
+    testMin(handles.ed_min,handles)
 end
-
 
 function sl_steps_Callback(hObject, eventdata, handles)
 % round to 100
@@ -535,15 +529,14 @@ set(handles.et_curstep,'String',h)
 % check min and max
 if get(handles.rb_manual,'Value')==0
     set(handles.rb_manual,'Value',1)
-    test_max(handles.ed_max,handles)
-    test_min(handles.ed_min,handles)
+    testMax(handles.ed_max,handles)
+    testMin(handles.ed_min,handles)
 end
-
 
 function et_curstep_Callback(hObject, eventdata, handles)
 %Check if the value lies in the allowed interval and update the slider
 
-    test_width(hObject);
+    testWidth(hObject);
     
     dataIncorrect = get(hObject,'UserData');
     
@@ -580,11 +573,9 @@ function rb_colorvek_Callback(hObject, eventdata, handles)
     set(handles.panel_color_RGB,'Visible','on');
     set(handles.colorlist,'Visible','off');
 
-
-
 function ed_r_Callback(hObject, eventdata, handles)
 % check input
-test_colors(handles,hObject)
+testColors(handles,hObject)
 % if radio button for RGB is not selected, set it and unset other colors
 if get(handles.rb_colorvek,'Value')==0
     set(handles.rb_colorvek,'Value',1)
@@ -594,26 +585,31 @@ end
 
 function ed_g_Callback(hObject, eventdata, handles)
 %see ed_r_Callback
-test_colors(handles,hObject)
+testColors(handles,hObject)
 if get(handles.rb_colorvek,'Value')==0
     set(handles.rb_colorvek,'Value',1)
     set(handles.ed_r,'UserData',1)
     set(handles.ed_b,'UserData',1)
 end
 
-
 function ed_b_Callback(hObject, eventdata, handles)
 % see ed_r_Callback
-test_colors(handles,hObject)
+testColors(handles,hObject)
 if get(handles.rb_colorvek,'Value')==0
     set(handles.rb_colorvek,'Value',1)
     set(handles.ed_g,'UserData',1)
     set(handles.ed_r,'UserData',1)
 end
 
+
 function ed_post_markersize_Callback(hObject, eventdata, handles)
 % check input data of linewidth
-test_width(hObject)
+testWidth(hObject)
+
+function ed_width_Callback(hObject, eventdata, handles)
+% check line width
+testWidth(hObject)
+
 
 function pb_plot_Callback(hObject, eventdata, handles)
 % plot
@@ -648,15 +644,9 @@ if ~strcmp(class(sys), 'sss')
     end
 end
 
-% if get(handles.syschoice,'Value')==1
-%     errordlg('Please choose a system.','Error Dialog','modal')
-%     set(hObject,'String','Plot')
-%     set(hObject,'Enable','on')
-%     uiwait
-%     return
-% end
-% 
-% % get and convert system
+
+%get and convert system
+
 try
     [sys, sysname] = getSysFromWs(handles.syschoice);
 catch ex
@@ -902,11 +892,11 @@ case 1 %impulse response
                     markersize)
                 k=k+1;
                 if j==1 % label "To Out"
-                    y_lab=sprintf('To Out(%i)',i);
+                    y_lab=sprintf('To: Out(%i)',i);
                     ylabel(y_lab)
                 end
                 if i==1 % label "To In"
-                    x_lab=sprintf('From In(%i)',j);
+                    x_lab=sprintf('From: In(%i)',j);
                     title(x_lab,'FontWeight','normal');
                 end
             end
@@ -915,8 +905,8 @@ case 1 %impulse response
     end
     h=axes('position',[0,0,1,1],'Visible','off'); % axes unsichtbar in den hintergrund legen zur beschriftung
     text(0.5,0.98,'Impulse Response','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
-    text(0.5,0.02,'Time [s]')
-    text(0.01,0.5,'Amplitude','Rotation',90)
+    text(0.5,0.02,'Time (seconds)','HorizontalAlignment','center')
+    text(0.01,0.5,'Amplitude','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
     set(h,'HandleVisibility','off') % um zoomen usw zu vermeiden wird das handle unsichtbar gemacht
     hold on
     for i=1:size(UserData,1) % damit man auf die einzelnen subplots zugreifen kann werden alle nochmal angesprochen
@@ -996,21 +986,21 @@ case 2 %Step Response
                     markersize)
                 k=k+1;
                 if j==1
-                    y_lab=sprintf('To Out(%i)',i);
+                    y_lab=sprintf('To: Out(%i)',i);
                     ylabel(y_lab)
                 end
                 if i==1
-                    x_lab=sprintf('From In(%i)',j);
-                    title(x_lab)
+                    x_lab=sprintf('From: In(%i)',j);
+                    title(x_lab,'FontWeight','normal');
                 end
             end
         end
         set(fighand,'UserData',UserData)
     end
     h=axes('position',[0,0,1,1],'Visible','off');
-    text(0.4,0.98,'Step Response');
-    text(0.5,0.02,'Time [s]')
-    text(0.01,0.5,'Amplitude','Rotation',90)
+    text(0.5,0.98,'Step Response','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
+    text(0.5,0.02,'Time (seconds)','HorizontalAlignment','center')
+    text(0.01,0.5,'Amplitude','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
     set(h,'HandleVisibility','off')
     hold on
     for i=1:size(UserData,1)
@@ -1117,12 +1107,12 @@ case 3 %Bode
                     end
                 end
                 if j==1
-                    y_lab=sprintf('To Out(%i)',ceil(i/2));
+                    y_lab=sprintf('To: Out(%i)',ceil(i/2));
                     ylabel(y_lab)
                 end
                 if i==1
-                    x_lab=sprintf('From In(%i)',j);
-                    title(x_lab)
+                    x_lab=sprintf('From: In(%i)',j);
+                    title(x_lab,'FontWeight','normal');
                 end
                 k=k+1;
             end
@@ -1130,12 +1120,12 @@ case 3 %Bode
         set(fighand,'UserData',UserData)
     end
     h=axes('position',[0,0,1,1],'Visible','off');
-    text(0.4,0.98,'Bode Diagram');
-    text(0.5,0.02,'Frequency [rad/sec]')
+    text(0.5,0.98,'Bode Diagram','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
+    text(0.5,0.02,'Frequency [rad/sec]','HorizontalAlignment','center')
     if get(handles.rb_ylog,'Value')==1
-        text(0.01,0.5,'Phase [deg] ; Magnitude [dB]','Rotation',90)
+        text(0.01,0.5,'Phase [deg] ; Magnitude [dB]','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center');
     else
-        text(0.01,0.5,'Phase [deg] ; Magnitude (abs)','Rotation',90)
+        text(0.01,0.5,'Phase [deg] ; Magnitude (abs)','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
     end
     set(h,'HandleVisibility','off')
     hold on
@@ -1234,21 +1224,21 @@ case 4 %Pole-Zero Map
                 hLegendEntry = get(hAnnotation','LegendInformation');
                 set(hLegendEntry,'IconDisplayStyle','off')
                 if j==1 % an die äußere Seite jeweils To Out schreiben
-                    y_lab=sprintf('To Out(%i)',i);
+                    y_lab=sprintf('To: Out(%i)',i);
                     ylabel(y_lab)
                 end
                 if i==1 % an die obere Seite jeweils To In schreiben
-                    x_lab=sprintf('From In(%i)',j);
-                    title(x_lab)
+                    x_lab=sprintf('From: In(%i)',j);
+                    title(x_lab,'FontWeight','normal')
                 end
             end
         end
         set(fighand,'UserData',UserData) % handles der axes in UserData der figure speichern
     end
     h=axes('position',[0,0,1,1],'Visible','off'); % axes unsichtbar in den hintergrund legen zur beschriftung
-    text(0.4,0.98,'Pole-Zero Map');
-    text(0.5,0.02,'Real Axis')
-    text(0.01,0.5,'Imaginary Axis','Rotation',90)
+    text(0.5,0.98,'Pole-Zero Map','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
+    text(0.5,0.02,'Real Axis','HorizontalAlignment','center')
+    text(0.01,0.5,'Imaginary Axis','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
     set(h,'HandleVisibility','off') % um zoomen usw zu vermeiden wird das handle unsichtbar gemacht
     hold on
     for i=1:size(UserData,1) % damit man auf die einzelnen subplots zugreifen kann werden alle nochmal angesprochen
@@ -1334,12 +1324,12 @@ case 5 %Frequency response
                         set(gca, 'XScale', 'log');
                     end
                 if j==1
-                    y_lab=sprintf('To Out(%i)',ceil(i/2));
+                    y_lab=sprintf('To: Out(%i)',ceil(i/2));
                     ylabel(y_lab)
                 end
                 if i==1
-                    x_lab=sprintf('From In(%i)',j);
-                    title(x_lab)
+                    x_lab=sprintf('From: In(%i)',j);
+                    title(x_lab,'FontWeight','normal')
                 end
                 k=k+1;
             end
@@ -1347,12 +1337,12 @@ case 5 %Frequency response
         set(fighand,'UserData',UserData)
     end
     h=axes('position',[0,0,1,1],'Visible','off');
-    text(0.4,0.98,'Frequency Response');
-    text(0.5,0.02,'Frequency [rad/sec]')
+    text(0.5,0.98,'Frequency Response','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
+    text(0.5,0.02,'Frequency [rad/sec]','HorizontalAlignment','center')
     if get(handles.rb_ylog,'Value')==1 %y logarithmisch in dB
-        text(0.01,0.4,'Magnitude [dB]','Rotation',90)
+        text(0.01,0.5,'Magnitude [dB]','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
     else
-        text(0.01,0.4,'Magnitude (abs)','Rotation',90)
+        text(0.01,0.5,'Magnitude (abs)','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
     end
     set(h,'HandleVisibility','off')
     hold on
@@ -1367,21 +1357,8 @@ end
 set(hObject,'String','Plot')
 set(hObject,'Enable','on')
 set(handles.figure1,'Pointer','arrow')
-list_open_figures(handles)
+listOpenFigures(handles)
 figure(fighand)
-
-
-function colorlist_Callback(hObject, eventdata, handles)
-% if wrong radio butten active, select right one
-if get(handles.rb_colorst,'Value')==0
-    rb_colorst_Callback(handles.rb_colorst,eventdata, handles)
-    set(handles.rb_colorst,'Value',1)
-end
-
-function ed_width_Callback(hObject, eventdata, handles)
-% check line width
-test_width(hObject)
-
 
 
 
@@ -1949,7 +1926,7 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
 
     %refresh list of open figures
     
-    list_open_figures(handles);
+    listOpenFigures(handles);
     
     %list vectors in workspace that might be s0
     
@@ -4105,118 +4082,6 @@ function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
 %                           UTILITY FUNCTIONS
 %--------------------------------------------------------------------------
 
-function list_open_figures(handles)
-%global fighand
-val=get(handles.figure,'Value');
-if val>1 
-    % UserData contains handles to figures
-    userdata=get(handles.figure,'UserData');
-    % save handle to selected figure
-    k=userdata(val);
-end
-% get handles of all open figures. their order changes each time!
-% figures are focussed and thereby can overlap the sssMOR_GUI
-
-openfig=get(0,'Children');
-c=cell({'New Figure'});
-try
-    h=0;
-    in=1; % for SISO
-    out=1; % for SISO
-    if strcmp(get(handles.panel_intoout,'Visible'),'on')
-        % MIMO system selected
-        x=get(handles.pu_in,'String');
-        in=str2double(x{get(handles.pu_in,'Value')}); % chosen input
-        x=get(handles.pu_out,'String');
-        out=str2double(x{get(handles.pu_out,'Value')}); % chosen output
-        x=get(handles.syschoice,'String');
-        sys=x{get(handles.syschoice,'Value')};
-        % remove figure with wrong number of subplots
-        if isnan(in)
-            % 'all' has been selected
-            in=evalin('base',sprintf('size(%s.B,2)',sys));
-        else
-            % number of input does not matter, only number of subplots
-            in=1; 
-        end
-        if isnan(out)
-            out=evalin('base',sprintf('size(%s.C,1)',sys));
-        else
-            out=1;
-        end
-    end
-    switch get(handles.plot_type,'Value')
-        case 1 %Impulse Response
-            tag='i';
-        case 2 % Step Response
-            tag='s';
-        case 3
-            % Bode Diagram, requires two subplots per channel
-            tag='b';
-            out=2*out; 
-        case 4 % Pole-Zero map
-            tag='p';
-        case 5 % Frequency Response
-            tag='f';
-    end
-    
-    counter = 1;
-    
-    for i=1:length(openfig)
-        if openfig(i)==handles.figure1
-            % sssMOR_GUI
-            continue
-        elseif strcmp(get(openfig(i),'Tag'),'composeModel')
-            continue
-        end
-        temp=get(openfig(i),'Name');
-         if ~isempty(strfind(get(openfig(i),'Tag'),tag))
-             % include only figures of same type
-             if in*out>1
-                 % right number of subplots?
-                 % store handles to subplots in UserData
-                 x=get(openfig(i),'UserData');
-                 if size(x,1)~=out || size(x,2)~=in
-                     continue
-                 end
-             end
-             if isempty(temp)
-                 % figure has no name, so its number is used instead 
-                %temp=sprintf('Figure %i',openfig(i));
-                temp=sprintf('Figure %i',counter);
-                counter = counter + 1;
-             end
-             
-             h=[h, openfig(i)]; %#ok<AGROW>
-             c=[c, {temp}]; %#ok<AGROW> % names
-         end
-    end
-
-    if size(c, 2) < val % number of entries
-        % selected figure number is above number of entries, use 1 instead
-        set(handles.figure,'Value',1)
-    end
-    set(handles.figure,'String', c); % set name
-    set(handles.figure,'UserData', h); % save handles in UserData
-    % if figure was selected originally, its handle is k. reselect it
-    if exist('k','var')==1
-        for i=1:length(h)
-            if h(i)==k
-                set(handles.figure,'Value',i)
-            end
-        end
-    else
-        set(handles.figure,'Value',1)
-    end
-    % bring sssMOR_GUI back to front
-    figure(handles.figure1)
-catch %#ok<CTCH>
-    % if an error occurs, restore default setting
-    set(handles.figure,'Value',1) 
-    set(handles.figure,'String','New Figure');
-    set(handles.figure,'UserData',0);
-end
-
 
 %Read out the expension-points from the GUI
 
@@ -4419,9 +4284,9 @@ function m = getDirectionMatrix(s0,mOld)
     end
         
         
-    
+%Functions for testing Plot-attributes in the Visualisation-Menue-Point     
 
-function test_colors(handles,hObject)
+function testColors(handles,hObject)
 % check inserted colors
 h=str2num(get(hObject,'String')); %#ok<ST2NM>
 if isempty(h)
@@ -4460,7 +4325,7 @@ else
     set(hObject,'UserData','0')
 end
 
-function test_width(hObject)
+function testWidth(hObject)
 % check inserted linewidth
 
 h=str2num(get(hObject,'String')); %#ok<ST2NM>
@@ -4490,7 +4355,7 @@ else
     set(hObject,'UserData',0)
 end
 
-function test_max(hObject,handles)
+function testMax(hObject,handles)
 % check maximum frequency/time in manual mode
 h=str2num(get(hObject,'String')); %#ok<ST2NM>
 if isempty(h)
@@ -4523,7 +4388,7 @@ else
     set(hObject,'UserData',0)
 end
 
-function test_min(hObject,handles)
+function testMin(hObject,handles)
 % check minimum frequency/time in manual mode
 h=str2num(get(hObject,'String')); %#ok<ST2NM>
 if isempty(h)
@@ -5134,6 +4999,118 @@ end
 % remove empty (non-system) entries
 x(cellfun(@isempty,x)) = [];
 
+function listOpenFigures(handles)
+%global fighand
+val=get(handles.figure,'Value');
+if val>1 
+    % UserData contains handles to figures
+    userdata=get(handles.figure,'UserData');
+    % save handle to selected figure
+    k=userdata(val);
+end
+% get handles of all open figures. their order changes each time!
+% figures are focussed and thereby can overlap the sssMOR_GUI
+
+openfig=get(0,'Children');
+c=cell({'New Figure'});
+try
+    h=0;
+    in=1; % for SISO
+    out=1; % for SISO
+    if strcmp(get(handles.panel_intoout,'Visible'),'on')
+        % MIMO system selected
+        x=get(handles.pu_in,'String');
+        in=str2double(x{get(handles.pu_in,'Value')}); % chosen input
+        x=get(handles.pu_out,'String');
+        out=str2double(x{get(handles.pu_out,'Value')}); % chosen output
+        x=get(handles.syschoice,'String');
+        sys=x{get(handles.syschoice,'Value')};
+        % remove figure with wrong number of subplots
+        if isnan(in)
+            % 'all' has been selected
+            in=evalin('base',sprintf('size(%s.B,2)',sys));
+        else
+            % number of input does not matter, only number of subplots
+            in=1; 
+        end
+        if isnan(out)
+            out=evalin('base',sprintf('size(%s.C,1)',sys));
+        else
+            out=1;
+        end
+    end
+    switch get(handles.plot_type,'Value')
+        case 1 %Impulse Response
+            tag='i';
+        case 2 % Step Response
+            tag='s';
+        case 3
+            % Bode Diagram, requires two subplots per channel
+            tag='b';
+            out=2*out; 
+        case 4 % Pole-Zero map
+            tag='p';
+        case 5 % Frequency Response
+            tag='f';
+    end
+    
+    counter = 1;
+    
+    for i=1:length(openfig)
+        if openfig(i)==handles.figure1
+            % sssMOR_GUI
+            continue
+        elseif strcmp(get(openfig(i),'Tag'),'composeModel')
+            continue
+        end
+        temp=get(openfig(i),'Name');
+         if ~isempty(strfind(get(openfig(i),'Tag'),tag))
+             % include only figures of same type
+             if in*out>1
+                 % right number of subplots?
+                 % store handles to subplots in UserData
+                 x=get(openfig(i),'UserData');
+                 if size(x,1)~=out || size(x,2)~=in
+                     continue
+                 end
+             end
+             if isempty(temp)
+                 % figure has no name, so its number is used instead 
+                %temp=sprintf('Figure %i',openfig(i));
+                temp=sprintf('Figure %i',counter);
+                counter = counter + 1;
+             end
+             
+             h=[h, openfig(i)]; %#ok<AGROW>
+             c=[c, {temp}]; %#ok<AGROW> % names
+         end
+    end
+
+    if size(c, 2) < val % number of entries
+        % selected figure number is above number of entries, use 1 instead
+        set(handles.figure,'Value',1)
+    end
+    set(handles.figure,'String', c); % set name
+    set(handles.figure,'UserData', h); % save handles in UserData
+    % if figure was selected originally, its handle is k. reselect it
+    if exist('k','var')==1
+        for i=1:length(h)
+            if h(i)==k
+                set(handles.figure,'Value',i)
+            end
+        end
+    else
+        set(handles.figure,'Value',1)
+    end
+    % bring sssMOR_GUI back to front
+    figure(handles.figure1)
+catch %#ok<CTCH>
+    % if an error occurs, restore default setting
+    set(handles.figure,'Value',1) 
+    set(handles.figure,'String','New Figure');
+    set(handles.figure,'UserData',0);
+end
+
 function [sys, sysname] = getSysFromWs(namehandle)
 % imports system from base workspace
 % namehandle may be system name or handle to an edit/combo-control
@@ -5190,7 +5167,7 @@ function [] = suggestDefaultLegendText(handles)
 
     text = get(handles.ed_legend,'String');
     
-    if isempty(text)
+    if isempty(text) || get(handles.ed_legend,'UserData') == 0
         
         %Get the name of the selected system
         
@@ -5198,6 +5175,10 @@ function [] = suggestDefaultLegendText(handles)
         sysName = x{get(handles.syschoice,'Value')};
         
         if ~isempty(sysName)
+            
+            %Replace the _'s in the string (because of latex interpreter)
+            
+            sysName = strrep(sysName,'_',' ');
             
             if strcmp(get(handles.panel_intoout,'Visible'),'on')    %MIMO
                 
@@ -5225,8 +5206,6 @@ function [] = suggestDefaultLegendText(handles)
         
     end
     
-
-
 
 
 
