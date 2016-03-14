@@ -311,49 +311,70 @@ function text_about_weblink_ButtonDownFcn(hObject, eventdata, handles)
 
 function pu_in_Callback(hObject, eventdata, handles)
 % MIMO input to be analyzed
-% refresh list of suitable open figures
-list_open_figures(handles)
+
+    %Refresh list of suitable open figures
+    
+    list_open_figures(handles)
+    
+    %Set the new default values for the legend text
+    
+    suggestDefaultLegendText(handles);
 
 function pu_out_Callback(hObject, eventdata, handles)
 % MIMO output to be analyzed
-% refresh list of suitable open figures
-list_open_figures(handles)
+
+    %Refresh list of suitable open figures
+    
+    list_open_figures(handles)
+
+    %Set the new default values for the legend text
+    
+    suggestDefaultLegendText(handles);
 
 function syschoice_Callback(hObject, eventdata, handles)
 % occurs when system has been chosen
 
 % get and convert system
-try
-    [sys, sysname] = getSysFromWs(hObject);
-catch ex
-    if strfind(ex.identifier, 'unassigned')
-        set(handles.ed_legend,'String','');    
-        return
-    end
-    errordlg(ex.message,'Error Dialog','modal')
-    uiwait
-    return
-end
-
-% x = get(hObject,'String');
-% y = x{get(hObject,'Value')};
-% if isempty(y)
-%     set(handles.sysinfo, 'String', 'Please choose a system!')
-%      return % no system chosen
-% end
-% % load system from workspace
-% sys = evalin('base', y);
-% if ~strcmp(class(sys), 'ss') && ~strcmp(class(sys), 'sss')
-%     errordlg('Variable is not a valid state space model.','Error Dialog','modal')
-%     set(handles.sysinfo,'String','Invalid model')
+% try
+%     [sys, sysname] = getSysFromWs(hObject);
+% catch ex
+%     if strfind(ex.identifier, 'unassigned')
+%         set(handles.ed_legend,'String','');    
+%         return
+%     end
+%     errordlg(ex.message,'Error Dialog','modal')
 %     uiwait
 %     return
 % end
 
-% show system information
-set(handles.sysinfo, 'String', sys.disp);
+%Check if a system is choosen
 
-% adapt pu_in and pu_out for MIMO systems
+x = get(hObject,'String');
+y = x{get(hObject,'Value')};
+if isempty(y)
+    set(handles.sysinfo, 'String', 'Please choose a system!');
+    set(handles.sysinfo, 'HorizontalAlignment','center');
+    set(handles.panel_intoout,'Visible','off')
+     return % no system chosen
+end
+
+%Load system from workspace
+
+sys = evalin('base', y);
+if ~strcmp(class(sys), 'ss') && ~strcmp(class(sys), 'sss')
+    errordlg('Variable is not a valid state space model.','Error Dialog','modal')
+    set(handles.sysinfo,'String','Invalid model')
+    uiwait
+    return
+end
+
+%Display system information
+
+displaySystemInformation(handles.sysinfo,sys);
+set(handles.sysinfo, 'HorizontalAlignment','left');
+
+%Adapt pu_in and pu_out for MIMO systems
+
 if sys.isMimo
     if get(handles.pu_in,'Value') > sys.m
         set(handles.pu_in,'Value', 1)
@@ -380,19 +401,20 @@ end
 % refresh list of open figures
 list_open_figures(handles)
 
+%Set the new default values for the legend text
+    
+suggestDefaultLegendText(handles);
 
 function plot_type_Callback(hObject, eventdata, handles)
+
 if (get(hObject,'Value')==3 || get(hObject,'Value')==5)&&get(handles.figure,'Value')==1
     % make logarithmic checkbox visible for bode and frequency
-    set(handles.st_scale,'Visible','on')
-    set(handles.bg_x,'Visible','on')
-    set(handles.bg_y,'Visible','on')
+    set(handles.panel_scale,'Visible','on');
 else
     % othervise invisible
-    set(handles.st_scale,'Visible','off')
-    set(handles.bg_x,'Visible','off')
-    set(handles.bg_y,'Visible','off')
+    set(handles.panel_scale,'Visible','off');
 end
+
 if get(hObject,'Value')==4
     % pzmap
     set(handles.panel_marker,'Visible','off')
@@ -418,7 +440,8 @@ else
                 uiwait
                 return
             end
-            set(handles.sysinfo, 'String', sys.disp);
+            displaySystemInformation(handles.sysinfo,sys);
+            set(handles.sysinfo, 'HorizontalAlignment','left');
             if sys.isMimo
                 if get(handles.pu_in,'Value')>size(sys.B,2)+1
                     set(handles.pu_in,'Value',1)
@@ -444,7 +467,6 @@ end
 % refresh list of open figures
 list_open_figures(handles)
 
-
 function figure_Callback(hObject, eventdata, handles)
 % handle of chosen figure
 global fighand
@@ -453,19 +475,18 @@ fighand=userdata(get(hObject,'Value'));
 if get(handles.plot_type,'Value')==3 ||get(handles.plot_type,'Value')==5
     if fighand~=0
         % figure already exists -> no choice of logarithmic
-        set(handles.st_scale,'Visible','off')
-        set(handles.bg_y,'Visible','off')
-        set(handles.bg_x,'Visible','off')
+        set(handles.panel_scale,'Visible','off')
     else
         % new figure -> log can be chosen
-        set(handles.st_scale,'Visible','on')
-        set(handles.bg_y,'Visible','on')
-        set(handles.bg_x,'Visible','on')
+        set(handles.panel_scale,'Visible','on')
     end
 end
 list_open_figures(handles); % aktualisieren, falls figures geschlossen wurden
 if fighand ~=0
-    figure(fighand)
+    try
+        %Show the selected figure and select it as current graphics object
+        figure(fighand)
+    end
 end
 
 function rb_auto_Callback(hObject, eventdata, handles)
@@ -510,7 +531,7 @@ else
 end
 set(hObject,'Value',h)
 % show value in textfield
-set(handles.st_curstep,'String',h)
+set(handles.et_curstep,'String',h)
 % check min and max
 if get(handles.rb_manual,'Value')==0
     set(handles.rb_manual,'Value',1)
@@ -518,21 +539,48 @@ if get(handles.rb_manual,'Value')==0
     test_min(handles.ed_min,handles)
 end
 
-function rb_colorst_Callback(hObject, eventdata, handles)
-% reset inserted colors if standard color is chosen
-set(handles.ed_r,'String','')
-set(handles.ed_g,'String','')
-set(handles.ed_b,'String','')
-set(handles.ed_r,'UserData','0')
-set(handles.ed_g,'UserData','0')
-set(handles.ed_b,'UserData','0')
 
+function et_curstep_Callback(hObject, eventdata, handles)
+%Check if the value lies in the allowed interval and update the slider
+
+    test_width(hObject);
+    
+    dataIncorrect = get(hObject,'UserData');
+    
+    value = str2num(get(hObject,'String'));
+    
+    if dataIncorrect == 0
+       if value < 10
+           errordlg('Value has to be greater or equal than 10','Error Dialog','modal')
+           uiwait
+           set(hObject,'String',num2str(get(handles.sl_steps,'Value')));
+           return
+       elseif value > 10000
+           errordlg('Value has to be smaller or equal than 10000','Error Dialog','modal')
+           uiwait
+           set(hObject,'String',num2str(get(handles.sl_steps,'Value')));
+           return
+       end
+       
+       set(handles.sl_steps,'Value',str2num(get(hObject,'String'))); 
+    else
+       set(hObject,'String',num2str(get(handles.sl_steps,'Value')));
+    end
+
+
+function rb_colorst_Callback(hObject, eventdata, handles)
+%Set Pop-Up for color-selection visible
+
+    set(handles.panel_color_RGB,'Visible','off');
+    set(handles.colorlist,'Visible','on');
 
 function rb_colorvek_Callback(hObject, eventdata, handles)
-% standard: black
-set(handles.ed_r,'String','0.0')
-set(handles.ed_g,'String','0.0')
-set(handles.ed_b,'String','0.0')
+%Set RGB-Panel visible
+
+    set(handles.panel_color_RGB,'Visible','on');
+    set(handles.colorlist,'Visible','off');
+
+
 
 function ed_r_Callback(hObject, eventdata, handles)
 % check input
@@ -572,8 +620,13 @@ function pb_plot_Callback(hObject, eventdata, handles)
 set(hObject,'String','Busy')
 set(hObject,'Enable','off') 
 global fighand
-% check whether a system was selected
-if get(handles.syschoice,'Value')==1
+
+%Check whether a valid system was selected
+
+x = get(handles.syschoice,'String');
+sysname = x{get(handles.syschoice,'Value')};
+
+if isempty(sysname)
     errordlg('Please choose a system.','Error Dialog','modal')
     set(hObject,'String','Plot')
     set(hObject,'Enable','on')
@@ -581,7 +634,29 @@ if get(handles.syschoice,'Value')==1
     return
 end
 
-% get and convert system
+sys = evalin('base', sysname);
+
+if ~strcmp(class(sys), 'sss')
+    try
+        sys = sss(sys);
+    catch ex %#ok<NASGU>
+        errordlg('Variable is not a valid state space model.','Error Dialog','modal')
+        set(hObject,'String','Plot')
+        set(hObject,'Enable','on')
+        uiwait
+        return
+    end
+end
+
+% if get(handles.syschoice,'Value')==1
+%     errordlg('Please choose a system.','Error Dialog','modal')
+%     set(hObject,'String','Plot')
+%     set(hObject,'Enable','on')
+%     uiwait
+%     return
+% end
+% 
+% % get and convert system
 try
     [sys, sysname] = getSysFromWs(handles.syschoice);
 catch ex
@@ -592,7 +667,8 @@ catch ex
     return
 end
 
-% if time vector is given, check min, max
+%Time vector
+
 if get(handles.rb_auto,'Value')==1
     W=[];
 elseif get(handles.rb_manual,'Value')==1
@@ -638,7 +714,9 @@ else
     set(hObject,'Enable','on')
     return
 end
-% input color: standard colors are part of colorlist. selected color: col
+
+%Color
+
 if get(handles.rb_colorst,'Value')==1
     % standard color
     temp=get(handles.colorlist,'Value');
@@ -666,7 +744,9 @@ else
     set(hObject,'Enable','on')
     return
 end
-% check whether line width is correct: width
+
+%Line width
+
 if get(handles.ed_width,'UserData')==1
     errordlg('Please correct Line Width','Error Dialog','modal')
     uiwait
@@ -676,7 +756,9 @@ if get(handles.ed_width,'UserData')==1
 else
     width=str2double(get(handles.ed_width,'String'));
 end
-% check marker
+
+%Marker
+
 if get(handles.pu_post_markerstyle,'Value')>1
     if get(handles.ed_post_markersize,'UserData')==1
         errordlg('Please correct Marker Size','Error Dialog','modal')
@@ -700,7 +782,9 @@ else
     markercol=[0 0 0];
     markersize=5;
 end
-% save line style
+
+%Line style
+
 switch get(handles.style,'Value')
     case 1
         line='-';
@@ -711,27 +795,55 @@ switch get(handles.style,'Value')
     case 4
         line='-.';
 end
-% select transfer channel
-if strcmp(get(handles.panel_intoout,'Visible'),'on')
-    %mimo
+
+%Select transfer channel
+
+if strcmp(get(handles.panel_intoout,'Visible'),'on') %MIMO
+
     input=get(handles.pu_in,'String');
-    input=str2double(input{get(handles.pu_in,'Value')});
+    valueIn = get(handles.pu_in,'Value');
+    input = input{valueIn,1};
+    
+    if strcmp(input,'all')
+        input = 1:sys.m;
+    else    
+        input=str2double(input);
+    end
+    
     output=get(handles.pu_out,'String');
-    output=str2double(output{get(handles.pu_out,'Value')});
-else
+    valueOut = get(handles.pu_out,'Value');
+    output = output{valueOut,1};
+    
+    if strcmp(output,'all')
+        output = 1:sys.p;
+    else
+        output=str2double(output);
+    end
+else        %SISO
     input=1;
     output=1;
 end
 set(handles.figure1,'Pointer','watch')
 drawnow
+
+%Different Plot-Types
+
 switch get(handles.plot_type,'Value')
+    
 case 1 %impulse response
+    
     try
-        [y, t]=impulse(sys(input, output),W);
+        [sysname, t]=impulse(sys(output, input),W);
         set(handles.ed_min,'String',t(1))
         set(handles.ed_min,'UserData',0)
         set(handles.ed_max,'String',t(end))
         set(handles.ed_max,'UserData',0)
+        
+        %Save the plots from different in- and output-channels in an cell
+        %array
+
+        sysname = plotOutput2cell(sysname);
+        
     catch ex
         uiwait
         set(hObject,'Enable','on')
@@ -751,7 +863,7 @@ case 1 %impulse response
         fighand=figure;
     end
     figure(fighand)
-    assignin('base',sysname,sys);
+    %assignin('base',sysname,sys);
     UserData=get(fighand,'UserData');
     % use existing figure
     if get(fighand,'Tag')=='i'
@@ -771,7 +883,7 @@ case 1 %impulse response
             for j=1:size(UserData,2)
                 subplot(UserData(i,j))
                 hold on
-                y_plot=y{i,j};
+                y_plot=sysname{i,j};
                 plot(t,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
                     markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
                     markersize)
@@ -779,12 +891,12 @@ case 1 %impulse response
         end
     else
         % plot into new figure
-        UserData=zeros(size(y,1),size(y,2));
+        UserData=zeros(size(sysname,1),size(sysname,2));
         k=1;
         for i=1:size(UserData,1)
             for j=1:size(UserData,2)
-                UserData(i,j)=subplot(size(y,1),size(y,2),k);
-                y_plot=y{i,j};
+                UserData(i,j)=subplot(size(sysname,1),size(sysname,2),k);
+                y_plot=sysname{i,j};
                 plot(t,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
                     markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
                     markersize)
@@ -795,14 +907,14 @@ case 1 %impulse response
                 end
                 if i==1 % label "To In"
                     x_lab=sprintf('From In(%i)',j);
-                    title(x_lab)
+                    title(x_lab,'FontWeight','normal');
                 end
             end
         end
         set(fighand,'UserData',UserData)
     end
     h=axes('position',[0,0,1,1],'Visible','off'); % axes unsichtbar in den hintergrund legen zur beschriftung
-    text(0.5,0.98,'Impulse Response');
+    text(0.5,0.98,'Impulse Response','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
     text(0.5,0.02,'Time [s]')
     text(0.01,0.5,'Amplitude','Rotation',90)
     set(h,'HandleVisibility','off') % um zoomen usw zu vermeiden wird das handle unsichtbar gemacht
@@ -815,13 +927,21 @@ case 1 %impulse response
     axes(UserData(1,1))
     legend(leg)
     set(fighand,'Tag','i')
+    
 case 2 %Step Response
+    
     try % Sprungantwort berechnen, siehe auch impulsantwort
-       [y, t]=step(sys(input, output),W);
+       [sysname, t]=step(sys(output, input),W);
        set(handles.ed_min,'String',t(1))
        set(handles.ed_min,'UserData',0)
        set(handles.ed_max,'String',t(end))
        set(handles.ed_max,'UserData',0)
+       
+       %Save the plots from different in- and output-channels in an cell
+       %array
+
+       sysname = plotOutput2cell(sysname);
+       
     catch ex
         set(hObject,'Enable','on')
         set(hObject,'Strin','Plot')
@@ -841,7 +961,7 @@ case 2 %Step Response
         fighand=gcf;
     end
     figure(fighand)
-    assignin('base',sysname,sys); % neue systemdaten in den workspace schreiben
+    %assignin('base',sysname,sys); % neue systemdaten in den workspace schreiben
     UserData=get(fighand,'UserData');    
     if get(fighand,'Tag')=='s' % vorhandenes figure nutzen
         axes(UserData(1,1)) 
@@ -858,19 +978,19 @@ case 2 %Step Response
              for j=1:size(UserData,2)
                  subplot(UserData(i,j))
                  hold on
-                 y_plot=y{i,j};
+                 y_plot=sysname{i,j};
                  plot(t,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
                      markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
                      markersize)
              end
          end
     else
-        UserData=zeros(size(y,1),size(y,2));
+        UserData=zeros(size(sysname,1),size(sysname,2));
         k=1;
         for i=1:size(UserData,1)
             for j=1:size(UserData,2)
-                UserData(i,j)=subplot(size(y,1),size(y,2),k);
-                y_plot=y{i,j};
+                UserData(i,j)=subplot(size(sysname,1),size(sysname,2),k);
+                y_plot=sysname{i,j};
                 plot(t,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
                     markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
                     markersize)
@@ -903,12 +1023,24 @@ case 2 %Step Response
     set(fighand,'Tag','s')
 
 case 3 %Bode
+    
     try
         [mag, phase, omega]=bode(sys(input, output),W);
+        
         set(handles.ed_min,'String',omega(1))
         set(handles.ed_min,'UserData',0)
         set(handles.ed_max,'String',omega(end))
         set(handles.ed_max,'UserData',0)
+        
+        %Save the plots from different in- and output-channels in an cell
+        %array
+
+        mag = permute(mag,[3 1 2]);
+        phase = permute(phase,[3 1 2]);
+        
+        mag = plotOutput2cell(mag);
+        phase = plotOutput2cell(phase);
+        
     catch ex
         errordlg(ex.message,'Error Dialog','modal')
         uiwait
@@ -1001,9 +1133,9 @@ case 3 %Bode
     text(0.4,0.98,'Bode Diagram');
     text(0.5,0.02,'Frequency [rad/sec]')
     if get(handles.rb_ylog,'Value')==1
-        text(0.01,0.5,'Magnitude [dB] ; Phase [deg]','Rotation',90)
+        text(0.01,0.5,'Phase [deg] ; Magnitude [dB]','Rotation',90)
     else
-        text(0.01,0.5,'Magnitude (abs) ; Phase [deg]','Rotation',90)
+        text(0.01,0.5,'Phase [deg] ; Magnitude (abs)','Rotation',90)
     end
     set(h,'HandleVisibility','off')
     hold on
@@ -1019,6 +1151,12 @@ case 4 %Pole-Zero Map
 
    try
        [p,z]=pzmap(sys,input,output);
+       
+       %Save the plots from different in- and output-channels in an cell
+       %array
+
+       z = plotOutput2cell(z);
+       
    catch ex
         if strfind(ex.identifier,'nomem')
             errordlg('Out of memory, system is too big','Error Dialog','modal')
@@ -1121,13 +1259,23 @@ case 4 %Pole-Zero Map
     axes(UserData(1,1))
     legend(leg)
     set(fighand,'Tag','p')
+    
 case 5 %Frequency response
+    
     try
         [mag, phase, omega]=bode(sys(input, output),W);
+        
         set(handles.ed_min,'String',omega(1))
         set(handles.ed_min,'UserData',0)
         set(handles.ed_max,'String',omega(end))
         set(handles.ed_max,'UserData',0)
+        
+        %Save the plots from different in- and output-channels in an cell
+        %array
+
+        mag = permute(mag,[3 1 2]);        
+        mag = plotOutput2cell(mag);
+        
     catch ex
         errordlg(ex.message,'Error Dialog','modal')
         uiwait
@@ -1712,7 +1860,7 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     %Check wether the previous selected systems exist in workspace
     
     
-    %Syschoisce
+    %Postprocessing and Visualisation
     
     l_alt = get(handles.syschoice,'String');
 
@@ -1730,8 +1878,8 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     else
       set(handles.syschoice,'Value',1);
     end
-    
       
+    
     %System Analysis
 
     l_alt = get(handles.pu_an_sys,'String');
@@ -1784,23 +1932,7 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
         %Display informations about the selected system
         
         pu_mor_systems_Callback(handles.pu_mor_systems, eventdata, handles);
-        
-%         sys = evalin('base',l{get(handles.pu_mor_systems,'Value')});
-%         
-%         if ~strcmp(class(sys), 'sss')
-%             
-%             try
-%                 sys = sss(sys);
-%                 %set(handles.st_mor_sysinfo,'String',sys.disp)
-%                 displaySystemInformation(handles.st_mor_sysinfo,sys);
-%             catch
-%                 set(handles.st_mor_sysinfo,'String','Invalid model')
-%             end
-%             
-%         else
-%             %set(handles.st_mor_sysinfo,'String',sys.disp)
-%             displaySystemInformation(handles.st_mor_sysinfo,sys);
-%         end
+        syschoice_Callback(handles.syschoice,eventdata,handles);
         
     else
         set(handles.pu_mor_systems,'Value',1)
@@ -1811,6 +1943,8 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
 
         set(handles.pb_mor_reduce,'Enable','off');
         set(handles.panel_mor_hsv,'Visible','off');
+        
+        syschoice_Callback(handles.syschoice,eventdata,handles);
     end
 
     %refresh list of open figures
@@ -4026,6 +4160,8 @@ try
             tag='f';
     end
     
+    counter = 1;
+    
     for i=1:length(openfig)
         if openfig(i)==handles.figure1
             % sssMOR_GUI
@@ -4046,7 +4182,9 @@ try
              end
              if isempty(temp)
                  % figure has no name, so its number is used instead 
-                temp=sprintf('Figure %i',openfig(i));
+                %temp=sprintf('Figure %i',openfig(i));
+                temp=sprintf('Figure %i',counter);
+                counter = counter + 1;
              end
              
              h=[h, openfig(i)]; %#ok<AGROW>
@@ -4349,7 +4487,7 @@ elseif h<0
     uiwait
     set(hObject,'UserData',1)
 else
-    set(hObject,'UserData','0')
+    set(hObject,'UserData',0)
 end
 
 function test_max(hObject,handles)
@@ -4382,7 +4520,7 @@ elseif h<= str2num(get(handles.ed_min,'String')) %#ok<ST2NM>
     uiwait
     set(hObject,'UserData',1)
 else
-    set(hObject,'UserData','0')
+    set(hObject,'UserData',0)
 end
 
 function test_min(hObject,handles)
@@ -4411,7 +4549,7 @@ elseif h<0
     uiwait
     set(hObject,'UserData',1)
 else
-    set(hObject,'UserData','0')
+    set(hObject,'UserData',0)
 end
 
 
@@ -5021,8 +5159,74 @@ if ~strcmp(class(sys), 'sss')
 end
 
 
+%Auxiliary-functions for plotting 
 
+function c = plotOutput2cell(data)
+%Save the plots from different in- and output-channels in an cell
+%array
 
+    if length(size(data)) == 2
+
+        c = cell(1,size(data,2));
+
+        for i = 1:size(data,2)
+           c{1,i} = data(:,i); 
+        end
+
+    else %Length == 3
+
+        c = cell(size(data,2),size(data,3));
+
+        for i = 1:size(data,2)
+           for j = 1:size(data,3)
+              c{i,j} = data(:,i,j); 
+           end
+        end
+
+    end
     
+function [] = suggestDefaultLegendText(handles)
+%Sets a default legend text if the corresponding text field is empty
+
+    text = get(handles.ed_legend,'String');
+    
+    if isempty(text)
+        
+        %Get the name of the selected system
+        
+        x = get(handles.syschoice,'String');
+        sysName = x{get(handles.syschoice,'Value')};
+        
+        if ~isempty(sysName)
+            
+            if strcmp(get(handles.panel_intoout,'Visible'),'on')    %MIMO
+                
+                x = get(handles.pu_in,'String');
+                in = x{get(handles.pu_in,'Value')};
+                
+                x = get(handles.pu_out,'String');
+                out = x{get(handles.pu_out,'Value')};
+                
+                if strcmp(in,'all') || strcmp(out,'all')
+                    name = sysName;
+                else
+                    name = strcat(sysName,'_{In(',in,'),Out(',out,')}');
+                end
+                
+            else                            %SISO
+                
+                name = sysName;
+                
+            end
+            
+            set(handles.ed_legend,'String',name);
+            
+        end
+        
+    end
+    
+
+
+
 
 
