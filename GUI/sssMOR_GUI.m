@@ -1910,6 +1910,7 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
         
         pu_mor_systems_Callback(handles.pu_mor_systems, eventdata, handles);
         syschoice_Callback(handles.syschoice,eventdata,handles);
+        pu_an_sys_Callback(handles.pu_an_sys,eventdata,handles);
         
     else
         set(handles.pu_mor_systems,'Value',1)
@@ -1922,6 +1923,7 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
         set(handles.panel_mor_hsv,'Visible','off');
         
         syschoice_Callback(handles.syschoice,eventdata,handles);
+        pu_an_sys_Callback(handles.pu_an_sys,eventdata,handles);
     end
 
     %refresh list of open figures
@@ -3383,134 +3385,371 @@ set(handles.pb_mor_krylov_MimoExps_Output,'BackgroundColor',[1;0.843;0]);
 %                            SYSTEM ANALYSIS
 %--------------------------------------------------------------------------
 
-function pb_an_stability_Callback(hObject, eventdata, handles)
-% determine stability of system
-set(handles.figure1,'Pointer','watch')
-set(handles.virtgr_an_red_buttons,'Enable','off')
-drawnow
-x = get(handles.pu_an_sys,'String');
-sysname=x{get(handles.pu_an_sys,'Value')};
-if isempty(sysname)
-    set(handles.figure1,'Pointer','arrow')
-    set(handles.virtgr_an_red_buttons,'Enable','on')
-    errordlg('Please choose system first!','Error Dialog','modal')
-    uiwait
-    return
-end
-sys=evalin('base',sysname);
-if ~isfield(sys,'Stability')
+function pu_an_sys_Callback(hObject, eventdata, handles)
+%System has been selected
+
+    set(handles.figure1,'Pointer','watch')
+    set(handles.panel_an_sysred,'Visible','off')
+    
+    %Set all displays back to default
+    
+    set(handles.tx_an_h2,'String','')
+    set(handles.tx_an_simtime,'String','')
+    set(handles.tx_an_hinf,'String','')
+    set(handles.tx_an_stability,'String','')
+    drawnow
+
+    %Get the selected system from workspace
+    
     try
-        sys=stability(sys);
+        sys = getSysFromWs(hObject);
     catch ex
-        assignin('base','LastError',ex)
-        throw(ex)
+        set(handles.figure1,'Pointer','arrow')
+        if strfind(ex.identifier, 'unassigned')
+            set(handles.tx_an_sysinfo,'String','Please select a system!')
+            set(handles.tx_an_sysinfo,'HorizontalAlignment','center')
+            return
+        end
+        errordlg(['Variable is not a valid state space model. ' ex.message],'Error Dialog','modal')
+        set(handles.tx_an_sysinfo,'String','Invalid model')
+        set(handles.tx_an_sysinfo,'HorizontalAlignment','center')
+        uiwait
+        return
     end
-end
-set(handles.tx_an_stability,'String',sys.Stability)
-assignin('base',sysname,sys)
-if isempty(eventdata) || eventdata~=1
+
+    %set(handles.tx_an_sysinfo, 'String', sys.disp);
+    displaySystemInformation(handles.tx_an_sysinfo,sys);
+    set(handles.tx_an_sysinfo, 'HorizontalAlignment','left');
+    %set(handles.tx_an_sysinfored, 'String', sys.disp_mor_info);
+    %*** system_information(sys,handles.tx_an_sysinfo,handles.tx_an_sysinfored)
+
+    %Set the values which belong only to reduced systems
+    
+    %if ~isempty(sys.mor_info) %Reduced system
+    if 1==1
+    
+        set(handles.panel_an_sysred,'Visible','on')
+        
+        if isfield(sys,'H_2_error_rel')
+            s=sprintf('%0.4g',num2str(sys.H_2_error_rel));
+            set(handles.tx_an_h2errorrel,'String',s)
+        else
+            set(handles.tx_an_h2errorrel,'String','')
+        end
+        
+        if isfield(sys,'H_2_error_abs')
+            set(handles.tx_an_h2errorabs,'String',sys.H_2_error_abs)
+        else
+            set(handles.tx_an_h2errorabs,'String','')
+        end
+        
+        if isfield(sys,'H_inf_error_rel')
+            s=sprintf('%s %%',num2str(sys.H_inf_error_rel));
+            set(handles.tx_an_hinferrorrel,'String',s)
+        else
+            set(handles.tx_an_hinferrorrel,'String','')
+        end
+        
+        if isfield(sys,'H_inf_error_abs')
+            set(handles.tx_an_hinferrorabs,'String',sys.H_inf_error_abs)
+        else
+            set(handles.tx_an_hinferrorabs,'String','')
+        end
+        
+        if isfield(sys,'obtained_simulation_time')
+            set(handles.tx_an_simtimeobt,'String',num2str(sys.obtained_simulation_time))
+        else
+            set(handles.tx_an_simtimeobt,'String','')
+        end
+        
+        if isfield(sys,'Simulationtime_original_system')
+            set(handles.tx_an_simtimeorig,'String',num2str(sys.Simulationtime_original_system))
+        else
+            set(handles.tx_an_simtimeorig,'String','')
+        end
+    else        %Original system
+        set(handles.panel_an_sysred,'Visible','off')
+    end
+    
+    %Set the values which belong to all systems
+    
+    if ~isempty(sys.h2Norm)
+        set(handles.tx_an_h2,'String', num2str(sys.h2Norm))
+    else
+        set(handles.tx_an_h2,'String','')
+    end
+    
+    if isfield(sys,'Stability')
+        set(handles.tx_an_stability,'String',sys.Stability)
+    else
+        set(handles.tx_an_stability,'String','')
+    end
+    
+    if ~isempty(sys.hInfNorm)
+        set(handles.tx_an_hinf,'String',num2str(sys.hInfNorm))
+    else
+        set(handles.tx_an_hinf,'String','')
+    end
+    
+    if ~isempty(sys.simulationTime)
+        set(handles.tx_an_simtime,'String',num2str(sys.simulationTime))
+    else
+        set(handles.tx_an_simtime,'String','')
+    end
+    
     set(handles.figure1,'Pointer','arrow')
-    set(handles.virtgr_an_red_buttons,'Enable','on')
-end
+
+
+function pb_an_stability_Callback(hObject, eventdata, handles)
+%Determine stability of system
+
+    set(handles.figure1,'Pointer','watch')
+    set(handles.virtgr_an_red_buttons,'Enable','off')
+    drawnow
+    
+    %Get the system from workspace
+    
+    try
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys);
+    catch ex
+        set(handles.figure1,'Pointer','arrow')
+        if strfind(ex.identifier, 'unassigned')
+            set(handles.tx_an_sysinfo,'String','Please select a system!')
+            set(handles.tx_an_sysinfo,'HorizontalAlignment','center')
+            errordlg('Please select a system first','Error Dialog','modal')
+            uiwait
+            set(handles.virtgr_an_red_buttons,'Enable','on')
+            return
+        end
+        errordlg(['Variable is not a valid state space model. ' ex.message],'Error Dialog','modal')
+        set(handles.tx_an_sysinfo,'String','Invalid model')
+        set(handles.tx_an_sysinfo,'HorizontalAlignment','center')
+        uiwait
+        set(handles.virtgr_an_red_buttons,'Enable','on')
+        return
+    end
+    
+    %Check for Stability
+    
+    if ~isfield(sys,'Stability')
+        try
+            stable = isstable(sys);
+        catch ex
+            assignin('base','LastError',ex)
+            throw(ex)
+        end
+    else
+        stable = sys.Stability;
+    end
+
+    %Display the solution to the user
+    
+    if stable == 1
+        set(handles.tx_an_stability,'String','stable')
+    elseif stable == 0
+        set(handles.tx_an_stability,'String','unstable')
+    else
+        set(handles.tx_an_stability,'String','unknown')
+    end
+
+    %assignin('base',sysname,sys)
+    if isempty(eventdata) || eventdata~=1
+        set(handles.figure1,'Pointer','arrow')
+        set(handles.virtgr_an_red_buttons,'Enable','on')
+    end
 
 function pb_an_h2_Callback(hObject, eventdata, handles)
-set(handles.figure1,'Pointer','watch')
-set(handles.virtgr_an_red_buttons,'Enable','off')
-drawnow
-x = get(handles.pu_an_sys,'String');
-sysname=x{get(handles.pu_an_sys,'Value')};
-if isempty(sysname)
-    if isempty(eventdata) || eventdata~=1
-        errordlg('Please choose system first!','Error Dialog','modal')
-        uiwait
-        set(handles.figure1,'Pointer','arrow')
-        set(handles.virtgr_an_red_buttons,'Enable','on')
-    end
-    return
-end
+%Determine h2-norm of system
 
-sys=evalin('base', sysname);
-if ~strcmp(class(sys), 'sss')
+    set(handles.figure1,'Pointer','watch')
+    set(handles.virtgr_an_red_buttons,'Enable','off')
+    drawnow
+
+    %Get system from workspace
+
     try
-        sys = sss(sys);
-        assignin('base', sysname, sys);
-    catch ex %#ok<NASGU>
-        set(handles.pb_mor_reduce,'Enable','off')
-        set(handles.panel_mor_hsv,'Visible','off')
-        set(handles.st_mor_sysinfo,'String','Invalid model')
-        errordlg('Variable is not a valid state space model.','Error Dialog','modal')
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys);
+    catch ex
+        set(handles.figure1,'Pointer','arrow')
+        if strfind(ex.identifier, 'unassigned')
+            set(handles.tx_an_sysinfo,'String','Please select a system!')
+            set(handles.tx_an_sysinfo,'HorizontalAlignment','center')
+            errordlg('Please select a system first','Error Dialog','modal')
+            uiwait
+            set(handles.virtgr_an_red_buttons,'Enable','on')
+            return
+        end
+        errordlg(['Variable is not a valid state space model. ' ex.message],'Error Dialog','modal')
+        set(handles.tx_an_sysinfo,'String','Invalid model')
+        set(handles.tx_an_sysinfo,'HorizontalAlignment','center')
         uiwait
+        set(handles.virtgr_an_red_buttons,'Enable','on')
         return
     end
-end
 
-try
-    h2 = norm(sys, 2);
-    assignin('base', sysname, sys);
-catch ex
-    if strcmp(ex.identifier,'MATLAB:nomem')
-        errordlg('Out of memory, system is too large to solve lyapunov equotation','Error Dialog','modal')
-    elseif strcmp(ex.identifier,'Control:foundation:LyapChol4')
-        errordlg('A or (A,E) must have all their eigenvalues in the left-half plane','Error Dialog','modal')
+    %Get the h2-norm of the system
+
+    if isempty(sys.h2Norm)
+
+        try
+            h2 = norm(sys, 2);
+            assignin('base', sysname, sys);
+        catch ex
+            if strcmp(ex.identifier,'MATLAB:nomem')
+                errordlg('Out of memory, system is too large to solve lyapunov equotation','Error Dialog','modal')
+            elseif strcmp(ex.identifier,'Control:foundation:LyapChol4')
+                errordlg('A or (A,E) must have all their eigenvalues in the left-half plane','Error Dialog','modal')
+            else
+                errordlg(ex.message)
+            end
+            uiwait
+            if isempty(eventdata) || eventdata~=1
+                set(handles.figure1,'Pointer','arrow')
+                set(handles.virtgr_an_red_buttons,'Enable','on')
+            end
+            return
+        end
+
     else
-        errordlg(ex.message)
+
+        h2 = sys.h2Norm;
+
     end
-    uiwait
+
+    %Display the solution to the user
+
+    set(handles.tx_an_h2,'String',num2str(h2))
+
     if isempty(eventdata) || eventdata~=1
         set(handles.figure1,'Pointer','arrow')
         set(handles.virtgr_an_red_buttons,'Enable','on')
     end
-    return
-end
-set(handles.tx_an_h2,'String',num2str(h2))
-if isempty(eventdata) || eventdata~=1
-    set(handles.figure1,'Pointer','arrow')
-    set(handles.virtgr_an_red_buttons,'Enable','on')
-end
 
 function pb_an_hinf_Callback(hObject, eventdata, handles)
-set(handles.figure1,'Pointer','watch')
-drawnow
-x = get(handles.pu_an_sys,'String');
-sysname=x{get(handles.pu_an_sys,'Value')};
-set(handles.virtgr_an_red_buttons,'Enable','off')
-if isempty(sysname)
+%Determine h2-norm of system
+
+    set(handles.figure1,'Pointer','watch')
+    set(handles.virtgr_an_red_buttons,'Enable','off')
+    drawnow
+    
+    %Get system from workspace
+    
+    try
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys);
+    catch ex
+        set(handles.figure1,'Pointer','arrow')
+        if strfind(ex.identifier, 'unassigned')
+            set(handles.tx_an_sysinfo,'String','Please select a system!')
+            set(handles.tx_an_sysinfo,'HorizontalAlignment','center')
+            errordlg('Please select a system first','Error Dialog','modal')
+            uiwait
+            set(handles.virtgr_an_red_buttons,'Enable','on')
+            return
+        end
+        errordlg(['Variable is not a valid state space model. ' ex.message],'Error Dialog','modal')
+        set(handles.tx_an_sysinfo,'String','Invalid model')
+        set(handles.tx_an_sysinfo,'HorizontalAlignment','center')
+        uiwait
+        set(handles.virtgr_an_red_buttons,'Enable','on')
+        return
+    end
+    
+    %Get hInf-Norm
+
+    if isempty(sys.hInfNorm)
+    
+        try
+            hinf=norm(sys, inf);
+            assignin('base', sysname, sys);
+        catch ex
+            errordlg(ex.message,'Error Dialog','modal')
+            set(handles.figure1,'Pointer','arrow')
+            set(handles.virtgr_an_red_buttons,'Enable','on')
+            uiwait
+            return
+        end
+    
+    else
+        hinf = sys.hInfNorm;
+    end
+
+    %Display solution to the user
+    
+    set(handles.tx_an_hinf,'String',num2str(hinf))
+    
     if isempty(eventdata) || eventdata~=1
         set(handles.figure1,'Pointer','arrow')
         set(handles.virtgr_an_red_buttons,'Enable','on')
     end
-    return
-end
+    
+function pb_an_simtime_Callback(hObject, eventdata, handles)
+%Determin the simulation time for the system
 
-sys=evalin('base', sysname);
-if ~strcmp(class(sys), 'sss')
+    set(handles.figure1,'Pointer','watch')
+    set(handles.virtgr_an_red_buttons,'Enable','off')
+    drawnow
+
+    %Get the system from workspace
+    
     try
-        sys = sss(sys);
-    catch ex %#ok<NASGU>
-        set(handles.pb_mor_reduce,'Enable','off')
-        set(handles.panel_mor_hsv,'Visible','off')
-        set(handles.st_mor_sysinfo,'String','Invalid model')
-        errordlg('Variable is not a valid state space model.','Error Dialog','modal')
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys);
+    catch ex
+        set(handles.figure1,'Pointer','arrow')
+        if strfind(ex.identifier, 'unassigned')
+            set(handles.tx_an_sysinfo,'String','Please select a system!')
+            set(handles.tx_an_sysinfo,'HorizontalAlignment','center')
+            errordlg('Please select a system first','Error Dialog','modal')
+            uiwait
+            set(handles.virtgr_an_red_buttons,'Enable','on')
+            return
+        end
+        errordlg(['Variable is not a valid state space model. ' ex.message],'Error Dialog','modal')
+        set(handles.tx_an_sysinfo,'String','Invalid model')
+        set(handles.tx_an_sysinfo,'HorizontalAlignment','center')
         uiwait
+        set(handles.virtgr_an_red_buttons,'Enable','on')
         return
     end
-end
 
-try
-    hinf=norm(sys, inf);
-catch ex
-    errordlg(ex.message,'Error Dialog','modal')
-    set(handles.figure1,'Pointer','arrow')
-    set(handles.virtgr_an_red_buttons,'Enable','on')
-    uiwait
-    return
-end
+    %Get the simulation Time
+    
+    if isempty(sys.simulationTime)
+        try
+            residue(sys);
+            assignin('base',sysname,sys)
+        catch ex
+            if strfind(ex.identifier,'nomem')
+                errordlg('System is too big, out of memory','Error Dialog','modal')
+                uiwait
+                if isempty(eventdata) || eventdata~=1
+                    set(handles.figure1,'Pointer','arrow')  %*** ??
+                    set(handles.virtgr_an_red_buttons,'Enable','on')
+                end
+                return
+            elseif strfind(ex.message,'singular')
+                errordlg('The system contains algebraic states.','Error Dialog','modal')
+                uiwait
+                set(hObject,'Enable','on')
+                set(hObject,'String','Plot')
+                set(handles.figure1,'Pointer','arrow')
+                return
+            else
+                set(handles.figure1,'Pointer','arrow')
+                set(handles.virtgr_an_red_buttons,'Enable','on')
+                errordlg(ex.message,'Error Dialog','modal')
+            end
+        end
+    end
+    
+    %Display solution to the user
+    
+    set(handles.tx_an_simtime,'String',num2str(sys.simulationTime))
+    
+    if isempty(eventdata) || eventdata~=1
+        set(handles.figure1,'Pointer','arrow')
+        set(handles.virtgr_an_red_buttons,'Enable','on')
+    end
 
-set(handles.tx_an_hinf,'String',num2str(hinf))
-if isempty(eventdata) || eventdata~=1
-    set(handles.figure1,'Pointer','arrow')
-    set(handles.virtgr_an_red_buttons,'Enable','on')
-end
 
 function pb_an_h2error_Callback(hObject, eventdata, handles)
 set(handles.figure1,'Pointer','watch')
@@ -3608,8 +3847,6 @@ if isempty(eventdata) || eventdata~=1
     set(handles.figure1,'Pointer','arrow')
     set(handles.virtgr_an_red_buttons,'Enable','on')
 end
-
-
 
 function pb_an_hinferror_Callback(hObject, eventdata, handles)
 set(handles.figure1,'Pointer','watch')
@@ -3778,152 +4015,6 @@ if isempty(eventdata) || eventdata~=1
     set(handles.virtgr_an_red_buttons,'Enable','on')
 end
 
-
-function pb_an_simtime_Callback(hObject, eventdata, handles)
-set(handles.figure1,'Pointer','watch')
-set(handles.virtgr_an_red_buttons,'Enable','off')
-drawnow
-
-% get and convert system
-try
-    [sys, sysname] = getSysFromWs(handles.pu_an_sys);
-catch ex
-    set(hObject,'String','Plot')
-    set(hObject,'Enable','on') 
-    errordlg(ex.message,'Error Dialog','modal')
-    uiwait
-    return
-end
-
-x = get(handles.pu_an_sys,'String');
-sysname=x{get(handles.pu_an_sys,'Value')};
-if isempty(sysname)
-    if isempty(eventdata) || eventdata~=1
-        set(handles.figure1,'Pointer','arrow')
-        set(handles.virtgr_an_red_buttons,'Enable','on')
-    end
-    return
-end
-sys=evalin('base',sysname);
-if ~ismpty(sys.SimulationTime)
-    try
-        residue(sys);
-        assignin('base',sysname,sys)
-    catch ex
-        if strfind(ex.identifier,'nomem')
-            errordlg('System is too big, out of memory','Error Dialog','modal')
-            uiwait
-            if isempty(eventdata) || eventdata~=1
-                set(handles.figure1,'Pointer','arrow')  %*** ??
-                set(handles.virtgr_an_red_buttons,'Enable','on')
-            end
-            return
-        elseif strfind(ex.message,'singular')
-            errordlg('The system contains algebraic states.','Error Dialog','modal')
-            uiwait
-            set(hObject,'Enable','on')
-            set(hObject,'String','Plot')
-            set(handles.figure1,'Pointer','arrow')
-            return
-        else
-            set(handles.figure1,'Pointer','arrow')
-            set(handles.virtgr_an_red_buttons,'Enable','on')
-            errordlg(ex.message,'Error Dialog','modal')
-        end
-    end
-end
-set(handles.tx_an_simtime,'String',num2str(sys.SimulationTime))
-if isempty(eventdata) || eventdata~=1
-    set(handles.figure1,'Pointer','arrow')
-    set(handles.virtgr_an_red_buttons,'Enable','on')
-end
-
-
-function pu_an_sys_Callback(hObject, eventdata, handles)
-set(handles.figure1,'Pointer','watch')
-set(handles.panel_an_sysred,'Visible','off')
-set(handles.tx_an_h2,'String','')
-set(handles.tx_an_simtime,'String','')
-set(handles.tx_an_hinf,'String','')
-set(handles.tx_an_stability,'String','')
-drawnow
-
-try
-    sys = getSysFromWs(hObject);
-catch ex
-    set(handles.figure1,'Pointer','arrow')
-    if strfind(ex.identifier, 'unassigned')
-        return
-    end
-    errordlg(['Variable is not a valid state space model. ' ex.message],'Error Dialog','modal')
-    set(handles.tx_an_sysinfo,'String','Invalid model')
-    uiwait
-    return
-end
-
-set(handles.tx_an_sysinfo, 'String', sys.disp);
-set(handles.tx_an_sysinfored, 'String', sys.disp_mor_info);
-%*** system_information(sys,handles.tx_an_sysinfo,handles.tx_an_sysinfored)
-
-if ~isempty(sys.mor_info)
-    set(handles.panel_an_sysred,'Visible','on')
-    if isfield(sys,'H_2_error_rel')
-        s=sprintf('%s %%',num2str(sys.H_2_error_rel));
-        set(handles.tx_an_h2errorrel,'String',s)
-    else
-        set(handles.tx_an_h2errorrel,'String','')
-    end
-    if isfield(sys,'H_2_error_abs')
-        set(handles.tx_an_h2errorabs,'String',sys.H_2_error_abs)
-    else
-        set(handles.tx_an_h2errorabs,'String','')
-    end
-    if isfield(sys,'H_inf_error_rel')
-        s=sprintf('%s %%',num2str(sys.H_inf_error_rel));
-        set(handles.tx_an_hinferrorrel,'String',s)
-    else
-        set(handles.tx_an_hinferrorrel,'String','')
-    end
-    if isfield(sys,'H_inf_error_abs')
-        set(handles.tx_an_hinferrorabs,'String',sys.H_inf_error_abs)
-    else
-        set(handles.tx_an_hinferrorabs,'String','')
-    end
-    if isfield(sys,'obtained_simulation_time')
-        set(handles.tx_an_simtimeobt,'String',num2str(sys.obtained_simulation_time))
-    else
-        set(handles.tx_an_simtimeobt,'String','')
-    end
-    if isfield(sys,'Simulationtime_original_system')
-        set(handles.tx_an_simtimeorig,'String',num2str(sys.Simulationtime_original_system))
-    else
-        set(handles.tx_an_simtimeorig,'String','')
-    end
-else
-    set(handles.panel_an_sysred,'Visible','off')
-end
-if isfield(sys, 'H_2_norm')
-    set(handles.tx_an_h2,'String', num2str(sys.H_2_norm))
-else
-    set(handles.tx_an_h2,'String','')
-end
-if isfield(sys,'Stability')
-    set(handles.tx_an_stability,'String',sys.Stability)
-else
-    set(handles.tx_an_stability,'String','')
-end
-if isfield(sys, 'H_inf_norm')
-    set(handles.tx_an_hinf,'String',num2str(sys.H_inf_norm))
-else
-    set(handles.tx_an_hinf,'String','')
-end
-if isfield(sys,'Simulationtime')
-    set(handles.tx_an_simtime,'String',num2str(sys.Simulationtime))
-else
-    set(handles.tx_an_simtime,'String','')
-end
-set(handles.figure1,'Pointer','arrow')
-
 function pb_an_simtimeorig_Callback(hObject, eventdata, handles)
 set(handles.figure1,'Pointer','watch')
 set(handles.virtgr_an_red_buttons,'Enable','off')
@@ -3994,48 +4085,71 @@ if isempty(eventdata) || eventdata~=1
     set(handles.virtgr_an_red_buttons,'Enable','on')
 end
 
+
 function pb_an_calcall_Callback(hObject, eventdata, handles)
-% calculate everything
-set(handles.figure1,'Pointer','watch')
-drawnow
-x = get(handles.pu_an_sys,'String');
-sysname=x{get(handles.pu_an_sys,'Value')};
-if isempty(sysname)
-    set(handles.figure1,'Pointer','arrow')
-    errordlg('Please choose a system first!','Error Dialog','modal')
-    uiwait
-    return
-end
-sys=evalin('base',sysname);
-% show warning if system order is above 500
-if size(sys.A,1)>500
-    s=sprintf('%s is a system with high order, this may take some time.\nDo you want to continue?',sysname);
-    k=stqd('String',s,'Title','Question Dialog');
-    if ~isempty(k) && strcmp(k,'No')
+%Calculate everything
+
+    set(handles.figure1,'Pointer','watch')
+    drawnow
+
+    %Get the selected system from workspace
+
+    try
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys);
+    catch ex
         set(handles.figure1,'Pointer','arrow')
+        if strfind(ex.identifier, 'unassigned')
+            set(handles.tx_an_sysinfo,'String','Please select a system!')
+            set(handles.tx_an_sysinfo,'HorizontalAlignment','center')
+            errordlg('Please select a system first','Error Dialog','modal')
+            uiwait
+            return
+        end
+        errordlg(['Variable is not a valid state space model. ' ex.message],'Error Dialog','modal')
+        set(handles.tx_an_sysinfo,'String','Invalid model')
+        set(handles.tx_an_sysinfo,'HorizontalAlignment','center')
+        uiwait
         return
     end
-end
-set(handles.virtgr_an_red_buttons,'Enable','off')
-if strcmp(get(handles.panel_an_sysred,'Visible'),'on')
-    % reduced system
-    pb_an_simtimeorig_Callback(handles.pb_an_simtimeorig, 1, handles)
-    pb_an_simtimeobt_Callback(handles.pb_an_simtimeobt, 1, handles)
-    pb_an_h2error_Callback(handles.pb_an_h2error, 1, handles)
-    pb_an_hinferror_Callback(handles.pb_an_hinferror, 1, handles)
-end
-try
-    pb_an_stability_Callback(handles.pb_an_stability,1, handles)
-    pb_an_h2_Callback(handles.pb_an_h2,1, handles)
-    pb_an_hinf_Callback(handles.pb_an_hinf, 1, handles)
-    pb_an_simtime_Callback(handles.pb_an_simtime,1, handles)
-catch ex
-    assignin('base','lastError',ex)
-    errordlg(ex.message,'Error Dialog','modal')
-    uiwait
-end
-set(handles.virtgr_an_red_buttons,'Enable','on')
-set(handles.figure1,'Pointer','arrow')
+    
+    %Show warning if system order is above 500
+
+    if size(sys.A,1)>500
+        s=sprintf('%s is a system with high order, this may take some time.\nDo you want to continue?',sysname);
+        k=stqd('String',s,'Title','Question Dialog');
+        if ~isempty(k) && strcmp(k,'No')
+            set(handles.figure1,'Pointer','arrow')
+            return
+        end
+    end
+
+    set(handles.virtgr_an_red_buttons,'Enable','off')
+
+    %Calculate values belonging only to a reduced system
+
+    if strcmp(get(handles.panel_an_sysred,'Visible'),'on')
+        % reduced system
+        pb_an_simtimeorig_Callback(handles.pb_an_simtimeorig, 1, handles)
+        pb_an_simtimeobt_Callback(handles.pb_an_simtimeobt, 1, handles)
+        pb_an_h2error_Callback(handles.pb_an_h2error, 1, handles)
+        pb_an_hinferror_Callback(handles.pb_an_hinferror, 1, handles)
+    end
+
+    %Calculate values belonging to every system
+
+    try
+        pb_an_stability_Callback(handles.pb_an_stability,1, handles)
+        pb_an_h2_Callback(handles.pb_an_h2,1, handles)
+        pb_an_hinf_Callback(handles.pb_an_hinf, 1, handles)
+        pb_an_simtime_Callback(handles.pb_an_simtime,1, handles)
+    catch ex
+        assignin('base','lastError',ex)
+        errordlg(ex.message,'Error Dialog','modal')
+        uiwait
+    end
+
+    set(handles.virtgr_an_red_buttons,'Enable','on')
+    set(handles.figure1,'Pointer','arrow')
 
 
 
