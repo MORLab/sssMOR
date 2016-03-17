@@ -134,6 +134,15 @@ else
 end
 
 %%  Set name for system
+splittedName = strsplit(fname,'\');
+    
+if length(splittedName) >= 2
+    fname = splittedName{1,end};
+end
+
+splittedName = strsplit(fname,'.');
+fname = splittedName{1,1};
+
 sys.Name = fname;
 
 %%  Store additional data into the sss object

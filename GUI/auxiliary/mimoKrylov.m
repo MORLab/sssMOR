@@ -86,6 +86,10 @@ function mimoKrylov_OpeningFcn(hObject, eventdata, handles, varargin)
 
         set(handles.uitable_input,'Visible','on');
         set(handles.uitable_output,'Visible','off');
+        
+        set(handles.rb_tangentialKrylov,'Value',1);
+        set(handles.rb_tangentialKrylov,'Enable','off');
+        set(handles.rb_blockKrylov,'Enable','off');
 
     else                                            %RK
 

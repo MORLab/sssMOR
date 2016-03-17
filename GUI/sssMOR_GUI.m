@@ -2545,7 +2545,8 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
         assignin('base',get(handles.ed_mor_v,'String'),V)
     end
     
-    if get(handles.cb_mor_saveShifts,'Value')==1 && get(handles.pu_mor_krylov_algorithm,'Value')==1
+    if get(handles.cb_mor_saveShifts,'Value')==1 && get(handles.pu_mor_krylov_algorithm,'Value')==1 && ...
+            get(handles.pu_mor_method,'Value')==3
         assignin('base',get(handles.ed_mor_saveShifts,'String'),s0); 
     end
 
@@ -4315,20 +4316,23 @@ function [sIn, sOut, Rt, Lt] = getMimoExpensionPoints(handles)
         end
 
         %Read out the output directions from the forth column if twosided and
-        %hermite-interpolation is selected
+        %hermite-interpolation is selected or algorithm is IRKA
 
-        if get(handles.rb_mor_krylov_twosided,'Value') == 1 && handles.MimoParam.hermite == 1 
+        if (get(handles.rb_mor_krylov_twosided,'Value') == 1 && handles.MimoParam.hermite == 1) ||...
+                get(handles.pu_algorithm,'Value') == 1
 
             for i = 1:size(tableIn,1)
                 tableIn{i,4} = evalin('base',tableIn{i,4}); 
             end
 
-            for i = 1:size(Rt,2)
-                for j = 1:size(Rt,1)
-                    Rt(j,i) = tableIn{i,4}(j,1);
+            for i = 1:size(Lt,2)
+                for j = 1:size(Lt,1)
+                    Lt(j,i) = tableIn{i,4}(j,1);
                 end
             end
 
+            sOut = sIn;
+            
         else
 
             for i = 1:size(Lt,2)
@@ -4377,17 +4381,18 @@ function m = getDirectionMatrix(s0,mOld)
         
         m = zeros(size(mOld,1),numberOfMoments);
         
-        counter = 0;
+        counter = 1;
         
         for i = 1:size(s0,2)            
            for j = 1:s0(2,i)              
                for k = 1:size(mOld,1)
                   
-                   m(k,j+counter) = mOld(k,i);
-               
+                   m(k,counter) = mOld(k,i);
+                        
                end
                
                counter = counter + 1;
+               
            end            
         end
         
