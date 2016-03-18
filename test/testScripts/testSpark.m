@@ -1,41 +1,5 @@
-classdef testSpark < matlab.unittest.TestCase
+classdef testSpark < sssTest
     
-    properties 
-        pwdPath
-        sysCell
-        deleteBenchmarks
-        testPath
-    end
-
-    methods(TestClassSetup)
-        function getBenchmarks(testCase)
-            testCase.pwdPath=pwd;
-            if exist('benchmarksSysCell.mat','file')
-                testCase.deleteBenchmarks=0;
-            else
-                testCase.testPath=loadBenchmarks;
-                testCase.deleteBenchmarks=1;
-            end
-            
-            temp=load('benchmarksSysCell.mat');
-            testCase.sysCell=temp.benchmarksSysCell;
-            if isempty(testCase.sysCell)
-                error('No benchmarks loaded.');
-            end
-        end
-    end
-    
-    methods(TestClassTeardown)
-        function changePath(testCase)
-            if testCase.deleteBenchmarks
-                cd(testCase.testPath);
-                delete('benchmarksSysCell.mat');
-            end
-            cd(testCase.pwdPath);
-        end
-    end
-    
-    %Test functions
     methods (Test)  
         function testSparkDef(testCase)
             for i=1:length(testCase.sysCell)

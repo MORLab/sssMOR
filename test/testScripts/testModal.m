@@ -1,4 +1,4 @@
-classdef testModal < matlab.unittest.TestCase
+classdef testModal < sssTest
 % testModal - testing of modalMor.m
 %
 % Description:
@@ -20,40 +20,6 @@ classdef testModal < matlab.unittest.TestCase
 % Last Change:  07 Sep 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
-    properties 
-        pwdPath
-        sysCell
-        deleteBenchmarks
-        testPath
-    end
-
-    methods(TestClassSetup)
-        function getBenchmarks(testCase)
-            testCase.pwdPath=pwd;
-            if exist('benchmarksSysCell.mat','file')
-                testCase.deleteBenchmarks=0;
-            else
-                testCase.testPath=loadBenchmarks;
-                testCase.deleteBenchmarks=1;
-            end
-            
-            temp=load('benchmarksSysCell.mat');
-            testCase.sysCell=temp.benchmarksSysCell;
-            if isempty(testCase.sysCell)
-                error('No benchmarks loaded.');
-            end
-        end
-    end
-    
-    methods(TestClassTeardown)
-        function changePath(testCase)
-            if testCase.deleteBenchmarks
-                cd(testCase.testPath);
-                delete('benchmarksSysCell.mat');
-            end
-            cd(testCase.pwdPath);
-        end
-    end
  
     methods(Test)
         function testModal1(testCase) 
