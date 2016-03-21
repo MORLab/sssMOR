@@ -200,6 +200,7 @@ while true
         s0 = s0_old; % function return value
         if ~sys.isSiso, Rt = Rt_old; Lt = Lt_old; end
         s0Traj = s0Traj(1:(kIter+1),:);
+        sysr.Name = sprintf('%s_irka',sys.Name);
         break
     end      
 end
@@ -212,7 +213,7 @@ if kIter>=Opts.maxiter
     return
 end
 
-%------------------ AUXILIARY FUNCTIONS -------------------
+%%------------------ AUXILIARY FUNCTIONS -------------------
 function s0=s0_vect(s0)
     % change two-row notation to vector notation
     if size(s0,1)==2

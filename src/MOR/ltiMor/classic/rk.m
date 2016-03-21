@@ -226,9 +226,11 @@ if isempty(s0_out)
     [V, SRsylv, Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
     W = V;
     sysr = sss(V'*sys.A*V, V'*sys.B, sys.C*V, sys.D, V'*sys.E*V);
-    Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
-    Cb = []; Lsylv = [];  SLsylv=[];
-    
+    sysr.Name = sprintf('%s_rk_inp',sys.Name);
+    if nargout>3
+        Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
+        Cb = []; Lsylv = [];  SLsylv=[];
+    end
 elseif isempty(s0_inp)
     % output Krylov subspace
     
@@ -236,18 +238,27 @@ elseif isempty(s0_inp)
     [W, SLsylv, Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP, Opts);
     V = W;
     sysr = sss(W'*sys.A*W, W'*sys.B, sys.C*W, sys.D, W'*sys.E*W);
-    Cb = sys.C - sysr.C/sysr.E*W'*sys.E;
-    Bb = []; Rsylv = []; SRsylv=[];
+    sysr.Name = sprintf('%s_rk_out',sys.Name);
+    if nargout>3
+        Cb = sys.C - sysr.C/sysr.E*W'*sys.E;
+        Bb = []; Rsylv = []; SRsylv=[];
+    end
+
 else
     if all(s0_inp == s0_out) %use only 1 LU decomposition for V and W
         [V, SRsylv, Rsylv, W, SLsylv, Lsylv] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
                             s0_inp,Rt, Lt, IP, Opts);
+                        
+        sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        sysr.Name = sprintf('%s_rk_herm',sys.Name);
+
     else
         [V, SRsylv, Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
         [W, SLsylv, Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP, Opts);
+        sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        sysr.Name = sprintf('%s_rk_2sided',sys.Name);
     end
 
-    sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
 
     if nargout > 3
         Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
@@ -255,7 +266,8 @@ else
     end
 end
 
-%----------- AUXILIARY --------------
+
+%% ----------- AUXILIARY --------------
 function s0=s0_vect(s0)
     % change two-row notation to vector notation
     if size(s0,1)==2
