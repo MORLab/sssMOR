@@ -1,34 +1,85 @@
 function sys = second2first(M, D, K, B, Cx, Cv, Opts)
-% Converts from 2nd order system to state space representation
-% ------------------------------------------------------------------
-% sys = second2first(M, D, K, B, Cx, Cv, Opts)
-% Inputs:       * M, D, K, B, Cx, Cv: Matrices of Second Order System
-%               * Opts: a structure containing the following options
-%                   * transf2nd: Type of transformation from 2nd to
-%                                1st order form: 
-%                                [{'I'}, 'K', '-K', 'alpha']
-% Outputs:      * sys: Sparse State Space Model
-% ------------------------------------------------------------------
-% The matrices of the second order system are defined as:
-%    M x" + D x' + K x = B u
-%                    y = Cx x + Cv x'
+%SECOND2FIRST - Convert a 2nd order system to state space representation
 %
-% D and either Cx or Cv may be empty; they are then set to zero.
+% Syntax:
+%       sys = SECOND2FIRST(M,D,K,B,Cx,Cv)
+%       sys = SECOND2FIRST(M,D,K,B,Cx,Cv,Opts)
 %
-% [1] B. Salimbahrami: "Structure Preserving Order Reduction of Large
-%     Scale Second Order Models", PhD Thesis at TUM, p. 36f
-% ------------------------------------------------------------------
-% This file is part of the MORLAB_GUI, a Model Order Reduction and
-% System Analysis Toolbox developed at the
-% Institute of Automatic Control, Technische Universitaet Muenchen
-% For updates and further information please visit www.rt.mw.tum.de
-% ------------------------------------------------------------------
-% Authors:      Heiko Panzer (heiko@mytum.de), Rudy Eid
-% Last Change:  24 Jan 2016
+% Description:
+%       This function takes the system matrices of a 2nd order system and
+%       converts this system to state space representation. 
+%       
+%       The representation of a 2nd order system thereby is defined as
+%       follows:
+%
+%       $LaTeX: M \ddot x + D \dot x + K x = B u$
+%       $LaTeX: y = C_x x + C_v \dot x$
+%
+%       State space representation uses the following form:
+%
+%       $LaTeX: E \dot x = A x + B u$
+%       $LaTeX: y = C x$
+%
+%       The conversion from second order to first order allows some freedom
+%       in the choise of the matrix E. Which value from the possible
+%       options should be used to create the matrix E can be specified by
+%       passing a option-structure with the desired choise as an additional
+%       input argument to the function. 
+%
+%       If the representation of the system to convert contains some
+%       matrices which are all zero (i.e. no damping), then the value [] 
+%       can be specified for these matrices.
+%
+% Input Arguments:
+%       *Required Input Arguments:*
+%       -M:     Mass matrix of the second order system
+%       -D:     Damping matrix of the second order system
+%       -K:     Stiffness matrix of the second order system
+%       -B:     Input matrix of the second order system
+%       -Cx:    Output matrix of the second order system (for x) 
+%       -Cv:    Output matrix of the second order system (for $LaTeX: /dot x$)
+%		*Optional Input Arguments:*
+%       -Opts:			a structure containing following options
+%			* transf2nd: Type of transformation from 2nd to
+%                        1st order form: 
+%                        [{'I'}, 'K', '-K', 'alpha']
+%
+% Output Arguments:
+%       -sys: Sparse State Space Model (1st order form)
+%
+% Examples:
+%       The following code converts a randomly created 2nd order system
+%       without damping to a 1st order system:
+%> clear all;
+%> sys = second2first(rand(20),[],rand(20),rand(20,1),rand(1,20),[]);
+%	
+% See Also:
+%       loadSss
+%
+% References:
+%       * *[1] B. Salimbahrami: "Structure Preserving Order Reduction of Large
+%       Scale Second Order Models", PhD Thesis at TUM, p. 36f
+%
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sss">sss</a>, a Sparse State-Space and System Analysis 
+% Toolbox developed at the Chair of Automatic Control in collaboration
+% with the Professur fuer Thermofluiddynamik, Technische Universitaet Muenchen. 
+% For updates and further information please visit <a href="https://www.rt.mw.tum.de/?sss">www.rt.mw.tum.de/?sss</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sss@rt.mw.tum.de">sss@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sss">sss</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
+% Authors:      Heiko Panzer, Rudy Eid 
+% Email:        <a href="mailto:sss@rt.mw.tum.de">sss@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/?sss">www.rt.mw.tum.de/?sss</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  21 Mar 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
-%Check wheather options are specified or not 
-
+% check wheather options are specified or not 
 if ~exist('Opts','var')
     Opts = struct(); 
 end
@@ -37,8 +88,7 @@ Def = struct('transf2nd','I');
 Opts = parseOpts(Opts,Def);
 
 
-%Check the matrix-dimensions of M and D
-
+% check the matrix-dimensions of M and D
 if size(M,1)~=size(M,2)
     error('M must be symmetric.')
 elseif any(size(M)-size(K))
@@ -51,8 +101,7 @@ elseif any(size(D)-size(K))
     error('D must have same size as M and K.');
 end
 
-%Evaluate the specified option
-
+% evaluate the specified option
 switch Opts.transf2nd
         case 'I'
             F = speye(size(K));
@@ -68,16 +117,14 @@ switch Opts.transf2nd
             F = alpha*LoadData.K;
 end
 
-%Create the matrices A and E for the first-order-system
-
+% create the matrices A and E for the first-order-system
 n = size(M,1);
 O = sparse(n,n);
 
 E = [F O; O M];
 A = [O F; -K -D];
 
-%Check the matrix-dimensions of Cx and Cv and B
-
+% check the matrix-dimensions of Cx and Cv and B
 if isempty(Cx) && isempty(Cv)
     % both output vectors are empty
     error('All outputs are zero.');
@@ -99,12 +146,10 @@ elseif size(B,1)~=size(M,1)
     error('B must have same row dimension as M, D, K')
 end
 
-%Create the matrices C, D and B for the first-order-system
-
+% create the matrices C, D and B for the first-order-system 
 B = [sparse(n,size(B,2)); B];
 C = [Cx, Cv];
 D = zeros(size(C,1),size(B,2));
 
-%Create the first-order-system
-
+% create the first-order-system
 sys = sss(A, B, C, D, E);
