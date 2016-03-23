@@ -314,9 +314,14 @@ switch opts.cure.stop
         if sys.isBig
             warning('System size might be to large for stopping criterion');
         end
-        stop = (norm(sys-sysr,2)<= opts.cure.stopval);
+        if isempty(sys.h2Norm), sys.h2Norm = norm(sys,2); end
+        if sysr.n>0 %avoid computing when initializing
+            stop = (norm(sys-sysr,2)/sys.h2Norm <= opts.cure.stopval);
+        else
+            stop = 0;
+        end
     case 'nmax'
-        stop = (size(sysr.a,1)>=opts.cure.stopval);
+        stop = (sysr.n >=opts.cure.stopval);
     otherwise
         error('The stopping criterion chosen does not exist or is not yet implemented');
 end

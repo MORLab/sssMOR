@@ -372,7 +372,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         % Generate a normally distributed random variable with mean in p0
         % and an iteration-step-dependent standard deviation
         sd = p0*((count+1-Opts.mespark.pertIter)/Opts.mespark.pertIter);
-        p0 = random('norm',p0,sd);
+        p0 = p0 + randn(size(p0)).*sd;
         
         % replace negative values by 0
         p0(p0<=0) = Opts.zeroThres;
