@@ -123,7 +123,7 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     
     %Set default-values for the variables in saved in handles
     
-    handles.splash = splash('splash.jpg');
+    handles.splash = splash('splash.png');
     handles.output = hObject;
     handles.virtgr_an_red_buttons=[handles.pb_an_sys1_stability,handles.pb_an_sys1_h2,handles.pb_an_sys1_hinf,...
                                    handles.pb_an_sys1_decaytime,handles.pb_an_sys1_dissipativity...
@@ -134,11 +134,69 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     handles.allbuttons=[handles.pb_save,handles.pb_load,handles.pb_create,handles.pb_readascii];
     handles.zoom=[];
     handles.letzterpfad='*';
+    
+    %Set the footer visible or not dependent on the size of the screen
+    
+    screensize = get( 0, 'Screensize' );
+    
+    position = get(handles.figure1,'Position');
+    position(1,1) = max(round((screensize(1,3)-1046)/2),0);
+    position(1,2) = max(round((screensize(1,4)-746)/2),0);
+    set(handles.figure1,'Position',position);
+    
+    if screensize(1,4) < 860    %Footer ausblenden
+        
+        position = get(handles.figure1,'Position');
+        position(1,4) = 716;
+        set(handles.figure1,'Position',position);
+        
+        position = get(handles.pb_loading,'Position');
+        position(1,2) = 630;
+        set(handles.pb_loading,'Position',position);
+        
+        position = get(handles.pb_postprocessing,'Position');
+        position(1,2) = 630;
+        set(handles.pb_postprocessing,'Position',position);
+        
+        position = get(handles.pb_analysis,'Position');
+        position(1,2) = 630;
+        set(handles.pb_analysis,'Position',position);
+        
+        position = get(handles.pb_about,'Position');
+        position(1,2) = 630;
+        set(handles.pb_about,'Position',position);
+        
+        position = get(handles.pb_mor,'Position');
+        position(1,2) = 630;
+        set(handles.pb_mor,'Position',position);
+        
+        position = get(handles.panel_load,'Position');
+        position(1,2) = 3;
+        set(handles.panel_load,'Position',position);
+        
+        position = get(handles.panel_post,'Position');
+        position(1,2) = 3;
+        set(handles.panel_post,'Position',position);
+        
+        position = get(handles.panel_about,'Position');
+        position(1,2) = 3;
+        set(handles.panel_about,'Position',position);
+        
+        position = get(handles.panel_mor,'Position');
+        position(1,2) = 3;
+        set(handles.panel_mor,'Position',position);
+        
+        position = get(handles.panel_analysis,'Position');
+        position(1,2) = 3;
+        set(handles.panel_analysis,'Position',position);
+    end
+    
 
     % Update handles structure
     guidata(hObject, handles);
     t=timer('TimerFcn',@(t,y)timer_Callback(handles),'ExecutionMode','singleShot','StartDelay',2);
     start(t)
+
 
     % obj = fieldnames(handles);
     % for i=1:length(obj)
@@ -226,6 +284,18 @@ function logo_tum_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
     set(hObject,'XTick',[]);
     set(hObject,'YTick',[]);
     set(hObject,'HitTest','on');
+    
+    
+    %Hide footer if the screen is not big enougth
+    
+    screensize = get( 0, 'Screensize' );
+    
+    if screensize(1,4) < 860
+        
+        position = get(hObject,'Position');
+        position(1,2) = 630;
+        set(hObject,'Position',position);
+    end
 
 function logo_tum_ButtonDownFcn(hObject, eventdata, handles)
     % link to web page
@@ -4258,7 +4328,15 @@ function logos_footer_CreateFcn(hObject, eventdata, handles)
     set(h,'HitTest','off');
     set(hObject,'XTick',[]);
     set(hObject,'YTick',[]);
-
+    
+    screensize = get( 0, 'Screensize' );
+    
+    if screensize(1,4) < 860    %Footer ausblenden
+        
+        position = get(hObject,'Position');
+        position(1,2) = -40;
+        set(hObject,'Position',position);
+    end
 
 function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
     %Web-links to the diverent homepages (Open if the user klicks on a logo)

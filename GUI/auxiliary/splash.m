@@ -149,10 +149,10 @@ screenWidth = screenSize.width;
 % get the actual splashImage size
 imgHeight = icon.getIconHeight;
 imgWidth = icon.getIconWidth;
-% win.setLocation((screenWidth-imgWidth)/2,(screenHeight-imgHeight)/2);
-position=evalin('caller','get(handles.figure1,''Position'')');
-
-win.setLocation(position(1)-2,screenSize.height-position(2)-icon.getIconHeight);
+win.setLocation((screenWidth-imgWidth)/2,(screenHeight-imgHeight)/2);
+% position=evalin('caller','get(handles.figure1,''Position'')');
+% 
+% win.setLocation(position(1)-2,screenSize.height-position(2)-icon.getIconHeight);
 
 win.show % show the splash screen
 
