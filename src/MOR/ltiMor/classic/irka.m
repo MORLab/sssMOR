@@ -208,7 +208,7 @@ if ~Opts.suppressverbose %display at least the last value
             kIter, Opts.stopCrit, sprintf('% 3.1e', stopCrit));
 end
 if kIter>=Opts.maxiter
-    warning('IRKA:no_converged', ['IRKA has not converged after ' num2str(kIter) ' steps.']);
+    warning('sssMOR:irka:maxiter',['IRKA has not converged after ' num2str(kIter) ' steps.']);
     return
 end
 
