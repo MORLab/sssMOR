@@ -133,7 +133,24 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
                                    handles.pb_an_sys1_calcall,handles.pb_an_sys2_calcall];
     handles.allbuttons=[handles.pb_save,handles.pb_load,handles.pb_create,handles.pb_readascii];
     handles.zoom=[];
+    
+    %Set the default-folder for opening data-files
+    
     handles.letzterpfad='*';
+    
+    path = mfilename('fullpath');
+    pathDirectories = strsplit(path,'\');
+    newPath = '';    
+    
+    for i = 1:length(pathDirectories)-2
+       newPath = strcat(newPath,strcat(pathDirectories{1,i},'\'));
+    end
+    
+    newPath = strcat(newPath,'src\MOR\');
+    
+    if exist(newPath,'dir') == 7
+        handles.letzterpfad = newPath;
+    end
     
     %Set the footer visible or not dependent on the size of the screen
     
@@ -3680,9 +3697,9 @@ function pb_an_sys1_dissipativity_Callback(hObject, eventdata, handles)
     %Display the solution to the user
     
     if dissipativ == 1
-        set(handles.tx_an_sys1_dissipativity,'String','strictly dissipativ')
+        set(handles.tx_an_sys1_dissipativity,'String','strictly dissipative')
     elseif dissipativ == 0
-        set(handles.tx_an_sys1_dissipativity,'String','not strictly dissipativ')
+        set(handles.tx_an_sys1_dissipativity,'String','not strictly dissipative')
     else
         set(handles.tx_an_sys1_dissipativity,'String','unknown')
     end
@@ -3868,6 +3885,10 @@ function pu_an_sys2_Callback(hObject, eventdata, handles)
         set(handles.tx_an_sys2_decaytime,'String','')
         set(handles.tx_an_sys2_hinf,'String','')
         set(handles.tx_an_sys2_stability,'String','')
+        set(handles.tx_an_compare_h2_abs,'String','')
+        set(handles.tx_an_compare_h2_rel,'String','')
+        set(handles.tx_an_compare_hinf_abs,'String','')
+        set(handles.tx_an_compare_hinf_rel,'String','')
         drawnow
     end
 
@@ -4022,9 +4043,9 @@ function pb_an_sys2_dissipativity_Callback(hObject, eventdata, handles)
     %Display the solution to the user
     
     if dissipativ == 1
-        set(handles.tx_an_sys2_dissipativity,'String','strictly dissipativ')
+        set(handles.tx_an_sys2_dissipativity,'String','strictly dissipative')
     elseif dissipativ == 0
-        set(handles.tx_an_sys2_dissipativity,'String','not strictly dissipativ')
+        set(handles.tx_an_sys2_dissipativity,'String','not strictly dissipative')
     else
         set(handles.tx_an_sys2_dissipativity,'String','unknown')
     end
@@ -4311,8 +4332,13 @@ function pb_an_compare_hinf_Callback(hObject, eventdata, handles)
 
 function pb_an_compare_h2_info_Callback(hObject, eventdata, handles)
 
+    infoBox({'pictures\InfoDifferenceSystemH2Norm.png'});
+    uiwait;
+
 function pb_an_compare_hinf_info_Callback(hObject, eventdata, handles)
 
+    infoBox({'pictures\InfoDifferenceSystemHinfNorm.png'});
+    uiwait;
 
 %--------------------------------------------------------------------------
 %                               FOOTER
