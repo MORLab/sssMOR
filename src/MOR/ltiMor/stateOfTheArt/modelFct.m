@@ -31,6 +31,7 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
 
     %%  Define default execution parameters
     Def.updateModel = 'new'; % 'all','new','lean'
+    Def.tol = 1e-2;
 
     if ~exist('Opts','var') || isempty(Opts)
         Opts = Def;
