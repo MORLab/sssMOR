@@ -20,8 +20,7 @@ function [sysr, s0, kIter, kIrkaTot, nSysm] = cirka(sys, s0, Opts)
         Opts = parseOpts(Opts,Def);
     end 
     
-    if Opts.suppressWarn, warning('off','sssMOR:irka:maxiter'); end
-    
+    if Opts.suppressWarn, warning('off','sssMOR:irka:maxiter'); end  
     %% run computations
     stop = 0;
     kIter = 0;
@@ -78,8 +77,7 @@ function [sysr, s0, kIter, kIrkaTot, nSysm] = cirka(sys, s0, Opts)
     function stop = stoppingCrit
         stop = 0;
         %   Compute the change in shifts
-        normS0 = norm(s0);
-        if normS0 == 0
+        if any(abs(s0))<1e-3
 %             crit = norm(setdiffVec(s0new,s0)); %absolute
             crit = norm((s0-s0new), 1)/sysr.n;
         else
