@@ -189,27 +189,20 @@ list_matrices(handles)
 %                             PANEL ABCD
 %--------------------------------------------------------------------------
 
-function lb_Dmdk_Callback(hObject, eventdata, handles)
-% falls D=alpha*M+beta*K ausgewählt wurde, Felder für alpha und beta
-% sichtbar machen, sonst unsichtbar, in UserData der Felder wird dann ggf
-% wieder eine 1 eingetragen, wenn ein ungültiger Wert für alpha oder beta
-% eingegeben wird
-if get(hObject,'Value')==2
-    set(handles.ed_a,'Visible','on')
-    set(handles.ed_b,'Visible','on')
-    set(handles.st_a,'Visible','on')
-    set(handles.st_b,'Visible','on')
-else
-    set(handles.ed_a,'Visible','off')
-    set(handles.ed_b,'Visible','off')
-    set(handles.ed_a,'String','')
-    set(handles.ed_b,'String','')
-    set(handles.ed_a,'UserData',0)
-    set(handles.ed_b,'UserData',0)
-    set(handles.st_a,'Visible','off')
-    set(handles.st_b,'Visible','off')
-end
+function lb_A_Callback(hObject, eventdata, handles)
+%Deletes options from the lists for the other system matrices that are not
+%consistent with the choise for A
 
+    %Get the selected matrix A
+    
+    A = get_matrix_from_ws(hObject);
+    
+    %Remove the inconsistent entries for all other matrices
+    
+    clearInconsistentEntries(handles.lb_B,handles.lists.B,size(A,1),[]);
+    clearInconsistentEntries(handles.lb_E,handles.lists.E,size(A,1),size(A,2));
+    clearInconsistentEntries(handles.lb_C,handles.lists.C,[],size(A,1));
+    
 
 
 %--------------------------------------------------------------------------
@@ -265,7 +258,43 @@ function ed_b_Callback(hObject, eventdata, handles)
     else
         set(hObject,'UserData','0')
     end
+    
+function lb_Mmdk_Callback(hObject, eventdata, handles)
+%Deletes options from the lists for the other system matrices that are not
+%consistent with the choise for M
 
+    %Get the selected matrix M
+    
+    M = get_matrix_from_ws(hObject);
+    
+    %Remove the inconsistent entries for all other matrices
+    
+    clearInconsistentEntries(handles.lb_Dmdk,handles.lists.Dmdk,size(M,1),size(M,1));
+    clearInconsistentEntries(handles.lb_Kmdk,handles.lists.Kmdk,size(M,1),size(M,1));
+    clearInconsistentEntries(handles.lb_Bmdk,handles.lists.Bmdk,size(M,1),[]);
+    clearInconsistentEntries(handles.lb_Cxmdk,handles.lists.Cxmdk,[],size(M,1));
+    clearInconsistentEntries(handles.lb_Cvmdk,handles.lists.Cvmdk,[],size(M,1));   
+    
+function lb_Dmdk_Callback(hObject, eventdata, handles)
+% falls D=alpha*M+beta*K ausgewählt wurde, Felder für alpha und beta
+% sichtbar machen, sonst unsichtbar, in UserData der Felder wird dann ggf
+% wieder eine 1 eingetragen, wenn ein ungültiger Wert für alpha oder beta
+% eingegeben wird
+if get(hObject,'Value')==2
+    set(handles.ed_a,'Visible','on')
+    set(handles.ed_b,'Visible','on')
+    set(handles.st_a,'Visible','on')
+    set(handles.st_b,'Visible','on')
+else
+    set(handles.ed_a,'Visible','off')
+    set(handles.ed_b,'Visible','off')
+    set(handles.ed_a,'String','')
+    set(handles.ed_b,'String','')
+    set(handles.ed_a,'UserData',0)
+    set(handles.ed_b,'UserData',0)
+    set(handles.st_a,'Visible','off')
+    set(handles.st_b,'Visible','off')
+end
 
 
 %--------------------------------------------------------------------------
@@ -639,3 +668,98 @@ set(handles.ed_a,'Visible','off')
 set(handles.ed_b,'Visible','off')
 set(handles.st_a,'Visible','off')
 set(handles.st_b,'Visible','off')
+
+%Save the lists in the handles-structure
+
+handles.lists.A = get(handles.lb_A,'String');
+handles.lists.B = get(handles.lb_B,'String');
+handles.lists.C = get(handles.lb_C,'String');
+handles.lists.D = get(handles.lb_D,'String');
+handles.lists.E = get(handles.lb_E,'String');
+handles.lists.Mmdk = get(handles.lb_Mmdk,'String');
+handles.lists.Dmdk = get(handles.lb_Dmdk,'String');
+handles.lists.Kmdk = get(handles.lb_Kmdk,'String');
+handles.lists.Bmdk = get(handles.lb_Bmdk,'String');
+handles.lists.Cxmdk = get(handles.lb_Cxmdk,'String');
+handles.lists.Cvmdk = get(handles.lb_Cvmdk,'String');
+
+
+guidata(handles.lb_A,handles);
+
+function [] = clearInconsistentEntries(hObject,list,size1,size2)
+%Removes the entries which are not consistent with the given sizes from the
+%list of a push-up-element 
+
+    %Get the currently selected entry
+    
+    listOld = get(hObject,'String');
+    sOld=listOld{get(hObject,'Value')};
+    
+    %Check for inconsistent entries
+    
+    for i = 1:length(list)
+        if ~isempty(size1)      %Check dimension 1
+            matSize = getMatrixSize(list{i,1},1);
+            if matSize ~= size1 && matSize ~= 0
+               list{i,1} = []; 
+               continue;
+            end
+        end
+        if ~isempty(size2)      %Check dimension 2
+            matSize = getMatrixSize(list{i,1},2);
+            if matSize ~= size2 && matSize ~= 0
+               list{i,1} = []; 
+            end
+        end
+    end
+    
+    %Remove the inconsistent entries from the list
+    
+    list = list(~cellfun(@isempty, list));
+    
+    %Select the same option as before if this entry is still there
+    
+    if ~isempty(list)
+
+        indexOld=find(strcmp(sOld,list));
+
+        if ~isempty(indexOld)
+            set(hObject,'Value',indexOld);
+        else
+            set(hObject,'Value',1);
+        end
+
+    else
+      list = {''};
+      set(hObject,'Value',1);
+    end
+    
+    %Write the modified list to the push-up-element
+    
+    set(hObject,'String',list)
+
+function x = getMatrixSize(name,dim)
+%Returns the size of the dimension dim of the matrix corresponding to the
+%given name
+
+    l=regexp(name, '\ ', 'split'); % split string
+    if strcmp(l{1,1},'[ws]')
+        %variable im 'base' workspace
+        varname=l{1,2};
+        mat=evalin('base',varname);
+    else
+        %variable in load_var_dont_destroy
+        varname=l{1,1};
+        try
+            mat=evalin('base',sprintf('load_var_dont_destroy.%s',varname));
+        catch
+            mat=[];
+        end
+    end
+    
+    if dim == 1
+       x = size(mat,1); 
+    else
+       x = size(mat,2);
+    end
+
