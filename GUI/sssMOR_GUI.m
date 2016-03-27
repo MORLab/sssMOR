@@ -302,8 +302,7 @@ function logo_tum_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
     set(hObject,'YTick',[]);
     set(hObject,'HitTest','on');
     
-    
-    %Hide footer if the screen is not big enougth
+    %Hide footer if the screen is not large enougth
     
     screensize = get( 0, 'Screensize' );
     
