@@ -146,7 +146,7 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
        newPath = strcat(newPath,strcat(pathDirectories{1,i},'\'));
     end
     
-    newPath = strcat(newPath,'src\MOR\');
+    newPath = strcat(newPath,'src\sss\benchmarks\');
     
     if exist(newPath,'dir') == 7
         handles.letzterpfad = newPath;
