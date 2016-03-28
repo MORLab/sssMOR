@@ -12,17 +12,20 @@ function sys = second2first(M, D, K, B, Cx, Cv, Opts)
 %       The representation of a 2nd order system thereby is defined as
 %       follows:
 %
-%       $LaTeX: M \ddot x + D \dot x + K x = B u$
-%       $LaTeX: y = C_x x + C_v \dot x$
+%       $M  ~ \ddot x + D ~ \dot x + K ~ x = B ~ u$
+%
+%       $y = C_x ~ x + C_v ~ \dot x$
 %
 %       State space representation uses the following form:
 %
-%       $LaTeX: E \dot x = A x + B u$
-%       $LaTeX: y = C x$
+%       ${ F ~~ 0 \choose 0 ~~ M}$  ${\dot x \choose \ddot x}$
+%       $= {0 ~~ F \choose -K ~~ -D}$ ${x \choose \dot x }$ + $B ~ u$
+%
+%       $y = \left( C_x ~~ C_v \right) ~ { x \choose \dot x }$
 %
 %       The conversion from second order to first order allows some freedom
-%       in the choise of the matrix E. Which value from the possible
-%       options should be used to create the matrix E can be specified by
+%       in the choise of the matrix F. Which value from the possible
+%       options should be used to create the matrix F can be specified by
 %       passing a option-structure with the desired choise as an additional
 %       input argument to the function. 
 %
@@ -36,13 +39,13 @@ function sys = second2first(M, D, K, B, Cx, Cv, Opts)
 %       -D:     Damping matrix of the second order system
 %       -K:     Stiffness matrix of the second order system
 %       -B:     Input matrix of the second order system
-%       -Cx:    Output matrix of the second order system (for x) 
-%       -Cv:    Output matrix of the second order system (for $LaTeX: /dot x$)
-%		*Optional Input Arguments:*
-%       -Opts:			a structure containing following options
-%			* transf2nd: Type of transformation from 2nd to
-%                        1st order form: 
-%                        [{'I'}, 'K', '-K', 'alpha']
+%       -Cx:    Output matrix of the second order system 
+%       -Cv:    Output matrix of the second order system
+%       *Optional Input Arguments:*
+%       -Opts:	a structure containing following options
+%			-transf2nd:     Type of transformation from 2nd to
+%                           1st order form: 
+%                           [{'I'}, 'K', '-K', 'alpha']
 %
 % Output Arguments:
 %       -sys: Sparse State Space Model (1st order form)
@@ -57,7 +60,7 @@ function sys = second2first(M, D, K, B, Cx, Cv, Opts)
 %       loadSss
 %
 % References:
-%       * *[1] B. Salimbahrami: "Structure Preserving Order Reduction of Large
+%       * *[1] B. Salimbahrami*: "Structure Preserving Order Reduction of Large
 %       Scale Second Order Models", PhD Thesis at TUM, p. 36f
 %
 %------------------------------------------------------------------
