@@ -200,6 +200,7 @@ while true
         s0 = s0_old; % function return value
         if ~sys.isSiso, Rt = Rt_old; Lt = Lt_old; end
         s0Traj = s0Traj(1:(kIter+1),:);
+        sysr.Name = sprintf('%s_irka',sys.Name);
         break
     end      
 end
@@ -208,11 +209,11 @@ if ~Opts.suppressverbose %display at least the last value
             kIter, Opts.stopCrit, sprintf('% 3.1e', stopCrit));
 end
 if kIter>=Opts.maxiter
-    warning('IRKA:no_converged', ['IRKA has not converged after ' num2str(kIter) ' steps.']);
+    warning('sssMOR:irka:maxiter',['IRKA has not converged after ' num2str(kIter) ' steps.']);
     return
 end
 
-%------------------ AUXILIARY FUNCTIONS -------------------
+%%------------------ AUXILIARY FUNCTIONS -------------------
 function s0=s0_vect(s0)
     % change two-row notation to vector notation
     if size(s0,1)==2
@@ -232,7 +233,11 @@ function [stop,stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts)
 %   chosen
 switch Opts.stopCrit
     case 's0' %shift convergence
-        stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
+        if any(abs(s0))<1e-3
+             stopCrit = norm((s0-s0_old), 1)/sysr.n;
+        else
+            stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
+        end      
         stop = stopCrit <= Opts.tol;
     case 'sysr' %reduced model convergence
         stopCrit = inf; %initialize in case the reduced model is unstable
@@ -241,7 +246,11 @@ switch Opts.stopCrit
         end
         stop = stopCrit <= Opts.tol;
     case 'combAll'
-        stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
+        if any(abs(s0))<1e-3
+             stopCrit = norm((s0-s0_old), 1)/sysr.n;
+        else
+            stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
+        end 
         stopCrit = [stopCrit, inf]; 
         if all(real(eig(sysr))<0) && all(real(eig(sysr_old))<0)
                 stopCrit(2) = norm(sysr-sysr_old)/norm(sysr);

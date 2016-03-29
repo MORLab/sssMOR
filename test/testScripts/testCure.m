@@ -1,46 +1,5 @@
-classdef testCure < matlab.unittest.TestCase
-    
-    properties 
-        pwdPath
-        sysCell
-        deleteBenchmarks
-        testPath
-    end
-
-    methods(TestClassSetup)
-        function getBenchmarks(testCase)
-            testCase.pwdPath=pwd;
-            if exist('benchmarksSysCell.mat','file')
-                testCase.deleteBenchmarks=0;
-            else
-                testCase.testPath=loadBenchmarks;
-                testCase.deleteBenchmarks=1;
-            end
-            
-            temp=load('benchmarksSysCell.mat');
-            testCase.sysCell=temp.benchmarksSysCell;
-            if isempty(testCase.sysCell)
-                error('No benchmarks loaded.');
-            end
-
-            %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, fullfile('test',filesep));  
-            pathBenchmarks = [p(1:k-1),'benchmarks'];
-            cd(pathBenchmarks);
-        end
-    end
-    
-    methods(TestClassTeardown)
-        function changePath(testCase)
-            if testCase.deleteBenchmarks
-                cd(testCase.testPath);
-                delete('benchmarksSysCell.mat');
-            end
-            cd(testCase.pwdPath);
-        end
-    end
-    
-    %Test functions
+classdef testCure < sssTest
+   
     methods (Test)  
         function testCureDef(testCase)
             for i=1:length(testCase.sysCell)
@@ -71,7 +30,7 @@ classdef testCure < matlab.unittest.TestCase
             Opts.cure = struct('fact','W',...
                           'init','slm',...
                           'stop','h2Error',...
-                          'stopval',norm(sys)*1e-1,...
+                          'stopval',5e-2,...
                           'verbose', 1,...
                           'test', 1,...
                           'gif',1,...
