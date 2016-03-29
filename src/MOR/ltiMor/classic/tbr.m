@@ -31,9 +31,14 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       Hankel-Singular values (satisfying the option 'hsvTol') will be
 %       plotted for the user to enter a desired reduction order.
 %
-%       If the option 'adi' is set, a low rank approximation of the
+%       If the option 'type' is set to 'adi', a low rank approximation of the
 %       cholseky factor is performed. If the option 'adi' is not 
 %       defined, ADI is applied to systems with sys.n>500.
+%
+%       If the option 'type' is set to 'matchDcGain', then a
+%       residualization is computed to match the DC gain of the original
+%       model. Note that this is only possible using direct methods (tbr)
+%       and not with adi.
 %
 %//Note: When ADI is used, only a small number of Hankel-Singular values
 %       are computed. To determine the reduction error, the unknown
@@ -48,8 +53,8 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       -Opts:              a structure containing following options
 %           -.real:         return real reduced system
 %                           [{'real'} / '0']
-%           -.adi:          low rank cholseky factor approximation
-%                           [{'0'} / 'adi']
+%           -.type:         select amongst different tbr algorithms
+%                           [{'tbr'} / 'adi' / 'matchDcGain' ]
 %           -.redErr:       upper bound of reduction error
 %                           [{'0'} / positive float]
 %           -.hsvTol:       tolerance for Hankel-Singular values
@@ -102,7 +107,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %------------------------------------------------------------------
 
 % Default execution parameters
-Def.adi = 0; % use ADI to solve lyapunov eqation (0,'adi')
+Def.type = 'tbr'; % select tbr method (tbr, adi, matchDcGain)
 Def.redErr = 0; % reduction error (redErr>2*sum(hsv(q+1:end)))
 Def.hsvTol = 1e-15; % hsv tolerance (hsv(q)<hsvTol)
 Def.real = 'real'; % real reduced system ('0', 'real')
@@ -125,15 +130,15 @@ if ~exist('Opts','var') || isempty(Opts)
     Opts = Def;
     if sys.n>500
         if isempty(sys.ConGramChol) && isempty(sys.ObsGramChol) && isempty(sys.ConGram) && isempty(sys.ObsGram)
-            Opts.adi='adi';
+            Opts.type='adi';
         end
     end
 else
     if ~isfield(Opts,'adi') && sys.n>500
         if isempty(sys.ConGramChol) && isempty(sys.ObsGramChol) && isempty(sys.ConGram) && isempty(sys.ObsGram)
-            Opts.adi='adi';
+            Opts.type='adi';
         else
-            Opts.adi=0;
+            Opts.type='tbr';
         end
     end
     Opts = parseOpts(Opts,Def);
@@ -143,16 +148,16 @@ if sys.isDae
     error('tbr does not work with DAE systems.');
 end
 
-if strcmp(Opts.adi,'adi')
+if strcmp(Opts.type,'adi')
     if sys.n<100 && strcmp(Opts.warnOrError,'error')
         error('System is too small for ADI (sys.n >= 100 required).');
     elseif sys.n<100 && strcmp(Opts.warnOrError,'warn')
         warning('System is too small for ADI. Trying without ADI...');
-        Opts.adi=0;
+        Opts.type='tbr';
     end
 end
 
-if strcmp(Opts.adi,'adi')
+if strcmp(Opts.type,'adi')
     % lyapack options (lyaOpts):
     %   method='heur': find ADI parameters with a heuristic method
     %   (l0,kp,km)=(20,50,25): shifts p consist of l0 or l0+1 values of kp('LM')+km('SM') Ritz values
@@ -359,7 +364,7 @@ end
 % determine reduction order
 if exist('q','var') || Opts.redErr>0
     if ~exist('q','var')
-        if strcmp(Opts.adi,'adi') && qmax<sys.n
+        if strcmp(Opts.type,'adi') && qmax<sys.n
             % worst case for unknown hsv
             hsvSum=2*real(hsv(qmax))/real(hsv(1))*(sys.n-qmax+1);
         else
@@ -377,7 +382,7 @@ if exist('q','var') || Opts.redErr>0
             end
         end
         
-        if strcmp(Opts.adi,'adi')
+        if strcmp(Opts.type,'adi')
             warning(['Reduction order was set to q = ', num2str(q,'%d'),...
             ' to satisfy the upper bound for the reduction error. ',10,...
             'The upper bound can be unprecise due to the use of ADI.']);
@@ -433,7 +438,7 @@ else
         end
         q=qmax;
     elseif q>qmax
-        if strcmp(Opts.adi,'adi') && qmax==qmaxAdi
+        if strcmp(Opts.type,'adi') && qmax==qmaxAdi
             if strcmp(Opts.warnOrError,'error')
                 error(['Reduction order must be smaller than q = ', num2str(qmax,'%d'),...
                     ' due to ADI.']);
@@ -459,16 +464,45 @@ end
 V = sys.TBalInv(:,1:q);
 W = sys.TBal(1:q,:)';
 
-if strcmp(Opts.adi,'adi')
-    sysr=sss(W'*feval(lyaOpts.usfs.m,'N',V),W'*B0,C0*V,sys.D);
+switch Opts.type
+    case 'tbr'
+        sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+    case 'matchDcGain'
+        W=sys.TBalInv;
+        V=sys.TBal;
+        ABal=W*sys.A*V;
+        BBal=W*sys.B;
+        CBal=sys.C*V;
+
+        [A11,A12,A21,A22] = partition(ABal,q);
+        B1=BBal(1:q,:);B2=BBal(q+1:end,:);
+        C1=CBal(:,1:q);C2=CBal(:,q+1:end);
+
+        ARed=A11-A12/A22*A21;
+        BRed=B1-A12/A22*B2; 
+
+        if sys.isDescriptor
+            EBal=W'*sys.E*V;
+            E11=EBal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
+            E21=EBal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
+            ERed=E11-A12/A22*E21;
+            CRed=C1-C2/A22*A21+C2*A22i*E21/ERed*ARed;
+            DRed=sys.D-C2/A22*B2+C2/A22*E21/ERed*BRed;
+            sysr = sss(ARed, BRed, CRed, DRed, ERed);
+        else % Er=I
+            CRed=C1-C2/A22*A21;
+            DRed=sys.D-C2/A22*B2;
+            sysr = sss(ARed, BRed, CRed, DRed);
+        end
     
-    %delete global data
-    as_m_d; as_l_d; as_s_d(p.p);
-    msns_m_d; msns_l_d; msns_s_d(p.p)
-    au_m_d; au_l_d; au_s_d(p.p);
-    munu_m_d; munu_l_d; munu_s_d(p.p)
-else
-    sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+    case 'adi'
+        sysr=sss(W'*feval(lyaOpts.usfs.m,'N',V),W'*B0,C0*V,sys.D);
+
+        %delete global data
+        as_m_d; as_l_d; as_s_d(p.p);
+        msns_m_d; msns_l_d; msns_s_d(p.p)
+        au_m_d; au_l_d; au_s_d(p.p);
+        munu_m_d; munu_l_d; munu_s_d(p.p)
 end
 
 if nargout>1
