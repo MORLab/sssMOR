@@ -68,7 +68,7 @@ classdef testTbr < sssTest
         function testTbr3(testCase) %q=25
             load('fom.mat');
             q=25;
-            Opts.adi=0;
+            Opts.type='tbr';
             
             [sysr, V, W] = tbr(sss(A,B,C,0),q, Opts);
             actSolution={full(sysr.A),full(sysr.B),full(sysr.C),V,W};
@@ -151,7 +151,7 @@ classdef testTbr < sssTest
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
                 if ~sys.isDae && sys.isSiso && sys.n>100
-                    Opts.adi=0;
+                    Opts.type='tbr';
                     Opts.redErr=1e-10;
                     Opts.real='real';
                     [sysr,~,~,hsv]=tbr(sys,Opts);
@@ -160,6 +160,16 @@ classdef testTbr < sssTest
                     hsvError=(sum(hsv(sysr.n+1:end))+hsv(end)*(sys.n-length(hsv)))/hsv(1)*2;
                     verifyLessThanOrEqual(testCase, norm(impResSys-impResSysr)/length(t), hsvError);
                 end 
+            end
+        end
+        function testMatchDcGain(testCase)
+            for i=1:length(testCase.sysCell)
+                sys=testCase.sysCell{i};
+                Opts.type='matchDcGain';
+                sysr=tbr(sys,10,Opts);
+                actSolution=freqresp(sys-sysr,0);
+                expSolution=dcgain(ss(sys-sysr));
+                verifyLessThanOrEqual(testCase, abs(actSolution-expSolution), 1e-8); 
             end
         end
     end

@@ -32,7 +32,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       plotted for the user to enter a desired reduction order.
 %
 %       If the option 'type' is set to 'adi', a low rank approximation of the
-%       cholseky factor is performed. If the option 'adi' is not 
+%       cholseky factor is performed. If the option 'type' is not 
 %       defined, ADI is applied to systems with sys.n>500.
 %
 %       If the option 'type' is set to 'matchDcGain', then a
@@ -134,7 +134,7 @@ if ~exist('Opts','var') || isempty(Opts)
         end
     end
 else
-    if ~isfield(Opts,'adi') && sys.n>500
+    if ~isfield(Opts,'type') && sys.n>500
         if isempty(sys.ConGramChol) && isempty(sys.ObsGramChol) && isempty(sys.ConGram) && isempty(sys.ObsGram)
             Opts.type='adi';
         else
