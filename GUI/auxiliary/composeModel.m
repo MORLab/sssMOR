@@ -193,15 +193,15 @@ function lb_A_Callback(hObject, eventdata, handles)
 %Deletes options from the lists for the other system matrices that are not
 %consistent with the choise for A
 
-    %Get the selected matrix A
-    
-    A = get_matrix_from_ws(hObject);
-    
-    %Remove the inconsistent entries for all other matrices
-    
-    clearInconsistentEntries(handles.lb_B,handles.lists.B,size(A,1),[]);
-    clearInconsistentEntries(handles.lb_E,handles.lists.E,size(A,1),size(A,2));
-    clearInconsistentEntries(handles.lb_C,handles.lists.C,[],size(A,1));
+%     %Get the selected matrix A
+%     
+%     A = get_matrix_from_ws(hObject);
+%     
+%     %Remove the inconsistent entries for all other matrices
+%     
+%     clearInconsistentEntries(handles.lb_B,handles.lists.B,size(A,1),[]);
+%     clearInconsistentEntries(handles.lb_E,handles.lists.E,size(A,1),size(A,2));
+%     clearInconsistentEntries(handles.lb_C,handles.lists.C,[],size(A,1));
     
 
 
@@ -265,15 +265,15 @@ function lb_Mmdk_Callback(hObject, eventdata, handles)
 
     %Get the selected matrix M
     
-    M = get_matrix_from_ws(hObject);
-    
-    %Remove the inconsistent entries for all other matrices
-    
-    clearInconsistentEntries(handles.lb_Dmdk,handles.lists.Dmdk,size(M,1),size(M,1));
-    clearInconsistentEntries(handles.lb_Kmdk,handles.lists.Kmdk,size(M,1),size(M,1));
-    clearInconsistentEntries(handles.lb_Bmdk,handles.lists.Bmdk,size(M,1),[]);
-    clearInconsistentEntries(handles.lb_Cxmdk,handles.lists.Cxmdk,[],size(M,1));
-    clearInconsistentEntries(handles.lb_Cvmdk,handles.lists.Cvmdk,[],size(M,1));   
+%     M = get_matrix_from_ws(hObject);
+%     
+%     %Remove the inconsistent entries for all other matrices
+%     
+%     clearInconsistentEntries(handles.lb_Dmdk,handles.lists.Dmdk,size(M,1),size(M,1));
+%     clearInconsistentEntries(handles.lb_Kmdk,handles.lists.Kmdk,size(M,1),size(M,1));
+%     clearInconsistentEntries(handles.lb_Bmdk,handles.lists.Bmdk,size(M,1),[]);
+%     clearInconsistentEntries(handles.lb_Cxmdk,handles.lists.Cxmdk,[],size(M,1));
+%     clearInconsistentEntries(handles.lb_Cvmdk,handles.lists.Cvmdk,[],size(M,1));   
     
 function lb_Dmdk_Callback(hObject, eventdata, handles)
 % falls D=alpha*M+beta*K ausgewählt wurde, Felder für alpha und beta
