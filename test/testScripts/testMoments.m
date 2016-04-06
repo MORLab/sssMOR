@@ -37,8 +37,7 @@ classdef testMoments < sssTest
                     verification(testCase, actSolution, expSolution, m);
                 end
             end
-        end
-        
+        end    
         function testMoments2(testCase) 
             %s0: imag
             for i=1:length(testCase.sysCell)  
@@ -54,8 +53,7 @@ classdef testMoments < sssTest
                     verification(testCase, actSolution, expSolution, m);
                 end
             end
-        end
-        
+        end      
         function testMoments3(testCase) 
             %s0: Inf
             for i=1:length(testCase.sysCell)  
@@ -72,9 +70,8 @@ classdef testMoments < sssTest
                     verification(testCase, actSolution, expSolution, m);
                 end
             end
-        end
-        
-         function testMoments4(testCase) 
+        end       
+        function testMoments4(testCase) 
             %with E-matrix, s0 real
             for i=1:length(testCase.sysCell)  
                 if testCase.sysCell{i}.isDescriptor==1
@@ -89,8 +86,7 @@ classdef testMoments < sssTest
                     verification(testCase, actSolution, expSolution, m);
                 end  
             end
-         end
-    end 
+        end
 end
 
 function [] = verification(testCase, actSolution, expSolution, m)
