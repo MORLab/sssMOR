@@ -54,7 +54,7 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 %       IP (optional). If no inner product is specified, then the euclidian
 %       product corresponding to I is chosen by default:
 %
-%                       IP=@(x,y) (x'*y)
+%                       IP=@(x,y) (x.'*y)
 %
 %
 % Input Arguments:
