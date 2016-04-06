@@ -47,17 +47,9 @@ function [sysr, V, W, Bb, SRsylv, Rsylv, Cb, SLsylv, Lsylv] = rk(sys, s0_inp, va
 %       -IP:                inner product (optional)
 %       -Opts:              a structure containing following options
 %           -.real:         keep the projection matrices real
-%                           [{'real'} / '0']
-%           -.orth:         orthogonalization of new projection direction
-%                           [{'2mgs'} / 0 / 'dgks' / 'mgs']
-%           -.reorth:       reorthogonalization
-%                           [{'gs'} / 0 / 'qr']
-%           -.lse:          use LU or hessenberg decomposition
-%                           [{'sparse'} / 'full' / 'hess']
-%           -.dgksTol:      tolerance for dgks orthogonalization
-%                           [{1e-12} / positive float]
-%           -.krylov:       standard or cascaded krylov basis
-%                           [{0} / 'cascade]
+%                           [{true} / false]
+%           -.(refer to help arnoldi for other options)
+%           
 %
 % Output Arguments:
 %       -sysr:              reduced system
@@ -129,18 +121,25 @@ function [sysr, V, W, Bb, SRsylv, Rsylv, Cb, SLsylv, Lsylv] = rk(sys, s0_inp, va
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  09 Nov 2015
+% Last Change:  06 Apr 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %%  Parsing
+
+% create the options structure
+Def.real = true; %keep the projection matrices real?       
+
 if ~isempty(varargin) && isstruct(varargin{end})
     Opts = varargin{end};
     varargin = varargin(1:end-1);
+    
+    Opts = parseOpts(Opts,Def);
 else
-    Opts = struct();
-end
+    Opts = Def;
+end       
 
+% check usage and inputs
 if ~isempty(varargin)
     if isempty(s0_inp) || all(size(varargin{1}) == size(s0_inp));
         %usage: RK(sys, s0_inp, s0_out)
@@ -168,17 +167,25 @@ end
 %%  Check the inputs
 if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
     (~exist('s0_out', 'var') || isempty(s0_out))
-    error('No expansion points assigned.');
+    error('sssMOR:rk:NoExpansionPoints','No expansion points assigned.');
 end
 
 if exist('s0_inp', 'var')
     s0_inp = s0_vect(s0_inp);
     % sort expansion points & tangential directions
     s0old = s0_inp;
-    s0_inp = cplxpair(s0_inp);
+    if Opts.real, 
+        s0_inp = cplxpair(s0_inp); %make sure shifts can be paired 
+    else
+        s0_inp = sort(s0_inp);
+    end
     if exist('Rt','var') && ~isempty(Rt)
+        if size(Rt,2) ~= length(s0_inp),error('Inconsistent size of Rt');end
+        
         [~,cplxSorting] = ismember(s0_inp,s0old); 
         Rt = Rt(:,cplxSorting);
+    else
+        Rt = [];
     end
 clear s0old
 else
@@ -188,24 +195,21 @@ if exist('s0_out', 'var')
     s0_out = s0_vect(s0_out);
         % sort expansion points & tangential directions
     s0old = s0_out;
-    s0_out = cplxpair(s0_out);
+    if Opts.real, 
+        s0_out = cplxpair(s0_out); %make sure shifts can be paired 
+    else
+        s0_out = sort(s0_out);
+    end
     if exist('Lt','var') && ~isempty(Lt)
+        if size(Lt,2) ~= length(s0_out),error('Inconsistent size of Lt');end
+        
         [~,cplxSorting] = ismember(s0_out,s0old); 
         Lt = Lt(:,cplxSorting);
+    else
+        Lt = [];
     end
 else
     s0_out = [];
-end
-
-if exist('Rt', 'var')
-    if size(Rt,2) ~= length(s0_inp),error('Inconsistent size of Rt');end
-else
-    Rt = [];
-end
-if exist('Lt', 'var')
-    if size(Lt,2) ~= length(s0_out),error('Inconsistent size of Lt');end
-else
-    Lt = [];
 end
 
 if ~isempty(s0_inp) && ~isempty(s0_out)
@@ -216,7 +220,7 @@ if ~isempty(s0_inp) && ~isempty(s0_out)
 end
 %%  Define execution variables
 if ~exist('IP', 'var'), 
-    IP=@(x,y) (x'*y); %seems to be better conditioned
+    IP=@(x,y) (x.'*y);
 end
 %%  Computation
 if isempty(s0_out)
@@ -225,7 +229,7 @@ if isempty(s0_out)
     % SISO Arnoldi
     [V, SRsylv, Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
     W = V;
-    sysr = sss(V'*sys.A*V, V'*sys.B, sys.C*V, sys.D, V'*sys.E*V);
+    sysr = projectiveMor(sys,V,W);
     sysr.Name = sprintf('%s_rk_inp',sys.Name);
     if nargout>3
         Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
@@ -235,12 +239,12 @@ elseif isempty(s0_inp)
     % output Krylov subspace
     
     % SISO Arnoldi
-    [W, SLsylv, Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP, Opts);
+    [W, SLsylv, Lsylv] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
     V = W;
-    sysr = sss(W'*sys.A*W, W'*sys.B, sys.C*W, sys.D, W'*sys.E*W);
+    sysr = projectiveMor(sys,V,W);
     sysr.Name = sprintf('%s_rk_out',sys.Name);
     if nargout>3
-        Cb = sys.C - sysr.C/sysr.E*W'*sys.E;
+        Cb = sys.C - sysr.C/sysr.E*W.'*sys.E;
         Bb = []; Rsylv = []; SRsylv=[];
     end
 
@@ -249,16 +253,15 @@ else
         [V, SRsylv, Rsylv, W, SLsylv, Lsylv] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
                             s0_inp,Rt, Lt, IP, Opts);
                         
-        sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        sysr = projectiveMor(sys,V,W);
         sysr.Name = sprintf('%s_rk_herm',sys.Name);
 
     else
         [V, SRsylv, Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
-        [W, SLsylv, Lsylv] = arnoldi(sys.E', sys.A', sys.C', s0_out, Lt, IP, Opts);
-        sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        [W, SLsylv, Lsylv] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
+        sysr = projectiveMor(sys,V,W);
         sysr.Name = sprintf('%s_rk_2sided',sys.Name);
     end
-
 
     if nargout > 3
         Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
