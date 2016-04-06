@@ -557,7 +557,7 @@ end
             Ssylv(jCol)=s0(jCol);
             Csylv=eye(size(B,2));
             if hermite
-                tempW = C'*Lt(:,jCol); 
+                tempW = C.'*Lt(:,jCol); 
             end
             if jCol>1
                 if s0(jCol)==s0(jCol-1)
@@ -589,7 +589,7 @@ end
                     tempV=B;
                     Csylv=1;
                     if hermite
-                        tempW=C';
+                        tempW=C.';
                     end
                 else
                     if s0(jCol)==s0(jCol-1)
@@ -680,20 +680,20 @@ end
                     end
             end
         else
-            tempV = S*(R\(R'\(S'*tempV)));
+            tempV = S*(R\(R.'\(S.'*tempV)));
             if hermite
-                tempW = S*(R\(R'\(S'*tempW)));
+                tempW = S*(R\(R.'\(S.'*tempW)));
             end
         end
     else %Rational Krylov
         if newlu==0
             if size(B,2)==1 %SISO
                 tempV=E*tempV;
-                if hermite, tempW = E'*tempW; end
+                if hermite, tempW = E.'*tempW; end
             elseif newtan==0
                 % Tangential matching of higher order moments
                 tempV=E*tempV;
-                if hermite, tempW = E'*tempW; end
+                if hermite, tempW = E.'*tempW; end
             end
         end
         if newlu==1
