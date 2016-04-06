@@ -31,10 +31,11 @@ testCase.Path = pwd; %original
 Def.cond = 'good'; % condition of benchmarks: 'good','bad','all'
                    % 'bad': LF10, beam, random, SpiralInductorPeec
                    % 'good': all benchmarks that are not 'bad'
-Def.minSize = 0; % test benchmarks with sys.n >= minSize
-Def.maxSize = 400; % test benchmarks with sys.n <= minSize
-Def.number = 3; % choose maximum number of tested benchmarks
-Def.loadBench = 1; %loadBenchmarks (for testAll)
+Def.minSize     = 0; % test benchmarks with sys.n >= minSize
+Def.maxSize     = 400; % test benchmarks with sys.n <= minSize
+Def.number      = 3; % choose maximum number of tested benchmarks
+Def.loadBench   = 1; %loadBenchmarks (for testAll)
+Def.suite       = 'suiteAll';
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -56,26 +57,26 @@ cd(testpathSssMor);
 
 %% Test specific unittest-files
 % Classic MOR:
-suite1=TestSuite.fromFile('testArnoldi.m');
-suite2=TestSuite.fromFile('testRk.m');
-suite3=TestSuite.fromFile('testIrka.m');
-suite4=TestSuite.fromFile('testTbr.m'); 
-suite5=TestSuite.fromFile('testModal.m'); 
-suite6=TestSuite.fromFile('testMoments.m'); 
+suiteClassic = [TestSuite.fromFile('testArnoldi.m'),...
+                TestSuite.fromFile('testRk.m'),...
+                TestSuite.fromFile('testIrka.m'),...
+                TestSuite.fromFile('testTbr.m'), ...
+                TestSuite.fromFile('testModal.m'),... 
+                TestSuite.fromFile('testMoments.m'),... 
+                TestSuite.fromFile('testMoments.m')]; 
+
 
 % State of the art MOR:
-suite7=TestSuite.fromFile('testSylvester.m');
-suite8=TestSuite.fromFile('testPork.m');
-suite9=TestSuite.fromFile('testSpark.m');
-suite10=TestSuite.fromFile('testCure.m');
+suiteStateOfTheArt = [TestSuite.fromFile('testSylvester.m'),...
+                      TestSuite.fromFile('testPork.m'),...
+                      TestSuite.fromFile('testSpark.m'),...
+                      TestSuite.fromFile('testCure.m')];
 
-suiteClassic=[suite1,suite2,suite3,suite4,suite5,suite6];
-suiteStateOfTheArt=[suite7,suite8,suite9,suite10];
-suiteAll=[suite1,suite2,suite3,suite4,suite5,suite6,suite7,suite8,suite9,suite10];
+suiteAll=[suiteClassic, suiteStateOfTheArt];
 
 %% Run and show results
 % Choose between suiteClassic, suiteStateOfTheArt, suiteAll
-result = run(suiteAll);
+eval(sprintf('result = run(%s);',Opts.suite));
 disp(result);
 
 if Opts.loadBench==1
