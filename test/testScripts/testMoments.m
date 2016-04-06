@@ -101,7 +101,6 @@ function [] = verification(testCase, actSolution, expSolution, m)
        verifyEqual(testCase, nnz(isnan(m)), 0, ...
             'm contains Nan');
 end
-
 function expm = expmoments(sys,s0,n)
         expm=zeros(size(sys.C,1),size(sys.B,2),n);        
         if isinf(s0) && ~sys.isDescriptor
