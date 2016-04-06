@@ -201,11 +201,11 @@ if strcmp(Opts.type,'adi')
     end
 
     lyaOpts.adi=struct('type','B','max_it', 300,'min_res',0,'with_rs','N',...
-        'min_in',1e-12,'min_end',0,'info',0,'cc_upd',0,'cc_tol',0);
+        'min_in',1e-12,'min_in_no_break',false,'info',0,'cc_upd',0,'cc_tol',0);
     
     if exist('q','var') %size of cholesky factor [sys.n x q] -> qmax=q
         lyaOpts.adi.max_it=q;
-        lyaOpts.adi.min_end=1;
+        lyaOpts.adi.min_in_no_break=true;
     end
 
     if sys.isSym
@@ -256,7 +256,7 @@ if strcmp(Opts.type,'adi')
         [L,Lopts]=lp_lradi([],[],C0,lyaOpts);
     end
     
-    if lyaOpts.adi.min_end==1
+    if lyaOpts.adi.min_in_no_break
         q_min_in=max([Ropts.adi.min_iter,Lopts.adi.min_iter]);
         if q_min_in>0 && q_min_in < q
         warning(['After q=', num2str(q_min_in,'%d'),...
