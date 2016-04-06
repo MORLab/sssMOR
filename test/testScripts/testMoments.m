@@ -87,6 +87,7 @@ classdef testMoments < sssTest
                 end  
             end
         end
+    end
 end
 
 function [] = verification(testCase, actSolution, expSolution, m)
