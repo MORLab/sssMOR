@@ -393,7 +393,7 @@ function [s0,Opts] = initializeShifts(sys,Opts,iCure)
     if mod(nnz(imag(s0)),2)~=0 %if there are complex valued shifts...
         % find the s0 which has no compl.conj. partner
         % (assumes that only one shifts has no partner)
-        s0(imag(s0) == imag(sum(s0))) = 0;
+        s0(abs(imag(s0)-imag(sum(s0)))<1e-16) = 0;
     end
     %     cplxpair(s0); %only checking
     %   replace 0 with thresh, where threshold is a small number
