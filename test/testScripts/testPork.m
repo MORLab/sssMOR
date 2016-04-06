@@ -43,31 +43,26 @@ classdef testPork < sssTest
                 
                 if ~any(strcmp(sys.Name,badBenchmarks))
                     disp(sys)
-                % get irka shifts and tangential directions
-                n = 10; r = ones(sys.m,n); l = ones(sys.p,n);
-                sysrIrka = irka(sys, zeros(1,n),r,l);
-                
-                if sys.isSiso || sys.isSimo
-                    s0 = -(conj(eig(sysrIrka))).';
-                    [sysr, ~, W] = rk(sys,[],s0);
-                else
-                    Opts.rType = 'dir';[r,p] = residue (sysrIrka,Opts);
-                    s0 = -(conj(p)); l = r{1}; 
-                    [sysr, ~, W] = rk(sys,[],s0,[],l);
-                end              
-                
-                % get (S,L)
-                warning off
-                [L, ~, S] = getSylvester(sys, sysr, W, 'W');
-                warning on
-                
-                % perform pseudo-optimal reduction
-                [Ar,Br,Cr,Er] = porkW(W,S,L.',sys.B);
-                sysr = sss(Ar,Br,Cr,sys.D,Er);
-                
-                actSolution={sysr.',sys.',s0, l}; %pass dual system
-                
-                verification (testCase, actSolution);
+                    % get irka shifts and tangential directions
+                    n = 10; r = ones(sys.m,n); l = ones(sys.p,n);
+                    sysrIrka = irka(sys, zeros(1,n),r,l);
+
+                    if sys.isSiso || sys.isSimo
+                        s0 = -(conj(eig(sysrIrka))).';
+                        [~, ~, W, ~, ~, ~, ~, S, L] = rk(sys,[],s0);
+                    else
+                        Opts.rType = 'dir';[r,p] = residue (sysrIrka,Opts);
+                        s0 = -(conj(p)); l = r{1}; 
+                        [~, ~, W,~, ~, ~, ~, S, L] = rk(sys,[],s0,[],l);
+                    end              
+
+                    % perform pseudo-optimal reduction
+                    [Ar,Br,Cr,Er] = porkW(W,S.',L.',sys.B);
+                    sysr = sss(Ar,Br,Cr,sys.D,Er);
+
+                    actSolution={sysr.',sys.',s0, l}; %pass dual system
+
+                    verification (testCase, actSolution);
                 end
             end
         end
