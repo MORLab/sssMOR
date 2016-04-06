@@ -67,7 +67,7 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 %       -IP:                function handle for inner product
 %       -Opts:              a structure containing following options
 %           -.real:         keep the projection matrices real
-%                           [{'real'} / '0']
+%                           [{true} / false]
 %           -.orth:         orthogonalization of new projection direction
 %                           [{'2mgs'} / 0 / 'dgks' / 'mgs']
 %           -.reorth:       reorthogonalization
@@ -124,7 +124,7 @@ if ~isempty(varargin) && isstruct(varargin{end});
     varargin = varargin(1:end-1);
 end
 
-Def.real = 'real'; %keep the projection matrices real?
+Def.real = true; %keep the projection matrices real?
 Def.orth = '2mgs'; %orthogonalization after every direction {0,'dgks','mgs','2mgs'}
 Def.reorth = 0; %reorthogonaliation at the end {0, 'mgs', 'qr'}
 Def.lse = 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess'}
@@ -221,7 +221,7 @@ end
 
 %% ---------------------------- CODE -------------------------------
 % Real reduced system
-if strcmp(Opts.real,'real')
+if Opts.real
     s0 = updateS0(s0);
 end
 
@@ -270,7 +270,7 @@ end
         end
 
         % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
-        if strcmp(Opts.real,'real')
+        if Opts.real
             if hermite
                 [V, SRsylv, CRsylv,W, SLsylv, CLsylv] = realSubspace(jCol, q, s0, V, SRsylv, CRsylv, W, SLsylv, CLsylv);
             else
