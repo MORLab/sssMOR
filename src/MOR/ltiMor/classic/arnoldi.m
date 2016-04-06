@@ -11,26 +11,41 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 %       [V,SRsylv,Rsylv,W,SLsyslv,Lsylv] = ARNOLDI(E,A,B,C,s0,IP)
 %       [V,SRsylv,Rsylv,W,SLsyslv,Lsylv] = ARNOLDI(E,A,B,C,s0,Rt,Lt)
 %       [V,SRsylv,Rsylv,W,SLsyslv,Lsylv] = ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
-%       [V,...]	= ARNOLDI(E,A,B,C,s0,...,Opts)
+%       [V,...]                          = ARNOLDI(E,A,B,...,Opts)
 % 
 % Description:
 %       This function is used to compute the matrix V spanning the 
 %       rational input Krylov subspace corresponding to E, A, b and s0 [1-3].
 %
+%       The input Krylov subpspace of order q correpsonding to a single 
+%       complex expansion point s_0 is defined as
+%
+%       $$ Im(V) = span\left\{ (A-s_0E)^{-1} b_t,\; \dots,\, \left[(A-s_0E)^{-1}E\right]^{q-1}(A-s_0E)^{-1}b_t\right\}. $$
+%
+%       In this case, $$ b_t $$ is either:
+%
+%       * the input vector of a SISO model,
+%       * the input matrix of a MIMO model (block Krylov)
+%       * the input matrix multiplied by a tangential direction (tangential Krylov)
+%
 %       s0 must be a vector of complex frequencies closed under conjugation. 
-%       In case of MIMO systems, if matrices of tangential directions Rt 
+%       In case of MIMO models, if matrices of tangential directions Rt 
 %       (and Lt) are defined, they must have the same number of columns as 
 %       the shifts, so that for each tangential direction it is clear to 
 %       which shift it belongs. If not tangential directions are specified,
 %       then block Krylov subspaces are computed.
+%
+%       //Note: For MIMO models, block Krylov subpspaces 
+%       with multiplicities in the shifts are not supported so far.
 %
 %       If in addition, the output matrix C is passed, then ARNOLDI
 %       computes input and output Krylov subspaces corresponding to the
 %       same expansion points. The resulting matrices V, W can be used for
 %       Hermite interpolation.
 %
-%       //Note: For MIMO systems, block Krylov subpspaces 
-%       with multiplicities in the shifts are not supported so far.
+%       In this case, the output Krylov subspace is defined as
+%
+%       $$ Im(W) = span\left\{ (A-s_0E)^{-T} c_t^T,\; \dots,\, \left[(A-s_0E)^{-T}E^T\right]^{q-1}(A-s_0E)^{-T}c_t^T\right\}. $$
 %
 %       The columns of V build an orthonormal basis of the input Krylov 
 %       subspace. The orthogonalization is conducted using a 
@@ -73,7 +88,7 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 %       -Lsylv:    Left tangential directions of Sylvester Eq.
 %
 % See Also: 
-%       rk, irka
+%       rk, irka, projectiveMor
 %
 % References:
 %       * *[1] Grimme (1997)*, Krylov projection methods for model reduction
@@ -98,7 +113,7 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  13 Jan 2016
+% Last Change:  06 Apr 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
