@@ -56,6 +56,20 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 %
 %                       IP=@(x,y) (x.'*y)
 %
+%       If specified, this function computes the Sylvester matrices
+%       corresponding to the Krylov subspaces. The matrices SRsysl and 
+%       CRsylv satisfy the input Sylvester equation given as
+%
+%       $$ A V - E V SRsylv - B CRsylv = 0 $$
+%
+%       and the output Sylvester matrices SLsylv and CLsylv are
+%       accordingly defined by
+%
+%       $$ A^T W - E^T W SLsylv^T - CLsylv^T L = 0 $$
+%
+%       Note that this function does not solve the sylvester equations, 
+%       but constructs the sylvester matrices together with the Krylov 
+%       subspaces.
 %
 % Input Arguments:
 %       *Required Input Arguments:*
@@ -233,6 +247,7 @@ end
 % Compute the Krylov subspaces
 if hermite
     [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = krylovSubspace(s0, q);
+    SLsylv=SLsylv';
 else
     [V, SRsylv, CRsylv] = krylovSubspace(s0, q);
 end
