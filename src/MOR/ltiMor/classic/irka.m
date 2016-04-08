@@ -117,7 +117,7 @@ Def.stopCrit = 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
 Def.suppressverbose = 0;
 
 % create the options structure
-if ~exist('Opts','var') || isempty(Opts)
+if ~exist('Opts','var') || isempty(fieldnames(Opts))
     Opts = Def;
 else
     Opts = parseOpts(Opts,Def);
