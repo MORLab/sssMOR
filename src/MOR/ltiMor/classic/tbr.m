@@ -505,6 +505,9 @@ switch Opts.type
         munu_m_d; munu_l_d; munu_s_d(p.p)
 end
 
+%   Rename ROM
+sysr.Name = sprintf('%s_tbr',sys.Name);
+
 if nargout>1
     varargout{1} = V;
     varargout{2} = W;
