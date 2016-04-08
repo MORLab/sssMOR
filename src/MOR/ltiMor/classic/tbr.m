@@ -506,7 +506,7 @@ switch Opts.type
 end
 
 %   Rename ROM
-sysr.Name = sprintf('%s_tbr',sys.Name);
+sysr.Name = sprintf('%s_%i_tbr',sys.Name,sysr.n);
 
 if nargout>1
     varargout{1} = V;

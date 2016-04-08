@@ -146,7 +146,9 @@ if strcmp(Opts.orth,'qr')
     [W,~]=qr(W,0);
 end
 
-sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);   
+sysr = projectiveMor(sys,V,W);
+if ~ischar(Opts.type), Opts.type = num2str(Opts.type); end
+sysr.Name = sprintf('%s_%i_modal_%s',sys.Name,sysr.n,Opts.type);
 
 %% ------------------ AUXILIARY FUNCTIONS --------------------------
 function [V, W, rlambda]=exactEigenvector(q)

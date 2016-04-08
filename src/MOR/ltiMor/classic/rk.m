@@ -230,7 +230,7 @@ if isempty(s0_out)
     [V, SRsylv, Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
     W = V;
     sysr = projectiveMor(sys,V,W);
-    sysr.Name = sprintf('%s_rk_inp',sys.Name);
+    sysr.Name = sprintf('%s_%i_rk_inp',sys.Name,sysr.n);
     if nargout>3
         Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
         Cb = []; Lsylv = [];  SLsylv=[];
@@ -242,7 +242,7 @@ elseif isempty(s0_inp)
     [W, SLsylv, Lsylv] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
     V = W;
     sysr = projectiveMor(sys,V,W);
-    sysr.Name = sprintf('%s_rk_out',sys.Name);
+    sysr.Name = sprintf('%s_%i_rk_out',sys.Name,sysr.n);
     if nargout>3
         Cb = sys.C - sysr.C/sysr.E*W.'*sys.E;
         Bb = []; Rsylv = []; SRsylv=[];
@@ -254,13 +254,13 @@ else
                             s0_inp,Rt, Lt, IP, Opts);
                         
         sysr = projectiveMor(sys,V,W);
-        sysr.Name = sprintf('%s_rk_herm',sys.Name);
+        sysr.Name = sprintf('%s_%i_rk_herm',sys.Name,sysr.n);
 
     else
         [V, SRsylv, Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
         [W, SLsylv, Lsylv] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
         sysr = projectiveMor(sys,V,W);
-        sysr.Name = sprintf('%s_rk_2sided',sys.Name);
+        sysr.Name = sprintf('%s_%i_rk_2sided',sys.Name,sysr.n);
     end
 
     if nargout > 3

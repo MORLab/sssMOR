@@ -189,7 +189,7 @@ while true
         s0 = s0_old; % function return value
         if ~sys.isSiso, Rt = Rt_old; Lt = Lt_old; end
         s0Traj = s0Traj(1:(kIter+1),:);
-        sysr.Name = sprintf('%s_irka',sys.Name);
+        sysr.Name = sprintf('%s_%i_irka',sys.Name, sysr.n);
         break
     end      
 end
