@@ -509,8 +509,8 @@ function pb_PaV_move_Callback(hObject, eventdata, handles)
     if sys.p > 1|| sys.m > 1
        data.in = '1';
        data.out = '1';
-       data.sizeInputs = sys.p;
-       data.sizeOutputs = sys.m;
+       data.sizeInputs = sys.m;
+       data.sizeOutputs = sys.p;
        data.legendText = suggestDefaultLegendText(handles,selectedSystem,1);
     else
        data.in = [];
@@ -960,753 +960,1061 @@ testWidth(hObject)
 
 
 function pb_plot_Callback(hObject, eventdata, handles)
-% plot
-set(hObject,'String','Busy')
-set(hObject,'Enable','off') 
-global fighand
+%Plot the graph with the choosen systems
 
-%Check whether a valid system was selected
-
-x = get(handles.syschoice,'String');
-sysname = x{get(handles.syschoice,'Value')};
-
-if isempty(sysname)
-    errordlg('Please choose a system.','Error Dialog','modal')
-    set(hObject,'String','Plot')
-    set(hObject,'Enable','on')
-    uiwait
-    return
-end
-
-sys = evalin('base', sysname);
-
-if ~strcmp(class(sys), 'sss')
-    try
-        sys = sss(sys);
-    catch ex %#ok<NASGU>
-        errordlg('Variable is not a valid state space model.','Error Dialog','modal')
-        set(hObject,'String','Plot')
-        set(hObject,'Enable','on')
-        uiwait
-        return
-    end
-end
-
-
-%get and convert system
-
-try
-    [sys, sysname] = getSysFromWs(handles.syschoice);
-catch ex
-    set(hObject,'String','Plot')
-    set(hObject,'Enable','on') 
-    errordlg(ex.message,'Error Dialog','modal')
-    uiwait
-    return
-end
-
-%Time vector
-
-if get(handles.rb_auto,'Value')==1
-    W=[];
-elseif get(handles.rb_manual,'Value')==1
-    if get(handles.ed_min,'UserData')==1
-        errordlg('Please correct minimal frequency/time first','Error Dialog','modal')
-        uiwait
-        set(hObject,'String','Plot')
-        set(hObject,'Enable','on')
-        return
-    elseif get(handles.ed_max,'UserData')==1
-        errordlg('Please correct maximal frequency/time first','Error Dialog','modal')
-        uiwait
-        set(hObject,'String','Plot')
-        set(hObject,'Enable','on')
-        return
-    end
-    minimum=str2double(get(handles.ed_min,'String'));
-    maximum=str2double(get(handles.ed_max,'String'));
-    steps=get(handles.sl_steps,'Value');
-    if get(handles.rb_distlin,'Value')==1
-        W=linspace(minimum,maximum,steps);
-    elseif get(handles.rb_distlog,'Value')==1
-        %bei logspace muss der kleinste Wert>0 sein
-        if str2double(get(handles.ed_min,'String'))==0
-            errordlg('Minimum frequency/time must be greater than zero if you choose logarithmical distribution!','Error Dialog','modal')
-            uiwait
-            set(hObject,'String','Plot')
-            set(hObject,'Enable','on')
-            return
-        end
-        W=logspace(log10(minimum),log10(maximum),steps);
-    else
-        errordlg('Please select distribution of steps first','Error Dialog','modal')
-        uiwait
-        set(hObject,'String','Plot')
-        set(hObject,'Enable','on')
-        return
-    end
-else
-    errordlg('Please choose resolution method first','Error Dialog','modal')
-    uiwait
-    set(hObject,'String','Plot')
-    set(hObject,'Enable','on')
-    return
-end
-
-%Color
-
-if get(handles.rb_colorst,'Value')==1
-    % standard color
-    temp=get(handles.colorlist,'Value');
-    list=get(handles.colorlist,'UserData');
-    col=list(temp,:);
-elseif get(handles.rb_colorvek,'Value')==1
-    % rgb color
-    if get(handles.ed_r,'UserData')==1 || ...
-       get(handles.ed_g,'UserData')==1 || ...
-       get(handles.ed_b,'UserData')==1
-        errordlg('Please correct colorvector first','Error Dialog','modal')
-        uiwait
-        set(hObject,'Enable','on')
-        set(hObject,'String','Plot')
-        return
-    end
-    r=str2double(get(handles.ed_r,'String'));
-    g=str2double(get(handles.ed_g,'String'));
-    b=str2double(get(handles.ed_b,'String'));
-    col=[r g b];
-else
-    errordlg('Please select color first','Error Dialog','modal')
-    uiwait
-    set(hObject,'String','Plot')
-    set(hObject,'Enable','on')
-    return
-end
-
-%Line width
-
-if get(handles.ed_width,'UserData')==1
-    errordlg('Please correct Line Width','Error Dialog','modal')
-    uiwait
-    set(hObject,'String','Plot')
-    set(hObject,'Enable','on')
-    return
-else
-    width=str2double(get(handles.ed_width,'String'));
-end
-
-%Marker
-
-if get(handles.pu_post_markerstyle,'Value')>1
-    if get(handles.ed_post_markersize,'UserData')==1
-        errordlg('Please correct Marker Size','Error Dialog','modal')
-        uiwait
-        set(hObject,'String','Plot')
-        set(hObject,'Enable','on')
-        return
-    end
-    val=get(handles.pu_post_markerstyle,'Value');
-    k=get(handles.pu_post_markerstyle,'String');
-    j=k(val);
-    % first char of string is passed on to plot function
-    l=regexp(j, '\ ', 'split');
-    markerstyle=l{1}{1,1};
-    val=get(handles.pu_post_markercolor,'Value');
-    k=get(handles.pu_post_markercolor,'UserData');
-    markercol=k(val,:);
-    markersize=str2double(get(handles.ed_post_markersize,'String'));
-else
-    markerstyle='none';
-    markercol=[0 0 0];
-    markersize=5;
-end
-
-%Line style
-
-switch get(handles.style,'Value')
-    case 1
-        line='-';
-    case 2
-        line='--';
-    case 3
-        line=':';
-    case 4
-        line='-.';
-end
-
-%Select transfer channel
-
-if strcmp(get(handles.panel_intoout,'Visible'),'on') %MIMO
-
-    input=get(handles.pu_in,'String');
-    valueIn = get(handles.pu_in,'Value');
-    input = input{valueIn,1};
-    
-    if strcmp(input,'all')
-        input = 1:sys.m;
-    else    
-        input=str2double(input);
-    end
-    
-    output=get(handles.pu_out,'String');
-    valueOut = get(handles.pu_out,'Value');
-    output = output{valueOut,1};
-    
-    if strcmp(output,'all')
-        output = 1:sys.p;
-    else
-        output=str2double(output);
-    end
-else        %SISO
-    input=1;
-    output=1;
-end
-set(handles.figure1,'Pointer','watch')
-drawnow
-
-%Different Plot-Types
-
-switch get(handles.plot_type,'Value')
-    
-case 1 %impulse response
+    set(hObject,'String','Busy');
+    set(hObject,'Enable','off'); 
+    set(handles.figure1,'Pointer','watch')
+    drawnow();
     
     try
-        [sysname, t]=impulse(sys(output, input),W);
-        set(handles.ed_min,'String',t(1))
-        set(handles.ed_min,'UserData',0)
-        set(handles.ed_max,'String',t(end))
-        set(handles.ed_max,'UserData',0)
-        
-        %Save the plots from different in- and output-channels in an cell
-        %array
+    
+        %Read out all choosen systems from workspace
 
-        sysname = plotOutput2cell(sysname);
+        list = get(handles.lb_PaV_selectedSystems,'String');
+
+        if isempty(list)
+           error('No system selected!'); 
+        end
         
-    catch ex
-        uiwait
-        set(hObject,'Enable','on')
-        set(hObject,'String','Plot')
-        set(handles.figure1,'Pointer','arrow')
-        if strfind(ex.identifier,'nomem')
-            errordlg('System is too big','Error Dialog','modal')
-        elseif strfind(ex.message,'singular')
-            errordlg('The system contains algebraic states.','Error Dialog','modal')
-        else
-            errordlg(ex.message, 'Error Dialog', 'modal')
-        end
-        uiwait
-        return
-    end
-    if get(handles.figure,'Value')==1 || fighand==0
-        fighand=figure;
-    end
-    figure(fighand)
-    %assignin('base',sysname,sys);
-    UserData=get(fighand,'UserData');
-    % use existing figure
-    if get(fighand,'Tag')=='i'
-        axes(UserData(1,1))
-        hold on
-        % merge new and old legend
-        leg2=get(legend,'String');
-        leg1={get(handles.ed_legend,'String')};
-        leg=[leg2,leg1];
-    else
-        hold off
-        leg=get(handles.ed_legend,'String');
-    end
-    % plot respective impulse responses in figure
-    if ~isempty(UserData)
-        for i=1:size(UserData,1)
-            for j=1:size(UserData,2)
-                subplot(UserData(i,j))
-                hold on
-                y_plot=sysname{i,j};
-                plot(t,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
-                    markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
-                    markersize)
-            end
-        end
-    else
-        % plot into new figure
-        UserData=zeros(size(sysname,1),size(sysname,2));
-        k=1;
-        for i=1:size(UserData,1)
-            for j=1:size(UserData,2)
-                UserData(i,j)=subplot(size(sysname,1),size(sysname,2),k);
-                y_plot=sysname{i,j};
-                plot(t,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
-                    markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
-                    markersize)
-                k=k+1;
-                if j==1 % label "To Out"
-                    y_lab=sprintf('To: Out(%i)',i);
-                    ylabel(y_lab)
-                end
-                if i==1 % label "To In"
-                    x_lab=sprintf('From: In(%i)',j);
-                    title(x_lab,'FontWeight','normal');
+        systemList = {};
+    
+        for i = 1:length(list)
+            
+            sysname = list{i,1};
+            sys = evalin('base', sysname);
+
+            if ~isa(sys,'sss')
+                try
+                    sys = sss(sys);
+                catch ex
+                    error(strcat('System "',sysname,'" is not a valid state space model.'))
                 end
             end
-        end
-        set(fighand,'UserData',UserData)
-    end
-    h=axes('position',[0,0,1,1],'Visible','off'); % axes unsichtbar in den hintergrund legen zur beschriftung
-    text(0.5,0.98,'Impulse Response','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
-    text(0.5,0.02,'Time (seconds)','HorizontalAlignment','center')
-    text(0.01,0.5,'Amplitude','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
-    set(h,'HandleVisibility','off') % um zoomen usw zu vermeiden wird das handle unsichtbar gemacht
-    hold on
-    for i=1:size(UserData,1) % damit man auf die einzelnen subplots zugreifen kann werden alle nochmal angesprochen
-        for j=1:size(UserData,2)
-            axes(UserData(i,j))
-        end
-    end
-    axes(UserData(1,1))
-    legend(leg)
-    set(fighand,'Tag','i')
-    
-case 2 %Step Response
-    
-    try % Sprungantwort berechnen, siehe auch impulsantwort
-       [sysname, t]=step(sys(output, input),W);
-       set(handles.ed_min,'String',t(1))
-       set(handles.ed_min,'UserData',0)
-       set(handles.ed_max,'String',t(end))
-       set(handles.ed_max,'UserData',0)
-       
-       %Save the plots from different in- and output-channels in an cell
-       %array
-
-       sysname = plotOutput2cell(sysname);
-       
-    catch ex
-        set(hObject,'Enable','on')
-        set(hObject,'Strin','Plot')
-        set(handles.figure1,'Pointer','arrow')
-        if strfind(ex.identifier,'nomem')
-            errordlg('System is too big','Error Dialog','modal')
-        elseif strfind(ex.message,'singular')
-            errordlg('The system contains algebraic states.','Error Dialog','modal')
-        else
-            errordlg(ex.message,'Error Dialog','modal')
-        end
-        uiwait
-        return
-    end
-    if get(handles.figure,'Value')==1 || fighand==0
-        figure
-        fighand=gcf;
-    end
-    figure(fighand)
-    %assignin('base',sysname,sys); % neue systemdaten in den workspace schreiben
-    UserData=get(fighand,'UserData');    
-    if get(fighand,'Tag')=='s' % vorhandenes figure nutzen
-        axes(UserData(1,1)) 
-        hold on
-        leg2=get(legend,'String');
-        leg1={get(handles.ed_legend,'String')};
-        leg=[leg2,leg1];
-    else
-    hold off
-    leg=get(handles.ed_legend,'String');
-    end
-    if ~isempty(UserData)
-         for i=1:size(UserData,1)
-             for j=1:size(UserData,2)
-                 subplot(UserData(i,j))
-                 hold on
-                 y_plot=sysname{i,j};
-                 plot(t,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
-                     markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
-                     markersize)
-             end
-         end
-    else
-        UserData=zeros(size(sysname,1),size(sysname,2));
-        k=1;
-        for i=1:size(UserData,1)
-            for j=1:size(UserData,2)
-                UserData(i,j)=subplot(size(sysname,1),size(sysname,2),k);
-                y_plot=sysname{i,j};
-                plot(t,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
-                    markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
-                    markersize)
-                k=k+1;
-                if j==1
-                    y_lab=sprintf('To: Out(%i)',i);
-                    ylabel(y_lab)
-                end
-                if i==1
-                    x_lab=sprintf('From: In(%i)',j);
-                    title(x_lab,'FontWeight','normal');
-                end
+            
+            systemList{i,1} = sysname;
+            systemList{i,2} = sys;
+            
+            for j = i:length(handles.plotData)
+               if strcmp(handles.plotData{i,1}.name,sysname)
+                  systemList{i,3} = handles.plotData{i,1};
+                  break; 
+               end
             end
         end
-        set(fighand,'UserData',UserData)
-    end
-    h=axes('position',[0,0,1,1],'Visible','off');
-    text(0.5,0.98,'Step Response','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
-    text(0.5,0.02,'Time (seconds)','HorizontalAlignment','center')
-    text(0.01,0.5,'Amplitude','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
-    set(h,'HandleVisibility','off')
-    hold on
-    for i=1:size(UserData,1)
-        for j=1:size(UserData,2)
-            axes(UserData(i,j))
+        
+        %Chosen input- and output- channels for MIMO-systems
+        
+        for i = 1:size(systemList,1);
+           if systemList{i,2}.isMimo
+              in = systemList{i,3}.in;
+              out = systemList{i,3}.out;
+              if ~strcmp(in,'all') && ~strcmp(out,'all')
+                 systemList{i,2} = systemList{i,2}(str2num(in),str2num(out)); 
+              elseif ~strcmp(in,'all')
+                 systemList{i,2} = systemList{i,2}(1:systemList{i,2}.m,str2num(out));
+              elseif ~strcmp(out,'all')
+                 systemList{i,2} = systemList{i,2}(1:systemList{i,2}.p,str2num(out));
+              end              
+           end
         end
-    end
-    axes(UserData(1,1))
-    legend(leg)
-    set(fighand,'Tag','s')
+        
+        %Frequency/Time-vector
+        
+        if get(handles.rb_auto,'Value')==0
+            
+            if get(handles.ed_min,'UserData')==1
+                error('Please correct minimal frequency/time first');
+            elseif get(handles.ed_max,'UserData')==1
+                error('Please correct maximal frequency/time first');
+            end
+            minimum=str2double(get(handles.ed_min,'String'));
+            maximum=str2double(get(handles.ed_max,'String'));
+            steps=get(handles.sl_steps,'Value');
+            if get(handles.rb_distlin,'Value')==1
+                frequency=linspace(minimum,maximum,steps);
+            elseif get(handles.rb_distlog,'Value')==1
+                %bei logspace muss der kleinste Wert>0 sein
+                if str2double(get(handles.ed_min,'String'))==0
+                    error('Minimum frequency/time must be greater than zero if you choose logarithmical distribution!');
+                end
+                frequency=logspace(log10(minimum),log10(maximum),steps);
+            end
+        end
+        
+        %Plot-style
+        
+        if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+           
+            for i = 1:size(systemList,1)
+               
+                switch systemList{i,3}.lineStyle;
+                   
+                    case 1
+                        lineStyle = '-';
+                    case 2
+                        lineStyle = '--';
+                    case 3
+                        lineStyle = ':';
+                    case 4
+                        lineStyle = '.-';                    
+                end
+                
+                switch systemList{i,3}.color
+                   
+                    case 1
+                        color = 'b';
+                    case 2
+                        color = 'r';
+                    case 3
+                        color = 'g';
+                    case 4
+                        color = 'm';
+                    case 5
+                        color = 'c';
+                    case 6
+                        color = 'k';
+                    case 7
+                        color = 'y';                   
+                end
 
-case 3 %Bode
-    
-    try
-        [mag, phase, omega]=bode(sys(input, output),W);
-        
-        set(handles.ed_min,'String',omega(1))
-        set(handles.ed_min,'UserData',0)
-        set(handles.ed_max,'String',omega(end))
-        set(handles.ed_max,'UserData',0)
-        
-        %Save the plots from different in- and output-channels in an cell
-        %array
-
-        mag = permute(mag,[3 1 2]);
-        phase = permute(phase,[3 1 2]);
-        
-        mag = plotOutput2cell(mag);
-        phase = plotOutput2cell(phase);
-        
-    catch ex
-        errordlg(ex.message,'Error Dialog','modal')
-        uiwait
-        set(hObject,'String','Plot')
-        set(handles.figure1,'Pointer','arrow')
-        set(hObject,'Enable','on')
-        return
-    end
-    if get(handles.figure,'Value')==1 || fighand==0
-        figure
-        fighand=gcf;
-    end
-    figure(fighand)
-    assignin('base',sysname,sys);
-    UserData=get(fighand,'UserData');
-    if ~isempty(strfind(get(fighand,'Tag'),'b'))
-        axes(UserData(1,1)) 
-        hold on
-        leg2=get(legend,'String');
-        leg1={get(handles.ed_legend,'String')};
-        leg=[leg2,leg1];
-    else
-        hold off
-        leg=get(handles.ed_legend,'String');
-    end
-    if ~isempty(UserData)% mag und phase plotten in vorhandene fig plotten
-        if ~isempty(strfind(get(fighand,'Tag'),'O'))
-            mag=cellfun(@(x) 20*log10(x),mag,'UniformOutput',false);
+                systemList{i,4} = strcat(lineStyle,color);                
+            end         
         end
-         for i=1:size(UserData,1)
-             for j=1:size(UserData,2)
-                 subplot(UserData(i,j))
-                 hold on
-                 if rem(i,2)==1 %amplitude plotten
-                     y_plot=mag{ceil(i/2),j};
-                     plot(omega,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
-                         markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
-                         markersize)
-                 else %phase plotten
-                     y_plot=phase{i/2,j};
-                     plot(omega,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
-                         markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
-                         markersize)
-                 end
-             end
-         end
-    else
-        if get(handles.rb_ylog,'Value')==1 %y logarithmisch in dB
-            mag=cellfun(@(x) 20*log10(x),mag,'UniformOutput',false);
-            set(fighand,'Tag','bO') % O für logarithmische skalierung
-        else
-            set(fighand,'Tag','bI') % I für lineare skalierung
-        end
-        UserData=zeros(2*size(mag,1),size(mag,2));
-        k=1;
-        for i=1:size(UserData,1)
-            for j=1:size(UserData,2)
-                UserData(i,j)=subplot(2*size(mag,1),size(mag,2),k);
-                if rem(i,2)==1 %amplitude plotten
-                    y_plot=mag{ceil(i/2),j};
-                    plot(omega,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
-                        markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
-                        markersize)
-                    if get(handles.rb_xlog,'Value')==1
-                        set(gca, 'XScale', 'log');
+        
+        %Graph-Type
+        
+        figure;
+        figureHandles = gcf;
+        set(figureHandles,'NumberTitle','off');
+        
+        switch get(handles.plot_type,'Value')
+           
+            case 1      %Impulse Response
+                
+                set(figureHandles,'Name','Impulse Response');
+                
+                for i = 1:size(systemList,1)
+                   if get(handles.rb_auto,'Value')==0
+                       systemList{i,5} = impulse(systemList{i,2},frequency);
+                   else
+                       systemList{i,5} = impulse(systemList{i,2});
+                   end
+                end
+                
+            case 2      %Step Response
+                
+                set(figureHandles,'Name','Step Response');
+                
+                for i = 1:size(systemList,1)
+                   if get(handles.rb_auto,'Value')==0
+                       systemList{i,5} = step(systemList{i,2},frequency);
+                   else
+                       systemList{i,5} = step(systemList{i,2});
+                   end
+                end
+                
+            case 3      %Bode
+                
+                set(figureHandles,'Name','Bode Diagram');
+                
+                for i = 1:size(systemList,1)
+                   if get(handles.rb_auto,'Value')==0
+                       systemList{i,5} = bode(systemList{i,2},frequency,struct('frd',1));
+                   else
+                       systemList{i,5} = bode(systemList{i,2},struct('frd',1));
+                   end
+                end
+                
+                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+                    
+                    switch size(systemList,1)
+                        case 1
+                            bode(systemList{1,5},systemList{1,4});
+                        case 2
+                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
+                        case 3
+                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4});
+                        case 4
+                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
+                        case 5
+                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4});
+                        case 6
+                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
+                        case 7
+                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4});
+                        case 8
+                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
+                        case 9
+                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4});
+                        case 10
+                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
                     end
-                else %phase plotten
-                    y_plot=phase{i/2,j};
-                    plot(omega,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
-                        markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
-                        markersize)
-                    if get(handles.rb_xlog,'Value')==1
-                        set(gca, 'XScale', 'log');
+                    
+                else
+                    
+                    switch size(systemList,1)
+                        case 1
+                            bode(systemList{1,5});
+                        case 2
+                            bode(systemList{1,5},systemList{2,5});
+                        case 3
+                            bode(systemList{1,5},systemList{2,5},systemList{3,5});
+                        case 4
+                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5});
+                        case 5
+                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5});
+                        case 6
+                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5});
+                        case 7
+                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5});
+                        case 8
+                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5});
+                        case 9
+                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5});
+                        case 10
+                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},...
+                                systemList{10,5});
                     end
+                    
                 end
-                if j==1
-                    y_lab=sprintf('To: Out(%i)',ceil(i/2));
-                    ylabel(y_lab)
+                
+            case 4      %Pole-Zero-Map
+                
+                set(figureHandles,'Name','Pole-Zero Map');
+                
+                for i = 1:size(systemList,1)
+                   if get(handles.rb_auto,'Value')==0
+                       systemList{i,5} = pzmap(systemList{i,2},frequency);
+                   else
+                       systemList{i,5} = pzmap(systemList{i,2});
+                   end
                 end
-                if i==1
-                    x_lab=sprintf('From: In(%i)',j);
-                    title(x_lab,'FontWeight','normal');
-                end
-                k=k+1;
-            end
+                
+            case 5      %Frequency Response
+                
+                set(figureHandles,'Name','Frequency Response');
+                
+                for i = 1:size(systemList,1)
+                   if get(handles.rb_auto,'Value')==0
+                       systemList{i,5} = freqresp(systemList{i,2},frequency);
+                   else
+                       systemList{i,5} = freqresp(systemList{i,2});
+                   end
+                end             
         end
-        set(fighand,'UserData',UserData)
-    end
-    h=axes('position',[0,0,1,1],'Visible','off');
-    text(0.5,0.98,'Bode Diagram','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
-    text(0.5,0.02,'Frequency [rad/sec]','HorizontalAlignment','center')
-    if get(handles.rb_ylog,'Value')==1
-        text(0.01,0.5,'Phase [deg] ; Magnitude [dB]','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center');
-    else
-        text(0.01,0.5,'Phase [deg] ; Magnitude (abs)','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
-    end
-    set(h,'HandleVisibility','off')
-    hold on
-    for i=1:size(UserData,1)
-        for j=1:size(UserData,2)
-            axes(UserData(i,j))
-        end
-    end
-    axes(UserData(1,1))
-   legend(leg)
-
-case 4 %Pole-Zero Map
-
-   try
-       [p,z]=pzmap(sys,input,output);
-       
-       %Save the plots from different in- and output-channels in an cell
-       %array
-
-       z = plotOutput2cell(z);
-       
-   catch ex
-        if strfind(ex.identifier,'nomem')
-            errordlg('Out of memory, system is too big','Error Dialog','modal')
-            uiwait
-            set(handles.figure1,'Pointer','arrow')
-            set(hObject,'String','Plot')
-            set(hObject,'Enable','on')
-            return
-        elseif strfind(ex.message,'singular')
-            errordlg(ex.message,'Error Dialog','modal')
-            uiwait
-            set(handles.figure1,'Pointer','arrow')
-            set(hObject,'String','Plot')
-            set(hObject,'Enable','on')
-            return
+        
+        %Legend
+        
+        if get(handles.rb_PaV_plotStyle_manual,'Value')
+           legendText = {};
+           for i = 1:size(systemList,1)
+              legendText{i,1} = systemList{i,3}.legendText;
+              legend(legendText);
+           end
         else
-            throw(ex)
+           legend show; 
         end
-   end
-    assignin('base',sysname,sys);
-    if get(handles.figure,'Value')==1 || fighand==0
-        figure
-        fighand=gcf;
-    end
-    figure(fighand)
-    UserData=get(fighand,'UserData');
-
-    if ~isempty(strfind(get(fighand,'Tag'),'p'))
-        axes(UserData(1,1)) 
-        hold on
-        leg2=get(legend,'String');
-        leg1={get(handles.ed_legend,'String')};
-        leg=[leg2,leg1];
-    else
-        hold off
-        leg=get(handles.ed_legend,'String');
-    end
-    if ~isempty(UserData) % plot all pzmaps in open figure
-        for i=1:size(UserData,1)
-            for j=1:size(UserData,2)
-                subplot(UserData(i,j))
-                hold on
-                z_plot=z{i,j};
-                plot(real(z_plot),imag(z_plot),'--wo','MarkerEdgeColor',col)
-                temp=plot(real(p),imag(p),'--wx','MarkerEdgeColor',col);
-                hAnnotation = get(temp,'Annotation');
-                hLegendEntry = get(hAnnotation','LegendInformation');
-                set(hLegendEntry,'IconDisplayStyle','off')
+        
+        %Save Data
+        
+        for i = 1:size(systemList,1)
+            if systemList{i,3}.save
+                assignin('base',systemList{i,3}.variableName,systemList{i,5})
             end
         end
-    else
-        UserData=zeros(size(z,1),size(z,2)); %plot in new figure
-        k=1;
-        for i=1:size(UserData,1)
-            for j=1:size(UserData,2)
-                UserData(i,j)=subplot(size(z,1),size(z,2),k);
-                hold on
-                z_plot=z{i,j};
-                plot(real(z_plot),imag(z_plot),'--wo','MarkerEdgeColor',col)
-                temp=plot(real(p),imag(p),'--wx','MarkerEdgeColor',col);
-                hAnnotation = get(temp,'Annotation');
-                hLegendEntry = get(hAnnotation','LegendInformation');
-                set(hLegendEntry,'IconDisplayStyle','off')
-                k=k+1;
-                uy=min([min(imag(p)),min(imag(z_plot))]);
-                oy=max([max(imag(p)),max(imag(z_plot))]);
-                ux=min([min(real(p)),min(real(z_plot))]);
-                ox=max([max(real(p)),max(real(z_plot))]);
-                temp=plot([0 0],[1.1*uy 1.1*oy],':k');
-                hAnnotation = get(temp,'Annotation');
-                hLegendEntry = get(hAnnotation','LegendInformation');
-                set(hLegendEntry,'IconDisplayStyle','off')
-                temp=plot([1.1*ux 1.1*ox],[0 0],':k');
-                hAnnotation = get(temp,'Annotation');
-                hLegendEntry = get(hAnnotation','LegendInformation');
-                set(hLegendEntry,'IconDisplayStyle','off')
-                if j==1 % an die äußere Seite jeweils To Out schreiben
-                    y_lab=sprintf('To: Out(%i)',i);
-                    ylabel(y_lab)
-                end
-                if i==1 % an die obere Seite jeweils To In schreiben
-                    x_lab=sprintf('From: In(%i)',j);
-                    title(x_lab,'FontWeight','normal')
-                end
-            end
-        end
-        set(fighand,'UserData',UserData) % handles der axes in UserData der figure speichern
-    end
-    h=axes('position',[0,0,1,1],'Visible','off'); % axes unsichtbar in den hintergrund legen zur beschriftung
-    text(0.5,0.98,'Pole-Zero Map','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
-    text(0.5,0.02,'Real Axis','HorizontalAlignment','center')
-    text(0.01,0.5,'Imaginary Axis','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
-    set(h,'HandleVisibility','off') % um zoomen usw zu vermeiden wird das handle unsichtbar gemacht
-    hold on
-    for i=1:size(UserData,1) % damit man auf die einzelnen subplots zugreifen kann werden alle nochmal angesprochen
-        for j=1:size(UserData,2)
-            axes(UserData(i,j))
-        end
-    end
-    axes(UserData(1,1))
-    legend(leg)
-    set(fighand,'Tag','p')
-    
-case 5 %Frequency response
-    
-    try
-        [mag, phase, omega]=bode(sys(input, output),W);
-        
-        set(handles.ed_min,'String',omega(1))
-        set(handles.ed_min,'UserData',0)
-        set(handles.ed_max,'String',omega(end))
-        set(handles.ed_max,'UserData',0)
-        
-        %Save the plots from different in- and output-channels in an cell
-        %array
 
-        mag = permute(mag,[3 1 2]);        
-        mag = plotOutput2cell(mag);
-        
+        set(hObject,'String','Plot')
+        set(hObject,'Enable','on')
+        set(handles.figure1,'Pointer','arrow')
+    
     catch ex
-        errordlg(ex.message,'Error Dialog','modal')
+        errordlg(ex.message,'Error Dialog','modal');
         uiwait
         set(hObject,'String','Plot')
+        set(hObject,'Enable','on')
         set(handles.figure1,'Pointer','arrow')
         return
     end
-    if get(handles.figure,'Value')==1 || fighand==0
-        figure
-        fighand=gcf;
-    end
-    figure(fighand)
-    assignin('base',sysname,sys);
-    UserData=get(fighand,'UserData');
-    if ~isempty(strfind(get(fighand,'Tag'),'f'))
-        axes(UserData(1,1)) 
-        hold on
-        leg2=get(legend,'String');
-        leg1={get(handles.ed_legend,'String')};
-        leg=[leg2,leg1];
-    else
-        hold off
-        leg=get(handles.ed_legend,'String');
-   end
-   if ~isempty(UserData)% mag und phase plotten in vorhandene fig plotten
-       if ~isempty(strfind(get(fighand,'Tag'),'O'))
-           mag=cellfun(@(x) 20*log10(x),mag,'UniformOutput',false);
-       end
-        for i=1:size(UserData,1)
-            for j=1:size(UserData,2)
-                subplot(UserData(i,j))
-                hold on
-                y_plot=mag{i,j};
-                plot(omega,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
-                    markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
-                    markersize)
-            end
-        end
-    else
-       if get(handles.rb_ylog,'Value')==1 %y logarithmisch in dB
-           mag=cellfun(@(x) 20*log10(x),mag,'UniformOutput',false);
-           set(fighand,'Tag','fO') % O für logarithm skalierung
-       else
-           set(fighand,'Tag','fI') % I für lineare skalierung
-       end
-        UserData=zeros(size(mag));
-        k=1;
-        for i=1:size(UserData,1)
-            for j=1:size(UserData,2)
-                UserData(i,j)=subplot(size(mag,1),size(mag,2),k);
-                    y_plot=mag{i,j};
-                    plot(omega,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
-                        markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
-                        markersize)
-                    if get(handles.rb_xlog,'Value')==1
-                        set(gca, 'XScale', 'log');
-                    end
-                if j==1
-                    y_lab=sprintf('To: Out(%i)',ceil(i/2));
-                    ylabel(y_lab)
-                end
-                if i==1
-                    x_lab=sprintf('From: In(%i)',j);
-                    title(x_lab,'FontWeight','normal')
-                end
-                k=k+1;
-            end
-        end
-        set(fighand,'UserData',UserData)
-    end
-    h=axes('position',[0,0,1,1],'Visible','off');
-    text(0.5,0.98,'Frequency Response','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
-    text(0.5,0.02,'Frequency [rad/sec]','HorizontalAlignment','center')
-    if get(handles.rb_ylog,'Value')==1 %y logarithmisch in dB
-        text(0.01,0.5,'Magnitude [dB]','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
-    else
-        text(0.01,0.5,'Magnitude (abs)','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
-    end
-    set(h,'HandleVisibility','off')
-    hold on
-    for i=1:size(UserData,1)
-        for j=1:size(UserData,2)
-            axes(UserData(i,j))
-        end
-    end
-    axes(UserData(1,1))
-    legend(leg)
-end
-set(hObject,'String','Plot')
-set(hObject,'Enable','on')
-set(handles.figure1,'Pointer','arrow')
-listOpenFigures(handles)
-figure(fighand)
+
+% % plot
+% set(hObject,'String','Busy')
+% set(hObject,'Enable','off') 
+% global fighand
+% 
+% %Check whether a valid system was selected
+% 
+% x = get(handles.syschoice,'String');
+% sysname = x{get(handles.syschoice,'Value')};
+% 
+% if isempty(sysname)
+%     errordlg('Please choose a system.','Error Dialog','modal')
+%     set(hObject,'String','Plot')
+%     set(hObject,'Enable','on')
+%     uiwait
+%     return
+% end
+% 
+% sys = evalin('base', sysname);
+% 
+% if ~strcmp(class(sys), 'sss')
+%     try
+%         sys = sss(sys);
+%     catch ex %#ok<NASGU>
+%         errordlg('Variable is not a valid state space model.','Error Dialog','modal')
+%         set(hObject,'String','Plot')
+%         set(hObject,'Enable','on')
+%         uiwait
+%         return
+%     end
+% end
+% 
+% 
+% %get and convert system
+% 
+% try
+%     [sys, sysname] = getSysFromWs(handles.syschoice);
+% catch ex
+%     set(hObject,'String','Plot')
+%     set(hObject,'Enable','on') 
+%     errordlg(ex.message,'Error Dialog','modal')
+%     uiwait
+%     return
+% end
+% 
+% %Time vector
+% 
+% if get(handles.rb_auto,'Value')==1
+%     W=[];
+% elseif get(handles.rb_manual,'Value')==1
+%     if get(handles.ed_min,'UserData')==1
+%         errordlg('Please correct minimal frequency/time first','Error Dialog','modal')
+%         uiwait
+%         set(hObject,'String','Plot')
+%         set(hObject,'Enable','on')
+%         return
+%     elseif get(handles.ed_max,'UserData')==1
+%         errordlg('Please correct maximal frequency/time first','Error Dialog','modal')
+%         uiwait
+%         set(hObject,'String','Plot')
+%         set(hObject,'Enable','on')
+%         return
+%     end
+%     minimum=str2double(get(handles.ed_min,'String'));
+%     maximum=str2double(get(handles.ed_max,'String'));
+%     steps=get(handles.sl_steps,'Value');
+%     if get(handles.rb_distlin,'Value')==1
+%         W=linspace(minimum,maximum,steps);
+%     elseif get(handles.rb_distlog,'Value')==1
+%         %bei logspace muss der kleinste Wert>0 sein
+%         if str2double(get(handles.ed_min,'String'))==0
+%             errordlg('Minimum frequency/time must be greater than zero if you choose logarithmical distribution!','Error Dialog','modal')
+%             uiwait
+%             set(hObject,'String','Plot')
+%             set(hObject,'Enable','on')
+%             return
+%         end
+%         W=logspace(log10(minimum),log10(maximum),steps);
+%     else
+%         errordlg('Please select distribution of steps first','Error Dialog','modal')
+%         uiwait
+%         set(hObject,'String','Plot')
+%         set(hObject,'Enable','on')
+%         return
+%     end
+% else
+%     errordlg('Please choose resolution method first','Error Dialog','modal')
+%     uiwait
+%     set(hObject,'String','Plot')
+%     set(hObject,'Enable','on')
+%     return
+% end
+% 
+% %Color
+% 
+% if get(handles.rb_colorst,'Value')==1
+%     % standard color
+%     temp=get(handles.colorlist,'Value');
+%     list=get(handles.colorlist,'UserData');
+%     col=list(temp,:);
+% elseif get(handles.rb_colorvek,'Value')==1
+%     % rgb color
+%     if get(handles.ed_r,'UserData')==1 || ...
+%        get(handles.ed_g,'UserData')==1 || ...
+%        get(handles.ed_b,'UserData')==1
+%         errordlg('Please correct colorvector first','Error Dialog','modal')
+%         uiwait
+%         set(hObject,'Enable','on')
+%         set(hObject,'String','Plot')
+%         return
+%     end
+%     r=str2double(get(handles.ed_r,'String'));
+%     g=str2double(get(handles.ed_g,'String'));
+%     b=str2double(get(handles.ed_b,'String'));
+%     col=[r g b];
+% else
+%     errordlg('Please select color first','Error Dialog','modal')
+%     uiwait
+%     set(hObject,'String','Plot')
+%     set(hObject,'Enable','on')
+%     return
+% end
+% 
+% %Line width
+% 
+% if get(handles.ed_width,'UserData')==1
+%     errordlg('Please correct Line Width','Error Dialog','modal')
+%     uiwait
+%     set(hObject,'String','Plot')
+%     set(hObject,'Enable','on')
+%     return
+% else
+%     width=str2double(get(handles.ed_width,'String'));
+% end
+% 
+% %Marker
+% 
+% if get(handles.pu_post_markerstyle,'Value')>1
+%     if get(handles.ed_post_markersize,'UserData')==1
+%         errordlg('Please correct Marker Size','Error Dialog','modal')
+%         uiwait
+%         set(hObject,'String','Plot')
+%         set(hObject,'Enable','on')
+%         return
+%     end
+%     val=get(handles.pu_post_markerstyle,'Value');
+%     k=get(handles.pu_post_markerstyle,'String');
+%     j=k(val);
+%     % first char of string is passed on to plot function
+%     l=regexp(j, '\ ', 'split');
+%     markerstyle=l{1}{1,1};
+%     val=get(handles.pu_post_markercolor,'Value');
+%     k=get(handles.pu_post_markercolor,'UserData');
+%     markercol=k(val,:);
+%     markersize=str2double(get(handles.ed_post_markersize,'String'));
+% else
+%     markerstyle='none';
+%     markercol=[0 0 0];
+%     markersize=5;
+% end
+% 
+% %Line style
+% 
+% switch get(handles.style,'Value')
+%     case 1
+%         line='-';
+%     case 2
+%         line='--';
+%     case 3
+%         line=':';
+%     case 4
+%         line='-.';
+% end
+% 
+% %Select transfer channel
+% 
+% if strcmp(get(handles.panel_intoout,'Visible'),'on') %MIMO
+% 
+%     input=get(handles.pu_in,'String');
+%     valueIn = get(handles.pu_in,'Value');
+%     input = input{valueIn,1};
+%     
+%     if strcmp(input,'all')
+%         input = 1:sys.m;
+%     else    
+%         input=str2double(input);
+%     end
+%     
+%     output=get(handles.pu_out,'String');
+%     valueOut = get(handles.pu_out,'Value');
+%     output = output{valueOut,1};
+%     
+%     if strcmp(output,'all')
+%         output = 1:sys.p;
+%     else
+%         output=str2double(output);
+%     end
+% else        %SISO
+%     input=1;
+%     output=1;
+% end
+% set(handles.figure1,'Pointer','watch')
+% drawnow
+% 
+% %Different Plot-Types
+% 
+% switch get(handles.plot_type,'Value')
+%     
+% case 1 %impulse response
+%     
+%     try
+%         [sysname, t]=impulse(sys(output, input),W);
+%         set(handles.ed_min,'String',t(1))
+%         set(handles.ed_min,'UserData',0)
+%         set(handles.ed_max,'String',t(end))
+%         set(handles.ed_max,'UserData',0)
+%         
+%         %Save the plots from different in- and output-channels in an cell
+%         %array
+% 
+%         sysname = plotOutput2cell(sysname);
+%         
+%     catch ex
+%         uiwait
+%         set(hObject,'Enable','on')
+%         set(hObject,'String','Plot')
+%         set(handles.figure1,'Pointer','arrow')
+%         if strfind(ex.identifier,'nomem')
+%             errordlg('System is too big','Error Dialog','modal')
+%         elseif strfind(ex.message,'singular')
+%             errordlg('The system contains algebraic states.','Error Dialog','modal')
+%         else
+%             errordlg(ex.message, 'Error Dialog', 'modal')
+%         end
+%         uiwait
+%         return
+%     end
+%     if get(handles.figure,'Value')==1 || fighand==0
+%         fighand=figure;
+%     end
+%     figure(fighand)
+%     %assignin('base',sysname,sys);
+%     UserData=get(fighand,'UserData');
+%     % use existing figure
+%     if get(fighand,'Tag')=='i'
+%         axes(UserData(1,1))
+%         hold on
+%         % merge new and old legend
+%         leg2=get(legend,'String');
+%         leg1={get(handles.ed_legend,'String')};
+%         leg=[leg2,leg1];
+%     else
+%         hold off
+%         leg=get(handles.ed_legend,'String');
+%     end
+%     % plot respective impulse responses in figure
+%     if ~isempty(UserData)
+%         for i=1:size(UserData,1)
+%             for j=1:size(UserData,2)
+%                 subplot(UserData(i,j))
+%                 hold on
+%                 y_plot=sysname{i,j};
+%                 plot(t,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
+%                     markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
+%                     markersize)
+%             end
+%         end
+%     else
+%         % plot into new figure
+%         UserData=zeros(size(sysname,1),size(sysname,2));
+%         k=1;
+%         for i=1:size(UserData,1)
+%             for j=1:size(UserData,2)
+%                 UserData(i,j)=subplot(size(sysname,1),size(sysname,2),k);
+%                 y_plot=sysname{i,j};
+%                 plot(t,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
+%                     markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
+%                     markersize)
+%                 k=k+1;
+%                 if j==1 % label "To Out"
+%                     y_lab=sprintf('To: Out(%i)',i);
+%                     ylabel(y_lab)
+%                 end
+%                 if i==1 % label "To In"
+%                     x_lab=sprintf('From: In(%i)',j);
+%                     title(x_lab,'FontWeight','normal');
+%                 end
+%             end
+%         end
+%         set(fighand,'UserData',UserData)
+%     end
+%     h=axes('position',[0,0,1,1],'Visible','off'); % axes unsichtbar in den hintergrund legen zur beschriftung
+%     text(0.5,0.98,'Impulse Response','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
+%     text(0.5,0.02,'Time (seconds)','HorizontalAlignment','center')
+%     text(0.01,0.5,'Amplitude','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
+%     set(h,'HandleVisibility','off') % um zoomen usw zu vermeiden wird das handle unsichtbar gemacht
+%     hold on
+%     for i=1:size(UserData,1) % damit man auf die einzelnen subplots zugreifen kann werden alle nochmal angesprochen
+%         for j=1:size(UserData,2)
+%             axes(UserData(i,j))
+%         end
+%     end
+%     axes(UserData(1,1))
+%     legend(leg)
+%     set(fighand,'Tag','i')
+%     
+% case 2 %Step Response
+%     
+%     try % Sprungantwort berechnen, siehe auch impulsantwort
+%        [sysname, t]=step(sys(output, input),W);
+%        set(handles.ed_min,'String',t(1))
+%        set(handles.ed_min,'UserData',0)
+%        set(handles.ed_max,'String',t(end))
+%        set(handles.ed_max,'UserData',0)
+%        
+%        %Save the plots from different in- and output-channels in an cell
+%        %array
+% 
+%        sysname = plotOutput2cell(sysname);
+%        
+%     catch ex
+%         set(hObject,'Enable','on')
+%         set(hObject,'Strin','Plot')
+%         set(handles.figure1,'Pointer','arrow')
+%         if strfind(ex.identifier,'nomem')
+%             errordlg('System is too big','Error Dialog','modal')
+%         elseif strfind(ex.message,'singular')
+%             errordlg('The system contains algebraic states.','Error Dialog','modal')
+%         else
+%             errordlg(ex.message,'Error Dialog','modal')
+%         end
+%         uiwait
+%         return
+%     end
+%     if get(handles.figure,'Value')==1 || fighand==0
+%         figure
+%         fighand=gcf;
+%     end
+%     figure(fighand)
+%     %assignin('base',sysname,sys); % neue systemdaten in den workspace schreiben
+%     UserData=get(fighand,'UserData');    
+%     if get(fighand,'Tag')=='s' % vorhandenes figure nutzen
+%         axes(UserData(1,1)) 
+%         hold on
+%         leg2=get(legend,'String');
+%         leg1={get(handles.ed_legend,'String')};
+%         leg=[leg2,leg1];
+%     else
+%     hold off
+%     leg=get(handles.ed_legend,'String');
+%     end
+%     if ~isempty(UserData)
+%          for i=1:size(UserData,1)
+%              for j=1:size(UserData,2)
+%                  subplot(UserData(i,j))
+%                  hold on
+%                  y_plot=sysname{i,j};
+%                  plot(t,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
+%                      markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
+%                      markersize)
+%              end
+%          end
+%     else
+%         UserData=zeros(size(sysname,1),size(sysname,2));
+%         k=1;
+%         for i=1:size(UserData,1)
+%             for j=1:size(UserData,2)
+%                 UserData(i,j)=subplot(size(sysname,1),size(sysname,2),k);
+%                 y_plot=sysname{i,j};
+%                 plot(t,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
+%                     markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
+%                     markersize)
+%                 k=k+1;
+%                 if j==1
+%                     y_lab=sprintf('To: Out(%i)',i);
+%                     ylabel(y_lab)
+%                 end
+%                 if i==1
+%                     x_lab=sprintf('From: In(%i)',j);
+%                     title(x_lab,'FontWeight','normal');
+%                 end
+%             end
+%         end
+%         set(fighand,'UserData',UserData)
+%     end
+%     h=axes('position',[0,0,1,1],'Visible','off');
+%     text(0.5,0.98,'Step Response','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
+%     text(0.5,0.02,'Time (seconds)','HorizontalAlignment','center')
+%     text(0.01,0.5,'Amplitude','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
+%     set(h,'HandleVisibility','off')
+%     hold on
+%     for i=1:size(UserData,1)
+%         for j=1:size(UserData,2)
+%             axes(UserData(i,j))
+%         end
+%     end
+%     axes(UserData(1,1))
+%     legend(leg)
+%     set(fighand,'Tag','s')
+% 
+% case 3 %Bode
+%     
+%     try
+%         [mag, phase, omega]=bode(sys(input, output),W);
+%         
+%         set(handles.ed_min,'String',omega(1))
+%         set(handles.ed_min,'UserData',0)
+%         set(handles.ed_max,'String',omega(end))
+%         set(handles.ed_max,'UserData',0)
+%         
+%         %Save the plots from different in- and output-channels in an cell
+%         %array
+% 
+%         mag = permute(mag,[3 1 2]);
+%         phase = permute(phase,[3 1 2]);
+%         
+%         mag = plotOutput2cell(mag);
+%         phase = plotOutput2cell(phase);
+%         
+%     catch ex
+%         errordlg(ex.message,'Error Dialog','modal')
+%         uiwait
+%         set(hObject,'String','Plot')
+%         set(handles.figure1,'Pointer','arrow')
+%         set(hObject,'Enable','on')
+%         return
+%     end
+%     if get(handles.figure,'Value')==1 || fighand==0
+%         figure
+%         fighand=gcf;
+%     end
+%     figure(fighand)
+%     assignin('base',sysname,sys);
+%     UserData=get(fighand,'UserData');
+%     if ~isempty(strfind(get(fighand,'Tag'),'b'))
+%         axes(UserData(1,1)) 
+%         hold on
+%         leg2=get(legend,'String');
+%         leg1={get(handles.ed_legend,'String')};
+%         leg=[leg2,leg1];
+%     else
+%         hold off
+%         leg=get(handles.ed_legend,'String');
+%     end
+%     if ~isempty(UserData)% mag und phase plotten in vorhandene fig plotten
+%         if ~isempty(strfind(get(fighand,'Tag'),'O'))
+%             mag=cellfun(@(x) 20*log10(x),mag,'UniformOutput',false);
+%         end
+%          for i=1:size(UserData,1)
+%              for j=1:size(UserData,2)
+%                  subplot(UserData(i,j))
+%                  hold on
+%                  if rem(i,2)==1 %amplitude plotten
+%                      y_plot=mag{ceil(i/2),j};
+%                      plot(omega,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
+%                          markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
+%                          markersize)
+%                  else %phase plotten
+%                      y_plot=phase{i/2,j};
+%                      plot(omega,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
+%                          markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
+%                          markersize)
+%                  end
+%              end
+%          end
+%     else
+%         if get(handles.rb_ylog,'Value')==1 %y logarithmisch in dB
+%             mag=cellfun(@(x) 20*log10(x),mag,'UniformOutput',false);
+%             set(fighand,'Tag','bO') % O für logarithmische skalierung
+%         else
+%             set(fighand,'Tag','bI') % I für lineare skalierung
+%         end
+%         UserData=zeros(2*size(mag,1),size(mag,2));
+%         k=1;
+%         for i=1:size(UserData,1)
+%             for j=1:size(UserData,2)
+%                 UserData(i,j)=subplot(2*size(mag,1),size(mag,2),k);
+%                 if rem(i,2)==1 %amplitude plotten
+%                     y_plot=mag{ceil(i/2),j};
+%                     plot(omega,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
+%                         markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
+%                         markersize)
+%                     if get(handles.rb_xlog,'Value')==1
+%                         set(gca, 'XScale', 'log');
+%                     end
+%                 else %phase plotten
+%                     y_plot=phase{i/2,j};
+%                     plot(omega,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
+%                         markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
+%                         markersize)
+%                     if get(handles.rb_xlog,'Value')==1
+%                         set(gca, 'XScale', 'log');
+%                     end
+%                 end
+%                 if j==1
+%                     y_lab=sprintf('To: Out(%i)',ceil(i/2));
+%                     ylabel(y_lab)
+%                 end
+%                 if i==1
+%                     x_lab=sprintf('From: In(%i)',j);
+%                     title(x_lab,'FontWeight','normal');
+%                 end
+%                 k=k+1;
+%             end
+%         end
+%         set(fighand,'UserData',UserData)
+%     end
+%     h=axes('position',[0,0,1,1],'Visible','off');
+%     text(0.5,0.98,'Bode Diagram','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
+%     text(0.5,0.02,'Frequency [rad/sec]','HorizontalAlignment','center')
+%     if get(handles.rb_ylog,'Value')==1
+%         text(0.01,0.5,'Phase [deg] ; Magnitude [dB]','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center');
+%     else
+%         text(0.01,0.5,'Phase [deg] ; Magnitude (abs)','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
+%     end
+%     set(h,'HandleVisibility','off')
+%     hold on
+%     for i=1:size(UserData,1)
+%         for j=1:size(UserData,2)
+%             axes(UserData(i,j))
+%         end
+%     end
+%     axes(UserData(1,1))
+%    legend(leg)
+% 
+% case 4 %Pole-Zero Map
+% 
+%    try
+%        [p,z]=pzmap(sys,input,output);
+%        
+%        %Save the plots from different in- and output-channels in an cell
+%        %array
+% 
+%        z = plotOutput2cell(z);
+%        
+%    catch ex
+%         if strfind(ex.identifier,'nomem')
+%             errordlg('Out of memory, system is too big','Error Dialog','modal')
+%             uiwait
+%             set(handles.figure1,'Pointer','arrow')
+%             set(hObject,'String','Plot')
+%             set(hObject,'Enable','on')
+%             return
+%         elseif strfind(ex.message,'singular')
+%             errordlg(ex.message,'Error Dialog','modal')
+%             uiwait
+%             set(handles.figure1,'Pointer','arrow')
+%             set(hObject,'String','Plot')
+%             set(hObject,'Enable','on')
+%             return
+%         else
+%             throw(ex)
+%         end
+%    end
+%     assignin('base',sysname,sys);
+%     if get(handles.figure,'Value')==1 || fighand==0
+%         figure
+%         fighand=gcf;
+%     end
+%     figure(fighand)
+%     UserData=get(fighand,'UserData');
+% 
+%     if ~isempty(strfind(get(fighand,'Tag'),'p'))
+%         axes(UserData(1,1)) 
+%         hold on
+%         leg2=get(legend,'String');
+%         leg1={get(handles.ed_legend,'String')};
+%         leg=[leg2,leg1];
+%     else
+%         hold off
+%         leg=get(handles.ed_legend,'String');
+%     end
+%     if ~isempty(UserData) % plot all pzmaps in open figure
+%         for i=1:size(UserData,1)
+%             for j=1:size(UserData,2)
+%                 subplot(UserData(i,j))
+%                 hold on
+%                 z_plot=z{i,j};
+%                 plot(real(z_plot),imag(z_plot),'--wo','MarkerEdgeColor',col)
+%                 temp=plot(real(p),imag(p),'--wx','MarkerEdgeColor',col);
+%                 hAnnotation = get(temp,'Annotation');
+%                 hLegendEntry = get(hAnnotation','LegendInformation');
+%                 set(hLegendEntry,'IconDisplayStyle','off')
+%             end
+%         end
+%     else
+%         UserData=zeros(size(z,1),size(z,2)); %plot in new figure
+%         k=1;
+%         for i=1:size(UserData,1)
+%             for j=1:size(UserData,2)
+%                 UserData(i,j)=subplot(size(z,1),size(z,2),k);
+%                 hold on
+%                 z_plot=z{i,j};
+%                 plot(real(z_plot),imag(z_plot),'--wo','MarkerEdgeColor',col)
+%                 temp=plot(real(p),imag(p),'--wx','MarkerEdgeColor',col);
+%                 hAnnotation = get(temp,'Annotation');
+%                 hLegendEntry = get(hAnnotation','LegendInformation');
+%                 set(hLegendEntry,'IconDisplayStyle','off')
+%                 k=k+1;
+%                 uy=min([min(imag(p)),min(imag(z_plot))]);
+%                 oy=max([max(imag(p)),max(imag(z_plot))]);
+%                 ux=min([min(real(p)),min(real(z_plot))]);
+%                 ox=max([max(real(p)),max(real(z_plot))]);
+%                 temp=plot([0 0],[1.1*uy 1.1*oy],':k');
+%                 hAnnotation = get(temp,'Annotation');
+%                 hLegendEntry = get(hAnnotation','LegendInformation');
+%                 set(hLegendEntry,'IconDisplayStyle','off')
+%                 temp=plot([1.1*ux 1.1*ox],[0 0],':k');
+%                 hAnnotation = get(temp,'Annotation');
+%                 hLegendEntry = get(hAnnotation','LegendInformation');
+%                 set(hLegendEntry,'IconDisplayStyle','off')
+%                 if j==1 % an die äußere Seite jeweils To Out schreiben
+%                     y_lab=sprintf('To: Out(%i)',i);
+%                     ylabel(y_lab)
+%                 end
+%                 if i==1 % an die obere Seite jeweils To In schreiben
+%                     x_lab=sprintf('From: In(%i)',j);
+%                     title(x_lab,'FontWeight','normal')
+%                 end
+%             end
+%         end
+%         set(fighand,'UserData',UserData) % handles der axes in UserData der figure speichern
+%     end
+%     h=axes('position',[0,0,1,1],'Visible','off'); % axes unsichtbar in den hintergrund legen zur beschriftung
+%     text(0.5,0.98,'Pole-Zero Map','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
+%     text(0.5,0.02,'Real Axis','HorizontalAlignment','center')
+%     text(0.01,0.5,'Imaginary Axis','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
+%     set(h,'HandleVisibility','off') % um zoomen usw zu vermeiden wird das handle unsichtbar gemacht
+%     hold on
+%     for i=1:size(UserData,1) % damit man auf die einzelnen subplots zugreifen kann werden alle nochmal angesprochen
+%         for j=1:size(UserData,2)
+%             axes(UserData(i,j))
+%         end
+%     end
+%     axes(UserData(1,1))
+%     legend(leg)
+%     set(fighand,'Tag','p')
+%     
+% case 5 %Frequency response
+%     
+%     try
+%         [mag, phase, omega]=bode(sys(input, output),W);
+%         
+%         set(handles.ed_min,'String',omega(1))
+%         set(handles.ed_min,'UserData',0)
+%         set(handles.ed_max,'String',omega(end))
+%         set(handles.ed_max,'UserData',0)
+%         
+%         %Save the plots from different in- and output-channels in an cell
+%         %array
+% 
+%         mag = permute(mag,[3 1 2]);        
+%         mag = plotOutput2cell(mag);
+%         
+%     catch ex
+%         errordlg(ex.message,'Error Dialog','modal')
+%         uiwait
+%         set(hObject,'String','Plot')
+%         set(handles.figure1,'Pointer','arrow')
+%         return
+%     end
+%     if get(handles.figure,'Value')==1 || fighand==0
+%         figure
+%         fighand=gcf;
+%     end
+%     figure(fighand)
+%     assignin('base',sysname,sys);
+%     UserData=get(fighand,'UserData');
+%     if ~isempty(strfind(get(fighand,'Tag'),'f'))
+%         axes(UserData(1,1)) 
+%         hold on
+%         leg2=get(legend,'String');
+%         leg1={get(handles.ed_legend,'String')};
+%         leg=[leg2,leg1];
+%     else
+%         hold off
+%         leg=get(handles.ed_legend,'String');
+%    end
+%    if ~isempty(UserData)% mag und phase plotten in vorhandene fig plotten
+%        if ~isempty(strfind(get(fighand,'Tag'),'O'))
+%            mag=cellfun(@(x) 20*log10(x),mag,'UniformOutput',false);
+%        end
+%         for i=1:size(UserData,1)
+%             for j=1:size(UserData,2)
+%                 subplot(UserData(i,j))
+%                 hold on
+%                 y_plot=mag{i,j};
+%                 plot(omega,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
+%                     markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
+%                     markersize)
+%             end
+%         end
+%     else
+%        if get(handles.rb_ylog,'Value')==1 %y logarithmisch in dB
+%            mag=cellfun(@(x) 20*log10(x),mag,'UniformOutput',false);
+%            set(fighand,'Tag','fO') % O für logarithm skalierung
+%        else
+%            set(fighand,'Tag','fI') % I für lineare skalierung
+%        end
+%         UserData=zeros(size(mag));
+%         k=1;
+%         for i=1:size(UserData,1)
+%             for j=1:size(UserData,2)
+%                 UserData(i,j)=subplot(size(mag,1),size(mag,2),k);
+%                     y_plot=mag{i,j};
+%                     plot(omega,y_plot,'Color',col,'Linestyle',line,'LineWidth',width,'Marker',...
+%                         markerstyle,'MarkerFaceColor',markercol,'MarkerSize',...
+%                         markersize)
+%                     if get(handles.rb_xlog,'Value')==1
+%                         set(gca, 'XScale', 'log');
+%                     end
+%                 if j==1
+%                     y_lab=sprintf('To: Out(%i)',ceil(i/2));
+%                     ylabel(y_lab)
+%                 end
+%                 if i==1
+%                     x_lab=sprintf('From: In(%i)',j);
+%                     title(x_lab,'FontWeight','normal')
+%                 end
+%                 k=k+1;
+%             end
+%         end
+%         set(fighand,'UserData',UserData)
+%     end
+%     h=axes('position',[0,0,1,1],'Visible','off');
+%     text(0.5,0.98,'Frequency Response','FontWeight','bold','FontSize',12,'HorizontalAlignment','center');
+%     text(0.5,0.02,'Frequency [rad/sec]','HorizontalAlignment','center')
+%     if get(handles.rb_ylog,'Value')==1 %y logarithmisch in dB
+%         text(0.01,0.5,'Magnitude [dB]','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
+%     else
+%         text(0.01,0.5,'Magnitude (abs)','Rotation',90,'VerticalAlignment','middle','HorizontalAlignment','center')
+%     end
+%     set(h,'HandleVisibility','off')
+%     hold on
+%     for i=1:size(UserData,1)
+%         for j=1:size(UserData,2)
+%             axes(UserData(i,j))
+%         end
+%     end
+%     axes(UserData(1,1))
+%     legend(leg)
+% end
+% set(hObject,'String','Plot')
+% set(hObject,'Enable','on')
+% set(handles.figure1,'Pointer','arrow')
+% listOpenFigures(handles)
+% figure(fighand)
 
 
 
