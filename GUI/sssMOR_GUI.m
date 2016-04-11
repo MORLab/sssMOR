@@ -133,6 +133,8 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
                                    handles.pb_an_sys1_calcall,handles.pb_an_sys2_calcall];
     handles.allbuttons=[handles.pb_save,handles.pb_load,handles.pb_create,handles.pb_readascii];
     handles.zoom=[];
+    handles.plotData = [];
+    handles.chosenSystems = 0;
     
     %Set the default-folder for opening data-files
     
@@ -400,6 +402,278 @@ function text_about_weblink_ButtonDownFcn(hObject, eventdata, handles)
 %                    POSTPROCESSING AND VISUALISATION
 %--------------------------------------------------------------------------
 
+function pb_PaV_remove_Callback(hObject, eventdata, handles)
+%Remove the selected system from the list
+
+    list = get(handles.lb_PaV_selectedSystems,'String');
+    index = get(handles.lb_PaV_selectedSystems,'Value');
+    sysName = list{index};
+    
+    if isempty(list)
+       set(handles.lb_PaV_selectedSystems,'String','');
+       set(handles.lb_PaV_selectedSystems,'Value',1);
+       return;
+    end
+    
+    list{index,1} = [];
+    list = list(~cellfun(@isempty, list));
+    
+    if index > length(list)
+       set(handles.lb_PaV_selectedSystems,'Value',length(list));
+    end
+    
+    set(handles.lb_PaV_selectedSystems,'String',list);
+    
+    %Remove the stored data for this system
+    
+    data = handles.plotData;
+    
+    for i = 1:length(data)
+       if strcmp(data{i,1}.name,sysName)
+          data{i,1} = [];
+          break;
+       end
+    end
+    
+    data = data(~cellfun(@isempty, data));
+    handles.plotData = data;
+    guidata(hObject,handles);
+    
+    lb_PaV_selectedSystems_Callback(handles.lb_PaV_selectedSystems, eventdata, handles)
+
+function pb_PaV_move_Callback(hObject, eventdata, handles)
+%Move the selected system from the list on the left side to the right side
+
+    %Check if the list is empty and display warning if the case
+    
+    list = get(handles.lb_PaV_systemsWs,'String');
+    
+    if isempty(list{1,1})
+       errordlg('No system selected');
+       uiwait;
+       return;
+    end
+    
+    %Read out the selected system
+
+    index = get(handles.lb_PaV_systemsWs,'Value');
+    selectedSystem = list{index,1};
+    
+    %Check if the system exists already in the list on the right side
+
+    listSelected = get(handles.lb_PaV_selectedSystems,'String');
+    
+    if ~isempty(listSelected)
+       for i = 1:length(listSelected)
+          if strcmp(listSelected{i,1},selectedSystem)
+            errordlg('The selected system already exists in the list.');
+            uiwait;
+            return; 
+          end
+       end
+    end
+    
+    %Get system from workspace
+    
+    try
+        sys = getSysFromWs(selectedSystem);
+    catch ex
+        errordlg(ex.message,'Error Dialog','modal')
+        uiwait
+        return
+    end
+
+    %Add the system to the list on right side
+    
+    list = get(handles.lb_PaV_selectedSystems,'String');
+
+    if isempty(list)
+        set(handles.lb_PaV_selectedSystems,'String',{selectedSystem});
+        set(handles.lb_PaV_selectedSystems,'Value',1);
+        if get(handles.rb_PaV_plotStyle_manual,'Value')
+            set(handles.panel_PaV_plotStyle,'Visible','on');
+        else
+            set(handles.panel_PaV_plotStyle,'Visible','off');
+        end
+        set(handles.cb_PaV_SaveData,'Visible','on');
+        set(handles.et_PaV_saveData,'Visible','on');
+    else
+        list{end+1,1} = selectedSystem;
+        set(handles.lb_PaV_selectedSystems,'String',list);
+    end
+    
+    %Set the default-values for all plot-options for this system
+    
+    data.name = selectedSystem;
+    
+    if sys.p > 1|| sys.m > 1
+       data.in = '1';
+       data.out = '1';
+       data.sizeInputs = sys.p;
+       data.sizeOutputs = sys.m;
+       data.legendText = suggestDefaultLegendText(handles,selectedSystem,1);
+    else
+       data.in = [];
+       data.out = [];
+       data.sizeInputs = [];
+       data.sizeOutputs = [];
+       data.legendText = suggestDefaultLegendText(handles,selectedSystem,[]);
+    end
+    
+    data.save = 1;
+    data.variableName = suggestPlotDataName(handles,selectedSystem);
+    data.color = mod(handles.chosenSystems,7)+1;
+    data.lineStyle = 1;
+    
+    handles.plotData{end+1,1} = data;
+    
+    handles.chosenSystems = handles.chosenSystems + 1;
+    
+    guidata(hObject,handles);
+    
+    lb_PaV_selectedSystems_Callback(handles.lb_PaV_selectedSystems,eventdata,handles);
+   
+    
+function bg_PaV_plotStyle_SelectionChangedFcn(hObject, eventdata, handles)
+%Set the panel with the options for the plot style visible or invisible
+%depending on the specified value
+
+    list = get(handles.lb_PaV_selectedSystems,'String');
+
+    if get(handles.rb_PaV_plotStyle_manual,'Value') && ~isempty(list)
+        set(handles.panel_PaV_plotStyle,'Visible','on');
+    else
+        set(handles.panel_PaV_plotStyle,'Visible','off');
+    end
+
+    
+function pu_PaV_color_Callback(hObject, eventdata, handles)
+
+    savePlotData(handles);
+    
+function pu_PaV_lineStyle_Callback(hObject, eventdata, handles)
+
+    savePlotData(handles);
+
+function ed_legend_Callback(hObject, eventdata, handles)
+   
+    savePlotData(handles);
+
+function cb_PaV_SaveData_Callback(hObject, eventdata, handles)
+
+    if get(hObject,'Value') == 1
+       set(handles.et_PaV_saveData,'Enable','on'); 
+    else
+       set(handles.et_PaV_saveData,'Enable','off'); 
+    end
+
+    savePlotData(handles);
+
+function et_PaV_saveData_Callback(hObject, eventdata, handles)
+
+    savePlotData(handles);
+
+function pu_in_Callback(hObject, eventdata, handles)
+
+    set(handles.ed_legend,'String',suggestDefaultLegendText(handles,'',[]));
+
+    savePlotData(handles);
+
+function pu_out_Callback(hObject, eventdata, handles)
+
+    set(handles.ed_legend,'String',suggestDefaultLegendText(handles,'',[]));
+
+    savePlotData(handles);
+
+    
+function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
+%Selection changed. Write the stored values for the now selected system to
+%the controls
+
+    list = get(handles.lb_PaV_selectedSystems,'String');
+    
+    if ~isempty(list)
+    
+        selectedSystem = list{get(handles.lb_PaV_selectedSystems,'Value'),1};
+
+        %Get the stored data for the system
+
+        for i = 1:length(handles.plotData)
+           if strcmp(selectedSystem,handles.plotData{i,1}.name)
+              data = handles.plotData{i,1};
+              break; 
+           end
+        end
+
+        if ~isempty(selectedSystem)
+
+            if isempty(data.in) && isempty(data.out)    %Siso
+               set(handles.panel_intoout,'Visible','off');
+            else                                        %Mimo
+
+               if get(handles.pu_in,'Value') > data.sizeInputs
+                    set(handles.pu_in,'Value', 1)
+               end
+               if get(handles.pu_out,'Value') > data.sizeOutputs
+                    set(handles.pu_out,'Value', 1)
+               end
+               set(handles.panel_intoout,'Visible','on')
+               in={num2str((1:data.sizeInputs)'),'all'};
+               out={num2str((1:data.sizeOutputs)'),'all'};
+               set(handles.pu_in,'String',in)
+               set(handles.pu_out,'String',out)
+
+               set(handles.panel_intoout,'Visible','on');
+               if ~strcmp(data.in,'all')
+                  set(handles.pu_in,'Value',str2num(data.in));
+               else
+                  set(handles.pu_in,'Value',length(get(handles.pu_in,'String')));
+               end
+               if ~strcmp(data.out,'all')
+                  set(handles.pu_out,'Value',str2num(data.out));
+               else
+                  set(handles.pu_out,'Value',length(get(handles.pu_out,'String')));
+               end
+            end
+
+            set(handles.pu_PaV_color,'Value',data.color);
+            set(handles.pu_PaV_lineStyle,'Value',data.lineStyle);
+            set(handles.ed_legend,'String',data.legendText);
+            set(handles.cb_PaV_SaveData,'Value',data.save);
+            set(handles.et_PaV_saveData,'String',data.variableName);
+
+        end    
+    else
+        
+        set(handles.panel_intoout,'Visible','off');
+        set(handles.panel_PaV_plotStyle,'Visible','off');
+        set(handles.cb_PaV_SaveData,'Visible','off');
+        set(handles.et_PaV_saveData,'Visible','off'); 
+    end
+  
+function lb_PaV_systemsWs_Callback(hObject, eventdata, handles)
+%Update the system information
+
+    x = get(hObject,'String');
+    y = x{get(hObject,'Value')};
+    if ~isempty(y)
+
+        %Load system from workspace
+
+        sys = evalin('base', y);
+        if ~strcmp(class(sys), 'ss') && ~strcmp(class(sys), 'sss')
+            errordlg('Variable is not a valid state space model.','Error Dialog','modal')
+            set(handles.sysinfo,'String','Invalid model')
+            uiwait
+            return
+        end
+        
+        %Display system information
+
+        displaySystemInformation(handles.sysinfo,sys);
+    end
+
+    
 function syschoice_Callback(hObject, eventdata, handles)
 % occurs when system has been chosen
 
@@ -459,30 +733,8 @@ listOpenFigures(handles)
 
 %Set the new default values for the legend text
     
-suggestDefaultLegendText(handles);
+%suggestDefaultLegendText(handles);
 
-
-function pu_in_Callback(hObject, eventdata, handles)
-% MIMO input to be analyzed
-
-    %Refresh list of suitable open figures
-    
-    listOpenFigures(handles)
-    
-    %Set the new default values for the legend text
-    
-    suggestDefaultLegendText(handles);
-
-function pu_out_Callback(hObject, eventdata, handles)
-% MIMO output to be analyzed
-
-    %Refresh list of suitable open figures
-    
-    listOpenFigures(handles)
-
-    %Set the new default values for the legend text
-    
-    suggestDefaultLegendText(handles);
     
 
 function plot_type_Callback(hObject, eventdata, handles)
@@ -547,6 +799,16 @@ end
 % refresh list of open figures
 listOpenFigures(handles)
 
+%Change the variable name for the stored plot-data
+
+for i = 1:length(handles.plotData)
+   handles.plotData{i,1}.variableName = suggestPlotDataName(handles, ...
+       handles.plotData{i,1}.name);
+end
+
+guidata(hObject,handles);
+lb_PaV_selectedSystems_Callback(handles.lb_PaV_selectedSystems,eventdata,handles);
+
 function figure_Callback(hObject, eventdata, handles)
 % handle of chosen figure
 global fighand
@@ -569,11 +831,6 @@ if fighand ~=0
     end
 end
 
-function ed_legend_Callback(hObject, eventdata, handles)
-%That the UserData for this Object to the value 1 to signal that the text
-%has beeb edited by the user
-
-    set(hObject,'UserData',1);
 
     
 function rb_auto_Callback(hObject, eventdata, handles)
@@ -1928,23 +2185,42 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     %Check wether the previous selected systems exist in workspace
     
     
+    %Postprocessing and Visualisation (old)
+    
+%     l_alt = get(handles.syschoice,'String');
+% 
+%     if ~isempty(l_alt)
+% 
+%         sOld=l_alt{get(handles.syschoice,'Value')};
+%         indexOld=find(strcmp(sOld,l));
+% 
+%         if ~isempty(indexOld)
+%             set(handles.syschoice,'Value',indexOld);
+%         else
+%             set(handles.syschoice,'Value',1);
+%         end
+% 
+%     else
+%       set(handles.syschoice,'Value',1);
+%     end
+    
     %Postprocessing and Visualisation
     
     l_alt = get(handles.syschoice,'String');
 
     if ~isempty(l_alt)
 
-        sOld=l_alt{get(handles.syschoice,'Value')};
+        sOld=l_alt{get(handles.lb_PaV_systemsWs,'Value')};
         indexOld=find(strcmp(sOld,l));
 
         if ~isempty(indexOld)
-            set(handles.syschoice,'Value',indexOld);
+            set(handles.lb_PaV_systemsWs,'Value',indexOld);
         else
-            set(handles.syschoice,'Value',1);
+            set(handles.lb_PaV_systemsWs,'Value',1);
         end
 
     else
-      set(handles.syschoice,'Value',1);
+      set(handles.lb_PaV_systemsWs,'Value',1);
     end
       
     
@@ -1993,7 +2269,9 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
 
     if ~isempty(l) && size(l,1) >= 1
 
-        set(handles.syschoice, 'String', l);  
+        %set(handles.syschoice, 'String', l);
+        
+        set(handles.lb_PaV_systemsWs,'String',l);
         set(handles.pu_mor_systems,'String', l);
         set(handles.pu_an_sys1,'String',l);
         set(handles.pu_an_sys2,'String',l);
@@ -2001,13 +2279,16 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
         set(handles.virtgr_an_red_buttons,'Enable','on');
         
         pu_mor_systems_Callback(handles.pu_mor_systems, eventdata, handles);
-        syschoice_Callback(handles.syschoice,eventdata,handles);
+        %syschoice_Callback(handles.syschoice,eventdata,handles);
+        lb_PaV_systemsWs_Callback(handles.lb_PaV_systemsWs,eventdata,handles);
         pu_an_sys1_Callback(handles.pu_an_sys1,-1,handles);
         
     else
         set(handles.pu_mor_systems,'Value',1)
 
-        set(handles.syschoice, 'String', [{''}; l]);  
+        %set(handles.syschoice, 'String', [{''}; l]);  
+        
+        set(handles.lb_PaV_systemsWs,'String', [{''}; l]);
         set(handles.pu_mor_systems,'String', [{''}; l]);
         set(handles.pu_an_sys1,'String',[{''}; l]);
         set(handles.pu_an_sys2,'String',[{''}; l]);
@@ -2016,7 +2297,8 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
         set(handles.panel_mor_hsv,'Visible','off');
         set(handles.virtgr_an_red_buttons,'Enable','off');
         
-        syschoice_Callback(handles.syschoice,eventdata,handles);
+        %syschoice_Callback(handles.syschoice,eventdata,handles);
+        lb_PaV_systemsWs_Callback(handles.lb_PaV_systemsWs,eventdata,handles);
         pu_an_sys1_Callback(handles.pu_an_sys1,eventdata,handles);
         pu_an_sys2_Callback(handles.pu_an_sys2,eventdata,handles);
     end
@@ -5470,48 +5752,175 @@ function c = plotOutput2cell(data)
 
     end
     
-function [] = suggestDefaultLegendText(handles)
+function [legendText] = suggestDefaultLegendText(handles,sysName,isMimo)
 %Sets a default legend text if the corresponding text field is empty
 
-    text = get(handles.ed_legend,'String');
-    
-    if isempty(text) || get(handles.ed_legend,'UserData') == 0
+    %Read out the system name if it is not given
+
+    if isempty(sysName)
+        list = get(handles.lb_PaV_selectedSystems,'String');
+        sysName = list{get(handles.lb_PaV_selectedSystems,'Value')};
+    end
+
+    if ~isempty(sysName)
+
+        %Delete 'sys_' from the name
+
+        if strncmpi(sysName,'sys_', 4) && length(sysName) > 4
+            sysName = sysName(5:end);
+        end
+
+        %Replace the _'s in the string (because of latex interpreter)
+
+        legendText = strrep(sysName,'_',' ');
         
-        %Get the name of the selected system
+        %Add the selected input and output channels to the legendText for
+        %Mimo systems
         
-        x = get(handles.syschoice,'String');
-        sysName = x{get(handles.syschoice,'Value')};
+        data = [];
         
-        if ~isempty(sysName)
-            
-            %Replace the _'s in the string (because of latex interpreter)
-            
-            sysName = strrep(sysName,'_',' ');
-            
-            if strcmp(get(handles.panel_intoout,'Visible'),'on')    %MIMO
-                
-                x = get(handles.pu_in,'String');
-                in = x{get(handles.pu_in,'Value')};
-                
-                x = get(handles.pu_out,'String');
-                out = x{get(handles.pu_out,'Value')};
-                
-                if strcmp(in,'all') || strcmp(out,'all')
-                    name = sysName;
-                else
-                    name = strcat(sysName,'_{In(',in,'),Out(',out,')}');
-                end
-                
-            else                            %SISO
-                
-                name = sysName;
-                
-            end
-            
-            set(handles.ed_legend,'String',name);
-            
+        for i = 1:length(handles.plotData)
+           if strcmp(sysName,handles.plotData{i,1}.name)
+              data = handles.plotData{i,1};
+              break;
+           end
         end
         
+        mimo = 0;
+        
+        if ~isempty(isMimo) && isMimo == 1 
+           mimo = 1; 
+        elseif ~isempty(data)            
+           if ~isempty(data.in) || ~isempty(data.out)
+                mimo = 1;
+           end
+        end
+        
+        if mimo    %MIMO
+           
+            x = get(handles.pu_in,'String');
+            in = x{get(handles.pu_in,'Value')};
+
+            x = get(handles.pu_out,'String');
+            out = x{get(handles.pu_out,'Value')};
+
+            if ~strcmp(in,'all') && ~strcmp(out,'all')
+               legendText = strcat(legendText,'_{In(',in,'),Out(',out,')}');
+            end
+        end
+
     end
     
+function [variableName] = suggestPlotDataName(handles,sysName)
+%Sets a default variable name for the plot data that should be saved to
+%workspace
+
+    %Read out the system name if it is not given
+
+    if isempty(sysName)
+        list = get(handles.lb_PaV_selectedSystems,'String');
+        sysName = list{get(handles.lb_PaV_selectedSystems,'Value')};
+    end
+
+    %Get the selected plot-type
+
+    type = '';
+    
+    selection = get(handles.plot_type,'Value');
+    
+    switch selection
+        
+        case 1 
+            type = 'impulse';
+        case 2 
+            type = 'step';
+        case 3
+            type = 'bode';
+        case 4
+            type = 'pzm';
+        case 5
+            type = 'frequency';
+    end
+    
+    variableName = strcat(sysName,'_',type);
+    
+    %Check if the constructed name is a valid variable name
+    
+    newName = variableName;
+    counter = 1;
+    
+    while existInBaseWs(newName)
+        
+        newName = strcat(variableName,num2str(counter));
+        counter = counter + 1;      
+    end
+        
+    variableName = newName;
+   
+        
+        
+        
+    
+function [] = savePlotData(handles)
+%This function saves the values for the plot options of the currently
+%selected system in the list (handles.lb_PaV_selectedSystems)
+
+    %Get the name of the currently selected system
+    
+    list = get(handles.lb_PaV_selectedSystems,'String');
+    systemName = list{get(handles.lb_PaV_selectedSystems,'Value'),1};
+    
+    if ~isempty(systemName)
+        
+       %Read out the values from the controls
+       
+       data.name = systemName;
+       
+       if strcmp(get(handles.panel_intoout,'Visible'),'on')
+          listTemp = get(handles.pu_in,'String');
+          data.in = listTemp{get(handles.pu_in,'Value')};
+          listTemp = get(handles.pu_out,'String');
+          data.out = listTemp{get(handles.pu_out,'Value')};
+       else
+          data.in = [];
+          data.out = [];
+       end
+       
+       data.save = get(handles.cb_PaV_SaveData,'Value');
+       
+       if data.save == 1
+          data.variableName = get(handles.et_PaV_saveData,'String');
+       else
+          data.variableName = [];
+       end
+        
+       data.color = get(handles.pu_PaV_color,'Value');
+       data.lineStyle = get(handles.pu_PaV_lineStyle,'Value');
+       data.legendText = get(handles.ed_legend,'String');
+       
+       %Check if there exists stored data for this system
+       
+       if isempty(handles.plotData)
+          handles.plotData = {data}; 
+       else
+          for i = 1:length(handles.plotData)
+              if strcmp(systemName,handles.plotData{i,1}.name)
+                 data.sizeInputs = handles.plotData{i,1}.sizeInputs;
+                 data.sizeOutputs = handles.plotData{i,1}.sizeOutputs;
+                 handles.plotData{i,1} = data;
+                 guidata(handles.lb_PaV_selectedSystems,handles);
+                 return;
+              end
+          end
+          
+          handles.plotData{end+1,1} = data;
+          
+       end
+       
+       guidata(handles.lb_PaV_selectedSystems,handles)
+        
+    end
+
+
+
 
