@@ -672,132 +672,22 @@ function lb_PaV_systemsWs_Callback(hObject, eventdata, handles)
 
         displaySystemInformation(handles.sysinfo,sys);
     end
-
-    
-function syschoice_Callback(hObject, eventdata, handles)
-% occurs when system has been chosen
-
-%Check if a system is choosen
-
-x = get(hObject,'String');
-y = x{get(hObject,'Value')};
-if isempty(y)
-    set(handles.sysinfo, 'String', 'Please choose a system!');
-    set(handles.sysinfo, 'HorizontalAlignment','center');
-    set(handles.panel_intoout,'Visible','off')
-     return % no system chosen
-end
-
-%Load system from workspace
-
-sys = evalin('base', y);
-if ~strcmp(class(sys), 'ss') && ~strcmp(class(sys), 'sss')
-    errordlg('Variable is not a valid state space model.','Error Dialog','modal')
-    set(handles.sysinfo,'String','Invalid model')
-    uiwait
-    return
-end
-
-%Display system information
-
-displaySystemInformation(handles.sysinfo,sys);
-set(handles.sysinfo, 'HorizontalAlignment','left');
-
-%Adapt pu_in and pu_out for MIMO systems
-
-if sys.isMimo
-    if get(handles.pu_in,'Value') > sys.m
-        set(handles.pu_in,'Value', 1)
-    end
-    if get(handles.pu_out,'Value') > sys.p
-        set(handles.pu_out,'Value', 1)
-    end
-    set(handles.panel_intoout,'Visible','on')
-    in={num2str((1:sys.m)'),'all'};
-    out={num2str((1:sys.p)'),'all'};
-    set(handles.pu_in,'String',in)
-    set(handles.pu_out,'String',out)
-else
-    % invisible for SISO
-    set(handles.panel_intoout,'Visible','off')
-end
-% replay _ by space
-% s= regexprep(sysname, '_', ' ');
-% if ~isempty(sys.mor_info)
-%     s=sprintf('%s; %s', s ,sys.mor_info.method);
-% end
-% suggest legend
-%set(handles.ed_legend,'String',s);
-% refresh list of open figures
-listOpenFigures(handles)
-
-%Set the new default values for the legend text
-    
-%suggestDefaultLegendText(handles);
-
     
 
 function plot_type_Callback(hObject, eventdata, handles)
 
-if (get(hObject,'Value')==3 || get(hObject,'Value')==5)&&get(handles.figure,'Value')==1
-    % make logarithmic checkbox visible for bode and frequency
-    set(handles.panel_scale,'Visible','on');
-else
-    % othervise invisible
-    set(handles.panel_scale,'Visible','off');
-end
-
 if get(hObject,'Value')==4
     % pzmap
-    set(handles.panel_marker,'Visible','off')
     set(handles.rb_auto,'Value',1)
     set(handles.rb_auto,'Enable','inactive')
     set(handles.panel_manual,'Visible','off')
     set(handles.bg_distribution,'Visible','off')
     set(handles.rb_manual,'Enable','off')
 else
-    set(handles.panel_marker,'Visible','on')
     set(handles.rb_auto,'Enable','on')
     set(handles.rb_manual,'Enable','on')
-    try
-        x = get(handles.syschoice,'String');
-        % system chosen for postprocessing
-        y=x{get(handles.syschoice,'Value')};
-        if ~isempty(y)
-            % for MIMO, in and out must be able to be chosen
-            sys = evalin('base', y);
-            if ~strcmp(class(sys), 'sss')
-                set(handles.sysinfo, 'String', 'Not an sss model')
-                errordlg('Variable is not a valid state space model.')
-                uiwait
-                return
-            end
-            displaySystemInformation(handles.sysinfo,sys);
-            set(handles.sysinfo, 'HorizontalAlignment','left');
-            if sys.isMimo
-                if get(handles.pu_in,'Value')>size(sys.B,2)+1
-                    set(handles.pu_in,'Value',1)
-                end
-                if get(handles.pu_out,'Value')>size(sys.C,1)+1
-                    set(handles.pu_out,'Value',1)
-                end
-                set(handles.panel_intoout,'Visible','on')
-                in={num2str((1:size(sys.B,2))'),'all'};
-                out={num2str((1:size(sys.C,1))'),'all'};
-                set(handles.pu_in,'String',in)
-                set(handles.pu_out,'String',out)
-            else
-                set(handles.panel_intoout,'Visible','off')
-            end
-        else
-            set(handles.sysinfo,'String','Please choose system')
-        end
-    catch ex %#ok<NASGU>
-        set(handles.panel_intoout,'Visible','off')
-    end
 end
-% refresh list of open figures
-listOpenFigures(handles)
+
 
 %Change the variable name for the stored plot-data
 
@@ -808,29 +698,6 @@ end
 
 guidata(hObject,handles);
 lb_PaV_selectedSystems_Callback(handles.lb_PaV_selectedSystems,eventdata,handles);
-
-function figure_Callback(hObject, eventdata, handles)
-% handle of chosen figure
-global fighand
-userdata=get(hObject,'UserData');
-fighand=userdata(get(hObject,'Value'));
-if get(handles.plot_type,'Value')==3 ||get(handles.plot_type,'Value')==5
-    if fighand~=0
-        % figure already exists -> no choice of logarithmic
-        set(handles.panel_scale,'Visible','off')
-    else
-        % new figure -> log can be chosen
-        set(handles.panel_scale,'Visible','on')
-    end
-end
-listOpenFigures(handles); % aktualisieren, falls figures geschlossen wurden
-if fighand ~=0
-    try
-        %Show the selected figure and select it as current graphics object
-        figure(fighand)
-    end
-end
-
 
     
 function rb_auto_Callback(hObject, eventdata, handles)
@@ -907,56 +774,6 @@ function et_curstep_Callback(hObject, eventdata, handles)
     else
        set(hObject,'String',num2str(get(handles.sl_steps,'Value')));
     end
-
-
-function rb_colorst_Callback(hObject, eventdata, handles)
-%Set Pop-Up for color-selection visible
-
-    set(handles.panel_color_RGB,'Visible','off');
-    set(handles.colorlist,'Visible','on');
-
-function rb_colorvek_Callback(hObject, eventdata, handles)
-%Set RGB-Panel visible
-
-    set(handles.panel_color_RGB,'Visible','on');
-    set(handles.colorlist,'Visible','off');
-
-function ed_r_Callback(hObject, eventdata, handles)
-% check input
-testColors(handles,hObject)
-% if radio button for RGB is not selected, set it and unset other colors
-if get(handles.rb_colorvek,'Value')==0
-    set(handles.rb_colorvek,'Value',1)
-    set(handles.ed_g,'UserData',1)
-    set(handles.ed_b,'UserData',1)
-end
-
-function ed_g_Callback(hObject, eventdata, handles)
-%see ed_r_Callback
-testColors(handles,hObject)
-if get(handles.rb_colorvek,'Value')==0
-    set(handles.rb_colorvek,'Value',1)
-    set(handles.ed_r,'UserData',1)
-    set(handles.ed_b,'UserData',1)
-end
-
-function ed_b_Callback(hObject, eventdata, handles)
-% see ed_r_Callback
-testColors(handles,hObject)
-if get(handles.rb_colorvek,'Value')==0
-    set(handles.rb_colorvek,'Value',1)
-    set(handles.ed_g,'UserData',1)
-    set(handles.ed_r,'UserData',1)
-end
-
-
-function ed_post_markersize_Callback(hObject, eventdata, handles)
-% check input data of linewidth
-testWidth(hObject)
-
-function ed_width_Callback(hObject, eventdata, handles)
-% check line width
-testWidth(hObject)
 
 
 function pb_plot_Callback(hObject, eventdata, handles)
@@ -2493,28 +2310,9 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     %Check wether the previous selected systems exist in workspace
     
     
-    %Postprocessing and Visualisation (old)
-    
-%     l_alt = get(handles.syschoice,'String');
-% 
-%     if ~isempty(l_alt)
-% 
-%         sOld=l_alt{get(handles.syschoice,'Value')};
-%         indexOld=find(strcmp(sOld,l));
-% 
-%         if ~isempty(indexOld)
-%             set(handles.syschoice,'Value',indexOld);
-%         else
-%             set(handles.syschoice,'Value',1);
-%         end
-% 
-%     else
-%       set(handles.syschoice,'Value',1);
-%     end
-    
     %Postprocessing and Visualisation
     
-    l_alt = get(handles.syschoice,'String');
+    l_alt = get(handles.lb_PaV_systemsWs,'String');
 
     if ~isempty(l_alt)
 
@@ -2576,8 +2374,6 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     %options to the empty string, else set it to the list of systems
 
     if ~isempty(l) && size(l,1) >= 1
-
-        %set(handles.syschoice, 'String', l);
         
         set(handles.lb_PaV_systemsWs,'String',l);
         set(handles.pu_mor_systems,'String', l);
@@ -2587,14 +2383,11 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
         set(handles.virtgr_an_red_buttons,'Enable','on');
         
         pu_mor_systems_Callback(handles.pu_mor_systems, eventdata, handles);
-        %syschoice_Callback(handles.syschoice,eventdata,handles);
         lb_PaV_systemsWs_Callback(handles.lb_PaV_systemsWs,eventdata,handles);
         pu_an_sys1_Callback(handles.pu_an_sys1,-1,handles);
         
     else
-        set(handles.pu_mor_systems,'Value',1)
-
-        %set(handles.syschoice, 'String', [{''}; l]);  
+        set(handles.pu_mor_systems,'Value',1);  
         
         set(handles.lb_PaV_systemsWs,'String', [{''}; l]);
         set(handles.pu_mor_systems,'String', [{''}; l]);
@@ -2605,15 +2398,10 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
         set(handles.panel_mor_hsv,'Visible','off');
         set(handles.virtgr_an_red_buttons,'Enable','off');
         
-        %syschoice_Callback(handles.syschoice,eventdata,handles);
         lb_PaV_systemsWs_Callback(handles.lb_PaV_systemsWs,eventdata,handles);
         pu_an_sys1_Callback(handles.pu_an_sys1,eventdata,handles);
         pu_an_sys2_Callback(handles.pu_an_sys2,eventdata,handles);
     end
-
-    %refresh list of open figures
-    
-    listOpenFigures(handles);
     
     %list vectors in workspace that might be s0
     
@@ -5184,45 +4972,6 @@ function m = getDirectionMatrix(s0,mOld)
         
 %Functions for testing Plot-attributes in the Visualisation-Menue-Point     
 
-function testColors(handles,hObject)
-% check inserted colors
-h=str2num(get(hObject,'String')); %#ok<ST2NM>
-if isempty(h)
-    errordlg('R,G,B must be elements of the interval [0;1]','Error Dialog','modal')
-    uiwait
-    set(hObject,'UserData',1)
-elseif imag(h)~=0
-    errordlg('No imaginary numbers allowed','Error Dialog','modal')
-    uiwait
-    set(hObject,'UserData',1)
-elseif length(h)>1
-    if length(h)==2
-        h=sprintf('%i.%i',round(h(1)),round(h(2)));
-        set(hObject,'String',h)
-        if str2double(h)>1
-            errordlg('R,G,B must not be greater than one','Error Dialog','modal')
-            uiwait
-            set(hObject,'UserData',1)
-            return
-        end
-        set(hObject,'UserData',0)
-        return
-    end
-    errordlg('Use ''.'' as decimal seperator','Error Dialog','modal')
-    uiwait
-    set(hObject,'UserData',1)
-elseif h<0
-    errordlg('R,G,B must not be less than zero','Error Dialog','modal')
-    uiwait
-    set(hObject,'UserData',1)
-elseif h>1
-    errordlg('R,G,B must not be greater than one','Error Dialog','modal')
-    uiwait
-    set(hObject,'UserData',1)
-else
-    set(hObject,'UserData','0')
-end
-
 function testWidth(hObject)
 % check inserted linewidth
 
@@ -5897,118 +5646,6 @@ end
 % remove empty (non-system) entries
 x(cellfun(@isempty,x)) = [];
 
-function listOpenFigures(handles)
-%global fighand
-val=get(handles.figure,'Value');
-if val>1 
-    % UserData contains handles to figures
-    userdata=get(handles.figure,'UserData');
-    % save handle to selected figure
-    k=userdata(val);
-end
-% get handles of all open figures. their order changes each time!
-% figures are focussed and thereby can overlap the sssMOR_GUI
-
-openfig=get(0,'Children');
-c=cell({'New Figure'});
-try
-    h=0;
-    in=1; % for SISO
-    out=1; % for SISO
-    if strcmp(get(handles.panel_intoout,'Visible'),'on')
-        % MIMO system selected
-        x=get(handles.pu_in,'String');
-        in=str2double(x{get(handles.pu_in,'Value')}); % chosen input
-        x=get(handles.pu_out,'String');
-        out=str2double(x{get(handles.pu_out,'Value')}); % chosen output
-        x=get(handles.syschoice,'String');
-        sys=x{get(handles.syschoice,'Value')};
-        % remove figure with wrong number of subplots
-        if isnan(in)
-            % 'all' has been selected
-            in=evalin('base',sprintf('size(%s.B,2)',sys));
-        else
-            % number of input does not matter, only number of subplots
-            in=1; 
-        end
-        if isnan(out)
-            out=evalin('base',sprintf('size(%s.C,1)',sys));
-        else
-            out=1;
-        end
-    end
-    switch get(handles.plot_type,'Value')
-        case 1 %Impulse Response
-            tag='i';
-        case 2 % Step Response
-            tag='s';
-        case 3
-            % Bode Diagram, requires two subplots per channel
-            tag='b';
-            out=2*out; 
-        case 4 % Pole-Zero map
-            tag='p';
-        case 5 % Frequency Response
-            tag='f';
-    end
-    
-    counter = 1;
-    
-    for i=1:length(openfig)
-        if openfig(i)==handles.figure1
-            % sssMOR_GUI
-            continue
-        elseif strcmp(get(openfig(i),'Tag'),'composeModel')
-            continue
-        end
-        temp=get(openfig(i),'Name');
-         if ~isempty(strfind(get(openfig(i),'Tag'),tag))
-             % include only figures of same type
-             if in*out>1
-                 % right number of subplots?
-                 % store handles to subplots in UserData
-                 x=get(openfig(i),'UserData');
-                 if size(x,1)~=out || size(x,2)~=in
-                     continue
-                 end
-             end
-             if isempty(temp)
-                 % figure has no name, so its number is used instead 
-                %temp=sprintf('Figure %i',openfig(i));
-                temp=sprintf('Figure %i',counter);
-                counter = counter + 1;
-             end
-             
-             h=[h, openfig(i)]; %#ok<AGROW>
-             c=[c, {temp}]; %#ok<AGROW> % names
-         end
-    end
-
-    if size(c, 2) < val % number of entries
-        % selected figure number is above number of entries, use 1 instead
-        set(handles.figure,'Value',1)
-    end
-    set(handles.figure,'String', c); % set name
-    set(handles.figure,'UserData', h); % save handles in UserData
-    % if figure was selected originally, its handle is k. reselect it
-    if exist('k','var')==1
-        for i=1:length(h)
-            if h(i)==k
-                set(handles.figure,'Value',i)
-            end
-        end
-    else
-        set(handles.figure,'Value',1)
-    end
-    % bring sssMOR_GUI back to front
-    figure(handles.figure1)
-catch %#ok<CTCH>
-    % if an error occurs, restore default setting
-    set(handles.figure,'Value',1) 
-    set(handles.figure,'String','New Figure');
-    set(handles.figure,'UserData',0);
-end
-
 function [sys, sysname] = getSysFromWs(namehandle)
 % imports system from base workspace
 % namehandle may be system name or handle to an edit/combo-control
@@ -6164,11 +5801,7 @@ function [variableName] = suggestPlotDataName(handles,sysName)
     end
         
     variableName = newName;
-   
-        
-        
-        
-    
+     
 function [] = savePlotData(handles)
 %This function saves the values for the plot options of the currently
 %selected system in the list (handles.lb_PaV_selectedSystems)
