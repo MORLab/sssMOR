@@ -5865,3 +5865,50 @@ function [] = savePlotData(handles)
 
 
 
+
+
+% --- Executes on selection change in pu_PaV_plotStyle_marker.
+function pu_PaV_plotStyle_marker_Callback(hObject, eventdata, handles)
+% hObject    handle to pu_PaV_plotStyle_marker (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns pu_PaV_plotStyle_marker contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from pu_PaV_plotStyle_marker
+
+
+% --- Executes during object creation, after setting all properties.
+function pu_PaV_plotStyle_marker_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to pu_PaV_plotStyle_marker (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in lb_PaV_objectsWs.
+function lb_PaV_objectsWs_Callback(hObject, eventdata, handles)
+% hObject    handle to lb_PaV_objectsWs (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns lb_PaV_objectsWs contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from lb_PaV_objectsWs
+
+
+% --- Executes on button press in pb_PaV_refeshObjects.
+function pb_PaV_refeshObjects_Callback(hObject, eventdata, handles)
+% hObject    handle to pb_PaV_refeshObjects (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pb_PaV_moveObjects.
+function pb_PaV_moveObjects_Callback(hObject, eventdata, handles)
+% hObject    handle to pb_PaV_moveObjects (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
