@@ -36,6 +36,9 @@ clear, clc
 warning('off','all');
 fprintf('Starting demo execution: sssMOR_gettingStarted...\n\n'); 
 
+%% Init
+init_demo
+
 rule
 fprintf(['\t sssMOR - A sparse state-space and model reduction toolbox\n']); 
 rule
@@ -238,11 +241,18 @@ fprintf('releases, sign up for our newsletter under "www.rt.mw.tum.de". \n');
 rule
 close all
 rule
+end
+
+%% Auxiliary functions
 function rule
 fprintf('--------------------------------------------------------------\n');
+end
+
 function customPause
 fprintf('\n');
 pause
+end
+
 function [sysName,A,B,C,D,E] = selectModel
 %   *Selection of a benchmark model
 fprintf(['Choose one of the following benchmark models by pressing...\n',...
@@ -281,4 +291,12 @@ while ~isValid
             if isempty(modelChosen),modelChosen = 0;end
     end
 end
+end
 
+function init_demo
+    sys = sss(-1,1,1);
+    modalMor(sys,0);
+    tbr(sys,1);
+    irka(sys,0,struct('suppressverbose',true));
+    clear sys ans;
+end
