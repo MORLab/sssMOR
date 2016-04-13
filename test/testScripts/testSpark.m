@@ -12,12 +12,12 @@ classdef testSpark < sssTest
                 
                 % run spark (default options)
                 s0 = rand(1,2);
-                [V,S,R] = spark(sys,s0);
+                [V,Sv,Rv] = spark(sys,s0);
                 
                 % check Sylvester equation
-                res = norm(sys.A*V - sys.E*V*S - sys.B*R);
+                res = norm(sys.A*V - sys.E*V*Sv - sys.B*Rv);
                 
-                actSolution={V,S,R,res,sys};
+                actSolution={V,Sv,Rv,res,sys};
                 
                 verification (testCase, actSolution);
                 end
@@ -39,12 +39,12 @@ classdef testSpark < sssTest
                           'fTol',1e-5,...
                           'modelTol',1e-3);
 
-            [V,S,R] = spark(sys,s0,Opts);
+            [V,Sv,Rv] = spark(sys,s0,Opts);
             close all
             % check Sylvester equation
-            res = norm(sys.A*V - sys.E*V*S - sys.B*R);
+            res = norm(sys.A*V - sys.E*V*Sv - sys.B*Rv);
 
-            actSolution={V,S,R,res,sys};
+            actSolution={V,Sv,Rv,res,sys};
 
             verification (testCase, actSolution);
         end

@@ -12,7 +12,7 @@ classdef testRk < sssTest
 %    + test systems: building, beam, random, SpiralInductorPeec 
 %      (with E-matrix), LF10 (with E-matrix).
 %    + is moment matching achieved
-%    + are the matrices of Sylvester equation correct (Bb, Rsylv, Cb, Lsylv)
+%    + are the matrices of Sylvester equation correct (B_, Rv, C_, Lw)
 %
 %    + TO DO: Error in testRk5
 % ------------------------------------------------------------------
@@ -35,24 +35,24 @@ classdef testRk < sssTest
               load('building.mat'); sys = sss(A,B,C);
               n = 10; s0val = 100; s0 = ones(1,n)*s0val; 
               
-              [sysr, V, W, Bb, ~, Rsylv, Cb, ~, Lsylv] = rk(sys, s0);
+              [sysr, V, W, B_, ~, Rv, C_, ~, Lw] = rk(sys, s0);
               actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W, ...
-                  Rsylv, Bb};
+                  Rv, B_};
               
               expV = arnoldi(speye(size(A)),A,B, s0);
-              [expRsylv,expBb] = getSylvester(sys,sysr,V);
+              [expRv,expB_] = getSylvester(sys,sysr,V);
               expSolution={expV'*A*expV, expV'*B, C*expV, expV, expV,...
-                   expRsylv, expBb}; 
+                   expRv, expB_}; 
                
               % check for moment matching as well
               actM = moments(sysr,s0val,n); actSolution = [actSolution,{actM}];
               expM = moments(sys,s0val,n); expSolution = [expSolution,{expM}];
                
               verification(testCase, actSolution, expSolution, sysr);
-              verifyEmpty(testCase, Cb, ...
-                    'Cb is not empty');
-              verifyEmpty(testCase, Lsylv,...
-                    'Bt is not empty');
+              verifyEmpty(testCase, C_, ...
+                    'C_ is not empty');
+              verifyEmpty(testCase, Lw,...
+                    'Lw is not empty');
               verifyEqual(testCase, V, W,...
                     'V is not equal W');
          end
@@ -61,23 +61,23 @@ classdef testRk < sssTest
               load('beam.mat'); sys = sss(A,B,C);
               n = 5; s0val = 100; s0 = [ones(1,n)*s0val*1i,-ones(1,n)*s0val*1i]; 
               
-              [sysr, V, W, Bb, ~, Rsylv, Cb, ~, Lsylv] = rk(sys, [], s0);
-              actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W, Lsylv, Cb};
+              [sysr, V, W, B_, ~, Rv, C_, ~, Lw] = rk(sys, [], s0);
+              actSolution={full(sysr.A), full(sysr.B), full(sysr.C), V, W, Lw, C_};
               
               expW = arnoldi(speye(size(A)),A',C',s0);
-              [expLsylv,expCb] = getSylvester(sys,sysr,W,'W');
-              expSolution={expW'*A*expW, expW'*B, C*expW, expW, expW, expLsylv,...
-                    expCb};
+              [expLw,expC_] = getSylvester(sys,sysr,W,'W');
+              expSolution={expW'*A*expW, expW'*B, C*expW, expW, expW, expLw,...
+                    expC_};
                 
               % check for moment matching as well
               actM = moments(sysr,[s0(1),s0(end)], [n,n]); actSolution = [actSolution,{actM}];
               expM = moments(sys,[s0(1),s0(end)], [n,n]); expSolution = [expSolution,{expM}];
                 
               verification(testCase, actSolution, expSolution, sysr);
-              verifyEmpty(testCase, Bb, ...
-                    'Bb is not empty');
-              verifyEmpty(testCase, Rsylv,...
-                    'Ct is not empty');
+              verifyEmpty(testCase, B_, ...
+                    'B_ is not empty');
+              verifyEmpty(testCase, Rv,...
+                    'Rv is not empty');
               verifyEqual(testCase, V, W,...
                     'V is not equal W');
          end         
@@ -117,7 +117,7 @@ classdef testRk < sssTest
                 sysrIrka = irka(sys, zeros(1,n),r, l);
                 s0 = -eig(sysrIrka).'; s0moment = s0; n = 2;
             
-              [sysr, V, W, Bb, ~, Rsylv, Cb, ~, Lsylv] = rk(sys,s0,s0);              
+              [sysr, V, W, B_, ~, Rv, C_, ~, Lw] = rk(sys,s0,s0);              
               [expV,~,~,expW,~] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0);
               
               % The transpose LU problem can be ill conditioned, check the
@@ -126,14 +126,14 @@ classdef testRk < sssTest
               expSolution={size(V,2), size(W,2)};
               
               % Add Sylvester EQ matrices
-              [expRsylv,expBb] = getSylvester(sys,sysr,V);
-              [expLsylv,expCb] = getSylvester(sys,sysr,W,'W');
+              [expRv,expB_] = getSylvester(sys,sysr,V);
+              [expLw,expC_] = getSylvester(sys,sysr,W,'W');
               
-              actSolution = [actSolution, {Rsylv, Bb, Lsylv, Cb}];
-              expSolution = [expSolution, {expRsylv,expBb,expLsylv,expCb}];
+              actSolution = [actSolution, {Rv, B_, Lw, C_}];
+              expSolution = [expSolution, {expRv,expB_,expLw,expC_}];
              
-              % res = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-Bb*Rsylv);
-              % res = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-expBb*expRsylv);
+              % res = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-B_*Rv);
+              % res = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A)-expB_*expRv);
               
               % check for moment matching as well
               actM = moments(sysr,s0moment, n); actSolution = [actSolution,{actM}];
@@ -340,7 +340,7 @@ classdef testRk < sssTest
                      Lt(k) = real(Lt(k));
                  end
                  
-                 [sysr, V, W, Bb, ~, Rsylv, Cb, ~, Lsylv] = rk(sys,s0,s0,Rt,Lt);
+                 [sysr, V, W, B_, ~, Rv, C_, ~, Lw] = rk(sys,s0,s0,Rt,Lt);
                  
                  %  Verification with arnoldi
                  [expV,~,~,expW,~] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0,Rt,Lt);
@@ -365,17 +365,17 @@ classdef testRk < sssTest
                  expSolution={size(V,2), size(W,2)};
                  
                  % Add Sylvester EQ matrices
-                 [expRsylv,expBb] = getSylvester(sys,sysr,V);
-                 [expLsylv,expCb] = getSylvester(sys,sysr,W,'W');
+                 [expRv,expB_] = getSylvester(sys,sysr,V);
+                 [expLw,expC_] = getSylvester(sys,sysr,W,'W');
                  
-                 actSolution = [actSolution, {Rsylv, Bb, Lsylv, Cb}];
-                 expSolution = [expSolution, {expRsylv,expBb,expLsylv,expCb}];
+                 actSolution = [actSolution, {Rv, B_, Lw, C_}];
+                 expSolution = [expSolution, {expRv,expB_,expLw,expC_}];
                  
                  verification(testCase, actSolution, expSolution, sysr);
                  
                  sysd = sys.'; sysrd = sysr.';
-                 res1 = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A) - Bb*Rsylv);
-                 res2 = norm(sysd.A*W - sysd.E*W*(sysrd.E\sysrd.A) - Cb.'*Lsylv);
+                 res1 = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A) - B_*Rv);
+                 res2 = norm(sysd.A*W - sysd.E*W*(sysrd.E\sysrd.A) - C_.'*Lw);
                  
                  verifyEqual(testCase, [res1, res2] , [0, 0], 'AbsTol', 1e-7,...
                      'Sylvester EQ is not satisfied');

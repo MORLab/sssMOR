@@ -22,11 +22,11 @@ classdef testPork < sssTest
                     [sysr, V] = rk(sys,s0,r);
                 end              
                 
-                % get (S,R)
-                [R, ~, S] = getSylvester(sys, sysr, V);
+                % get (Sv,Rv)
+                [Rv, ~, Sv] = getSylvester(sys, sysr, V);
                 
                 % perform pseudo-optimal reduction
-                [Ar,Br,Cr,Er] = porkV(V,S,R,sys.C);
+                [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,sys.C);
                 sysr = sss(Ar,Br,Cr,sys.D,Er);
                 
                 actSolution={sysr,sys,s0,r};
@@ -49,15 +49,15 @@ classdef testPork < sssTest
 
                     if sys.isSiso || sys.isSimo
                         s0 = -(conj(eig(sysrIrka))).';
-                        [~, ~, W, ~, ~, ~, ~, S, L] = rk(sys,[],s0);
+                        [~, ~, W, ~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0);
                     else
                         Opts.rType = 'dir';[r,p] = residue (sysrIrka,Opts);
                         s0 = -(conj(p)); l = r{1}; 
-                        [~, ~, W,~, ~, ~, ~, S, L] = rk(sys,[],s0,[],l);
+                        [~, ~, W,~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0,[],l);
                     end              
 
                     % perform pseudo-optimal reduction
-                    [Ar,Br,Cr,Er] = porkW(W,S.',L.',sys.B);
+                    [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,sys.B);
                     sysr = sss(Ar,Br,Cr,sys.D,Er);
 
                     actSolution={sysr.',sys.',s0, l}; %pass dual system
