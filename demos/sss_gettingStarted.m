@@ -37,6 +37,8 @@ clear, clc
 warning('off','all');
 fprintf('Starting demo execution: sss_gettingStarted...\n\n'); 
 
+init_demo;
+
 rule
 fprintf(['\t sss - A sparse state-space and system analysis toolbox\n']); 
 rule
@@ -195,11 +197,18 @@ fprintf('releases, sign up for our newsletter under "www.rt.mw.tum.de". \n');
 rule
 close all;
 rule
+end
+
+%% Auxilary Functions 
 function rule
 fprintf('--------------------------------------------------------------\n');
+end
+
 function customPause
 fprintf('\n');
 pause
+end
+
 function [sysName,A,B,C,D,E] = selectModel
 %   *Selection of a benchmark model
 fprintf(['Choose one of the following benchmark models by pressing...\n',...
@@ -237,4 +246,13 @@ while ~isValid
             modelChosen = input('Model choice: ');
             if isempty(modelChosen),modelChosen = 0;end
     end
+end
+end
+
+function init_demo
+    sys = sss(-1,1,1,0,0);
+    norm(sys);
+    [init1,init2] = step(sys);
+    [init1,init2,init3] = bode(sys,0);
+    clear sys init1 init2 init3;
 end
