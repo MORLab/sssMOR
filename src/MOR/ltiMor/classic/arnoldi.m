@@ -273,15 +273,15 @@ end
     end
     for jCol=1:length(s0)
         if hermite
-            [V, Ssylv, Rsylv, W] = krylovDirection(jCol, s0, V, W);
+            [V, SRsylv, Rsylv, W, SLsylv, Lsylv] = krylovDirection(jCol, s0, V, W);
         else
-            [V, Ssylv, Rsylv] = krylovDirection(jCol, s0, V);
+            [V, SRsylv, Rsylv] = krylovDirection(jCol, s0, V);
         end
-        Sv(:,jCol) = Ssylv;
+        Sv(:,jCol) = SRsylv;
         Rv(:,jCol) = Rsylv*Rt(:,jCol);
         if hermite
-            Sw(:,jCol) = Ssylv;
-            Lw(:,jCol) = Rsylv*Lt(:,jCol);
+            Sw(jCol,:) = SLsylv.';
+            Lw(:,jCol) = Lsylv*Lt(:,jCol);
         end
 
         % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
@@ -552,27 +552,37 @@ end
     end
     end
     
-    function [V, Ssylv, Rsylv, W] = krylovDirection(jCol, s0, V, W)  
+    function [V, SRsylv, Rsylv, W, SLsylv, Lsylv] = krylovDirection(jCol, s0, V, W)  
     %   Get new Krylov direction
     %   Input:  jCol:  Column to be treated
     %           s0:    Vector containing the expansion points
     %           V, W:  Krylov subspace
     %   Output: V, W:  Updated Krylov subspace
-    %           Ssylv: update of column jCol of the Sylvester matrices
-    %                  Sv and Sw (e.g. Ssylv(:,jCol)=Ssylv)
+    %           SRsylv: update of column jCol of the Sylvester matrices
+    %                  Sv (e.g. SRsylv(:,jCol)=SRsylv)
     %           Rsylv: update of column jCol of the Sylvester matrices 
-    %                  Rv and Lw (Rsylv either eye(size(B,2)) or 
+    %                  Rv (Rsylv either eye(size(B,2)) or 
     %                  zeros(size(B,2)), e.g. Rsylv(:,jCol)=Rsylv*Rt(:,jCol)
+    %           SLsylv: update of column jCol of the Sylvester matrices
+    %                  Sw (e.g. SLsylv(:,jCol)=SLsylv)
+    %           Lsylv: update of column jCol of the Sylvester matrices 
+    %                  Lw (Lsylv either eye(size(C,1)) or 
+    %                  zeros(size(C,1)), e.g. Lsylv(:,jCol)=Lsylv*Lt(:,jCol)
     
-    Ssylv=zeros(size(V,2),1);
+    SRsylv=zeros(size(V,2),1);
+    if hermite
+        SLsylv=zeros(size(W,2),1);
+    end
     switch Opts.krylov
         case 0
             % new basis vector
             tempV=B*Rt(:,jCol); newlu=1; newtan=1;
-            Ssylv(jCol)=s0(jCol);
+            SRsylv(jCol)=s0(jCol);
             Rsylv=eye(size(B,2));
             if hermite
-                tempW = C.'*Lt(:,jCol); 
+                SLsylv(jCol)=s0(jCol);
+                Lsylv=eye(size(C,1));
+                tempW = C.'*Lt(:,jCol);
             end
             if jCol>1
                 if s0(jCol)==s0(jCol-1)
@@ -581,9 +591,11 @@ end
                         % Higher order moments, for the SISO and MIMO case
                         newtan = 0;
                         tempV = V(:,jCol-1); %overwrite
+                        SRsylv(jCol-1)=1;
                         Rsylv=zeros(size(B,2));
-                        Ssylv(jCol-1)=1;
                         if hermite
+                            SLsylv(jCol-1)=1;
+                            Lsylv=zeros(size(C,1));
                             tempW = W(:,jCol-1); 
                         end
                     else
@@ -599,12 +611,16 @@ end
         case 'cascade'
             if size(B,2)==1
                 newlu=1; newtan=1;
-                Ssylv(jCol)=s0(jCol);
+                SRsylv(jCol)=s0(jCol);
+                if hermite
+                    SLsylv(jCol)=s0(jCol);
+                end
                 if jCol==1
                     tempV=B;
                     Rsylv=1;
-                    if hermite
+                    if hermite 
                         tempW=C.';
+                        Lsylv=1;
                     end
                 else
                     if s0(jCol)==s0(jCol-1)
@@ -620,7 +636,11 @@ end
                         end
                     end
                     Rsylv=0;
-                    Ssylv(jCol-1)=1;
+                    SRsylv(jCol-1)=1;
+                    if hermite
+                        Lsylv=0;
+                        SLsylv(jCol-1)=1;
+                    end
                 end
                 if hermite
                     [V(:,jCol), W(:,jCol)] = lse(newlu, newtan, jCol, s0, tempV, tempW);
