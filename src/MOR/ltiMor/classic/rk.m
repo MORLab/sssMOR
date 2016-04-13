@@ -1,4 +1,4 @@
-function [sysr, V, W, Bb, SRsylv, Rsylv, Cb, SLsylv, Lsylv] = rk(sys, s0_inp, varargin)
+function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 % RK - Model Order Reduction by Rational Krylov
 %
 % Syntax:
@@ -11,10 +11,10 @@ function [sysr, V, W, Bb, SRsylv, Rsylv, Cb, SLsylv, Lsylv] = rk(sys, s0_inp, va
 %       sysr = RK(sys, s0_inp, s0_out, Rt, Lt)
 %       sysr = RK(sys, s0_inp, s0_out, Rt, Lt, IP)
 %
-%       [sysr, V, W]                                        = RK(sys,s0_inp,...)
-%		[sysr, V, W, Bb, SRsylv, Rsylv]                     = RK(sys,s0_inp,...)
-%       [sysr, V, W, Bb, SRsylv, Rsylv, Cb, SLsyslv, Lsylv]	= RK(sys,s0_inp, s0_out, ...)
-%		[sysr,...]                                          = RK(sys, s0_inp, ..., Opts)
+%       [sysr, V, W]                         = RK(sys,s0_inp,...)
+%		[sysr, V, W, B_, Sv, Rv]             = RK(sys,s0_inp,...)
+%       [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = RK(sys,s0_inp, s0_out, ...)
+%		[sysr,...]                           = RK(sys, s0_inp, ..., Opts)
 %
 % Description:
 %       Reduction by Rational Krylov subspace methods. 
@@ -54,8 +54,10 @@ function [sysr, V, W, Bb, SRsylv, Rsylv, Cb, SLsylv, Lsylv] = rk(sys, s0_inp, va
 % Output Arguments:
 %       -sysr:              reduced system
 %       -V,W:               projection matrices spanning Krylov subspaces
-%       -Bb,SRsylv,Rsylv:   resulting matrices of the input Sylvester equation
-%       -Cb,SLsylv,Lsylv:   resulting matrices of the output Sylvester equation
+%       -B_,Sv,Rv:          resulting matrices of the input Sylvester
+%                           equation (Rv is a (mxq) matrix, where q is the reduced order)
+%       -C_,Sw,Lw:          resulting matrices of the output Sylvester
+%                           equation (Lw is a (pxq) matrix, where q is the reduced order)
 %
 % Examples:
 %       This code reduces the benchmark model build by orthogonal
@@ -230,45 +232,45 @@ if isempty(s0_out)
     % input Krylov subspace
     
     % SISO Arnoldi
-    [V, SRsylv, Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
+    [V, Sv, Rv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
     W = V;
     sysr = projectiveMor(sys,V,W);
     sysr.Name = sprintf('%s_%i_rk_inp',sys.Name,sysr.n);
     if nargout>3
-        Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
-        Cb = []; Lsylv = [];  SLsylv=[];
+        B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
+        C_ = []; Lw = [];  Sw=[];
     end
 elseif isempty(s0_inp)
     % output Krylov subspace
     
     % SISO Arnoldi
-    [W, SLsylv, Lsylv] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
+    [W, Sw, Lw] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
     V = W;
     sysr = projectiveMor(sys,V,W);
     sysr.Name = sprintf('%s_%i_rk_out',sys.Name,sysr.n);
     if nargout>3
-        Cb = sys.C - sysr.C/sysr.E*W.'*sys.E;
-        Bb = []; Rsylv = []; SRsylv=[];
+        C_ = sys.C - sysr.C/sysr.E*W.'*sys.E;
+        B_ = []; Rv = []; Sv=[];
     end
 
 else
     if all(s0_inp == s0_out) %use only 1 LU decomposition for V and W
-        [V, SRsylv, Rsylv, W, SLsylv, Lsylv] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
+        [V, Sv, Rv, W, Sw, Lw] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
                             s0_inp,Rt, Lt, IP, Opts);
                         
         sysr = projectiveMor(sys,V,W);
         sysr.Name = sprintf('%s_%i_rk_herm',sys.Name,sysr.n);
 
     else
-        [V, SRsylv, Rsylv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
-        [W, SLsylv, Lsylv] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
+        [V, Sv, Rv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
+        [W, Sw, Lw] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
         sysr = projectiveMor(sys,V,W);
         sysr.Name = sprintf('%s_%i_rk_2sided',sys.Name,sysr.n);
     end
 
     if nargout > 3
-        Bb = sys.B - sys.E*V*(sysr.E\sysr.B);
-        Cb = sys.C - sysr.C/sysr.E*W'*sys.E;
+        B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
+        C_ = sys.C - sysr.C/sysr.E*W'*sys.E;
     end
 end
 

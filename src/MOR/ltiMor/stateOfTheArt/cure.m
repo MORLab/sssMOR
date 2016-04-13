@@ -96,8 +96,8 @@ function sysr = cure(sys,Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  07 Nov 2015
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  13 Apr 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
@@ -193,27 +193,23 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
 	% 1) Reduction
     switch Opts.cure.fact
         case 'V'
-            % V-based decomposition, if A*V - E*V*S - B*Crt = 0
+            % V-based decomposition, if A*V - E*V*S - B*Rv = 0
             switch Opts.cure.redfun
                 case 'spark'               
-                    [V,S_V,Crt] = spark(sys,s0,Opts); 
+                    [V,Sv,Rv] = spark(sys,s0,Opts); 
                     
-                    [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C_);                   
+                    [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,C_);                   
                 case 'irka'
-                    [sysrTemp,V,W] = irka(sys,s0);
+                    [sysrTemp,V,W,~,~,~,~,~,~,Rv] = irka(sys,s0);
+                                      
+                    [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                     
-                    Ar = sysrTemp.a;
-                    Br = sysrTemp.b;
-                    Cr = sysrTemp.c;
-                    Er = sysrTemp.e;
-                    
-                    Crt = getSylvester(sys,sysrTemp,V); 
                 case 'rk+pork'
-                    [~, V, ~, ~, S_V, Crt] = rk(sys,s0);
-                    [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C_);
+                    [~, V, ~, ~, Sv, Rv] = rk(sys,s0);
+                    [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,C_);
                     
                     %   Adapt Cr for SE DAEs
-                    Cr = Cr - DrImp*Crt;
+                    Cr = Cr - DrImp*Rv;
                     %   Adapt Cr_tot for SE DAEs
                     if ~isempty(Cr_tot)
                         Cr_tot(:,end-n+1:end) = Cr_tot(:,end-n+1:end) + ...
@@ -224,31 +220,25 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
             end
             n = size(V,2);
         case 'W'
-        % W-based decomposition, if A'*W - E'*W*SW' - C'*Brt' = 0
+        % W-based decomposition, if A.'*W - E.'*W*Sw.' - C.'*Lw = 0
             switch Opts.cure.redfun
                 case 'spark'               
-                    [W,S_W,Brt] = spark(sys.',s0,Opts);
-                    Brt = Brt';
-                    S_W = S_W';
+                    [W,Sw,Lw] = spark(sys.',s0,Opts);
+                    Sw = Sw.'; %make Sw from Sw^T
                     
-                    [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B_);
+                    [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B_);
                 case 'irka'
-                    [sysrTemp,V,W] = irka(sys,s0);
+                    [sysrTemp,V,W,~,~,~,~,~,~,~,~,~,Lw] = irka(sys,s0);
                     
-                    Ar = sysrTemp.a;
-                    Br = sysrTemp.b;
-                    Cr = sysrTemp.c;
-                    Er = sysrTemp.e;
+                    [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                     
-                    Brt = (getSylvester(sys,sysrTemp,W,'W')).';               
                 case 'rk+pork'
-                    [~, ~, W, ~, ~, ~, ~, S_W, Brt] = rk(sys,[],s0);
-                    Brt = Brt.'; %make it column matrix
+                    [~, ~, W, ~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0);
                     
-                    [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B_);  
+                    [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B_);  
                     
                     %   Adapt Br for SE-DAEs
-                    Br = Br - Brt*DrImp;
+                    Br = Br - Lw.'*DrImp;
                     %   Adapt Cr_tot for SE DAEs
                     if ~isempty(Br_tot)
                         Br_tot(end-n+1:end,:) = Br_tot(end-n+1:end,:) + ...
@@ -266,10 +256,10 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     if Opts.cure.fact=='V'
         B_ = B_ - sys.e*(V*(Er\Br));    % B_bot
         BrL_tot = [BrL_tot; zeros(n,p)];    BrR_tot = [BrR_tot; Br];
-        CrL_tot = [CrL_tot, zeros(p,n)];    CrR_tot = [CrR_tot, Crt];
+        CrL_tot = [CrL_tot, zeros(p,n)];    CrR_tot = [CrR_tot, Rv];
     elseif Opts.cure.fact=='W'
         C_ = C_ - Cr/Er*W.'*sys.e;		% C_bot
-        BrL_tot = [BrL_tot; Brt];   BrR_tot = [BrR_tot; zeros(n,m)];
+        BrL_tot = [BrL_tot; Lw.'];   BrR_tot = [BrR_tot; zeros(n,m)];
         CrL_tot = [CrL_tot, Cr];    CrR_tot = [CrR_tot, zeros(m,n)];
     end
 

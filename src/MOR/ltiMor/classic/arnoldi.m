@@ -1,16 +1,16 @@
-function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
+function [V, Sv, Rv, W, Sw, Lw] = arnoldi(E,A,B,varargin)
 % ARNOLDI - Arnoldi algorithm for Krylov subspaces with multiple shifts
 % 
 % Syntax:
 %       V                                = ARNOLDI(E,A,B,s0)
-%       [V,SRsylv,Rsylv]                 = ARNOLDI(E,A,B,s0)
-%       [V,SRsylv,Rsylv]                 = ARNOLDI(E,A,B,s0,IP)
-%       [V,SRsylv,Rsylv]                 = ARNOLDI(E,A,B,s0,Rt)
-%       [V,SRsylv,Rsylv]                 = ARNOLDI(E,A,B,s0,Rt,IP)
-%       [V,SRsylv,Rsylv,W,SLsyslv,Lsylv] = ARNOLDI(E,A,B,C,s0)
-%       [V,SRsylv,Rsylv,W,SLsyslv,Lsylv] = ARNOLDI(E,A,B,C,s0,IP)
-%       [V,SRsylv,Rsylv,W,SLsyslv,Lsylv] = ARNOLDI(E,A,B,C,s0,Rt,Lt)
-%       [V,SRsylv,Rsylv,W,SLsyslv,Lsylv] = ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
+%       [V,Sv,Rv]                        = ARNOLDI(E,A,B,s0)
+%       [V,Sv,Rv]                        = ARNOLDI(E,A,B,s0,IP)
+%       [V,Sv,Rv]                        = ARNOLDI(E,A,B,s0,Rt)
+%       [V,Sv,Rv]                        = ARNOLDI(E,A,B,s0,Rt,IP)
+%       [V,Sv,Rv,W,Sw,Lw]                = ARNOLDI(E,A,B,C,s0)
+%       [V,Sv,Rv,W,Sw,Lw]                = ARNOLDI(E,A,B,C,s0,IP)
+%       [V,Sv,Rv,W,Sw,Lw]                = ARNOLDI(E,A,B,C,s0,Rt,Lt)
+%       [V,Sv,Rv,W,Sw,Lw]                = ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
 %       [V,...]                          = ARNOLDI(E,A,B,...,Opts)
 % 
 % Description:
@@ -57,18 +57,18 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 %                       IP=@(x,y) (x.'*y)
 %
 %       If specified, this function computes the Sylvester matrices
-%       corresponding to the Krylov subspaces. The matrices SRsysl and 
-%       CRsylv satisfy the input Sylvester equation given as
+%       corresponding to the Krylov subspaces. The matrices Sv and 
+%       Rsylv satisfy the input Sylvester equation given as
 %
-%       $$ A V - E V SRsylv - B CRsylv = 0 $$
+%       $$ A V - E V S_v - B R_v = 0 \quad          (1)$$
 %
-%       and the output Sylvester matrices SLsylv and CLsylv are
+%       and the output Sylvester matrices Sw and Lsylv are
 %       accordingly defined by
 %
-%       $$ A^T W - E^T W SLsylv^T - CLsylv^T L = 0 $$
+%       $$ A^T W - E^T W S_w^T - C^T L_w = 0 \quad          (2)$$
 %
-%       Note that this function does not solve the sylvester equations, 
-%       but constructs the sylvester matrices together with the Krylov 
+%       Note that this function does not solve the Sylvester equations, 
+%       but constructs the Sylvester matrices together with the Krylov 
 %       subspaces.
 %
 % Input Arguments:
@@ -95,11 +95,11 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 %
 % Output Arguments:
 %       -V:        Orthonormal basis spanning the input Krylov subsp. 
-%       -SRsylv:   Matrix of input Sylvester Eq.
-%       -Rsylv:    Right tangential directions of Sylvester Eq.
+%       -Sv:       Matrix of input Sylvester Eq. (1)
+%       -Rv:       Right tangential directions of Sylvester Eq. (1), (mxq) matrix
 %       -W:        Orthonormal basis spanning the output Krylov subsp.
-%       -SLsylv:   Matrix of output Sylvester Eq.
-%       -Lsylv:    Left tangential directions of Sylvester Eq.
+%       -Sw:       Matrix of output Sylvester Eq. (2)
+%       -Lw:       Left tangential directions of Sylvester Eq. (2), (pxq) matrix
 %
 % See Also: 
 %       rk, irka, projectiveMor
@@ -122,13 +122,13 @@ function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = arnoldi(E,A,B,varargin)
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      Heiko Panzer, Alessandro Castagnotto 
+% Authors:      Heiko Panzer, Alessandro Castagnotto, Maria Cruz Varona,
 %               Lisa Jeschek
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  06 Apr 2016
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  13 Apr 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %%  Define execution parameters
@@ -246,64 +246,64 @@ end
 
 % Compute the Krylov subspaces
 if hermite
-    [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = krylovSubspace(s0, q);
-    SLsylv=SLsylv';
+    [V, Sv, Rv, W, Sw, Lw] = krylovSubspace(s0, q);
+    Sw=Sw';
 else
-    [V, SRsylv, CRsylv] = krylovSubspace(s0, q);
+    [V, Sv, Rv] = krylovSubspace(s0, q);
 end
     
 
 %% ------------------ AUXILIARY FUNCTIONS --------------------------
 % a) PRIMARY
-    function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = krylovSubspace(s0, q)
+    function [V, Sv, Rv, W, Sw, Lw] = krylovSubspace(s0, q)
     %   Calculate Krylov Subspace of s0
     %   Input:  s0:  Vector containing the expansion points
     %           q:   Original length of s0 with complex conjugated elements
     %   Output: V, W:  Krylov-Subspace of s0
-    %           Rsylv, Lsylv: Sylvester matrix
+    %           Sv, Rv, Sw, Lw: Sylvester matrices
         
     % preallocate memory
     V=zeros(length(B),q);
-    CRsylv=zeros(size(B,2),q);
-    SRsylv=zeros(q);
+    Rv=zeros(size(B,2),q);
+    Sv=zeros(q);
     if hermite 
         W = zeros(length(B),q); 
-        CLsylv = zeros(size(C,1),q);
-        SLsylv=zeros(q);
+        Lw = zeros(size(C,1),q);
+        Sw=zeros(q);
     end
     for jCol=1:length(s0)
         if hermite
-            [V, Ssylv, Csylv, W] = krylovDirection(jCol, s0, V, W);
+            [V, Ssylv, Rsylv, W] = krylovDirection(jCol, s0, V, W);
         else
-            [V, Ssylv, Csylv] = krylovDirection(jCol, s0, V);
+            [V, Ssylv, Rsylv] = krylovDirection(jCol, s0, V);
         end
-        SRsylv(:,jCol) = Ssylv;
-        CRsylv(:,jCol) = Csylv*Rt(:,jCol);
+        Sv(:,jCol) = Ssylv;
+        Rv(:,jCol) = Rsylv*Rt(:,jCol);
         if hermite
-            SLsylv(:,jCol) = Ssylv;
-            CLsylv(:,jCol) = Csylv*Lt(:,jCol);
+            Sw(:,jCol) = Ssylv;
+            Lw(:,jCol) = Rsylv*Lt(:,jCol);
         end
 
         % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
         if Opts.real
             if hermite
-                [V, SRsylv, CRsylv,W, SLsylv, CLsylv] = realSubspace(jCol, q, s0, V, SRsylv, CRsylv, W, SLsylv, CLsylv);
+                [V, Sv, Rv, W, Sw, Lw] = realSubspace(jCol, q, s0, V, Sv, Rv, W, Sw, Lw);
             else
-                [V, SRsylv, CRsylv] = realSubspace(jCol, q, s0, V, SRsylv, CRsylv);
+                [V, Sv, Rv] = realSubspace(jCol, q, s0, V, Sv, Rv);
             end
         end
 
         if Opts.orth
             if hermite
-                [V, TRsylv, W, TLsylv] = gramSchmidt(jCol, V, W);
+                [V, TRv, W, TLw] = gramSchmidt(jCol, V, W);
             else
-                [V, TRsylv] = gramSchmidt(jCol, V);
+                [V, TRv] = gramSchmidt(jCol, V);
             end
-            CRsylv=CRsylv*TRsylv;
-            SRsylv=TRsylv\SRsylv*TRsylv;
+            Rv=Rv*TRv;
+            Sv=TRv\Sv*TRv;
             if hermite
-                CLsylv=CLsylv*TLsylv;
-                SLsylv=TLsylv\SLsylv*TLsylv;
+                Lw=Lw*TLw;
+                Sw=TLw\Sw*TLw;
             end
         end
     end
@@ -312,15 +312,15 @@ end
     if Opts.orth
         for jCol=length(s0)+1:q
             if hermite
-                [V, TRsylv, W, TLsylv] = gramSchmidt(jCol, V, W);
+                [V, TRv, W, TLw] = gramSchmidt(jCol, V, W);
             else
-                [V, TRsylv] = gramSchmidt(jCol, V);
+                [V, TRv] = gramSchmidt(jCol, V);
             end
-            CRsylv=CRsylv*TRsylv;
-            SRsylv=TRsylv\SRsylv*TRsylv;
+            Rv=Rv*TRv;
+            Sv=TRv\Sv*TRv;
             if hermite
-                CLsylv=CLsylv*TLsylv;
-                SLsylv=TLsylv\SLsylv*TLsylv;
+                Lw=Lw*TLw;
+                Sw=TLw\Sw*TLw;
             end
         end
     end
@@ -339,15 +339,15 @@ end
             Opts.orth='mgs'; %overwrite
             for jCol = 2:q        
                 if hermite
-                    [V, TRsylv, W, TLsylv] = gramSchmidt(jCol, V, W);
+                    [V, TRv, W, TLw] = gramSchmidt(jCol, V, W);
                 else
-                    [V, TRsylv] = gramSchmidt(jCol, V);
+                    [V, TRv] = gramSchmidt(jCol, V);
                 end
-                CRsylv=CRsylv*TRsylv;
-                SRsylv=TRsylv\SRsylv*TRsylv;
+                Rv=Rv*TRv;
+                Sv=TRv\Sv*TRv;
                 if hermite
-                    CLsylv=CLsylv*TLsylv;
-                    SLsylv=TLsylv\SLsylv*TLsylv;
+                    Lw=Lw*TLw;
+                    Sw=TLw\Sw*TLw;
                 end
             end
         case 'qr'
@@ -355,14 +355,14 @@ end
            V=V(:,1:q);
            R=R(1:q,1:q);
            Rinv=R\eye(q);
-           CRsylv=CRsylv*Rinv;
-           SRsylv=R*SRsylv*Rinv;
+           Rv=Rv*Rinv;
+           Sv=R*Sv*Rinv;
            if hermite
                [W,R] = qr(W);
                W=W(:,1:q);
                R=R(1:q,1:q);
-               CLsylv=CLsylv*Rinv;
-               SLsylv=R*SLsylv*Rinv;
+               Lw=Lw*Rinv;
+               Sw=R*Sw*Rinv;
            end  
         case 0
         otherwise
@@ -448,15 +448,15 @@ end
     end
 
 % b) SECONDARY
-    function [V, TRsylv, W, TLsylv] = gramSchmidt(jCol, V, W)
+    function [V, TRv, W, TLw] = gramSchmidt(jCol, V, W)
     %   Gram-Schmidt orthonormalization
     %   Input:  jCol:  Column to be treated
     %           V, W:  Krylov-Subspaces
     %   Output: V, W:  orthonormal basis of Krylov-Subspaces
-    %           TRsylv, TLsylv: Transformation matrices
+    %           TRv, TLw: Transformation matrices
     
-    TRsylv=eye(size(V,2));
-    TLsylv=eye(size(V,2));
+    TRv=eye(size(V,2));
+    TLw=eye(size(V,2));
     if jCol>1
         switch Opts.orth
             case 'dgks'
@@ -466,11 +466,11 @@ end
                 while(orthError>Opts.dgksTol)
                     h=IP(V(:,1:jCol-1),V(:,jCol));
                     V(:,jCol)=V(:,jCol)-V(:,1:jCol-1)*h;
-                    TRsylv(:,jCol)=TRsylv(:,jCol)-TRsylv(:,1:jCol-1)*h;
+                    TRv(:,jCol)=TRv(:,jCol)-TRv(:,1:jCol-1)*h;
                     if hermite
                         h=IP(W(:,1:jCol-1),W(:,jCol));
                         W(:,jCol)=W(:,jCol)-W(:,1:jCol-1)*h;
-                        TLsylv(:,jCol)=TLsylv(:,jCol)-TLsylv(:,1:jCol-1)*h;
+                        TLw(:,jCol)=TLw(:,jCol)-TLw(:,1:jCol-1)*h;
                     end
                     orthError=norm(IP([V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))],...
                         [V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))])-speye(jCol),'fro');
@@ -483,11 +483,11 @@ end
                 for iCol=1:jCol-1
                   h=IP(V(:,jCol),V(:,iCol));
                   V(:,jCol)=V(:,jCol)-V(:,iCol)*h;
-                  TRsylv(:,jCol)=TRsylv(:,jCol)-h*TRsylv(:,iCol);
+                  TRv(:,jCol)=TRv(:,jCol)-h*TRv(:,iCol);
                   if hermite
                     h=IP(W(:,jCol),W(:,iCol));
                     W(:,jCol)=W(:,jCol)-W(:,iCol)*h;
-                    TLsylv(:,jCol)=TLsylv(:,jCol)-h*TLsylv(:,iCol);
+                    TLw(:,jCol)=TLw(:,jCol)-h*TLw(:,iCol);
                   end 
                 end
            case '2mgs'
@@ -495,11 +495,11 @@ end
                     for iCol=1:jCol-1
                       h=IP(V(:,jCol),V(:,iCol));
                       V(:,jCol)=V(:,jCol)-V(:,iCol)*h;
-                      TRsylv(:,jCol)=TRsylv(:,jCol)-h*TRsylv(:,iCol);
+                      TRv(:,jCol)=TRv(:,jCol)-h*TRv(:,iCol);
                       if hermite
                         h=IP(W(:,jCol),W(:,iCol));
                         W(:,jCol)=W(:,jCol)-W(:,iCol)*h;
-                        TLsylv(:,jCol)=TLsylv(:,jCol)-h*TLsylv(:,iCol);
+                        TLw(:,jCol)=TLw(:,jCol)-h*TLw(:,iCol);
                       end 
                     end
                 end
@@ -511,58 +511,58 @@ end
     % normalize new basis vector
     h = sqrt(IP(V(:,jCol),V(:,jCol)));
     V(:,jCol)=V(:,jCol)/h;
-    TRsylv(:,jCol) = TRsylv(:,jCol)/h;
+    TRv(:,jCol) = TRv(:,jCol)/h;
     if hermite
         h = sqrt(IP(W(:,jCol),W(:,jCol)));
         W(:,jCol)=W(:,jCol)/h;
-        TLsylv(:,jCol) = TLsylv(:,jCol)/h;
+        TLw(:,jCol) = TLw(:,jCol)/h;
     end
     end
 
-    function [V, SRsylv, CRsylv, W, SLsylv, CLsylv] = realSubspace(jCol, q, s0, V, SRsylv, CRsylv, W, SLsylv, CLsylv)
+    function [V, Sv, Rv, W, Sw, Lw] = realSubspace(jCol, q, s0, V, Sv, Rv, W, Sw, Lw)
     %   Split Krylov direction into real and imaginary to create a real 
     %   Krylov subspace
     %   Input:  jCol:  Column to be treated
-    %           nS0c:  Number of complex conjugated expansion points
+    %           q:     Reduction order
     %           s0:    Vector containing the expansion points
     %           V, W:  Krylov-Subspaces
-    %           CRsylv, CLsylv: Sylvester matrices
+    %           Sv, Rsylv, Sw, Lsylv: Sylvester matrices
     %   Output: V, W:  real basis of Krylov-Subspaces
-    %           CRsylv, CLsylv: real Sylvester matrices
+    %           Sv, Rv, Sw, Lw: real Sylvester matrices
     nS0c=q-length(s0);
     if ~isreal(s0(jCol))
         V(:,jCol+nS0c)=imag(V(:,jCol)); 
         V(:,jCol)=real(V(:,jCol));
-        CRsylv(:,jCol+nS0c) = imag(CRsylv(:,jCol));
-        CRsylv(:,jCol) = real(CRsylv(:,jCol));
-        SRsylv(jCol, jCol+nS0c)=imag(SRsylv(jCol, jCol));
-        SRsylv(jCol+nS0c, jCol)=-imag(SRsylv(jCol, jCol));
-        SRsylv(jCol+nS0c, jCol+nS0c)=real(SRsylv(jCol, jCol));
-        SRsylv(jCol, jCol)=real(SRsylv(jCol,jCol));
+        Rv(:,jCol+nS0c) = imag(Rv(:,jCol));
+        Rv(:,jCol) = real(Rv(:,jCol));
+        Sv(jCol, jCol+nS0c)=imag(Sv(jCol, jCol));
+        Sv(jCol+nS0c, jCol)=-imag(Sv(jCol, jCol));
+        Sv(jCol+nS0c, jCol+nS0c)=real(Sv(jCol, jCol));
+        Sv(jCol, jCol)=real(Sv(jCol,jCol));
         if hermite, 
             W(:,jCol+nS0c)=imag(W(:,jCol));
             W(:,jCol)=real(W(:,jCol)); 
-            CLsylv(:,jCol+nS0c) = imag(CLsylv(:,jCol));
-            CLsylv(:,jCol) = real(CLsylv(:,jCol));
-            SLsylv(jCol, jCol+nS0c)=imag(SLsylv(jCol, jCol));
-            SLsylv(jCol+nS0c, jCol)=-imag(SLsylv(jCol, jCol));
-            SLsylv(jCol+nS0c, jCol+nS0c)=real(SLsylv(jCol, jCol));
-            SLsylv(jCol, jCol)=real(SLsylv(jCol,jCol));
+            Lw(:,jCol+nS0c) = imag(Lw(:,jCol));
+            Lw(:,jCol) = real(Lw(:,jCol));
+            Sw(jCol, jCol+nS0c)=imag(Sw(jCol, jCol));
+            Sw(jCol+nS0c, jCol)=-imag(Sw(jCol, jCol));
+            Sw(jCol+nS0c, jCol+nS0c)=real(Sw(jCol, jCol));
+            Sw(jCol, jCol)=real(Sw(jCol,jCol));
         end
     end
     end
     
-    function [V, Ssylv, Csylv, W] = krylovDirection(jCol, s0, V, W)  
+    function [V, Ssylv, Rsylv, W] = krylovDirection(jCol, s0, V, W)  
     %   Get new Krylov direction
     %   Input:  jCol:  Column to be treated
     %           s0:    Vector containing the expansion points
     %           V, W:  Krylov subspace
     %   Output: V, W:  Updated Krylov subspace
     %           Ssylv: update of column jCol of the Sylvester matrices
-    %                  SRsylv and SLsylv (e.g. SRsylv(:,jCol)=Ssylv)
-    %           Csylv: update of column jCol of the Sylvester matrices 
-    %                  CRsylv and CLsylv (Csylv either eye(size(B,2)) or 
-    %                  zeros(size(B,2)), e.g. CRsylv(:,jColt)=Csylv*Rt(:,jCol)
+    %                  Sv and Sw (e.g. Ssylv(:,jCol)=Ssylv)
+    %           Rsylv: update of column jCol of the Sylvester matrices 
+    %                  Rv and Lw (Rsylv either eye(size(B,2)) or 
+    %                  zeros(size(B,2)), e.g. Rsylv(:,jCol)=Rsylv*Rt(:,jCol)
     
     Ssylv=zeros(size(V,2),1);
     switch Opts.krylov
@@ -570,7 +570,7 @@ end
             % new basis vector
             tempV=B*Rt(:,jCol); newlu=1; newtan=1;
             Ssylv(jCol)=s0(jCol);
-            Csylv=eye(size(B,2));
+            Rsylv=eye(size(B,2));
             if hermite
                 tempW = C.'*Lt(:,jCol); 
             end
@@ -581,7 +581,7 @@ end
                         % Higher order moments, for the SISO and MIMO case
                         newtan = 0;
                         tempV = V(:,jCol-1); %overwrite
-                        Csylv=zeros(size(B,2));
+                        Rsylv=zeros(size(B,2));
                         Ssylv(jCol-1)=1;
                         if hermite
                             tempW = W(:,jCol-1); 
@@ -602,7 +602,7 @@ end
                 Ssylv(jCol)=s0(jCol);
                 if jCol==1
                     tempV=B;
-                    Csylv=1;
+                    Rsylv=1;
                     if hermite
                         tempW=C.';
                     end
@@ -619,7 +619,7 @@ end
                             tempW=E*W(:,jCol-1);
                         end
                     end
-                    Csylv=0;
+                    Rsylv=0;
                     Ssylv(jCol-1)=1;
                 end
                 if hermite

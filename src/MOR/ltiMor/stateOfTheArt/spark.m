@@ -1,9 +1,9 @@
-function [V,S_V,Crt,k] = spark(sys,s0,Opts)
+function [V,S,R,k] = spark(sys,s0,Opts)
 % SPARK - Stability Preserving Adaptive Rational Krylov
 % 
 % Syntax:
-%       [V,S_V,Crt,k] = SPARK(sys,s0)
-%       [V,S_V,Crt,k] = SPARK(sys,s0,Opts)
+%       [V,Sv,Rv,k] = SPARK(sys,s0)
+%       [V,Sv,Rv,k] = SPARK(sys,s0,Opts)
 %
 % Description:
 %       This function reduces a state-space, LTI model specified 
@@ -52,12 +52,13 @@ function [V,S_V,Crt,k] = spark(sys,s0,Opts)
 %                           [{'20'} / positive integer]
 %
 % Output Arguments:      
-%       -V,S_V,Crt: Input Krylov subspace,  A*V - E*V*S_V - B*Crt = 0
+%       -V,S,R:     Krylov subspace [V or W], Sylvester matrices [Sv,Rv] or
+%                   [Sw^T,Lw]
 %       -k:         Number of iterations of MESPARK
 %
 % 
 % See Also: 
-%       cure, porkV, porkW, rk
+%       cure, porkV, porkW, rk, getSylvester
 %
 % References:
 %       * *[1] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
@@ -78,8 +79,8 @@ function [V,S_V,Crt,k] = spark(sys,s0,Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  08 Nov 2015
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  13 Apr 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
@@ -149,7 +150,7 @@ warning('off','MATLAB:nearlySingularMatrix')
     v1  = Q1*(U1\(L1\(P1*sys.B))); v12= Q2*(U2\(L2\(P2*sys.B))); 
     v2 = Q2*(U2\(L2\(P2*(sys.E*v1))));
     V   = full(real([v1/2 + (v12/2+p_opt(1)*v2), v2*sqrt(p_opt(2))]));
-    S_V = [2*p_opt(1), sqrt(p_opt(2)); -sqrt(p_opt(2)), 0]; Crt = [1 0];
+    S = [2*p_opt(1), sqrt(p_opt(2)); -sqrt(p_opt(2)), 0]; R = [1 0];
     if Opts.spark.verbose
     disp(['spark required ca. ' num2str(2*(k+1)) ' LUs ', ...
         ' and converged in ' num2str(toc(t),'%.1f') 'sec.'])
@@ -290,7 +291,7 @@ warning('off','MATLAB:nearlySingularMatrix')
     end
     function [X,Y,Z] = GramSchmidt(X,Y,Z,cols)
         % Gram-Schmidt orthonormalization
-        %   Input:  X,[Y,[Z]]:  matrices in Sylvester eq.: V,S_V,Crt or W.',S_W.',Brt.'
+        %   Input:  X,[Y,[Z]]:  matrices in Sylvester eq.: V,Sv,Rv or W.',Sw.',Lw.'
         %           cols:       2-dim. vector: number of first and last column to be treated
         %   Output: X,[Y,[Z]]:  solution of Sylvester eq. with X.'*X = I
         % $\MatlabCopyright$
@@ -393,7 +394,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         % s1 = a + sqrt(a^2-b)
         % s2 = a - sqrt(a^2-b)
         %
-        % See also CURE, SPARKS.
+        % See also CURE, SPARK.
         %
         % ------------------------------------------------------------------
         % REFERENCES:

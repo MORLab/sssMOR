@@ -1,8 +1,8 @@
-function varargout = porkV(V,S_V,Crt,C)
+function varargout = porkV(V,Sv,Rv,C)
 % PORKV - Pseudo-Optimal Rational Krylov (Input)
 %
 % Syntax: 
-%       [Ar,Br,Cr,Er] = porkV(V,S_V,Crt,C)
+%       [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,C)
 %
 % Description:
 %       This function implements the pseudo-optimal rational Krylov
@@ -11,11 +11,11 @@ function varargout = porkV(V,S_V,Crt,C)
 %       Given a projection matrix V spanning an input Krylov subspace and
 %       the respective matrices from the Sylvester equation
 %
-%           $A V - E V S_V - B Crt = 0$
+%           $A V - E V S_v - B R_v = 0$
 %
 %       this function computes the reduced order matrices corresponding to
 %       the H2-pseudo-optimal reduced order model, i.e. a model
-%       interpolating the original according to (V,S_V,Crt) and having
+%       interpolating the original according to (V,Sv,Rv) and having
 %       eigenvalues as mirror images of the shifts.
 %
 %       If only one output is specified, this function returns an sss
@@ -23,8 +23,8 @@ function varargout = porkV(V,S_V,Crt,C)
 % 
 % Input Arguments:
 %       *Required Input Arguments:*
-%       -V,S_V,Crt:      solution of  A*V - E*V*S_V - B*Crt = 0
-%       -C:              output matrix of original model
+%       -V,Sv,Rv:      solution of  A*V - E*V*Sv - B*Rv = 0
+%       -C:            output matrix of original model
 %
 % Output Arguments: 
 %       - sysrPO:         Pseudo-optimal reduced order model 
@@ -36,8 +36,8 @@ function varargout = porkV(V,S_V,Crt,C)
 %> sys = loadSss('building');
 %> s0 = -eigs(sys,4,'sm').';
 %> [sysr, V] = rk(sys,s0);
-%> [Crt, ~, S] = getSylvester(sys, sysr, V);
-%> sysrPO = porkV(V,S,Crt,sys.C)
+%> [Rv, ~, Sv] = getSylvester(sys, sysr, V);
+%> sysrPO = porkV(V,Sv,Rv,sys.C)
 % 
 % See Also: 
 %       porkW, spark, rk, getSylvester
@@ -62,15 +62,15 @@ function varargout = porkV(V,S_V,Crt,C)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  08 Nov 2015
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  13 Apr 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 
 %%  Computation
-Qr_c = lyapchol(-S_V', Crt');
-Br = -Qr_c\(Qr_c'\Crt');
-Ar = S_V+Br*Crt;
+Qr_c = lyapchol(-Sv', Rv');
+Br = -Qr_c\(Qr_c'\Rv');
+Ar = Sv+Br*Rv;
 Cr = C*V;
 Er = eye(size(Ar));
 

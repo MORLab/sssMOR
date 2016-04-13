@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, kIter] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -10,7 +10,7 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, 
 %       [sysr, V, W, s0]                = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, s0Traj]        = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, s0Traj, Rt, Lt]= IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRslyv, Rsylv, C_, SLsylv, Lsylv, kIter] = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = IRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Iterative Rational Krylov
@@ -52,8 +52,8 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, 
 %       -V,W:               resulting projection matrices
 %       -s0:                final choice of shifts
 %       -s0Traj:            trajectory of all shifst for all iterations
-%       -B_,SRsylv,Rsylv:   matrices of the input Sylvester equation
-%       -C_,SLsylv,Lsylv:   matrices of the output Sylvester equation
+%       -B_,Sv,Rv:          matrices of the input Sylvester equation
+%       -C_,Sw,Lw:          matrices of the output Sylvester equation
 %       -kIter:             number of iterations
 %
 % Examples:
@@ -88,8 +88,8 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, 
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  31 Oct 2015
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  13 Apr 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
@@ -154,9 +154,9 @@ while true
     kIter=kIter+1; sysr_old = sysr;
     %   Reduction
     if sys.isSiso
-        [sysr, V, W, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv] = rk(sys, s0, s0,Opts);
+        [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0, s0,Opts);
     else
-        [sysr, V, W, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv] = rk(sys, s0, s0, Rt, Lt,Opts);
+        [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0, s0, Rt, Lt,Opts);
     end 
     
     %   Update of the reduction parameters
@@ -255,10 +255,3 @@ switch Opts.stopCrit
     otherwise
         error('The stopping criterion selected is incorrect or not implemented')
 end
-
-    
-    
-
-
-
-
