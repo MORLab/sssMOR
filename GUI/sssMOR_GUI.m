@@ -455,100 +455,116 @@ function pb_PaV_move_Callback(hObject, eventdata, handles)
        return;
     end
     
-    %Read out the selected system
+    indices = get(handles.lb_PaV_systemsWs,'Value');
+    
+    for j = 1:size(indices,2)
+    
+        %Read out the selected system
 
-    index = get(handles.lb_PaV_systemsWs,'Value');
-    selectedSystem = list{index,1};
-    
-    %Check if the system exists already in the list on the right side
+        index = indices(1,j);
 
-    listSelected = get(handles.lb_PaV_selectedSystems,'String');
-    
-    if ~isempty(listSelected)
-       for i = 1:length(listSelected)
-          if strcmp(listSelected{i,1},selectedSystem)
-            errordlg('The selected system already exists in the list.');
-            uiwait;
-            return; 
-          end
-       end
-    end
-    
-    %Get system from workspace
-    
-    try
-        sys = getSysFromWs(selectedSystem);
-    catch ex
-        errordlg(ex.message,'Error Dialog','modal')
-        uiwait
-        return
-    end
+        selectedSystem = list{index,1};
 
-    %Add the system to the list on right side
-    
-    list = get(handles.lb_PaV_selectedSystems,'String');
+        %Check if the system exists already in the list on the right side
 
-    if isempty(list)
-        set(handles.lb_PaV_selectedSystems,'String',{selectedSystem});
-        set(handles.lb_PaV_selectedSystems,'Value',1);
-        if get(handles.rb_PaV_plotStyle_manual,'Value')
-            set(handles.panel_PaV_plotStyle,'Visible','on');
-        else
-            set(handles.panel_PaV_plotStyle,'Visible','off');
+        listSelected = get(handles.lb_PaV_selectedSystems,'String');
+        errorOccured = 0;
+        
+        if ~isempty(listSelected)
+           for i = 1:length(listSelected)
+              if strcmp(listSelected{i,1},selectedSystem)
+                errordlg(strcat('The system "',selectedSystem,'" already exists in the list.'));
+                uiwait;
+                errorOccured = 1;
+                break;
+              end
+           end
         end
-        set(handles.cb_PaV_SaveData,'Visible','on');
-        set(handles.et_PaV_saveData,'Visible','on');
-        set(handles.bg_PaV_plotStyle,'Visible','on');
-        set(handles.bg_PaV_Resolution,'Visible','on');
-    else
-        list{end+1,1} = selectedSystem;
-        set(handles.lb_PaV_selectedSystems,'String',list);
+        
+        if errorOccured == 1
+           continue; 
+        end
+
+        %Get system from workspace
+        
+        try
+            sys = getSysFromWs(selectedSystem);
+        catch ex
+            errordlg(ex.message,'Error Dialog','modal')
+            uiwait
+            return
+        end
+
+        %Add the system to the list on right side
+
+        if isempty(listSelected)
+            set(handles.lb_PaV_selectedSystems,'String',{selectedSystem});
+            set(handles.lb_PaV_selectedSystems,'Value',1);
+            if get(handles.rb_PaV_plotStyle_manual,'Value')
+                set(handles.panel_PaV_plotStyle,'Visible','on');
+            else
+                set(handles.panel_PaV_plotStyle,'Visible','off');
+            end
+            set(handles.cb_PaV_SaveData,'Visible','on');
+            set(handles.et_PaV_saveData,'Visible','on');
+            set(handles.bg_PaV_plotStyle,'Visible','on');
+            set(handles.bg_PaV_Resolution,'Visible','on');
+        else
+            if length(listSelected) >= 10
+                errordlg('The maximal number of selected systems is 10. Please remove a system before you add another one.','Error Dialog','modal');
+                uiwait
+                return
+            end
+            listSelected{end+1,1} = selectedSystem;
+            set(handles.lb_PaV_selectedSystems,'String',listSelected);
+        end
+
+        %Set the default-values for all plot-options for this system
+
+        data.name = selectedSystem;
+        data.isSystem = 1;
+
+        if sys.p > 1|| sys.m > 1
+           data.in = 'all';
+           data.out = 'all';
+           data.sizeInputs = sys.m;
+           data.sizeOutputs = sys.p;
+           %data.legendText = suggestDefaultLegendText(handles,selectedSystem,1);
+        else
+           data.in = [];
+           data.out = [];
+           data.sizeInputs = [];
+           data.sizeOutputs = [];
+           %data.legendText = suggestDefaultLegendText(handles,selectedSystem,[]);
+        end
+
+        data.plotStyle = 'manual';
+        data.resolution = 'auto';
+
+        data.save = 1;
+        data.variableName = suggestPlotDataName(handles,selectedSystem);
+        data.color = mod(handles.chosenSystems,7)+1;
+        data.lineStyle = 1;
+        data.markerType = 1;
+
+        data.distribution = 'linear';
+        data.min = '';
+        data.max = '';
+        data.steps = 5000;
+
+        handles.plotData{end+1,1} = data;
+
+        handles.chosenSystems = handles.chosenSystems + 1;
+
+        guidata(hObject,handles);
+
+        %Set the default legend Text
+
+        data.legendText = suggestDefaultLegendText(handles,selectedSystem,[]);
+        handles.plotData{end,1} = data;
+        guidata(hObject,handles);
+    
     end
-    
-    %Set the default-values for all plot-options for this system
-    
-    data.name = selectedSystem;
-    data.isSystem = 1;
-    
-    if sys.p > 1|| sys.m > 1
-       data.in = 'all';
-       data.out = 'all';
-       data.sizeInputs = sys.m;
-       data.sizeOutputs = sys.p;
-       %data.legendText = suggestDefaultLegendText(handles,selectedSystem,1);
-    else
-       data.in = [];
-       data.out = [];
-       data.sizeInputs = [];
-       data.sizeOutputs = [];
-       %data.legendText = suggestDefaultLegendText(handles,selectedSystem,[]);
-    end
-    
-    data.plotStyle = 'manual';
-    data.resolution = 'auto';
-    
-    data.save = 1;
-    data.variableName = suggestPlotDataName(handles,selectedSystem);
-    data.color = mod(handles.chosenSystems,7)+1;
-    data.lineStyle = 1;
-    data.markerType = 1;
-    
-    data.distribution = 'linear';
-    data.min = '';
-    data.max = '';
-    data.steps = 5000;
-    
-    handles.plotData{end+1,1} = data;
-    
-    handles.chosenSystems = handles.chosenSystems + 1;
-    
-    guidata(hObject,handles);
-    
-    %Set the default legend Text
-    
-    data.legendText = suggestDefaultLegendText(handles,selectedSystem,[]);
-    handles.plotData{end,1} = data;
-    guidata(hObject,handles);
     
     
     lb_PaV_selectedSystems_Callback(handles.lb_PaV_selectedSystems,eventdata,handles);
@@ -566,94 +582,112 @@ function pb_PaV_moveObjects_Callback(hObject, eventdata, handles)
        return;
     end
     
-    %Read out the selected system
+    indices = get(handles.lb_PaV_objectsWs,'Value');
+    
+    for j = 1:size(indices,2)
+    
+        %Read out the selected system
 
-    index = get(handles.lb_PaV_objectsWs,'Value');
-    selectedObject = list{index,1};
+        index = indices(1,j);
     
-    %Check if the system exists already in the list on the right side
+        %Read out the selected system
 
-    listSelected = get(handles.lb_PaV_selectedSystems,'String');
-    
-    if ~isempty(listSelected)
-       for i = 1:length(listSelected)
-          if strcmp(listSelected{i,1},selectedObject)
-            errordlg('The selected system already exists in the list.');
-            uiwait;
-            return; 
-          end
-       end
-    end
-    
-    %Get system from workspace
-    
-    try
-        object = evalin('base',selectedObject);
-    catch ex
-        errordlg(ex.message,'Error Dialog','modal')
-        uiwait
-        return
-    end
+        selectedObject = list{index,1};
 
-    %Add the system to the list on right side
-    
-    list = get(handles.lb_PaV_selectedSystems,'String');
+        %Check if the system exists already in the list on the right side
 
-    if isempty(list)
-        set(handles.lb_PaV_selectedSystems,'String',{selectedObject});
-        set(handles.lb_PaV_selectedSystems,'Value',1);
-        if get(handles.rb_PaV_plotStyle_manual,'Value')
-            set(handles.panel_PaV_plotStyle,'Visible','on');
-        else
-            set(handles.panel_PaV_plotStyle,'Visible','off');
+        listSelected = get(handles.lb_PaV_selectedSystems,'String');
+        errorOccured = 0;
+        
+        if ~isempty(listSelected)
+           for i = 1:length(listSelected)
+              if strcmp(listSelected{i,1},selectedObject)
+                errordlg(strcat('The object "',selectedObject, '" already exists in the list.'));
+                uiwait;
+                errorOccured = 1;
+                break;
+              end
+           end
         end
-        set(handles.cb_PaV_SaveData,'Visible','on');
-        set(handles.et_PaV_saveData,'Visible','on');
-        set(handles.bg_PaV_plotStyle,'Visible','on');
-        set(handles.bg_PaV_Resolution,'Visible','on');
-    else
-        list{end+1,1} = selectedObject;
-        set(handles.lb_PaV_selectedSystems,'String',list);
+        
+        if errorOccured
+           continue; 
+        end
+
+        %Get system from workspace
+
+        try
+            object = evalin('base',selectedObject);
+        catch ex
+            errordlg(ex.message,'Error Dialog','modal')
+            uiwait
+            return
+        end
+
+        %Add the system to the list on right side
+
+        if isempty(listSelected)
+            set(handles.lb_PaV_selectedSystems,'String',{selectedObject});
+            set(handles.lb_PaV_selectedSystems,'Value',1);
+            if get(handles.rb_PaV_plotStyle_manual,'Value')
+                set(handles.panel_PaV_plotStyle,'Visible','on');
+            else
+                set(handles.panel_PaV_plotStyle,'Visible','off');
+            end
+            set(handles.cb_PaV_SaveData,'Visible','on');
+            set(handles.et_PaV_saveData,'Visible','on');
+            set(handles.bg_PaV_plotStyle,'Visible','on');
+            set(handles.bg_PaV_Resolution,'Visible','on');
+        else
+            if length(listSelected) >= 10
+                errordlg('The maximal number of selected systems is 10. Please remove a system before you add another one.','Error Dialog','modal');
+                uiwait
+                return
+            end
+            listSelected{end+1,1} = selectedObject;
+            set(handles.lb_PaV_selectedSystems,'String',listSelected);
+        end
+
+        %Set the default-values for all plot-options for this system
+
+        data.name = selectedObject;
+        data.isSystem = 0;
+
+        if size(object,1) > 1|| size(object,2) > 1
+           data.in = 'all';
+           data.out = 'all';
+           data.sizeInputs = size(object,2);
+           data.sizeOutputs = size(object,1);
+           data.legendText = suggestDefaultLegendText(handles,selectedObject,1);
+        else
+           data.in = [];
+           data.out = [];
+           data.sizeInputs = [];
+           data.sizeOutputs = [];
+           data.legendText = suggestDefaultLegendText(handles,selectedObject,[]);
+        end
+
+        data.plotStyle = 'manual';
+        data.resolution = [];
+
+        data.save = [];
+        data.variableName = [];
+        data.color = mod(handles.chosenSystems,7)+1;
+        data.lineStyle = 1;
+        data.markerType = 1;
+
+        data.distribution = [];
+        data.min = [];
+        data.max = [];
+        data.steps = [];
+
+        handles.plotData{end+1,1} = data;
+
+        handles.chosenSystems = handles.chosenSystems + 1;
+
+        guidata(hObject,handles);
+    
     end
-    
-    %Set the default-values for all plot-options for this system
-    
-    data.name = selectedObject;
-    data.isSystem = 0;
-    
-    if size(object,1) > 1|| size(object,2) > 1
-       data.in = 'all';
-       data.out = 'all';
-       data.sizeInputs = size(object,2);
-       data.sizeOutputs = size(object,1);
-       data.legendText = suggestDefaultLegendText(handles,selectedObject,1);
-    else
-       data.in = [];
-       data.out = [];
-       data.sizeInputs = [];
-       data.sizeOutputs = [];
-       data.legendText = suggestDefaultLegendText(handles,selectedObject,[]);
-    end
-    
-    data.plotStyle = 'manual';
-    data.resolution = [];
-    
-    data.save = [];
-    data.variableName = [];
-    data.color = mod(handles.chosenSystems,7)+1;
-    data.lineStyle = 1;
-    data.markerType = 1;
-    
-    data.distribution = [];
-    data.min = [];
-    data.max = [];
-    data.steps = [];
-    
-    handles.plotData{end+1,1} = data;
-    
-    handles.chosenSystems = handles.chosenSystems + 1;
-    
-    guidata(hObject,handles);
     
     lb_PaV_selectedSystems_Callback(handles.lb_PaV_selectedSystems,eventdata,handles);
     
@@ -726,6 +760,57 @@ function bg_PaV_plotStyle_SelectionChangedFcn(hObject, eventdata, handles)
     end
     
     savePlotData(handles);
+
+    
+function pb_PaV_down_Callback(hObject, eventdata, handles)
+%Change the order of the selected Systems
+
+    list = get(handles.lb_PaV_selectedSystems,'String');
+    index = get(handles.lb_PaV_selectedSystems,'Value');
+    newList = list;
+    
+    if ~isempty(list) && index < length(list)
+       
+        newList{index,1} = list{index+1,1};
+        newList{index+1,1} = list{index,1};
+        
+        set(handles.lb_PaV_selectedSystems,'String',newList);
+        set(handles.lb_PaV_selectedSystems,'Value',index+1);
+    end
+
+function pb_PaV_up_Callback(hObject, eventdata, handles)
+%Change the order of the selected Systems
+
+    list = get(handles.lb_PaV_selectedSystems,'String');
+    index = get(handles.lb_PaV_selectedSystems,'Value');
+    newList = list;
+    
+    if ~isempty(list) && index > 1
+       
+        newList{index,1} = list{index-1,1};
+        newList{index-1,1} = list{index,1};
+        
+        set(handles.lb_PaV_selectedSystems,'String',newList);
+        set(handles.lb_PaV_selectedSystems,'Value',index-1);
+    end    
+
+function pb_PaV_showObject_Callback(hObject, eventdata, handles)
+%Show the selected object in the variable editor
+
+    %Get the selected object
+    
+    list = get(handles.lb_PaV_selectedSystems,'String');
+    selectedObject = list{get(handles.lb_PaV_selectedSystems,'Value')};
+    
+    %Show object in the variable explorer
+    
+    try
+       openvar(selectedObject); 
+    catch ex 
+       errordlg(strcat('The object "',selectedObject,'" does not exist in workspace!'));
+       uiwait;
+       return;
+    end
 
     
 function pu_PaV_color_Callback(hObject, eventdata, handles)
@@ -856,6 +941,7 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
                 set(handles.et_PaV_saveData,'Visible','on');
                 
                 set(handles.bg_PaV_Resolution,'Visible','on');
+                set(handles.pb_PaV_showObject,'Visible','off');
                 
                 if strcmp(data.distribution,'linear')
                   set(handles.rb_distlin,'Value',1);
@@ -886,6 +972,8 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
                 
                 set(handles.bg_PaV_Resolution,'Visible','off');
                 set(handles.panel_manual,'Visible','off');
+                
+                set(handles.pb_PaV_showObject,'Visible','on');
             end
 
         end    
@@ -896,16 +984,19 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
         set(handles.cb_PaV_SaveData,'Visible','off');
         set(handles.et_PaV_saveData,'Visible','off'); 
         set(handles.bg_PaV_plotStyle,'Visible','off');
-        set(handles.bg_PaV_Resolution,'Visible','off');
+        set(handles.bg_PaV_Resolution,'Visible','off');        
+        set(handles.pb_PaV_showObject,'Visible','off');
     end
   
 function lb_PaV_systemsWs_Callback(hObject, eventdata, handles)
 %Update the system information
 
     x = get(hObject,'String');
-    y = x{get(hObject,'Value')};
-    if ~isempty(y)
-
+    index = get(hObject,'Value');
+    y = x{index};
+    
+    if ~isempty(y) && length(index) == 1
+        
         %Load system from workspace
 
         sys = evalin('base', y);
@@ -919,6 +1010,8 @@ function lb_PaV_systemsWs_Callback(hObject, eventdata, handles)
         %Display system information
 
         displaySystemInformation(handles.sysinfo,sys);
+    else
+        set(handles.sysinfo,'String','');
     end
 
 
