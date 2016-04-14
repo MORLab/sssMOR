@@ -3338,7 +3338,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
         
         switch get(handles.pu_mor_krylov_algorithm,'Value')
             
-        case 3 % explicit moment matching
+        case 2 % explicit moment matching
                         
             lastwarn('');
 
@@ -3375,7 +3375,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                 end
             end
 
-        case 2 %ICOP
+        case 3 %ICOP
             
             if sys.isMimo
                 set(handles.figure1,'Pointer','arrow')
@@ -3853,7 +3853,7 @@ function pu_mor_krylov_algorithm_Callback(hObject, eventdata, handles)
     
     %Set the values for elements indepentent from SISO or MIMO
     
-    if get(hObject,'Value')==3
+    if get(hObject,'Value')==2
         % explicit moment matching
         set(handles.rb_mor_krylov_twosided,'Enable','on')
         set(handles.rb_mor_krylov_input,'Enable','on')
@@ -4202,7 +4202,7 @@ function pb_mor_krylov_mimo_Callback(hObject, eventdata, handles)
 
 %Set the struct with the parameters
 
-if get(handles.pu_mor_krylov_algorithm,'Value') == 3
+if get(handles.pu_mor_krylov_algorithm,'Value') == 2
     parameter.algorithm = 'rk';
     if get(handles.rb_mor_krylov_input,'Value') == 1
         parameter.side = 'input';
@@ -5912,7 +5912,7 @@ function [] = countMatchedMoments(handles)
         redOrder = 0;
 
         if get(handles.rb_mor_krylov_twosided,'Value') == 1     %Two sided
-            if get(handles.pu_mor_krylov_algorithm,'Value') == 3 && ...
+            if get(handles.pu_mor_krylov_algorithm,'Value') == 2 && ...
                     get(handles.cb_mor_krylov_hermite,'Value') == 0  %Input and Output specifiable
 
                 set(handles.st_mor_krylov_matchedMom,'String',data2+data1);
