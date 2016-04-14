@@ -2963,6 +2963,14 @@ elseif get(hObject,'Value')==3
     set(handles.panel_mor_krylov,'Visible','on')
 end
 
+%If TBR is selected, show the option for saving the hankel singular values
+
+if get(hObject,'Value')==1
+    set(handles.uipanel_mor_saveHsv,'Visible','on');
+else
+    set(handles.uipanel_mor_saveHsv,'Visible','off');
+end
+
 %If Krylov is selected, the reduced order can't be specified by the slider 
 %anymore
 
@@ -3105,6 +3113,19 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     if (get(handles.ed_mor_w,'UserData')==1 && get(handles.cb_mor_savew,'Value')==1)...
      ||(get(handles.ed_mor_v,'UserData')==1 && get(handles.cb_mor_savev,'Value')==1)
         errordlg('Please correct names for projection matrices first','Error Dialog','modal')
+        uiwait
+        return
+    end
+    if get(handles.cb_mor_saveShifts,'Value')==1 && get(handles.pu_mor_krylov_algorithm,'Value')==1 && ...
+            get(handles.pu_mor_method,'Value')==3 && get(handles.cb_mor_saveShifts,'Value')==1 && ...
+            get(handles.ed_mor_saveShifts,'UserData')==1
+        errordlg('Please correct names for the optimal shifts first','Error Dialog','modal')
+        uiwait
+        return
+    end    
+    if get(handles.cb_mor_saveHsv,'Value')==1 && get(handles.pu_mor_method,'Value')==1 && ...
+            get(handles.cb_mor_saveHsv,'Value')==1 && get(handles.ed_mor_saveHsv,'UserData')==1
+        errordlg('Please correct names for the Hankel Singular Values','Error Dialog','modal')
         uiwait
         return
     end
@@ -3494,6 +3515,10 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             get(handles.pu_mor_method,'Value')==3
         assignin('base',get(handles.ed_mor_saveShifts,'String'),s0); 
     end
+    
+    if get(handles.cb_mor_saveHsv,'Value')==1 && get(handles.pu_mor_method,'Value')==1
+        assignin('base',get(handles.ed_mor_saveHsv,'String'),sys.HankelSingularValues); 
+    end
 
     %Tell the user that the reduction was successfull
     
@@ -3541,6 +3566,14 @@ function ed_mor_sysred_Callback(hObject, eventdata, handles)
 % check variable name
 isvalidvarname(hObject)
 
+function ed_mor_saveHsv_Callback(hObject, eventdata, handles)
+    % check variable name
+    isvalidvarname(hObject)
+    
+function ed_mor_saveShifts_Callback(hObject, eventdata, handles)
+% check variable name
+    isvalidvarname(hObject)
+
 function cb_mor_savew_Callback(hObject, eventdata, handles)
 if get(hObject,'Value') == 1
     set(handles.ed_mor_w,'Enable','on')
@@ -3554,6 +3587,22 @@ if get(hObject,'Value') == 1
 else
     set(handles.ed_mor_v,'Enable','off')
 end
+
+function cb_mor_saveHsv_Callback(hObject, eventdata, handles)
+
+    if get(hObject,'Value') == 1
+        set(handles.ed_mor_saveHsv,'Enable','on')
+    else
+        set(handles.ed_mor_saveHsv,'Enable','off')
+    end
+
+function cb_mor_saveShifts_Callback(hObject, eventdata, handles)
+ 
+    if get(hObject,'Value') == 1
+        set(handles.ed_mor_saveShifts,'Enable','on')
+    else
+        set(handles.ed_mor_saveShifts,'Enable','off')
+    end
 
 %Callbacks for Balacing & Truncation
 
@@ -6082,6 +6131,7 @@ function [] = suggestNamesMOR(sysName,handles)
     suggestVarname(sprintf('%s_w',name),handles.ed_mor_w);
     suggestVarname(sprintf('%s_v',name),handles.ed_mor_v);
     suggestVarname(sprintf('%s_shifts',name),handles.ed_mor_saveShifts);
+    suggestVarname(sprintf('%s_hsv',name),handles.ed_mor_saveHsv);
     
     else
        
@@ -6420,4 +6470,5 @@ function x = removeObjectsFromList(list,class)
     else
        x = list; 
     end
+
 
