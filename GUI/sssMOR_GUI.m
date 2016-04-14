@@ -356,6 +356,7 @@ function pb_postprocessing_Callback(hObject, eventdata, handles)
     set(handles.panel_about,'Visible','off')
     % refresh list of open figures and systems
     pb_refreshsys_Callback(hObject, eventdata, handles)
+    pb_PaV_refeshObjects_Callback(handles.pb_PaV_refeshObjects, eventdata, handles)
 
 function pb_analysis_Callback(hObject, eventdata, handles)
     % make analysis tab visible
@@ -497,6 +498,8 @@ function pb_PaV_move_Callback(hObject, eventdata, handles)
         end
         set(handles.cb_PaV_SaveData,'Visible','on');
         set(handles.et_PaV_saveData,'Visible','on');
+        set(handles.bg_PaV_plotStyle,'Visible','on');
+        set(handles.bg_PaV_Resolution,'Visible','on');
     else
         list{end+1,1} = selectedSystem;
         set(handles.lb_PaV_selectedSystems,'String',list);
@@ -505,25 +508,146 @@ function pb_PaV_move_Callback(hObject, eventdata, handles)
     %Set the default-values for all plot-options for this system
     
     data.name = selectedSystem;
+    data.isSystem = 1;
     
     if sys.p > 1|| sys.m > 1
-       data.in = '1';
-       data.out = '1';
+       data.in = 'all';
+       data.out = 'all';
        data.sizeInputs = sys.m;
        data.sizeOutputs = sys.p;
-       data.legendText = suggestDefaultLegendText(handles,selectedSystem,1);
+       %data.legendText = suggestDefaultLegendText(handles,selectedSystem,1);
     else
        data.in = [];
        data.out = [];
        data.sizeInputs = [];
        data.sizeOutputs = [];
-       data.legendText = suggestDefaultLegendText(handles,selectedSystem,[]);
+       %data.legendText = suggestDefaultLegendText(handles,selectedSystem,[]);
     end
+    
+    data.plotStyle = 'manual';
+    data.resolution = 'auto';
     
     data.save = 1;
     data.variableName = suggestPlotDataName(handles,selectedSystem);
     data.color = mod(handles.chosenSystems,7)+1;
     data.lineStyle = 1;
+    data.markerType = 1;
+    
+    data.distribution = 'linear';
+    data.min = '';
+    data.max = '';
+    data.steps = 5000;
+    
+    handles.plotData{end+1,1} = data;
+    
+    handles.chosenSystems = handles.chosenSystems + 1;
+    
+    guidata(hObject,handles);
+    
+    %Set the default legend Text
+    
+    data.legendText = suggestDefaultLegendText(handles,selectedSystem,[]);
+    handles.plotData{end,1} = data;
+    guidata(hObject,handles);
+    
+    
+    lb_PaV_selectedSystems_Callback(handles.lb_PaV_selectedSystems,eventdata,handles);
+    
+function pb_PaV_moveObjects_Callback(hObject, eventdata, handles)
+%Move the selected object from the list on the left side to the right side
+
+    %Check if the list is empty and display warning if the case
+    
+    list = get(handles.lb_PaV_objectsWs,'String');
+    
+    if isempty(list{1,1})
+       errordlg('No system selected');
+       uiwait;
+       return;
+    end
+    
+    %Read out the selected system
+
+    index = get(handles.lb_PaV_objectsWs,'Value');
+    selectedObject = list{index,1};
+    
+    %Check if the system exists already in the list on the right side
+
+    listSelected = get(handles.lb_PaV_selectedSystems,'String');
+    
+    if ~isempty(listSelected)
+       for i = 1:length(listSelected)
+          if strcmp(listSelected{i,1},selectedObject)
+            errordlg('The selected system already exists in the list.');
+            uiwait;
+            return; 
+          end
+       end
+    end
+    
+    %Get system from workspace
+    
+    try
+        object = evalin('base',selectedObject);
+    catch ex
+        errordlg(ex.message,'Error Dialog','modal')
+        uiwait
+        return
+    end
+
+    %Add the system to the list on right side
+    
+    list = get(handles.lb_PaV_selectedSystems,'String');
+
+    if isempty(list)
+        set(handles.lb_PaV_selectedSystems,'String',{selectedObject});
+        set(handles.lb_PaV_selectedSystems,'Value',1);
+        if get(handles.rb_PaV_plotStyle_manual,'Value')
+            set(handles.panel_PaV_plotStyle,'Visible','on');
+        else
+            set(handles.panel_PaV_plotStyle,'Visible','off');
+        end
+        set(handles.cb_PaV_SaveData,'Visible','on');
+        set(handles.et_PaV_saveData,'Visible','on');
+        set(handles.bg_PaV_plotStyle,'Visible','on');
+        set(handles.bg_PaV_Resolution,'Visible','on');
+    else
+        list{end+1,1} = selectedObject;
+        set(handles.lb_PaV_selectedSystems,'String',list);
+    end
+    
+    %Set the default-values for all plot-options for this system
+    
+    data.name = selectedObject;
+    data.isSystem = 0;
+    
+    if size(object,1) > 1|| size(object,2) > 1
+       data.in = 'all';
+       data.out = 'all';
+       data.sizeInputs = size(object,2);
+       data.sizeOutputs = size(object,1);
+       data.legendText = suggestDefaultLegendText(handles,selectedObject,1);
+    else
+       data.in = [];
+       data.out = [];
+       data.sizeInputs = [];
+       data.sizeOutputs = [];
+       data.legendText = suggestDefaultLegendText(handles,selectedObject,[]);
+    end
+    
+    data.plotStyle = 'manual';
+    data.resolution = [];
+    
+    data.save = [];
+    data.variableName = [];
+    data.color = mod(handles.chosenSystems,7)+1;
+    data.lineStyle = 1;
+    data.markerType = 1;
+    
+    data.distribution = [];
+    data.min = [];
+    data.max = [];
+    data.steps = [];
     
     handles.plotData{end+1,1} = data;
     
@@ -532,7 +656,62 @@ function pb_PaV_move_Callback(hObject, eventdata, handles)
     guidata(hObject,handles);
     
     lb_PaV_selectedSystems_Callback(handles.lb_PaV_selectedSystems,eventdata,handles);
-   
+    
+function pb_PaV_refeshObjects_Callback(hObject, eventdata, handles)
+%Refresh the list of data-objects (frd, fir, etc.) existing in workspace
+
+    %Get all objects existing in workspace
+    
+    switch get(handles.plot_type,'Value')
+        
+        case 1      %Impulse
+            class = 'fir';
+        case 2      %Step
+            class = 'fir';
+        case 3      %Bode 
+            class = 'frd';
+        case 4      %Pole-Zero-Map
+            class = 'pzm';
+        case 5      %Frequency-Response
+            class = 'frd';
+    end
+    
+    l = listClassesInWorkspace(class);
+    
+    %Check if the previously selected object still exists in workspace and
+    %select it if the case
+
+    l_alt = get(handles.lb_PaV_objectsWs,'String');
+
+    if ~isempty(l_alt)
+
+        sOld=l_alt{get(handles.lb_PaV_objectsWs,'Value')};
+        indexOld=find(strcmp(sOld,l));
+
+        if ~isempty(indexOld)
+            set(handles.lb_PaV_objectsWs,'Value',indexOld);
+        else
+            set(handles.lb_PaV_objectsWs,'Value',1);
+        end
+
+    else
+      set(handles.lb_PaV_objectsWs,'Value',1);
+    end
+    
+    %If there are no instances of the given class in workspace, set the 
+    %list of selectable options to the empty string, else set it to the 
+    %list of systems
+
+    if ~isempty(l) && size(l,1) >= 1
+        
+        set(handles.lb_PaV_objectsWs,'String',l)
+        
+    else
+        set(handles.lb_PaV_objectsWs,'Value',1);         
+        set(handles.lb_PaV_objectsWs,'String', [{''}; l]);
+
+    end
+    
     
 function bg_PaV_plotStyle_SelectionChangedFcn(hObject, eventdata, handles)
 %Set the panel with the options for the plot style visible or invisible
@@ -545,6 +724,8 @@ function bg_PaV_plotStyle_SelectionChangedFcn(hObject, eventdata, handles)
     else
         set(handles.panel_PaV_plotStyle,'Visible','off');
     end
+    
+    savePlotData(handles);
 
     
 function pu_PaV_color_Callback(hObject, eventdata, handles)
@@ -552,6 +733,10 @@ function pu_PaV_color_Callback(hObject, eventdata, handles)
     savePlotData(handles);
     
 function pu_PaV_lineStyle_Callback(hObject, eventdata, handles)
+
+    savePlotData(handles);
+    
+function pu_PaV_plotStyle_marker_Callback(hObject, eventdata, handles)
 
     savePlotData(handles);
 
@@ -575,14 +760,14 @@ function et_PaV_saveData_Callback(hObject, eventdata, handles)
 
 function pu_in_Callback(hObject, eventdata, handles)
 
+    handles = savePlotData(handles);
     set(handles.ed_legend,'String',suggestDefaultLegendText(handles,'',[]));
-
     savePlotData(handles);
 
 function pu_out_Callback(hObject, eventdata, handles)
 
+    handles = savePlotData(handles);
     set(handles.ed_legend,'String',suggestDefaultLegendText(handles,'',[]));
-
     savePlotData(handles);
 
     
@@ -607,6 +792,8 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
 
         if ~isempty(selectedSystem)
 
+            %Siso vs. Mimo
+            
             if isempty(data.in) && isempty(data.out)    %Siso
                set(handles.panel_intoout,'Visible','off');
             else                                        %Mimo
@@ -635,12 +822,71 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
                   set(handles.pu_out,'Value',length(get(handles.pu_out,'String')));
                end
             end
-
+            
+            %Plot style
+            
+            if strcmp(data.plotStyle,'manual')
+               set(handles.panel_PaV_plotStyle,'Visible','on'); 
+               set(handles.rb_PaV_plotStyle_auto,'Value',0);
+               set(handles.rb_PaV_plotStyle_manual,'Value',1);
+            else
+               set(handles.panel_PaV_plotStyle,'Visible','off');
+               set(handles.rb_PaV_plotStyle_auto,'Value',1);
+               set(handles.rb_PaV_plotStyle_manual,'Value',0);
+            end
+            
             set(handles.pu_PaV_color,'Value',data.color);
             set(handles.pu_PaV_lineStyle,'Value',data.lineStyle);
+            set(handles.pu_PaV_plotStyle_marker,'Value',data.markerType);
             set(handles.ed_legend,'String',data.legendText);
-            set(handles.cb_PaV_SaveData,'Value',data.save);
-            set(handles.et_PaV_saveData,'String',data.variableName);
+            
+            %System vs Object
+            
+            if data.isSystem == 1;            
+                set(handles.cb_PaV_SaveData,'Value',data.save);
+                set(handles.et_PaV_saveData,'String',data.variableName);
+                
+                if data.save
+                   set(handles.et_PaV_saveData,'Enable','on'); 
+                else
+                   set(handles.et_PaV_saveData,'Enable','off'); 
+                end
+            
+                set(handles.cb_PaV_SaveData,'Visible','on');
+                set(handles.et_PaV_saveData,'Visible','on');
+                
+                set(handles.bg_PaV_Resolution,'Visible','on');
+                
+                if strcmp(data.distribution,'linear')
+                  set(handles.rb_distlin,'Value',1);
+                  set(handles.rb_distlog,'Value',0);
+                else
+                  set(handles.rb_distlin,'Value',0); 
+                  set(handles.rb_distlog,'Value',1);
+                end
+
+                set(handles.ed_min,'String',data.min);
+                set(handles.ed_max,'String',data.max);
+                set(handles.sl_steps,'Value',data.steps);
+                set(handles.et_curstep,'String',num2str(data.steps));
+                
+                if strcmp(data.resolution,'manual')
+                   set(handles.panel_manual,'Visible','on');                   
+                   set(handles.rb_manual,'Value',1);
+                   set(handles.rb_auto,'Value',0);
+                   
+                else
+                   set(handles.panel_manual,'Visible','off');
+                   set(handles.rb_manual,'Value',0);
+                   set(handles.rb_auto,'Value',1);
+                end
+            else
+                set(handles.cb_PaV_SaveData,'Visible','off');
+                set(handles.et_PaV_saveData,'Visible','off');
+                
+                set(handles.bg_PaV_Resolution,'Visible','off');
+                set(handles.panel_manual,'Visible','off');
+            end
 
         end    
     else
@@ -649,6 +895,8 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
         set(handles.panel_PaV_plotStyle,'Visible','off');
         set(handles.cb_PaV_SaveData,'Visible','off');
         set(handles.et_PaV_saveData,'Visible','off'); 
+        set(handles.bg_PaV_plotStyle,'Visible','off');
+        set(handles.bg_PaV_Resolution,'Visible','off');
     end
   
 function lb_PaV_systemsWs_Callback(hObject, eventdata, handles)
@@ -672,7 +920,7 @@ function lb_PaV_systemsWs_Callback(hObject, eventdata, handles)
 
         displaySystemInformation(handles.sysinfo,sys);
     end
-    
+
 
 function plot_type_Callback(hObject, eventdata, handles)
 
@@ -688,6 +936,74 @@ else
     set(handles.rb_manual,'Enable','on')
 end
 
+%Adapt the values for the selectable objects (frd, fir, etc.)
+
+list = get(handles.lb_PaV_selectedSystems,'String');
+
+switch get(handles.plot_type,'Value')
+    case 1      %Impulse
+        list = removeObjectsFromList(list,'frd');
+        list = removeObjectsFromList(list,'step');
+        list = removeObjectsFromList(list,'pzm');
+        list = removeObjectsFromList(list,'freq');
+        
+        set(handles.panel_PaV_objectsWs,'Title','Fir-objects');
+    case 2      %Step
+        list = removeObjectsFromList(list,'fir');
+        list = removeObjectsFromList(list,'frd');
+        list = removeObjectsFromList(list,'pzm');
+        list = removeObjectsFromList(list,'freq');
+        
+        set(handles.panel_PaV_objectsWs,'Title','Fir-objects');
+    case 3      %Bode
+        list = removeObjectsFromList(list,'fir');
+        list = removeObjectsFromList(list,'step');
+        list = removeObjectsFromList(list,'pzm');
+        list = removeObjectsFromList(list,'freq');
+        
+        set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
+    case 4      %Pole-Zero Map
+        list = removeObjectsFromList(list,'fir');
+        list = removeObjectsFromList(list,'step');
+        list = removeObjectsFromList(list,'frd');
+        list = removeObjectsFromList(list,'freq');
+        
+        set(handles.panel_PaV_objectsWs,'Title','Pzm-objects');
+    case 5      %Frequency Response
+        list = removeObjectsFromList(list,'fir');
+        list = removeObjectsFromList(list,'step');
+        list = removeObjectsFromList(list,'frd');
+        list = removeObjectsFromList(list,'pzm');
+        
+        set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
+end
+
+l_alt = get(handles.lb_PaV_selectedSystems,'String');
+
+if ~isempty(l_alt)
+
+    sOld=l_alt{get(handles.lb_PaV_selectedSystems,'Value')};
+    indexOld=find(strcmp(sOld,list));
+
+    if ~isempty(indexOld)
+        set(handles.lb_PaV_selectedSystems,'Value',indexOld);
+    else
+        set(handles.lb_PaV_selectedSystems,'Value',1);
+    end
+
+else
+  set(handles.lb_PaV_selectedSystems,'Value',1);
+end
+
+if ~isempty(list) && size(list,1) >= 1
+
+    set(handles.lb_PaV_selectedSystems,'String',list)
+
+else
+    set(handles.lb_PaV_selectedSystems,'Value',1);         
+    set(handles.lb_PaV_selectedSystems,'String', {});
+end
+
 
 %Change the variable name for the stored plot-data
 
@@ -697,6 +1013,7 @@ for i = 1:length(handles.plotData)
 end
 
 guidata(hObject,handles);
+pb_PaV_refeshObjects_Callback(handles.pb_PaV_refeshObjects, eventdata, handles)
 lb_PaV_selectedSystems_Callback(handles.lb_PaV_selectedSystems,eventdata,handles);
 
     
@@ -705,10 +1022,14 @@ function rb_auto_Callback(hObject, eventdata, handles)
 set(handles.panel_manual,'Visible','off')
 set(handles.bg_distribution,'Visible','off')
 
+savePlotData(handles);
+
 function rb_manual_Callback(hObject, eventdata, handles)
 % manual choice of time/frequency
 set(handles.panel_manual,'Visible','on')
 set(handles.bg_distribution,'Visible','on')
+
+savePlotData(handles);
 
 function ed_min_Callback(hObject, eventdata, handles)
 % check user input
@@ -718,6 +1039,8 @@ if get(handles.rb_manual,'Value')==0 % manual selected but inactive
     testMax(handles.ed_max,handles)
 end
 
+savePlotData(handles);
+
 function ed_max_Callback(hObject, eventdata, handles)
 % see ed_min_Callback
 testMax(hObject,handles)
@@ -725,6 +1048,8 @@ if get(handles.rb_manual,'Value')==0
     set(handles.rb_manual,'Value',1)
     testMin(handles.ed_min,handles)
 end
+
+savePlotData(handles);
 
 function sl_steps_Callback(hObject, eventdata, handles)
 % round to 100
@@ -747,6 +1072,8 @@ if get(handles.rb_manual,'Value')==0
     testMax(handles.ed_max,handles)
     testMin(handles.ed_min,handles)
 end
+
+savePlotData(handles);
 
 function et_curstep_Callback(hObject, eventdata, handles)
 %Check if the value lies in the allowed interval and update the slider
@@ -774,7 +1101,12 @@ function et_curstep_Callback(hObject, eventdata, handles)
     else
        set(hObject,'String',num2str(get(handles.sl_steps,'Value')));
     end
+    
+    savePlotData(handles);
 
+function bg_distribution_SelectionChangedFcn(hObject, eventdata, handles)
+
+savePlotData(handles);
 
 function pb_plot_Callback(hObject, eventdata, handles)
 %Plot the graph with the choosen systems
@@ -784,7 +1116,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
     set(handles.figure1,'Pointer','watch')
     drawnow();
     
-    try
+    %try
     
         %Read out all choosen systems from workspace
 
@@ -801,11 +1133,9 @@ function pb_plot_Callback(hObject, eventdata, handles)
             sysname = list{i,1};
             sys = evalin('base', sysname);
 
-            if ~isa(sys,'sss')
+            if isa(sys,'ss')
                 try
                     sys = sss(sys);
-                catch ex
-                    error(strcat('System "',sysname,'" is not a valid state space model.'))
                 end
             end
             
@@ -823,7 +1153,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
         %Chosen input- and output- channels for MIMO-systems
         
         for i = 1:size(systemList,1);
-           if systemList{i,2}.isMimo
+           if isa(systemList{i,2},'sss') && systemList{i,2}.isMimo
               in = systemList{i,3}.in;
               out = systemList{i,3}.out;
               if ~strcmp(in,'all') && ~strcmp(out,'all')
@@ -838,35 +1168,42 @@ function pb_plot_Callback(hObject, eventdata, handles)
         
         %Frequency/Time-vector
         
-        if get(handles.rb_auto,'Value')==0
-            
-            if get(handles.ed_min,'UserData')==1
-                error('Please correct minimal frequency/time first');
-            elseif get(handles.ed_max,'UserData')==1
-                error('Please correct maximal frequency/time first');
-            end
-            minimum=str2double(get(handles.ed_min,'String'));
-            maximum=str2double(get(handles.ed_max,'String'));
-            steps=get(handles.sl_steps,'Value');
-            if get(handles.rb_distlin,'Value')==1
-                frequency=linspace(minimum,maximum,steps);
-            elseif get(handles.rb_distlog,'Value')==1
-                %bei logspace muss der kleinste Wert>0 sein
-                if str2double(get(handles.ed_min,'String'))==0
-                    error('Minimum frequency/time must be greater than zero if you choose logarithmical distribution!');
+        for i = 1:size(systemList,1)
+            if isa(systemList{i,2},'sss') && strcmp(systemList{i,3}.resolution,'manual')
+
+                data = systemList{i,3};
+                
+                if isempty(data.min)
+                    error('Please correct minimal frequency/time first');
+                elseif isempty(data.max)
+                    error('Please correct maximal frequency/time first');
                 end
-                frequency=logspace(log10(minimum),log10(maximum),steps);
+                minimum=str2num(data.min);
+                maximum=str2num(data.max);
+                steps=data.steps;
+                if strcmp(data.resolution,'linear')
+                    frequency=linspace(minimum,maximum,steps);
+                else
+                    if minimum <= 0
+                        error('Minimum frequency/time must be greater than zero if you choose logarithmical distribution!')
+                    end
+                    frequency=logspace(log10(minimum),log10(maximum),steps);
+                end
+                
+                systemList{i,6} = frequency;
+            else
+                systemList{i,6} = [];
             end
         end
         
         %Plot-style
-        
-        if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
            
-            for i = 1:size(systemList,1)
-               
+        for i = 1:size(systemList,1)
+
+            if strcmp(systemList{i,3}.plotStyle,'manual')
+            
                 switch systemList{i,3}.lineStyle;
-                   
+
                     case 1
                         lineStyle = '-';
                     case 2
@@ -876,9 +1213,9 @@ function pb_plot_Callback(hObject, eventdata, handles)
                     case 4
                         lineStyle = '.-';                    
                 end
-                
+
                 switch systemList{i,3}.color
-                   
+
                     case 1
                         color = 'b';
                     case 2
@@ -894,10 +1231,48 @@ function pb_plot_Callback(hObject, eventdata, handles)
                     case 7
                         color = 'y';                   
                 end
-
-                systemList{i,4} = strcat(lineStyle,color);                
-            end         
-        end
+                
+                switch systemList{i,3}.markerType
+                  
+                    case 1
+                        markerType = '';
+                    case 2
+                        markerType = '+';
+                    case 3
+                        markerType = 'o';
+                    case 4
+                        markerType = '*';
+                    case 5
+                        markerType = '.';
+                    case 6
+                        markerType = 'x';
+                    case 7
+                        markerType = 's';
+                    case 8
+                        markerType = 'd';
+                    case 9
+                        markerType = '^';
+                    case 10
+                        markerType = 'v';
+                    case 11
+                        markerType = '>';
+                    case 12
+                        markerType = '<';
+                    case 13
+                        markerType = 'p';
+                    case 14
+                        markerType = 'h';
+                end
+                
+                if strcmp(markerType,'')
+                   systemList{i,4} = strcat(lineStyle,color);
+                else
+                   systemList{i,4} = strcat(lineStyle,markerType,color);
+                end
+            else
+                systemList{i,4} = [];
+            end
+        end         
         
         %Graph-Type
         
@@ -936,10 +1311,14 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 set(figureHandles,'Name','Bode Diagram');
                 
                 for i = 1:size(systemList,1)
-                   if get(handles.rb_auto,'Value')==0
-                       systemList{i,5} = bode(systemList{i,2},frequency,struct('frd',1));
+                   if isa(systemList{i,2},'sss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                            systemList{i,5} = bode(systemList{i,2},systemList{i,6},struct('frd',1));
+                       else
+                            systemList{i,5} = bode(systemList{i,2},struct('frd',1));
+                       end
                    else
-                       systemList{i,5} = bode(systemList{i,2},struct('frd',1));
+                       systemList{i,5} = systemList{i,2}; 
                    end
                 end
                 
@@ -1054,15 +1433,16 @@ function pb_plot_Callback(hObject, eventdata, handles)
         
         %Legend
         
-        if get(handles.rb_PaV_plotStyle_manual,'Value')
-           legendText = {};
-           for i = 1:size(systemList,1)
-              legendText{i,1} = systemList{i,3}.legendText;
-              legend(legendText);
-           end
-        else
-           legend show; 
+        l = legend('show');
+        legendText = get(l,'String');
+        
+        for i = 1:size(systemList,1)
+           if strcmp(systemList{i,3}.plotStyle,'manual')
+               legendText{i,1} = systemList{i,3}.legendText;
+           end            
         end
+        
+        set(l,'String',legendText);
         
         %Save Data
         
@@ -1076,14 +1456,14 @@ function pb_plot_Callback(hObject, eventdata, handles)
         set(hObject,'Enable','on')
         set(handles.figure1,'Pointer','arrow')
     
-    catch ex
-        errordlg(ex.message,'Error Dialog','modal');
-        uiwait
-        set(hObject,'String','Plot')
-        set(hObject,'Enable','on')
-        set(handles.figure1,'Pointer','arrow')
-        return
-    end
+%     catch ex
+%         errordlg(ex.message,'Error Dialog','modal');
+%         uiwait
+%         set(hObject,'String','Plot')
+%         set(hObject,'Enable','on')
+%         set(handles.figure1,'Pointer','arrow')
+%         return
+%     end
 
 % % plot
 % set(hObject,'String','Busy')
@@ -2328,7 +2708,6 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     else
       set(handles.lb_PaV_systemsWs,'Value',1);
     end
-      
     
     %System Analysis
 
@@ -5009,10 +5388,12 @@ if isempty(h)
     errordlg('Max must be greater than Min. Use ''.'' as decimal seperator. Don''t use characters','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
+    set(hObject,'String','')
 elseif imag(h)~=0
     errordlg('No imaginary numbers allowed','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
+    set(hObject,'String','')
 elseif length(h)>1
     if length(h)==2
         h=sprintf('%i.%i',round(h(1)),round(h(2)));
@@ -5023,14 +5404,17 @@ elseif length(h)>1
     errordlg('Use ''.'' as decimal seperator','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
+    set(hObject,'String','')
 elseif h<0
     errordlg('Max must not be less than zero','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
+    set(hObject,'String','')
 elseif h<= str2num(get(handles.ed_min,'String')) %#ok<ST2NM>
     errordlg('Max must be greater than Min','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
+    set(hObject,'String','')
 else
     set(hObject,'UserData',0)
 end
@@ -5042,10 +5426,12 @@ if isempty(h)
     errordlg('The minimal frequency must be greater than zero. Use ''.'' as decimal seperator. Don''t use characters','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
+    set(hObject,'String','')
 elseif imag(h)~=0
     errordlg('No imaginary numbers allowed','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
+    set(hObject,'String','')
 elseif length(h)>1
     if length(h)==2
         h=sprintf('%i.%i',round(h(1)),round(h(2)));
@@ -5056,10 +5442,12 @@ elseif length(h)>1
     errordlg('Use ''.'' as decimal seperator','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
+    set(hObject,'String','')
 elseif h<0
     errordlg('The minimal frequency must not be less than zero','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
+    set(hObject,'String','')
 else
     set(hObject,'UserData',0)
 end
@@ -5670,6 +6058,24 @@ if ~strcmp(class(sys), 'sss')
     sys=sss(sys);
 end
 
+function x = listClassesInWorkspace(class)
+%Finds and lists all objects of the given class from workspace
+
+    % read all variable names
+    s=evalin('base', 'whos');
+    % preallocate memory
+    x=cell(length(s),1);
+    for i=1:length(s)
+        if strcmp(s(i).class,class) && ...
+            ~strcmp(s(i).name,'load_var_dont_destroy') && ...
+            ~strcmp(s(i).name,'GUI_dont_destroy')
+            % save name
+            x{i}=s(i).name;
+        end
+    end
+    
+    % remove empty (non-system) entries
+    x(cellfun(@isempty,x)) = []; 
 
 %Auxiliary-functions for plotting 
 
@@ -5709,18 +6115,7 @@ function [legendText] = suggestDefaultLegendText(handles,sysName,isMimo)
 
     if ~isempty(sysName)
 
-        %Delete 'sys_' from the name
-
-        if strncmpi(sysName,'sys_', 4) && length(sysName) > 4
-            sysName = sysName(5:end);
-        end
-
-        %Replace the _'s in the string (because of latex interpreter)
-
-        legendText = strrep(sysName,'_',' ');
-        
-        %Add the selected input and output channels to the legendText for
-        %Mimo systems
+        %Find the stored data for this system
         
         data = [];
         
@@ -5731,29 +6126,24 @@ function [legendText] = suggestDefaultLegendText(handles,sysName,isMimo)
            end
         end
         
-        mimo = 0;
+        %Replace the _'s in the string (because of latex interpreter)
+
+        legendText = strrep(sysName,'_',' ');
         
-        if ~isempty(isMimo) && isMimo == 1 
-           mimo = 1; 
-        elseif ~isempty(data)            
-           if ~isempty(data.in) || ~isempty(data.out)
-                mimo = 1;
-           end
-        end
+        %Add the selected input and output channels to the legendText for
+        %Mimo systems
         
-        if mimo    %MIMO
-           
-            x = get(handles.pu_in,'String');
-            in = x{get(handles.pu_in,'Value')};
+        if ~isempty(data)
+            if ~isempty(data.sizeInputs) || ~isempty(data.sizeOutputs)    %MIMO
 
-            x = get(handles.pu_out,'String');
-            out = x{get(handles.pu_out,'Value')};
+                in = data.in;
+                out = data.out;
 
-            if ~strcmp(in,'all') && ~strcmp(out,'all')
-               legendText = strcat(legendText,'_{In(',in,'),Out(',out,')}');
-            end
+                if ~strcmp(in,'all') && ~strcmp(out,'all')
+                   legendText = strcat(legendText,' (In: ',in,' Out: ',out,')');
+                end
+            end     
         end
-
     end
     
 function [variableName] = suggestPlotDataName(handles,sysName)
@@ -5802,7 +6192,7 @@ function [variableName] = suggestPlotDataName(handles,sysName)
         
     variableName = newName;
      
-function [] = savePlotData(handles)
+function handles = savePlotData(handles)
 %This function saves the values for the plot options of the currently
 %selected system in the list (handles.lb_PaV_selectedSystems)
 
@@ -5819,25 +6209,56 @@ function [] = savePlotData(handles)
        
        if strcmp(get(handles.panel_intoout,'Visible'),'on')
           listTemp = get(handles.pu_in,'String');
-          data.in = listTemp{get(handles.pu_in,'Value')};
+          data.in = listTemp{get(handles.pu_in,'Value'),1};
           listTemp = get(handles.pu_out,'String');
-          data.out = listTemp{get(handles.pu_out,'Value')};
+          data.out = listTemp{get(handles.pu_out,'Value'),1};
        else
           data.in = [];
           data.out = [];
        end
        
        data.save = get(handles.cb_PaV_SaveData,'Value');
-       
-       if data.save == 1
-          data.variableName = get(handles.et_PaV_saveData,'String');
-       else
-          data.variableName = [];
-       end
+       data.variableName = get(handles.et_PaV_saveData,'String');
         
        data.color = get(handles.pu_PaV_color,'Value');
        data.lineStyle = get(handles.pu_PaV_lineStyle,'Value');
        data.legendText = get(handles.ed_legend,'String');
+       data.markerType = get(handles.pu_PaV_plotStyle_marker,'Value');
+       
+       if get(handles.rb_PaV_plotStyle_manual,'Value')
+          data.plotStyle = 'manual'; 
+       else
+          data.plotStyle = 'auto';
+       end
+       
+       if strcmp(get(handles.cb_PaV_SaveData,'Visible'),'on')   %System
+          if get(handles.rb_manual,'Value')
+               data.resolution = 'manual'; 
+
+               if get(handles.rb_distlin,'Value')
+                  data.distribution = 'linear';
+               else
+                  data.distribution = 'logarithmic'; 
+               end
+
+               data.min = get(handles.ed_min,'String');
+               data.max = get(handles.ed_max,'String');
+               data.steps = get(handles.sl_steps,'Value');
+          else
+             data.resolution = 'auto';
+          end
+       else                                                     %Object
+          data.resolution = []; 
+          
+          data.save = [];
+          data.variableName = [];
+          
+          data.distribution = []; 
+          data.min = [];
+          data.max = [];
+          data.steps = [];
+          
+       end
        
        %Check if there exists stored data for this system
        
@@ -5846,8 +6267,25 @@ function [] = savePlotData(handles)
        else
           for i = 1:length(handles.plotData)
               if strcmp(systemName,handles.plotData{i,1}.name)
+                  
                  data.sizeInputs = handles.plotData{i,1}.sizeInputs;
                  data.sizeOutputs = handles.plotData{i,1}.sizeOutputs;
+                 data.isSystem = handles.plotData{i,1}.isSystem;
+                 
+                 if strcmp(data.plotStyle,'auto')
+                    data.color =  handles.plotData{i,1}.color;
+                    data.markerType = handles.plotData{i,1}.markerType;
+                    data.lineStyle = handles.plotData{i,1}.lineStyle;
+                    data.legendText = handles.plotData{i,1}.legendText;
+                 end
+                 
+                 if strcmp(data.resolution,'auto')
+                    data.distribution = handles.plotData{i,1}.distribution; 
+                    data.min = handles.plotData{i,1}.min;
+                    data.max = handles.plotData{i,1}.max;
+                    data.steps = handles.plotData{i,1}.steps;
+                 end
+                 
                  handles.plotData{i,1} = data;
                  guidata(handles.lb_PaV_selectedSystems,handles);
                  return;
@@ -5861,54 +6299,32 @@ function [] = savePlotData(handles)
        guidata(handles.lb_PaV_selectedSystems,handles)
         
     end
+    
+function x = removeObjectsFromList(list,class)
+%Removes all objects that are from the given class from the given list
 
+    if ~isempty(list)
 
+        if size(list,1) < size(list,2)
+           list = list'; 
+        end
 
+        for i = 1:length(list) 
+            
+            try
+               object = evalin('base',list{i,1});
+               
+               if isa(object,class)
+                    list{i,1} = [];
+               end
+            end     
+        end
 
+        x = list;
 
+        x(cellfun(@isempty,x)) = [];
+    
+    else
+       x = list; 
+    end
 
-% --- Executes on selection change in pu_PaV_plotStyle_marker.
-function pu_PaV_plotStyle_marker_Callback(hObject, eventdata, handles)
-% hObject    handle to pu_PaV_plotStyle_marker (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns pu_PaV_plotStyle_marker contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from pu_PaV_plotStyle_marker
-
-
-% --- Executes during object creation, after setting all properties.
-function pu_PaV_plotStyle_marker_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to pu_PaV_plotStyle_marker (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on selection change in lb_PaV_objectsWs.
-function lb_PaV_objectsWs_Callback(hObject, eventdata, handles)
-% hObject    handle to lb_PaV_objectsWs (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns lb_PaV_objectsWs contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from lb_PaV_objectsWs
-
-
-% --- Executes on button press in pb_PaV_refeshObjects.
-function pb_PaV_refeshObjects_Callback(hObject, eventdata, handles)
-% hObject    handle to pb_PaV_refeshObjects (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --- Executes on button press in pb_PaV_moveObjects.
-function pb_PaV_moveObjects_Callback(hObject, eventdata, handles)
-% hObject    handle to pb_PaV_moveObjects (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
