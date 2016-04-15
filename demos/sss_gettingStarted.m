@@ -1,4 +1,4 @@
-function  sss_gettingStarted
+function  sss_gettingStarted(Opts)
 % SSS_GETTINGSTARTED - Introductory demo to sss toolbox 
 % 
 % Syntax:
@@ -32,8 +32,23 @@ function  sss_gettingStarted
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
+%% Options
+Def.pause=true; % pause (true/false)
+Def.test=false; % testing, no inputs required (true/false)
+
+if ~exist('Opts','var') || isempty(Opts)
+    Opts = Def;
+else
+    Opts = parseOpts(Opts,Def);
+end
+
+if Opts.test
+    Opts.pause=false;
+end
+
 %%  Initialization
-clear, clc
+clearvars -except Opts 
+clc
 warning('off','all');
 fprintf('Starting demo execution: sss_gettingStarted...\n\n'); 
 
@@ -60,13 +75,13 @@ try kDouble = 0; while 1, kDouble = kDouble+1; bla = eye(10^kDouble); end
 catch err; end
 try kSparse = 0; while 1, kSparse = kSparse+1; bla = speye(10^kSparse); end     
 catch err; end
-customPause
+customPause(Opts)
 
 fprintf('For example, on your computer the maximum size an identity\n');
 fprintf('matrix can have if stored as...\n');
 fprintf('\t... "full" is 10^%i\n',kDouble);
 fprintf('\t... sparse is 10^%i.\n',kSparse);
-customPause
+customPause(Opts)
 
 fprintf('Unfortunately, the Control System Toolbox in MATLAB, in particular\n');
 fprintf('state space (ss or dss) objects, do not support sparse matrices.\n');
@@ -75,24 +90,24 @@ fprintf('system matrices as "full" is not possible and/or desirable,\n');
 fprintf('the basic system analysis functions such as bode, bodemag, eig \n');
 fprintf('freqresp etc., but even model reduction functions as balred, \n');
 fprintf('balancmr, modred etc., cannot be used. \n')
-customPause
+customPause(Opts)
 
 fprintf('sss includes the definition of sparse state-space (sss) objects\n');
 fprintf('as well as the sparsity and large-scale-optimized implementation of\n');
 fprintf('some of the most common function for dynamic systems objects.\n');
-customPause
+customPause(Opts)
 
 fprintf('\nLet us begin with an example that illustrates the capabilities \n');
 fprintf('of the sss toolbox and in particular sss-objects.\n');
 
 %   *Selection of a benchmark model
-[sysName,A,B,C,D,E] = selectModel;
+[sysName,A,B,C,D,E] = selectModel(Opts);
 
 %   *Display some information on the model
 fprintf('\nYou chose the "%s" model. \n',sysName);
 % fprintf('The order of the model is %i. \n',size(A,1));
 % fprintf('The model has %i input(s) and %i output(s). \n',size(B,2), size(C,1));
-% customPause
+% customPause(Opts)(Opts)
 
 
 %   *Create an sss-object sys
@@ -100,7 +115,7 @@ fprintf('\nThe dynamics of the system are described by the explicit\n');
 fprintf('state-space realization with sparse matrices:\n');
 fprintf('\t    d/dt(x) = A x + B u\n');
 fprintf('\t         y  = C x + D u\n');
-customPause
+customPause(Opts)
 
 fprintf('Using sss, the dynamic system can be stored as sss-object calling:\n');
 fprintf('>> sys = sss(A,B,C,D,E)\n');
@@ -112,19 +127,19 @@ W = whos('sys','sysDss');
 storagePerc = W(1).bytes/W(2).bytes*100;
 fprintf('(Note that the storage required for the sss-object is %03.2f%% \n',storagePerc);
 fprintf('of the one needed for the respective ss-object.)\n');
-customPause
+customPause(Opts)
 
 fprintf('To display some information about the model, use:\n');
 fprintf('>> disp(sys)\n');
 disp(sys)
-customPause
+customPause(Opts)
 
 fprintf('The sparsity pattern of E and A can be plotted by calling\n');
 fprintf('>> spy(sys)\n');
 fprintf('\t\tor\n');
 fprintf('>> spy(sys.E, sys.A)\n');
 spy(sys);
-customPause
+customPause(Opts)
 
 %*  Bode plot
 fprintf('Another function that can be useful to analyze the dynamic\n');
@@ -136,7 +151,7 @@ figure; tic;bode(sys);tBodeSss = toc;
 % tBodePerc = tBodeSss/tBodeSs*100;
 % fprintf('(Note that the time required to plot the sss-object is %03.2f%% \n',tBodePerc);
 % fprintf('of the one needed for the respective ss-object.)\n');
-customPause
+customPause(Opts)
 
 %*  System norms
 %H2
@@ -167,7 +182,7 @@ fprintf('\trespective ss-object.)\n');
 % fprintf('\t(Note that the time required to compute the norm of the\n');
 % fprintf('\tsss-object is %03.2f%% of the one needed for the\n',tHInfPerc);
 % fprintf('\trespective ss-object.)\n');
-customPause
+customPause(Opts)
 
 %*  Time domain analysis.
 fprintf('Often times we wish to analyze the dynamic response of the \n');
@@ -180,7 +195,7 @@ figure;tic; step(sys);tStepSss = toc;
 tStepPerc = tStepSss/tStepSs*100;
 fprintf('(Note that the time required to plot the sss-object is %03.2f%% \n',tStepPerc);
 fprintf('of the one needed for the respective ss-object.)\n');
-customPause
+customPause(Opts)
 
 rule
 fprintf('This was just a short introduction to sss-objects and their usage.\n');
@@ -204,17 +219,23 @@ function rule
 fprintf('--------------------------------------------------------------\n');
 end
 
-function customPause
-fprintf('\n');
+function customPause(Opts)
+if Opts.pause
+fprintf('\nPlease press any key to continue...\n');
 pause
 end
+end
 
-function [sysName,A,B,C,D,E] = selectModel
+function [sysName,A,B,C,D,E] = selectModel(Opts)
 %   *Selection of a benchmark model
 fprintf(['Choose one of the following benchmark models by pressing...\n',...
                 '\t "1" \t ..for the Los Angeles Hospital model (N=48)\n',...
                 '\t "2" \t ..for a 1D linear beam model (N=348)\n']);
-modelChosen = input('Model choice: ');
+if Opts.test
+    modelChosen=1;
+else
+    modelChosen = input('Model choice: ');
+end
 
 if isempty(modelChosen),modelChosen = 0;end
 isValid = 0;
