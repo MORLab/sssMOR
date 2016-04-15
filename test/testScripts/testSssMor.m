@@ -23,9 +23,6 @@ function result = testSssMor(Opts)
 
 import matlab.unittest.TestSuite;
 
-%%  Change to testScripts folder
-testCase.Path = pwd; %original
-
 %% Choose benchmarks
 % Default benchmarks
 Def.cond = 'good'; % condition of benchmarks: 'good','bad','all'
@@ -46,32 +43,30 @@ end
 
 % sssMor testScripts
 p = mfilename('fullpath'); k = strfind(p, fullfile(filesep,'test')); 
-testpathSssMor = p(1:k(end)-1);
+testPathSssMor = p(1:k(end)-1);
 
-% load benchmarks and change to folder 'testScripts'
+% load benchmarks
 if Opts.loadBench == 1
-    testpathSss=loadBenchmarks(Opts);
+    testPathSss=loadBenchmarks(Opts);
 end
-
-cd(testpathSssMor);
 
 %% Test specific unittest-files
 % Classic MOR:
-suiteClassic = [TestSuite.fromFile('testArnoldi.m'),...
-                TestSuite.fromFile('testRk.m'),...
-                TestSuite.fromFile('testIrka.m'),...
-                TestSuite.fromFile('testIsH2opt.m'),...
-                TestSuite.fromFile('testTbr.m'), ...
-                TestSuite.fromFile('testModal.m'),... 
-                TestSuite.fromFile('testMoments.m'),... 
-                TestSuite.fromFile('testMoments.m')]; 
+suiteClassic = [TestSuite.fromFile(fullfile(testPathSssMor,'testArnoldi.m')),...
+                TestSuite.fromFile(fullfile(testPathSssMor,'testDemoSssMor.m')),...
+                TestSuite.fromFile(fullfile(testPathSssMor,'testIrka.m')),...
+                TestSuite.fromFile(fullfile(testPathSssMor,'testIsH2opt.m')),...
+                TestSuite.fromFile(fullfile(testPathSssMor,'testModal.m')),... 
+                TestSuite.fromFile(fullfile(testPathSssMor,'testMoments.m')),...
+                TestSuite.fromFile(fullfile(testPathSssMor,'testRk.m')),...
+                TestSuite.fromFile(fullfile(testPathSssMor,'testTbr.m'))]; 
 
 
 % State of the art MOR:
-suiteStateOfTheArt = [TestSuite.fromFile('testSylvester.m'),...
-                      TestSuite.fromFile('testPork.m'),...
-                      TestSuite.fromFile('testSpark.m'),...
-                      TestSuite.fromFile('testCure.m')];
+suiteStateOfTheArt = [TestSuite.fromFile(fullfile(testPathSssMor,'testSylvester.m')),...
+                      TestSuite.fromFile(fullfile(testPathSssMor,'testPork.m')),...
+                      TestSuite.fromFile(fullfile(testPathSssMor,'testSpark.m')),...
+                      TestSuite.fromFile(fullfile(testPathSssMor,'testCure.m'))];
 
 suiteAll=[suiteClassic, suiteStateOfTheArt];
 
@@ -81,11 +76,7 @@ eval(sprintf('result = run(%s);',Opts.suite));
 disp(result);
 
 if Opts.loadBench==1
-    cd(testpathSss);
-	('benchmarksSysCell.mat');
+	(fullfile(testPathSss,'benchmarksSysCell.mat'));
 end
-
-%% Go back to original folder
-cd(testCase.Path);
 end
 

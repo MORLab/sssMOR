@@ -38,7 +38,7 @@ else
     Opts.loadBench = 0;
 end
 
-loadBenchmarks(Opts);
+testPath=loadBenchmarks(Opts);
 
 % Run testSssMor
 disp([10,'Testing SSSMOR...']);
@@ -54,6 +54,6 @@ disp(resultSss);
 disp(table(resultSss));
 result={resultSssMor, resultSss};
 
-delete('benchmarksSysCell.mat');
+delete(fullfile(testPath,'benchmarksSysCell.mat'));
 end
 
