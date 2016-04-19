@@ -240,6 +240,7 @@ if strcmp(Opts.type,'adi')
 
         if ~(sys.isSym && norm(full(sys.B-sys.C'))==0) && qminR<q
             qminL=q;
+            nStop=0;
             for i=1:length(Lout.rc)
                 if Lout.rc(i)<1e-9
                     nStop=nStop+1;
@@ -256,22 +257,8 @@ if strcmp(Opts.type,'adi')
         end
         q_min_in=max(qminR,qminL);
         
-        if Rout.niter<q || Lout.niter<q
-            if strcmp(Opts.warnOrError,'error')
-                error(['Desired reduction order not reached. A smaller ',...
-                    'reduction order of q = ', num2str(q_min_in,'%d'), ' is '...
-                    'suggested, because then the contribution of the ADI '...
-                    'iterates was very small.']);
-            elseif strcmp(Opts.warnOrError,'warn')
-                warning(['Desired reduction order not reached. A smaller ',...
-                    'reduction order of q = ', num2str(q_min_in,'%d'), ' is '...
-                    'suggested, because then the contribution of the ADI '...
-                    'iterates was very small.']);
-            end
-        end
-        
         if q_min_in>0 && q_min_in < q && strcmp(Opts.warnOrError,'warn')
-        warning(['After q=', num2str(q_min_in,'%d'),...
+            warning(['After q=', num2str(q_min_in,'%d'),...
             ' the contribution of the ADI iterates was very small.']);
         end
     end
