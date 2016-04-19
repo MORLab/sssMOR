@@ -247,7 +247,7 @@ end
 % Compute the Krylov subspaces
 if hermite
     [V, Sv, Rv, W, Sw, Lw] = krylovSubspace(s0, q);
-    Sw=Sw';
+    Sw=Sw.';
 else
     [V, Sv, Rv] = krylovSubspace(s0, q);
 end
