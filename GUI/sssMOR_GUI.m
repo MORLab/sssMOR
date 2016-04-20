@@ -2384,7 +2384,8 @@ function pb_load_Callback(hObject, eventdata, handles)
             
         catch
             
-            msgbox('Error while evaluating function loadSss','Error','error');
+            msgbox({'Error while evaluating function loadSss.', ...
+                'Try to load the matrices and then compose the model.'},'Error','error');
             loadingSuccessfull = 0;
             
         end      
@@ -2430,13 +2431,26 @@ function pb_readascii_Callback(hObject, eventdata, handles)
     else
         suggestion=[];
     end
-    matname=entermatrixname(suggestion);
+    matname=inputdlg({'Please enter a name for the selected matrix:'},'Input',...
+                    1,{suggestion});
     if isempty(matname)
-        return
+        errordlg('The choosen name is not a valid variable name.','Error Dialog','modal')
+        uiwait
+        return        
+    else
+        if ~isvarname(matname{1,1})
+            errordlg('The choosen name is not a valid variable name.','Error Dialog','modal')
+            uiwait
+            return
+        elseif existInBaseWs(matname{1,1})==1
+            errordlg('There already exists a varible with this name in the workspace.','Error Dialog','modal')
+            uiwait
+            return
+        end
     end
     % import matrix
     try
-        A=readMatrixMarket([path filename]);
+        A=readMatrixMarket(strcat(path,filename));
     catch ex
         errordlg(ex.message,'Error Dialog','modal') 
         uiwait
@@ -2447,7 +2461,7 @@ function pb_readascii_Callback(hObject, eventdata, handles)
         uiwait
         return
     end
-    assignin('base',matname,A)
+    assignin('base',matname{1,1},A)
     msgbox('Matrix was loaded to workspace.','Information','modal')
     uiwait
     pb_refreshlb_Callback(hObject, eventdata, handles)
