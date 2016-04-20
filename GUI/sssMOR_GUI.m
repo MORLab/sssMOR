@@ -295,7 +295,8 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
 %Callbacks of the panel
 
 function logo_tum_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
-    % load TUM logo
+    %load TUM logo
+    addRelativePaths();
     A=imread('pictures\Heading.png');
     h=image(A);
     set(h,'HitTest','off')
@@ -389,6 +390,7 @@ function pb_about_Callback(hObject, eventdata, handles)
 
 function logo_about_CreateFcn(hObject, eventdata, handles)
     % load About logo
+    addRelativePaths();
     A=imread('pictures\MOR.jpg');
     image(A);
     set(hObject,'YDir','reverse');
@@ -5246,7 +5248,8 @@ function pb_an_compare_hinf_info_Callback(hObject, eventdata, handles)
 
 function logos_footer_CreateFcn(hObject, eventdata, handles)
     %Load the bitmap with the logos
-
+    
+    addRelativePaths();
     A=imread('Pictures\Footer.png');
     h=image(A);
     set(h,'HitTest','off');
@@ -6471,4 +6474,20 @@ function x = removeObjectsFromList(list,class)
        x = list; 
     end
 
-
+function [] = addRelativePaths()
+%Add the subfolder from the GUI-folder-structure to the search-paths
+    
+    guiPath = which('sssMOR_GUI.m');
+    pathArray = strsplit(guiPath,'\');
+    path = '';
+    
+    for i = 1:(size(pathArray,2)-1)
+       
+        if i > 1
+           path = strcat(path,'\',pathArray{1,i});
+        else
+           path = strcat(path,pathArray{1,i}); 
+        end       
+    end
+    
+    addpath(genpath(path));
