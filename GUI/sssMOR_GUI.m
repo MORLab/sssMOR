@@ -2717,12 +2717,12 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
     % set max of slider to system order
     if get(handles.sl_mor_q,'Value') > sys.n || ... 
        str2double(get(handles.ed_mor_q,'String')) > sys.n
-        if get(handles.rb_mor_krylov_multi,'Value')==1
-            warndlg('Order of reduced system must not be greater than order of original system.','Warning','modal')
-            uiwait
-        end
-        set(handles.sl_mor_q,'Value',1)
-        set(handles.ed_mor_q,'String','1')
+   
+       warndlg('Order of reduced system must not be greater than order of original system.','Warning','modal')
+       uiwait
+       
+       set(handles.sl_mor_q,'Value',1)
+       set(handles.ed_mor_q,'String','1')
     end
     
     displaySystemInformation(handles.st_mor_sysinfo,sys);
@@ -2766,13 +2766,34 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
         setKrylovDefaultValues(handles);
     end
     
+    %If TBR is selected, check wether the HSV for this system have been
+    %calculated already
+    
+    if get(handles.pu_mor_method,'Value')==1
+        
+        x = get(handles.pu_mor_systems,'String');
+        y = x{get(handles.pu_mor_systems,'Value')};
+
+        if ~isempty(y)
+            try
+               sys = evalin('base', y);
+
+               if ~isempty(sys.HankelSingularValues)
+                   updateTBR(handles.pb_mor_hsv,eventdata,handles);
+               else
+                   set(handles.panel_mor_hsv,'Visible','off');
+               end 
+            catch ex
+                set(handles.panel_mor_hsv,'Visible','off');
+            end
+        else
+           set(handles.panel_mor_hsv,'Visible','off');
+        end        
+    end
     
     % suggest names for reduced system and projection matrices
     
-    suggestNamesMOR(y,handles);
-
-    % hide plot of Hankel Singular Values
-    set(handles.panel_mor_hsv,'Visible','off');    
+    suggestNamesMOR(y,handles);    
 
 function pb_refreshsys_Callback(hObject, eventdata, handles)
 
@@ -2971,6 +2992,31 @@ if get(hObject,'Value')==1
     set(handles.uipanel_mor_saveHsv,'Visible','on');
 else
     set(handles.uipanel_mor_saveHsv,'Visible','off');
+end
+
+%If TBR is selected, check wether the HSV for this system have been
+%calculated already
+    
+if get(handles.pu_mor_method,'Value')==1
+
+    x = get(handles.pu_mor_systems,'String');
+    y = x{get(handles.pu_mor_systems,'Value')};
+
+    if ~isempty(y)
+        try
+           sys = evalin('base', y);
+
+           if ~isempty(sys.HankelSingularValues)
+               updateTBR(handles.pb_mor_hsv,eventdata,handles);
+           else
+               set(handles.panel_mor_hsv,'Visible','off');
+           end 
+        catch ex
+            set(handles.panel_mor_hsv,'Visible','off');
+        end
+    else
+       set(handles.panel_mor_hsv,'Visible','off');
+    end        
 end
 
 %If Krylov is selected, the reduced order can't be specified by the slider 
@@ -3627,7 +3673,6 @@ function updateTBR(hObject, eventdata, handles)
     q=get(handles.sl_mor_q,'Value');
     
     if get(handles.pu_mor_method,'Value')==1 && ~isempty(sys.HankelSingularValues)
-        
         %Calculate the signal-norms H_1 and H_inf
         
         e=2*sum(sys.HankelSingularValues((q+1):end));
@@ -6094,47 +6139,47 @@ function [] = suggestNamesMOR(sysName,handles)
     
     if ~isempty(sysName)
 
-    splittedString = strsplit(sysName,'_');
-    
-    if length(splittedString) >= 2
-        
-       name = char(strcat('sysr_',splittedString(1,2)));
-       
-    else
-        
-        name = char(strcat('sysr_',sysName));
-        
-    end
-    
-    %Get the selected reduction method 
-    
-    if get(handles.pu_mor_method,'Value') == 1
-        
-        method = 'tbr';
-        
-    elseif get(handles.pu_mor_method,'Value') == 2
-        
-        method = 'modal';
-        
-    elseif get(handles.pu_mor_krylov_algorithm,'Value') == 1
-        
-        method = 'irka';
-        
-    else
-        
-        method = 'rk';
-        
-    end
-    
-    name = strcat(name,'_',method);
-    
-    %Set the names to the text-fields of the GUI-objects
-    
-    suggestVarname(name,handles.ed_mor_sysred);
-    suggestVarname(sprintf('%s_w',name),handles.ed_mor_w);
-    suggestVarname(sprintf('%s_v',name),handles.ed_mor_v);
-    suggestVarname(sprintf('%s_shifts',name),handles.ed_mor_saveShifts);
-    suggestVarname(sprintf('%s_hsv',name),handles.ed_mor_saveHsv);
+        splittedString = strsplit(sysName,'_');
+
+        if length(splittedString) >= 2
+
+           name = char(strcat('sysr_',splittedString(1,2)));
+
+        else
+
+            name = char(strcat('sysr_',sysName));
+
+        end
+
+        %Get the selected reduction method 
+
+        if get(handles.pu_mor_method,'Value') == 1
+
+            method = 'tbr';
+
+        elseif get(handles.pu_mor_method,'Value') == 2
+
+            method = 'modal';
+
+        elseif get(handles.pu_mor_krylov_algorithm,'Value') == 1
+
+            method = 'irka';
+
+        else
+
+            method = 'rk';
+
+        end
+
+        name = strcat(name,'_',method);
+
+        %Set the names to the text-fields of the GUI-objects
+
+        suggestVarname(name,handles.ed_mor_sysred);
+        suggestVarname(sprintf('%s_w',name),handles.ed_mor_w);
+        suggestVarname(sprintf('%s_v',name),handles.ed_mor_v);
+        suggestVarname(sprintf('%s_shifts',name),handles.ed_mor_saveShifts);
+        suggestVarname(sprintf('%s_hsv',sysName),handles.ed_mor_saveHsv);
     
     else
        
@@ -6223,6 +6268,7 @@ function x = listClassesInWorkspace(class)
     % remove empty (non-system) entries
     x(cellfun(@isempty,x)) = []; 
 
+    
 %Auxiliary-functions for plotting 
 
 function c = plotOutput2cell(data)
