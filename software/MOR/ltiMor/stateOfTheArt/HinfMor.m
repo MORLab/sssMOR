@@ -175,15 +175,17 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
         case 'normOptCycle'
             % running optimization wr to each entry of D individually
             % the cost function takes into account the whole MIMO system
-            DrOpt = DrInit(Opts.DrInit); HinfVec = norm(sysm-sysr0,Inf); tOpt = 0;
+%             keyboard
+            DrOpt = DrInit(Opts.DrInit); HinfVec = norm(ss(sysm-sysr0),Inf); tOpt = 0;
             nCycles = 3; cycleCount = 0; stop = 0; %max number of cycles defined
             while cycleCount < nCycles && ~stop;
             cycleCount = cycleCount+1;
             for iOut = 1:sys.p
                 for jIn = 1:sys.m
                     Dr0 = DrOpt(iOut,jIn);
-                    cost = @(Dr) norm(sysm-sysrfun(Dr,iOut,jIn,DrOpt),Inf);
-                    [DrOptCurr, Hinf,tOptCurr] = normOpt(Dr0,cost);
+                    cost = @(Dr) norm(ss(sysm-sysrfun(Dr,iOut,jIn,DrOpt)),Inf);
+                    constr = @(Dr) stabilityConstraintCycle(Dr,iOut,jIn,DrOpt);
+                    [DrOptCurr, Hinf,tOptCurr] = normOpt(Dr0,cost,constr);
                     tOpt = tOpt+tOptCurr;
                     DrOpt(iOut,jIn) = DrOptCurr;
                     HinfVec = [HinfVec, Hinf];
@@ -239,13 +241,16 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
     
     %   See how the cost behaves around the chosen minimum?
     if Opts.plotCostOverDr
-        nStep = 20; kRange = 6;
+        nStep = 20; kRange = 5;
         if isscalar(DrOpt) %SISO
             DrRange = linspace(DrOpt*(1-kRange),DrOpt*(1+kRange), nStep); 
         elseif any (size(DrOpt) == 1) % SIMO or MISO
             DrRange = cell(size(DrOpt)); %get the right size
-            DrRange1 = linspace(DrOpt(1)*(1-kRange),DrOpt(1)*(1+kRange), nStep);
-            DrRange2 = linspace(DrOpt(2)*(1-kRange),DrOpt(2)*(1+kRange), nStep);
+%             DrRange1 = linspace(DrOpt(1)*(1-kRange),DrOpt(1)*(1+kRange), nStep);
+%             DrRange2 = linspace(DrOpt(2)*(1-kRange),DrOpt(2)*(1+kRange), nStep);
+            DrRange1 = linspace(-6,6, nStep);
+            DrRange2 = linspace(-8,8, nStep);
+            
             [DrRange1, DrRange2] = meshgrid(DrRange1,DrRange2);
             DrRange{1} = DrRange1; DrRange{2} = DrRange2;
         end
@@ -493,7 +498,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
         else
             DrMIMO(iOut,jIn) = Dr;
         end
-        sysr= sss(sysr0.A+Lt.'*DrMIMO*Rt, sysr0.B+Lt.'*DrMIMO, ...
+        sysr = sss(sysr0.A+Lt.'*DrMIMO*Rt, sysr0.B+Lt.'*DrMIMO, ...
                                      sysr0.C+DrMIMO*Rt, DrMIMO, sysr0.E);
     end
     function [minDr, minVal] = plotOverDrRange(varargin)
@@ -591,6 +596,23 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
             
             % legend
             legend(h,legNames,'Location','SouthOutside')
+            
+            % Add contour
+            fh = figure;
+            cValMin = min(min(normMat));
+            cValMax = max(max(normMat));
+            nMin = 20; nMax = 10;
+            cVal1 = logspace(log10(cValMin),log10(cValMax/4),nMin);
+            cVal2 = logspace(log10(cValMax/4),log10(cValMax),nMax);
+            cVal = [cVal1(1:end-1),cVal2];
+%             cVal = linspace(min(min(normMat)),max(max(normMat)),100);
+            contour(Dr1Range,Dr2Range,normMat,cVal);
+%             lh = contour(Dr1Range,Dr2Range,log10(normMat),50);
+            colormap jet
+            caxis([cValMin,cValMax])
+            xlabel('$D_{r,1}$','Interpreter','latex'); 
+            ylabel('$D_{r_2}$','Interpreter','latex');
+            title('Countour plot of cost function for SIMO model','Interpreter','none');
         end
                 
             drawnow
