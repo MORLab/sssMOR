@@ -670,12 +670,12 @@ function writeShiftsToTable(handles,m)
         momData = get(handles.uitable_output,'Data');
         
         if size(tableData,1) > size(momData,1)
-           momData = [momData;cell(size(tableData,1)-size(momData,1),4)];
+           momData = [momData;cell(size(tableData,1)-size(momData,1),3)];
            momData(:,1:2) = tableData(:,1:2);
         elseif size(tableData,1) < size(momData,1)
-           momData = [tableData, momData(1:size(tableData,1),3:4)];
+           momData = [tableData, momData(1:size(tableData,1),3)];
         else
-           momData = [tableData, momData(:,3:4)];
+           momData = [tableData, momData(:,3)];
         end
         
         set(handles.uitable_output,'Data',momData);
@@ -799,6 +799,28 @@ function writeDirectionsToTable(handles,m)
 
             set(handles.uitable_output,'Data',momData);
             
+            
+            
+            momData = get(handles.uitable_input,'Data');
+            
+            if size(momData,1) > size(data,1)
+            
+                momData(:,4) = cell(size(momData,1),1);
+                momData(1:size(data,1),4) = data(:,1);
+
+            elseif size(momData,1) < size(data,1)
+
+                momData = [momData;cell(size(data,1)-size(momData,1),4)];
+                momData(:,4) = data(:,1);
+
+            else
+
+                momData(:,4) = data(:,1);
+
+            end
+
+            set(handles.uitable_input,'Data',momData);
+            
         end
         
         
@@ -812,20 +834,28 @@ function [] = countMatchedMoments(handles)
         %Read out the data from the tables for input and output shifts
         
         x=get(handles.uitable_input,'Data');
-        data1=cell2mat(x(:,1:2));
+        data1=cell2mat(x(:,2));
         x = get(handles.uitable_output,'Data');
-        data2=cell2mat(x(:,1:2));
+        data2=cell2mat(x(:,2));
         
         if ~isempty(data1)                  %Input
-           data1 = sum(data1(:,2)); 
+           data1 = sum(data1); 
         else
            data1 = 0;
         end
 
         if ~isempty(data2)                  %Output
-           data2 = sum(data2(:,2)); 
+           data2 = sum(data2); 
         else
            data2 = 0;
+        end
+        
+        if isnan(data1)
+           data1 = 0; 
+        end
+        
+        if isnan(data2)
+           data2 = 0; 
         end
         
         %Updata the displays of reduced order and matched moments
@@ -962,6 +992,10 @@ function t = dataCorrect(handles)
                         tableContentCorrect(data,handles.parameter.system.p,0); 
                         handles.dataOutput = data;
                         
+                        if sum(cell2mat(handles.dataOutput(:,2))) ~= sum(cell2mat(handles.dataInput(:,2)))
+                           error('The number of matched moments for input and output has to be identical'); 
+                        end
+                        
                     else                                        %Block Krylov
 
                         data = get(handles.uitable_input,'Data');
@@ -970,7 +1004,11 @@ function t = dataCorrect(handles)
                         
                         data = get(handles.uitable_output,'Data');
                         tableContentCorrect(data(:,1:2),0,0);                         
-                        handles.dataOutput = data(:,1:2);    
+                        handles.dataOutput = data(:,1:2); 
+                        
+                        if sum(cell2mat(handles.dataOutput(:,2))) ~= sum(cell2mat(handles.dataInput(:,2)))
+                           error('The number of matched moments for input and output has to be identical'); 
+                        end
                         
                     end
                 end
@@ -1130,7 +1168,7 @@ function t = matrixIsNumeric(c)
     
     for i = 1:size(c,1)
        for j = 1:size(c,2)
-          if isnumeric(c{i,j}) == 0
+          if isnumeric(c{i,j}) == 0 || isnan(c{i,j})
              t = 0;
              break;
           end
@@ -1147,7 +1185,7 @@ function t = correctTangentialDirection(c,dimension)
        for j = 1:size(c,2)
           vec = evalin('base',c{i,j});
           
-          if size(vec,1) ~= dimension
+          if size(vec,1) ~= dimension || ~matrixIsNumeric(num2cell(vec))
              t = 0;
              break;
           end

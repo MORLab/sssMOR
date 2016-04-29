@@ -102,7 +102,6 @@ function composeModel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*IN
     set(handles.cb_include,'Value',1);
     cb_include_Callback(hObject,eventdata,handles);
     
-
 function varargout = composeModel_OutputFcn(hObject, eventdata, handles) %#ok<*INUSD>
 varargout = {};
 
@@ -158,7 +157,7 @@ list_matrices(handles)
 set(handles.cb_file,'Enable','on')
 s=sprintf('Selected file: %s',FileName);
 set(handles.st_file,'String',s)
-suggestion=suggest_varname(FileName(1:strfind(FileName,'.')-1),[]);
+suggestion=suggestVarname(strcat('sys_',FileName(1:strfind(FileName,'.')-1)),[]);
 if ~isempty(suggestion)
     set(handles.ed_sysname,'String',suggestion);
     set(handles.ed_sysname,'UserData',0)
@@ -211,52 +210,58 @@ function lb_A_Callback(hObject, eventdata, handles)
 
 function ed_a_Callback(hObject, eventdata, handles)
     % check alpha
-    h=str2num(get(hObject,'String')); %#ok<ST2NM>
-    if isempty(h)
-        errordlg('Use ''.'' as decimal seperator. Don''t use characters','Error Dialog','modal')
-        uiwait
-        set(hObject,'UserData',1)
-    elseif imag(h)~=0
-        errordlg('No imaginary numbers allowed','Error Dialog','modal')
-        uiwait
-        set(hObject,'UserData',1)
-    elseif length(h)>1
-        if length(h)==2
-            h=sprintf('%i.%i',round(h(1)),round(h(2)));
-            set(hObject,'String',h)
-            set(hObject,'UserData',0)
-            return
+    
+    try
+        h=str2num(get(hObject,'String')); %#ok<ST2NM>
+        if isempty(h)
+            errordlg('Use ''.'' as decimal seperator. Don''t use characters','Error Dialog','modal')
+            uiwait
+            set(hObject,'UserData',1)
+        elseif imag(h)~=0
+            errordlg('No imaginary numbers allowed','Error Dialog','modal')
+            uiwait
+            set(hObject,'UserData',1)
+        elseif length(h)>1
+            if length(h)==2
+                h=sprintf('%i.%i',round(h(1)),round(h(2)));
+                set(hObject,'String',h)
+                set(hObject,'UserData',0)
+                return
+            end
+            errordlg('Use ''.'' as decimal seperator','Error Dialog','modal')
+            uiwait
+            set(hObject,'UserData',1)
+        else
+            set(hObject,'UserData','0')
         end
-        errordlg('Use ''.'' as decimal seperator','Error Dialog','modal')
-        uiwait
-        set(hObject,'UserData',1)
-    else
-        set(hObject,'UserData','0')
     end
 
 function ed_b_Callback(hObject, eventdata, handles)
     % check beta
-    h=str2num(get(hObject,'String')); %#ok<ST2NM>
-    if isempty(h)
-        errordlg('Use ''.'' as decimal seperator. Don''t use characters','Error Dialog','modal')
-        uiwait
-        set(hObject,'UserData',1)
-    elseif imag(h)~=0
-        errordlg('No imaginary numbers allowed','Error Dialog','modal')
-        uiwait
-        set(hObject,'UserData',1)
-    elseif length(h)>1
-        if length(h)==2
-            h=sprintf('%i.%i',round(h(1)),round(h(2)));
-            set(hObject,'String',h)
-            set(hObject,'UserData',0)
-            return
+    
+    try
+        h=str2num(get(hObject,'String')); %#ok<ST2NM>
+        if isempty(h)
+            errordlg('Use ''.'' as decimal seperator. Don''t use characters','Error Dialog','modal')
+            uiwait
+            set(hObject,'UserData',1)
+        elseif imag(h)~=0
+            errordlg('No imaginary numbers allowed','Error Dialog','modal')
+            uiwait
+            set(hObject,'UserData',1)
+        elseif length(h)>1
+            if length(h)==2
+                h=sprintf('%i.%i',round(h(1)),round(h(2)));
+                set(hObject,'String',h)
+                set(hObject,'UserData',0)
+                return
+            end
+            errordlg('Use ''.'' as decimal seperator','Error Dialog','modal')
+            uiwait
+            set(hObject,'UserData',1)
+        else
+            set(hObject,'UserData','0')
         end
-        errordlg('Use ''.'' as decimal seperator','Error Dialog','modal')
-        uiwait
-        set(hObject,'UserData',1)
-    else
-        set(hObject,'UserData','0')
     end
     
 function lb_Mmdk_Callback(hObject, eventdata, handles)
@@ -303,7 +308,9 @@ end
 
 function ed_sysname_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
     % check variable names
-    isvalidvarname(hObject,'NoWarning')
+    try
+        isvalidvarname(hObject);
+    end
 
 function pb_create_Callback(hObject, eventdata, handles)
 set(handles.figure1,'Pointer','watch');
@@ -322,7 +329,7 @@ if get(handles.rb_MDK,'Value')==1 && isempty(get(handles.lb_Mmdk,'String'))
     uiwait
     return
 end
-if get(handles.ed_sysname,'UserData')~=0
+if ~isvarname(get(handles.ed_sysname,'String'))
     set(handles.figure1,'Pointer','arrow');
     errordlg('Please correct System Name first','Error Dialog','modal')
     uiwait
@@ -395,6 +402,9 @@ elseif get(handles.rb_MDK,'Value')==1
             if strcmp(Dsel, 'alpha*M+beta*K')
                 alpha=str2double(get(handles.ed_a,'String'));
                 beta=str2double(get(handles.ed_b,'String'));
+                if isnan(alpha) || isnan(beta)
+                   error('Please correct the values for alpha and beta first!') 
+                end
                 D = alpha*M + beta*K;
             elseif strcmp(Dsel, 'Zero')
                 D = [];

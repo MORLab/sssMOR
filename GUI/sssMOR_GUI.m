@@ -410,13 +410,14 @@ function pb_PaV_remove_Callback(hObject, eventdata, handles)
 
     list = get(handles.lb_PaV_selectedSystems,'String');
     index = get(handles.lb_PaV_selectedSystems,'Value');
-    sysName = list{index};
     
     if isempty(list)
        set(handles.lb_PaV_selectedSystems,'String','');
        set(handles.lb_PaV_selectedSystems,'Value',1);
        return;
     end
+    
+    sysName = list{index};
     
     list{index,1} = [];
     list = list(~cellfun(@isempty, list));
@@ -992,6 +993,7 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
         set(handles.bg_PaV_plotStyle,'Visible','off');
         set(handles.bg_PaV_Resolution,'Visible','off');        
         set(handles.pb_PaV_showObject,'Visible','off');
+        set(handles.pb_PaV_infoSaveData,'Visible','off');
     end
   
 function lb_PaV_systemsWs_Callback(hObject, eventdata, handles)
@@ -1224,7 +1226,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
     set(handles.figure1,'Pointer','watch')
     drawnow();
     
-    %try
+    try
     
         %Read out all choosen systems from workspace
 
@@ -1239,12 +1241,20 @@ function pb_plot_Callback(hObject, eventdata, handles)
         for i = 1:length(list)
             
             sysname = list{i,1};
+            
+            try
             sys = evalin('base', sysname);
 
             if isa(sys,'ss')
                 try
                     sys = sss(sys);
                 end
+            end
+            
+            catch ex
+               pb_PaV_refeshObjects_Callback(handles.pb_PaV_refeshObjects, eventdata, handles);
+               pb_refreshsys_Callback(handles.pb_refreshsys, eventdata, handles)
+               error(strcat('The system "',sysname,'" could not be loaded from workspace')); 
             end
             
             systemList{i,1} = sysname;
@@ -1581,6 +1591,15 @@ function pb_plot_Callback(hObject, eventdata, handles)
         %selected
         
         pb_PaV_refeshObjects_Callback(handles.pb_PaV_refeshObjects, eventdata, handles)
+        
+    catch ex
+       errordlg(ex.message);
+       uiwait
+       set(hObject,'String','Plot')
+       set(hObject,'Enable','on')
+       set(handles.figure1,'Pointer','arrow')
+       return
+    end
     
         
 
@@ -1623,6 +1642,8 @@ function pb_load_Callback(hObject, eventdata, handles)
         
         %Create system with the function loadSss
         
+        lastwarn('');
+        
         try
             
            %Create a name for the system based on the filename
@@ -1653,14 +1674,22 @@ function pb_load_Callback(hObject, eventdata, handles)
            if sys.isDae
                msgbox('System is DAE. This User-Interface does not fully support systems in DAE-format','Warning','Warn');
                uiwait
-           end           
+           end    
+           
+           error('loadSss:WarningOccured',lastwarn);
             
-        catch
+        catch ex
             
-            msgbox({'Error while evaluating function loadSss.', ...
-                'Try to load the matrices and then compose the model.'},'Error','error');
-            loadingSuccessfull = 0;
-            
+            if strcmp(ex.identifier,'loadSss:WarningOccured')
+                    if ~isempty(ex.message)
+                        msgbox(ex.message,'Warning','warn');
+                        uiwait
+                    end
+            else
+                    msgbox({'Error while evaluating function loadSss.', ...
+                            'Try to load the matrices and then compose the model.'},'Error','error');
+                    loadingSuccessfull = 0;
+            end            
         end      
     end
     
@@ -1757,6 +1786,7 @@ function pb_infoLoadOptions_Callback(hObject, eventdata, handles)
     
 function lb_systems_Callback(hObject, eventdata, handles)
     set(hObject,'String',systemsInWorkspace)
+    set(handles.lb_matrixes,'Value',[]);
 
 function lb_systems_CreateFcn(hObject, eventdata, handles)
     if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
@@ -1766,6 +1796,7 @@ function lb_systems_CreateFcn(hObject, eventdata, handles)
 
 function lb_matrixes_Callback(hObject, eventdata, handles)
     set(hObject,'String',matricesInWorkspace)
+    set(handles.lb_systems,'Value',[]);
 
 function lb_matrixes_CreateFcn(hObject, eventdata, handles)
     if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
@@ -1810,15 +1841,21 @@ else
         % add selected matrices
         variables=[variables, string(value(i))]; %#ok<AGROW>
     end
-    filename=sprintf('save(''%s%s'',temp{:});',path,filename);
-    % save variable list in base workspace
-    assignin('base','temp', variables)    %*** ??
-    % store selected variables
-    evalin('base',filename)
-    % delete temp variables from base workspace
-    evalin('base', 'clear temp')  %*** ??
-    msgbox('Saving was successful.','Information','modal')
-    uiwait
+    
+    try
+        filename=sprintf('save(''%s%s'',temp{:});',path,filename);
+        % save variable list in base workspace
+        assignin('base','temp', variables)    %*** ??
+        % store selected variables
+        evalin('base',filename)
+        % delete temp variables from base workspace
+        evalin('base', 'clear temp')  %*** ??
+        msgbox('Saving was successful.','Information','modal')
+        uiwait
+    catch ex
+       errordlg(strcat('Error occured during saving: ',ex.message))
+       uiwait
+    end
 end
 
 function pb_delete_Callback(hObject, eventdata, handles)
@@ -1826,7 +1863,7 @@ function pb_delete_Callback(hObject, eventdata, handles)
 
 string=get(handles.lb_systems,'String'); % all variables in listbox
 value=get(handles.lb_systems,'Value'); % all selected variables
-variables=cell(length(value));
+variables=cell(length(value),1);
 for i=1:length(value)
     % write all selected ones to string
     variables{i}=string{value(i)};
@@ -1944,8 +1981,31 @@ if get(handles.ed_extract_A,'UserData')==1||...
     uiwait
     return
 end
+%Check if the a name for all systems is selected
+if isempty(get(handles.ed_extract_A,'String'))||...
+   isempty(get(handles.ed_extract_B,'UserData'))||...
+   isempty(get(handles.ed_extract_C,'UserData')) ||...
+   isempty(get(handles.ed_extract_D,'UserData')) ||...
+   isempty(get(handles.ed_extract_E,'UserData'))
+    errordlg('Correct names for matrices first!','Error Dialog','modal')
+    uiwait
+    return
+end
+
+if get(handles.ed_extract_A,'UserData')==1||...
+        get(handles.ed_extract_B,'UserData')==1||...
+        get(handles.ed_extract_C,'UserData')==1 ||...
+        get(handles.ed_extract_D,'UserData')==1 ||...
+        get(handles.ed_extract_E,'UserData')==1
+    errordlg('Correct names for matrices first!','Error Dialog','modal')
+    uiwait
+    return
+end
 
 sys=evalin('base',y);
+if isa(sys,'ss')
+   sys = sss(sys);
+end
 if ~strcmp(class(sys), 'sss')
     errordlg('Variable is not a valid state space model.','Error Dialog','modal')
     uiwait
@@ -1984,6 +2044,8 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
         set(handles.pb_mor_reduce,'Enable','off')
         set(handles.panel_mor_hsv,'Visible','off')
         set(handles.st_mor_sysinfo,'String','Please choose a system.')
+        set(handles.ed_mor_q,'Enable','off')
+        set(handles.sl_mor_q,'Enable','off')
         return
     end
 
@@ -1994,6 +2056,8 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
         catch ex %#ok<NASGU>
             set(handles.pb_mor_reduce,'Enable','off')
             set(handles.panel_mor_hsv,'Visible','off')
+            set(handles.ed_mor_q,'Enable','off')
+            set(handles.sl_mor_q,'Enable','off')
             set(handles.st_mor_sysinfo,'String','Invalid model')
             errordlg('Variable is not a valid state space model.','Error Dialog','modal')
             uiwait
@@ -2014,7 +2078,12 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
     
     displaySystemInformation(handles.st_mor_sysinfo,sys);
     
-    set(handles.sl_mor_q,'Max',size(sys.A,1));
+    if sys.n == 1
+        set(handles.sl_mor_q,'Enable','off')
+    else
+        set(handles.sl_mor_q,'Max',size(sys.A,1));
+        set(handles.sl_mor_q,'Enable','on')
+    end
     set(handles.pb_mor_reduce,'Enable','on');
     
     %If Krylov is selected, set the default values for the expension points and
@@ -2022,32 +2091,20 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
 
     if get(handles.pu_mor_method,'Value')==3
 
-        x = get(handles.pu_mor_systems,'String');
-        y = x{get(handles.pu_mor_systems,'Value')};
 
-        if ~isempty(y)
-           sys = evalin('base', y);
+         if sys.m > 1 || sys.p > 1    %MIMO
 
-           if sys.m > 1 || sys.p > 1    %MIMO
+           set(handles.panel_mor_krylov_MimoExps,'Visible','on');
+           %set(handles.panel_mor_krylov_exps,'Visible','off');
 
-               set(handles.panel_mor_krylov_MimoExps,'Visible','on');
-               %set(handles.panel_mor_krylov_exps,'Visible','off');
+           layoutMimoKrylov(handles);
 
-               layoutMimoKrylov(handles);
+        else                         %SISO
 
-           else                         %SISO
+           set(handles.panel_mor_krylov_MimoExps,'Visible','off');
+           %set(handles.panel_mor_krylov_exps,'Visible','on');
 
-               set(handles.panel_mor_krylov_MimoExps,'Visible','off');
-               %set(handles.panel_mor_krylov_exps,'Visible','on');
-
-               layoutSisoKrylov(handles);
-           end
-        else
-
-            set(handles.panel_mor_krylov_MimoExps,'Visible','off');
-            %set(handles.panel_mor_krylov_exps,'Visible','on');
-            
-            layoutSisoKrylov(handles);
+           layoutSisoKrylov(handles);
         end
 
         setKrylovDefaultValues(handles);
@@ -2160,9 +2217,10 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
         set(handles.lb_PaV_systemsWs,'String',l);
         set(handles.pu_mor_systems,'String', l);
         set(handles.pu_an_sys1,'String',l);
-        set(handles.pu_an_sys2,'String',l);
         
         set(handles.virtgr_an_red_buttons,'Enable','on');
+        set(handles.ed_mor_q,'Enable','on')
+        set(handles.sl_mor_q,'Enable','on')
         
         pu_mor_systems_Callback(handles.pu_mor_systems, eventdata, handles);
         lb_PaV_systemsWs_Callback(handles.lb_PaV_systemsWs,eventdata,handles);
@@ -2174,12 +2232,12 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
         set(handles.lb_PaV_systemsWs,'String', [{''}; l]);
         set(handles.pu_mor_systems,'String', [{''}; l]);
         set(handles.pu_an_sys1,'String',[{''}; l]);
-        set(handles.pu_an_sys2,'String',[{''}; l]);
 
         set(handles.pb_mor_reduce,'Enable','off');
         set(handles.panel_mor_hsv,'Visible','off');
         set(handles.virtgr_an_red_buttons,'Enable','off');
         
+        pu_mor_systems_Callback(handles.pu_mor_systems, eventdata, handles);
         lb_PaV_systemsWs_Callback(handles.lb_PaV_systemsWs,eventdata,handles);
         pu_an_sys1_Callback(handles.pu_an_sys1,eventdata,handles);
         pu_an_sys2_Callback(handles.pu_an_sys2,eventdata,handles);
@@ -2329,6 +2387,11 @@ if get(hObject,'Value')==3
     
     if ~isempty(y)
        sys = evalin('base', y);
+       
+       
+       if ~isa(sys,'sss')
+          sys = sss(sys);
+       end
        
        if sys.m > 1 || sys.p > 1    %MIMO
            
@@ -2490,7 +2553,14 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     drawnow % this makes the watch appear
     sysname = get(handles.pu_mor_systems,'String');
     sysname = sysname{get(handles.pu_mor_systems,'Value')};
-    sys=evalin('base',sysname);
+    try
+       sys=evalin('base',sysname);
+    catch ex
+       errordlg('Selected system could not be found in the workspace.')
+       uiwait
+       pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles)
+       return
+    end
 
     % convert to sss
     
@@ -2652,18 +2722,23 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
         
         
         %Get expansion points
-        
-        if sys.m > 1 || sys.p > 1       %MIMO
-            
-            [s_inp,s_out,Rt,Lt] = getMimoExpensionPoints(handles);
-            
-        else                            %SISO
-            
-            [s_inp,s_out] = getExpansionPoints(handles);
-            
+        try
+            if sys.m > 1 || sys.p > 1       %MIMO
+                [s_inp,s_out,Rt,Lt] = getMimoExpensionPoints(handles);
+            else                            %SISO
+                [s_inp,s_out] = getExpansionPoints(handles);
+            end
+        catch ex
+           errordlg(ex.message)
+           uiwait
+           set(handles.figure1,'Pointer','arrow')
+           set(hObject,'Enable','on')
+           return
         end
         
         if isempty(s_inp) && isempty(s_out)
+            errordlg('The specified shifts and moments have the wrong format. Please correct this first!')
+            uiwait
             set(handles.figure1,'Pointer','arrow')
             set(hObject,'Enable','on')
             return
@@ -2785,10 +2860,11 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
             
             Opts.maxiter=str2double(get(handles.ed_mor_krylov_max,'String'));
             Opts.epsilon=str2double(get(handles.ed_mor_krylov_epsilon,'String'));
-            if isempty(Opts.maxiter) || Opts.maxiter==0 || isempty(Opts.epsilon) %|| epsilon==0 ??
+            if isnan(Opts.maxiter) || Opts.maxiter<=0 || isnan(Opts.epsilon) || Opts.epsilon<=0
                 set(handles.figure1,'Pointer','arrow')
                 set(hObject,'Enable','on')
-                errordlg('Please choose the maximum number of iterations and epsilon first','Error dialog','modal')
+                errordlg({'Please correct the maximum number of iterations and epsilon first!', ...
+                        'Both values have to be real numbers greater than zero.'},'Error dialog','modal')
                 uiwait
                 return
             end
@@ -2831,7 +2907,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     
     if get(handles.cb_mor_krylov,'Value')==1
         % impose E_r=I?
-        sysr.resolveDescriptor;
+        sysr = sysr.resolveDescriptor;
     end
 
     assignin('base',get(handles.ed_mor_sysred,'String'),sysr)
@@ -2952,12 +3028,25 @@ function updateTBR(hObject, eventdata, handles)
 
     sys_x=get(handles.pu_mor_systems,'String');
     sysname=sys_x{get(handles.pu_mor_systems,'Value')};
-    sys=evalin('base',sysname);
-    
+    try
+        sys=evalin('base',sysname);
+    catch
+       errordlg('Selected system could not be found in the workspace.')
+       uiwait
+       pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles)
+       return
+    end
+        
+        
     %Get Axes and desired model order
     
     hr=get(handles.axes_mor_hsv,'UserData');
     q=get(handles.sl_mor_q,'Value');
+    
+    if mod(q,1) ~= 0
+        q = 1;
+        set(handles.sl_mor_q,'Value',1);
+    end
     
     if get(handles.pu_mor_method,'Value')==1 && ~isempty(sys.HankelSingularValues)
         %Calculate the signal-norms H_1 and H_inf
@@ -3114,7 +3203,7 @@ guidata(hObject,handles)
 
 function pb_mor_hsv_zoomoff_Callback(hObject, eventdata, handles)
 % zoom off
-if isa(handles.zoom,'graphics.zoom')
+if isa(handles.zoom,'matlab.graphics.interaction.internal.zoom')
     set(handles.zoom,'Enable','off') % deactivate zoom
 end
 guidata(hObject,handles)
@@ -3130,14 +3219,14 @@ function pb_info_tbr_Callback(hObject, eventdata, handles)
 function ed_mor_modal_neig_Callback(hObject, eventdata, handles)
 % check of double. replace ',' with '.'
 x=str2num(get(hObject,'String')); %#ok<ST2NM>
-if isempty(x) || length(x)>1 || imag(x)~=0
+if isempty(x) || length(x)>1
     if length(x)==2
         x=sprintf('%i.%i',round(x(1)),round(x(2)));
         set(hObject,'String',x)
         set(hObject,'UserData',0)
         return
     end
-    errordlg('Has to be a real number.','Error Dialog','modal')
+    errordlg('Has to be a real or complex number.','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
 else
@@ -3164,10 +3253,6 @@ function pu_mor_krylov_algorithm_Callback(hObject, eventdata, handles)
             set(handles.cb_mor_krylov_hermite,'Enable','on')
             set(handles.cb_mor_krylov_hermite,'Value',1)       
         end
-
-        %Update matched Moments and reduced order
-
-        countMatchedMoments(handles);
     
     else
        layoutMimoKrylov(handles); 
@@ -3211,6 +3296,10 @@ function pu_mor_krylov_algorithm_Callback(hObject, eventdata, handles)
         
         set(handles.st_mor_krylov_points,'String','2. Starting points')
     end    
+    
+    %Update matched Moments and reduced order
+
+    countMatchedMoments(handles);
     
     %Set the panel for saving the optimal shifts visible if irka is
     %selected
@@ -3273,6 +3362,8 @@ if strcmp(get(handles.uitable_mor_krylov,'Visible'),'on')
 else
     set(handles.uitable_mor_krylov_output,'Data',cell(1,2))
 end
+
+countMatchedMoments(handles);
 
 function pb_mor_krylov_AddCompConj_Callback(hObject, eventdata, handles)
 
@@ -3424,6 +3515,7 @@ function pb_mor_krylov_importVector_Callback(hObject, eventdata, handles)
         x=evalin('base',contents{get(handles.pu_mor_krylov_s0,'Value')});
     catch ex
        errordlg('No valid matrix selected');
+       pb_mor_krylov_refresh_Callback(handles.pb_mor_krylov_refresh,eventdata,handles);
        return;
     end
     
@@ -3554,7 +3646,19 @@ x = get(handles.pu_mor_systems,'String');
 y = x{get(handles.pu_mor_systems,'Value')};
     
 if ~isempty(y)
-    parameter.system = evalin('base',y);
+    try
+        parameter.system = evalin('base',y);
+        
+        if ~isa(parameter.system,'sss')
+           parameter.system = sss(parameter.system); 
+        end
+        
+    catch ex
+       errordlg('Selected system could not be found in the workspace.')
+       uiwait
+       pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles)
+       return
+    end
 else
     errordlg('Please select a valid system fist!','Error Dialog','modal')
     uiwait
@@ -3653,7 +3757,7 @@ try
     end
 
     if data.hermite || get(handles.rb_mor_krylov_output,'Value') == 1 ...
-            || get(handles.rb_mor_krylo,'Input') == 1
+            || get(handles.rb_mor_krylov_input,'Value') == 1
        set(handles.pb_mor_krylov_MimoExps_Input,'Visible','off'); 
        set(handles.pb_mor_krylov_MimoExps_Output,'Visible','off');
     else
@@ -3743,12 +3847,16 @@ function pu_an_sys1_Callback(hObject, eventdata, handles)
         if strfind(ex.identifier, 'unassigned')
             set(handles.tx_an_sys1_sysinfo,'String','Please select a system!')
             set(handles.tx_an_sys1_sysinfo,'HorizontalAlignment','center')
+            set(handles.pu_an_sys2,'Value',1);
+            set(handles.pu_an_sys2,'String',{''});
             return
         end
         errordlg(['Variable is not a valid state space model. ' ex.message],'Error Dialog','modal')
         set(handles.tx_an_sys1_sysinfo,'String','Invalid model')
         set(handles.tx_an_sys1_sysinfo,'HorizontalAlignment','center')
         uiwait
+        set(handles.pu_an_sys2,'Value',1);
+        set(handles.pu_an_sys2,'String',{''});
         return
     end
 
@@ -3786,6 +3894,9 @@ function pu_an_sys1_Callback(hObject, eventdata, handles)
     for i = 1:length(l)      
         try
            sysTemp = evalin('base',l{i,1}); 
+           if isa(sysTemp,'ss')
+              sysTemp = sss(sysTemp); 
+           end
            if sysTemp.p ~= sys.p || sysTemp.m ~= sysTemp.m
               l{i,1} = []; 
            end
@@ -3826,6 +3937,26 @@ function pu_an_sys1_Callback(hObject, eventdata, handles)
 function pb_an_sys1_calcall_Callback(hObject, eventdata, handles)
 %Calculate everything on the panel for system 1
 
+    try
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
+        assignin('base', sysname, sys);
+    catch ex
+        set(handles.figure1,'Pointer','arrow')
+        if strfind(ex.identifier, 'unassigned')
+            set(handles.tx_an_sys2_sysinfo,'String','Please select a system!')
+            set(handles.tx_an_sys2_sysinfo,'HorizontalAlignment','center')
+            errordlg('Please select a system first','Error Dialog','modal')
+            uiwait
+            return
+        end
+        errordlg(['Variable is not a valid state space model. ' ex.message],'Error Dialog','modal')
+        set(handles.tx_an_sys2_sysinfo,'String','Invalid model')
+        set(handles.tx_an_sys2_sysinfo,'HorizontalAlignment','center')
+        uiwait
+        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles);
+        return
+    end
+
     pb_an_sys1_stability_Callback(handles.pb_an_sys1_stability,1,handles);
     pb_an_sys1_dissipativity_Callback(handles.pb_an_sys1_stability,1,handles);
     pb_an_sys1_h2_Callback(handles.pb_an_sys1_h2,1,handles);
@@ -3852,6 +3983,7 @@ function pb_an_sys1_stability_Callback(hObject, eventdata, handles)
         set(handles.tx_an_sys1_sysinfo,'String','Invalid model')
         set(handles.tx_an_sys1_sysinfo,'HorizontalAlignment','center')
         uiwait
+        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles);
         return
     end
     
@@ -3907,6 +4039,7 @@ function pb_an_sys1_dissipativity_Callback(hObject, eventdata, handles)
         set(handles.tx_an_sys1_sysinfo,'String','Invalid model')
         set(handles.tx_an_sys1_sysinfo,'HorizontalAlignment','center')
         uiwait
+        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles);
         return
     end
     
@@ -3959,6 +4092,7 @@ function pb_an_sys1_h2_Callback(hObject, eventdata, handles)
         set(handles.tx_an_sys1_sysinfo,'String','Invalid model')
         set(handles.tx_an_sys1_sysinfo,'HorizontalAlignment','center')
         uiwait
+        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles);
         return
     end
     
@@ -4020,6 +4154,7 @@ function pb_an_sys1_hinf_Callback(hObject, eventdata, handles)
         set(handles.tx_an_sys1_sysinfo,'String','Invalid model')
         set(handles.tx_an_sys1_sysinfo,'HorizontalAlignment','center')
         uiwait
+        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles);
         return
     end
     
@@ -4074,6 +4209,7 @@ function pb_an_sys1_decaytime_Callback(hObject, eventdata, handles)
         set(handles.tx_an_sys1_sysinfo,'String','Invalid model')
         set(handles.tx_an_sys1_sysinfo,'HorizontalAlignment','center')
         uiwait
+        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles);
         return
     end
     
@@ -4171,6 +4307,26 @@ function pu_an_sys2_Callback(hObject, eventdata, handles)
     
 function pb_an_sys2_calcall_Callback(hObject, eventdata, handles)
 %Calculate everything on the panel for system 2
+    
+    try
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
+        assignin('base', sysname, sys);
+    catch ex
+        set(handles.figure1,'Pointer','arrow')
+        if strfind(ex.identifier, 'unassigned')
+            set(handles.tx_an_sys2_sysinfo,'String','Please select a system!')
+            set(handles.tx_an_sys2_sysinfo,'HorizontalAlignment','center')
+            errordlg('Please select a system first','Error Dialog','modal')
+            uiwait
+            return
+        end
+        errordlg(['Variable is not a valid state space model. ' ex.message],'Error Dialog','modal')
+        set(handles.tx_an_sys2_sysinfo,'String','Invalid model')
+        set(handles.tx_an_sys2_sysinfo,'HorizontalAlignment','center')
+        uiwait
+        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles);
+        return
+    end
 
     pb_an_sys2_stability_Callback(handles.pb_an_sys2_stability,1,handles);
     pb_an_sys2_dissipativity_Callback(handles.pb_an_sys2_stability,1,handles);
@@ -4198,6 +4354,7 @@ function pb_an_sys2_stability_Callback(hObject, eventdata, handles)
         set(handles.tx_an_sys2_sysinfo,'String','Invalid model')
         set(handles.tx_an_sys2_sysinfo,'HorizontalAlignment','center')
         uiwait
+        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles);
         return
     end
     
@@ -4253,6 +4410,7 @@ function pb_an_sys2_dissipativity_Callback(hObject, eventdata, handles)
         set(handles.tx_an_sys2_sysinfo,'String','Invalid model')
         set(handles.tx_an_sys2_sysinfo,'HorizontalAlignment','center')
         uiwait
+        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles);
         return
     end
     
@@ -4305,6 +4463,7 @@ function pb_an_sys2_h2_Callback(hObject, eventdata, handles)
         set(handles.tx_an_sys2_sysinfo,'String','Invalid model')
         set(handles.tx_an_sys2_sysinfo,'HorizontalAlignment','center')
         uiwait
+        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles);
         return
     end
     
@@ -4366,6 +4525,7 @@ function pb_an_sys2_hinf_Callback(hObject, eventdata, handles)
         set(handles.tx_an_sys2_sysinfo,'String','Invalid model')
         set(handles.tx_an_sys2_sysinfo,'HorizontalAlignment','center')
         uiwait
+        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles);
         return
     end
     
@@ -4420,6 +4580,7 @@ function pb_an_sys2_decaytime_Callback(hObject, eventdata, handles)
         set(handles.tx_an_sys2_sysinfo,'String','Invalid model')
         set(handles.tx_an_sys2_sysinfo,'HorizontalAlignment','center')
         uiwait
+        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles);
         return
     end
     
@@ -4634,26 +4795,21 @@ function [s0,sOut]=getExpansionPoints(handles)
     %Read the expension points from the first table
 
     if get(handles.uitable_mor_krylov,'UserData')==1
-        errordlg('Please correct expansion points first','Error Dialog','modal')
-        uiwait
-        s0=[];
-        return
+        error('Please correct expansion points first');
     end
-    s0=cell2mat(get(handles.uitable_mor_krylov,'Data'));% Entwicklungspunkte
+    cellEntries = get(handles.uitable_mor_krylov,'Data');
+    if ~checkPointsSisoKrylov(cellEntries)
+       error('Table with the shifts and moments has the wrong format'); 
+    end
+    s0=cell2mat(cellEntries);% Entwicklungspunkte
     if isempty(s0) || size(s0,2)==1 % Tabelle leer, oder nur Momente ohne Punkt
-        errordlg('Please choose expansion points and number of matching moments','Error Dialog','modal')
-        uiwait
-        s0=[];
-        return
+        error('Please choose expansion points and number of matching moments!');
     end
     x = get(handles.pu_mor_systems,'String');
     y=x{get(handles.pu_mor_systems,'Value')};
     s=evalin('base',sprintf('size(%s.A,1);',y)); %Größe Originalsystem
     if s<sum(s0(:,2))
-       errordlg('Number of matching moments must be smaller than dimension of original system!','Error Dialog','modal')
-       uiwait
-       s0=[];
-       return
+       error('Number of matching moments must be smaller than dimension of original system!');
     end 
     s0=transpose(s0);
     
@@ -4685,23 +4841,14 @@ function [s0,sOut]=getExpansionPoints(handles)
             sIn = s0;
             
             if get(handles.uitable_mor_krylov_output,'UserData')==1
-                errordlg('Please correct expansion points first','Error Dialog','modal')
-                uiwait
-                sOut=[];
-                return
+                error('Please correct expansion points first');
             end
             sOut=cell2mat(get(handles.uitable_mor_krylov_output,'Data'));% Entwicklungspunkte
             if isempty(sOut) || size(sOut,2)==1 % Tabelle leer, oder nur Momente ohne Punkt
-                errordlg('Please choose expansion points and number of matching moments','Error Dialog','modal')
-                uiwait
-                sOut=[];
-                return
+                error('Please choose expansion points and number of matching moments');
             end
             if sum(sIn(2,:)) ~= sum(sOut(:,2))
-               errordlg('Number of matching moments must be equal for input and output','Error Dialog','modal')
-               uiwait
-               sOut=[];
-               return
+               error('Number of matching moments must be equal for input and output');
             end 
             sOut=transpose(sOut);
             
@@ -4742,7 +4889,7 @@ function [sIn, sOut, Rt, Lt] = getMimoExpensionPoints(handles)
         %hermite-interpolation is selected or algorithm is IRKA
 
         if (get(handles.rb_mor_krylov_twosided,'Value') == 1 && handles.MimoParam.hermite == 1) ||...
-                get(handles.pu_algorithm,'Value') == 1
+                get(handles.pu_mor_krylov_algorithm,'Value') == 1
 
             for i = 1:size(tableIn,1)
                 tableIn{i,4} = evalin('base',tableIn{i,4}); 
@@ -4832,7 +4979,7 @@ function testWidth(hObject)
 % check inserted linewidth
 
 h=str2num(get(hObject,'String')); %#ok<ST2NM>
-if isempty(h)
+if isempty(h)|| isnan(h)
     errordlg('Line Width must be a real number grater than zero','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
@@ -4861,7 +5008,7 @@ end
 function testMax(hObject,handles)
 % check maximum frequency/time in manual mode
 h=str2num(get(hObject,'String')); %#ok<ST2NM>
-if isempty(h)
+if isempty(h) || isnan(h)
     errordlg('Max must be greater than Min. Use ''.'' as decimal seperator. Don''t use characters','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
@@ -4899,7 +5046,7 @@ end
 function testMin(hObject,handles)
 % check minimum frequency/time in manual mode
 h=str2num(get(hObject,'String')); %#ok<ST2NM>
-if isempty(h)
+if isempty(h) || isnan(h)
     errordlg('The minimal frequency must be greater than zero. Use ''.'' as decimal seperator. Don''t use characters','Error Dialog','modal')
     uiwait
     set(hObject,'UserData',1)
@@ -5077,6 +5224,10 @@ if get(handles.pu_mor_method,'Value')==3        %Krylov selected
     if ~isempty(y)
         
         sys = evalin('base', y);
+        
+        if ~isa(sys,'sss')
+           sys = sss(sys); 
+        end
     
         if sys.m > 1 || sys.p > 1                       %Mimo system
 
@@ -5226,21 +5377,29 @@ function [] = countMatchedMoments(handles)
         %Read out the data from the tables for input and output shifts
         
         x=get(handles.uitable_mor_krylov,'Data');
-        data1=cell2mat(x);
+        data1=cell2mat(x(:,2));
         x = get(handles.uitable_mor_krylov_output,'Data');
-        data2=cell2mat(x);
+        data2=cell2mat(x(:,2));
         
         if ~isempty(data1)                  %Input
-           data1 = sum(data1(:,2)); 
+           data1 = sum(data1(:,1)); 
         else
            data1 = 0;
         end
 
         if ~isempty(data2)                  %Output
-           data2 = sum(data2(:,2)); 
+           data2 = sum(data2(:,1)); 
         else
            data2 = 0;
         end      
+        
+        if isnan(data1)
+           data1 = 0; 
+        end
+        
+        if isnan(data2)
+           data2 = 0; 
+        end
         
         %Update the displays of reduced order and matched moments
         
@@ -5257,7 +5416,7 @@ function [] = countMatchedMoments(handles)
             
             redOrder = data1;
             
-        elseif strcmp(handles.parameter.side,'input')    %Input
+        elseif get(handles.rb_mor_krylov_input,'Value') == 1    %Input
             set(handles.st_mor_krylov_matchedMom,'String',data1);
             redOrder = data1;
         else                                             %Output
@@ -5265,7 +5424,7 @@ function [] = countMatchedMoments(handles)
             redOrder = data2;
         end
         
-        set(handles.st_redOrder,'String',redOrder);
+        set(handles.st_mor_krylov_redOrder,'String',redOrder);
 
         %Check weather the reduced order is bigger than the original order
 
@@ -5280,6 +5439,24 @@ function [] = countMatchedMoments(handles)
            end
         end
     end
+    
+function result = checkPointsSisoKrylov(cellArray)
+%Cheks if the values for the points and moments specified by the user are
+%valid and gives back the corrected Table if possible
+
+    result = 1;
+
+    for i = 1:size(cellArray,1)
+      if isempty(cellArray{i,1}) || isnan(cellArray{i,1}) || ...
+         isempty(cellArray{i,2}) || isnan(cellArray{i,2}) || ...
+         mod(cellArray{i,2},1) ~= 0 
+        
+         result = 0;
+         return;            
+      end     
+    end
+        
+        
     
     
 %Different Layouts for SISO- and MIMO-Krylov
@@ -5412,6 +5589,10 @@ function [] = displaySystemInformation(object,sys)
 %Displays informations about the system sys on the text-object object.
 %Prevents the display of the full name of the system which could include
 %full path names
+
+    if isa(sys,'ss')
+       sys = sss(sys); 
+    end
 
     systemName = sys.Name;
     sys.Name = '';
