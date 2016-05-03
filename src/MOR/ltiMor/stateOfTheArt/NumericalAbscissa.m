@@ -1,9 +1,42 @@
 function [mu, L_S, P_S] = numericalAbscissa(A,E)
-% Compute generalized numerical abscissa
-%   Input:  A, E:     HFM matrices
-%   Output: mu:       generalized numerical abscissa mu_E(A)
-%           L_S, P_S: Cholesky decomposition of S=-A-A'
-% $\MatlabCopyright$
+% numericalAbscissa - Compute generalized numerical abscissa
+%
+% Syntax:
+%       [mu, L_S, P_S] = numericalAbscissa(A,E)
+%
+% Description:
+%	   TODO
+%
+% Input Arguments:
+%	   A, E:     HFM matrices
+%
+% Output Arguments:
+%	   mu:       generalized numerical abscissa mu_E(A)
+%       L_S, P_S: Cholesky decomposition of S=-A-A'
+%
+% See Also: 
+%       TODO
+%
+% References:
+%	   TODO
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
+% Authors:      TODO
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  03 Mai 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
 
 p    = 20;		% number of Lanczos vectors
 tol  = 1e-10;	% convergence tolerance

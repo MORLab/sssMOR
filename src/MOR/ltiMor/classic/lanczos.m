@@ -1,7 +1,41 @@
 function [V, W] = lanczos(E,A,b,c,s0_inp,s0_out)
-% Lanczos Algorithm for order reduction of LTI SISO systems using
-% multiple expansion points
-% ------------------------------------------------------------------
+% lanczos - Lanczos Algorithm for order reduction of LTI SISO systems using multiple expansion points
+%
+% Syntax:
+%       [V, W] 		= lanczos(E,A,b,c,s0_inp,s0_out)
+%
+% Description:
+%	   TODO
+%
+% Input Arguments:
+%	   TODO
+%
+% Output Arguments:
+%	   TODO
+%
+% See Also: 
+%       TODO
+%
+% References:
+%	   TODO
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
+% Authors:      TODO
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  03 Mai 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
 
 warning('Obacht. Noch nicht 100% getestet!')
 
