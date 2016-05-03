@@ -1,4 +1,4 @@
-function M = moments(sys, s0, n)
+function M = moments(sys, s0, n, Opts)
 % MOMENTS - Returns the moments or Markov parameters of an LTI system
 %
 % Syntax:
@@ -8,7 +8,13 @@ function M = moments(sys, s0, n)
 %       This function computes n moments, i.e. the negative Taylor series
 %       coefficients of the transfer function of an LTI system about a
 %       complex frequency s0. If s0 is inf, Markov parameters are
-%       computers.
+%       computed.
+%
+%       The i-th moment Mi of a transfer function about s0 is defined as
+%
+%       $$ M_i := C \left[ (A - s_0E)^{-1}E\right]^i(A - s_0E)^{-1}B $$
+% 
+%       where i spans from 0 to infinity.
 %
 %       To compute multiple moments about different shifts, s0 and n can be
 %       arrays.
@@ -60,9 +66,23 @@ function M = moments(sys, s0, n)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  26 Oct 2015
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  06 April 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
+
+%%  Parse input
+Def.refine.active   = false; %use iterative refinement for higher accuracy
+Def.refine.tol      = 1e-6;  %default refinement tolerance
+Def.refine.maxiter  = 1e2;
+        
+% create the options structure
+if ~exist('Opts','var') || isempty(Opts)
+    Opts = Def;
+else
+    Opts = parseOpts(Opts,Def);
+end       
+
+if Opts.refine.active, I = speye(size(sys.A)); end %auxiliary variable
 
 %%  Defining execution parameters
 nS0 = length(s0);
@@ -87,24 +107,35 @@ for iS0 = 1:nS0
     currIdx = sum(n(1:iS0-1));
     if isinf(s0(iS0))
         M(:,:,currIdx+1) = sys.D;
-        [L,U,k,l,S]=lu(sys.E, 'vector');
-        B=sys.B;
-        for i=2:n(iS0)
-            b=S\B; b=b(k,:);
-            x=L\b;
-            x(l,:)=U\x;
-            M(:,:,currIdx + i) = sys.C*x - sys.D;
-            B=sys.A*x;
+        [L,U,p,q,R]=lu(sys.E, 'vector');
+        tempR=sys.B; %temp right side
+        for iO=2:n(iS0)
+           tempS(q,:) = U\(L\(R(:,p)\tempR)); %temp solution
+           
+           % Iterative refinement
+           if Opts.refine.active
+               Opts.refine.L = R*I(p,:).'*L; Opts.refine.U = U*I(:,q).';
+               tempS = iterativeRefinement(sys.E,tempR,tempS,Opts.refine);
+           end
+           
+           % Compute moment
+            M(:,:,currIdx + iO) = sys.C*tempS - sys.D;
+            tempR=sys.A*tempS;
         end
-    else
-        [L,U,k,l,S]=lu(sys.A - s0(iS0)*sys.E, 'vector');
-        B=sys.B;
-        for i=1:n
-            b=S\B; b=b(k,:);
-            x=L\b;
-            x(l,:)=U\x;
-            M(:,:,currIdx+i) = sys.C*x - sys.D;
-            B=sys.E*x;
+    else %finite frequency
+        [L,U,p,q,R]=lu(sys.A - s0(iS0)*sys.E, 'vector');
+        tempR=sys.B;
+        for iO=1:n(iS0)
+            tempS(q,:) = U\(L\(R(:,p)\tempR));
+            
+           % Iterative refinement
+           if Opts.refine.active
+               Opts.refine.L = R*I(p,:).'*L; Opts.refine.U = U*I(:,q).';
+               tempS = iterativeRefinement(sys.A - s0(iS0)*sys.E,tempR,tempS,Opts.refine);
+           end
+            
+            M(:,:,currIdx+iO) = sys.C*tempS - sys.D;
+            tempR=sys.E*tempS;
         end
     end
 end

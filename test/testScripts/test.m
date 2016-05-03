@@ -22,10 +22,12 @@ function result = test(Opts)
 % ------------------------------------------------------------------
 
 % Default benchmarks
-Def.option = 'light'; %'light','full','heavy'
-Def.size =400'; %'light': only benchmarks with sys.n<=Opts.size are tested
-                %'heavy': only benchmarks with sys.n>Opts.size are tested
-Def.number = 3; %choose maximum number of tested benchmarks
+Def.cond = 'good'; % condition of benchmarks: 'good','bad','all'
+                   % 'bad': LF10, beam, random, SpiralInductorPeec
+                   % 'good': all benchmarks that are not 'bad'
+Def.minSize = 0; % test benchmarks with sys.n >= minSize
+Def.maxSize = 400; % test benchmarks with sys.n <= minSize
+Def.number = 3; % choose maximum number of tested benchmarks
 Def.loadBench = 0;
 
 % create the options structure
@@ -36,7 +38,7 @@ else
     Opts.loadBench = 0;
 end
 
-loadBenchmarks(Opts);
+testPath=loadBenchmarks(Opts);
 
 % Run testSssMor
 disp([10,'Testing SSSMOR...']);
@@ -52,6 +54,6 @@ disp(resultSss);
 disp(table(resultSss));
 result={resultSssMor, resultSss};
 
-delete('benchmarksSysCell.mat');
+delete(fullfile(testPath,'benchmarksSysCell.mat'));
 end
 

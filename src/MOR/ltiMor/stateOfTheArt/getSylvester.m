@@ -2,8 +2,8 @@ function [R, B_, S] = getSylvester(sys,sysr,V,type)
 % GETSYLVESTER - Get matrices of Sylvester's equation for Krylov subspaces
 %
 % Syntax: 
-%       [R, B_, S] = GETSYLVESTER(sys, sysr, V)
-%       [L, C_, S] = GETSYLVESTER(sys, sysr, W, 'W')
+%       [Rv, B_, Sv] = GETSYLVESTER(sys, sysr, V)
+%       [Lw, C_, Sw] = GETSYLVESTER(sys, sysr, W, 'W')
 %
 % Description:
 %       Given the full order model sys and a reduced order model sysr
@@ -11,20 +11,20 @@ function [R, B_, S] = getSylvester(sys,sysr,V,type)
 %       subspace, this function reconstructs the matrices of the Sylvester
 %       equation for the Krylov subspace
 %
-%           $A V - E V S - B R = 0 \quad          (1)$
+%           $A V - E V S_v - B R_v = 0 \quad          (1)$
 %
 %           $B\_ = (I - E V(W^T E V)^{-1}W^T) B \quad          (2)$
 %
-%           $A V - E V E_r^{-1} A_r - B\_ R = 0\quad   (3)$
+%           $A V - E V E_r^{-1} A_r - B\_ R_v = 0\quad   (3)$
 %
 %       If the type is set to 'W', then the matrices are given for the
 %       output Krylov Sylvester equation
 %
-%           $A^T W - E^T W S^T - C^T L = 0 \quad   (4)$
+%           $A^T W - E^T W S_w^T - C^T L_w = 0 \quad   (4)$
 %
 %           $C\_ = C (I - V(W^T E V)^{-1}W^T E) \quad          (5)$
 %
-%           $A^T W - E^T V E_r^{-T} A_r^T - C\_^T L = 0 \quad  (6)$
+%           $A^T W - E^T V E_r^{-T} A_r^T - C\_^T L_w = 0 \quad  (6)$
 %
 % Input Arguments:
 %       *Required Input Arguments:*
@@ -36,8 +36,8 @@ function [R, B_, S] = getSylvester(sys,sysr,V,type)
 %                  [{'V'} / 'W'] 
 %
 % Output Arguments: 
-%       -R,S:      matrices of Sylvester equation (1) or (3)
-%       -B_:       matrix of Sylvester equation (2) or (4)
+%       -R,S:      matrices of Sylvester equation (1) [Rv,Sv] or (4) [Lw,Sw]
+%       -B_:       matrix of Sylvester equation (2) [B_] or (5) [C_]
 % 
 % Examples:
 %       This code computes the input Krylov subspace for a benchmark model
@@ -46,7 +46,7 @@ function [R, B_, S] = getSylvester(sys,sysr,V,type)
 %
 %> sys = loadSss('building');
 %> [sysr, V] = rk(sys,-eigs(sys,4).');
-%> [R, B_, S] = getSylvester(sys, sysr, V);
+%> [Rv, B_, Sv] = getSylvester(sys, sysr, V);
 %
 %//Note: RK can return some matrices of the Sylvester equation directly.
 % 
@@ -71,12 +71,12 @@ function [R, B_, S] = getSylvester(sys,sysr,V,type)
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      Alessandro Castagnotto
+% Authors:      Alessandro Castagnotto, Maria Cruz Varona
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  12 Nov 2015
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  13 Apr 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %%  parsing
