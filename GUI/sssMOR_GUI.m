@@ -703,16 +703,16 @@ function pb_PaV_refeshObjects_Callback(hObject, eventdata, handles)
         
         case 1      %Bode 
             class = 'frd';
-        case 2      %Impulse
-            class = 'fir';
-        case 3      %Step
-            class = 'fir';
+        case 2      %Magitude
+            class = 'frd';
+        case 3      %Singular Values
+            class = 'frd';
         case 4      %Pole-Zero-Map
             class = 'pzm';
-        case 5      %sigma
-            class = 'sig';
-        case 6      %bodemag
-            class = 'frd';
+        case 5      %Impulse
+            class = 'fir';
+        case 6      %Step
+            class = 'fir';
     end
     
     l = listClassesInWorkspace(class);
@@ -1050,34 +1050,42 @@ switch get(handles.plot_type,'Value')
         list = removeObjectsFromList(list,'freq');
         
         set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
-    case 2      %Impulse
+    case 2      %Magnitude
+        list = removeObjectsFromList(list,'fir');
+        list = removeObjectsFromList(list,'step');
+        list = removeObjectsFromList(list,'fir');
+        list = removeObjectsFromList(list,'pzm');
+        
+        set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
+    case 3      %Singular Values
+        list = removeObjectsFromList(list,'fir');
+        list = removeObjectsFromList(list,'step');
+        list = removeObjectsFromList(list,'fir');
+        list = removeObjectsFromList(list,'pzm');
+        
+        set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
+    case 4      %Impulse
         list = removeObjectsFromList(list,'frd');
         list = removeObjectsFromList(list,'step');
         list = removeObjectsFromList(list,'pzm');
         list = removeObjectsFromList(list,'freq');
         
         set(handles.panel_PaV_objectsWs,'Title','Fir-objects');
-    case 3      %Step
+    case 5      %Step
         list = removeObjectsFromList(list,'fir');
         list = removeObjectsFromList(list,'frd');
         list = removeObjectsFromList(list,'pzm');
         list = removeObjectsFromList(list,'freq');
         
         set(handles.panel_PaV_objectsWs,'Title','Fir-objects');
-    case 4      %Pole-Zero Map
+    case 6      %Pole-Zero Map
         list = removeObjectsFromList(list,'fir');
         list = removeObjectsFromList(list,'step');
         list = removeObjectsFromList(list,'frd');
         list = removeObjectsFromList(list,'freq');
         
         set(handles.panel_PaV_objectsWs,'Title','Pzm-objects');
-    case 5      %Frequency Response
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'frd');
-        list = removeObjectsFromList(list,'pzm');
-        
-        set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
+
 end
 
 l_alt = get(handles.lb_PaV_selectedSystems,'String');
@@ -1499,8 +1507,206 @@ function pb_plot_Callback(hObject, eventdata, handles)
                     end
                     
                 end
+            
+            case 2      %Magnitude
                 
-            case 2      %Impulse Response
+                set(figureHandles,'Name','Bode Diagram');
+                
+                for i = 1:size(systemList,1)
+                   if isa(systemList{i,2},'sss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                            systemList{i,5} = freqresp(systemList{i,2},systemList{i,6},struct('frd',1));
+                       else
+                            systemList{i,5} = freqresp(systemList{i,2},struct('frd',1));
+                       end
+                   else
+                       systemList{i,5} = systemList{i,2}; 
+                   end
+                end
+                
+                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+                    
+                    switch size(systemList,1)
+                        case 1
+                            bodemag(systemList{1,5},systemList{1,4});
+                        case 2
+                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
+                        case 3
+                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4});
+                        case 4
+                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
+                        case 5
+                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4});
+                        case 6
+                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
+                        case 7
+                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4});
+                        case 8
+                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
+                        case 9
+                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4});
+                        case 10
+                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                    end
+                    
+                else
+                    
+                    switch size(systemList,1)
+                        case 1
+                            bodemag(systemList{1,5});
+                        case 2
+                            bodemag(systemList{1,5},systemList{2,5});
+                        case 3
+                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5});
+                        case 4
+                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5});
+                        case 5
+                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5});
+                        case 6
+                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5});
+                        case 7
+                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5});
+                        case 8
+                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5});
+                        case 9
+                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5});
+                        case 10
+                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},...
+                                systemList{10,5});
+                    end
+                end
+                
+            case 3      %Singular values
+                
+                set(figureHandles,'Name','Singular Values');
+                
+                for i = 1:size(systemList,1)
+                   if isa(systemList{i,2},'sss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                            systemList{i,5} = freqresp(systemList{i,2},systemList{i,6},struct('frd',1));
+                       else
+                            systemList{i,5} = freqresp(systemList{i,2},struct('frd',1));
+                       end
+                   else
+                       systemList{i,5} = systemList{i,2}; 
+                   end
+                end
+                
+                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+                    
+                    switch size(systemList,1)
+                        case 1
+                            sigma(systemList{1,5},systemList{1,4});
+                        case 2
+                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
+                        case 3
+                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4});
+                        case 4
+                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
+                        case 5
+                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4});
+                        case 6
+                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
+                        case 7
+                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4});
+                        case 8
+                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
+                        case 9
+                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4});
+                        case 10
+                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                    end
+                    
+                else
+                    
+                    switch size(systemList,1)
+                        case 1
+                            sigma(systemList{1,5});
+                        case 2
+                            sigma(systemList{1,5},systemList{2,5});
+                        case 3
+                            sigma(systemList{1,5},systemList{2,5},systemList{3,5});
+                        case 4
+                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5});
+                        case 5
+                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5});
+                        case 6
+                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5});
+                        case 7
+                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5});
+                        case 8
+                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5});
+                        case 9
+                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5});
+                        case 10
+                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},...
+                                systemList{10,5});
+                    end
+                end
+                
+            case 4      %Impulse Response
                 
                 set(figureHandles,'Name','Impulse Response');
                 
@@ -1512,7 +1718,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
                    end
                 end
                 
-            case 3      %Step Response
+            case 5      %Step Response
                 
                 set(figureHandles,'Name','Step Response');
                 
@@ -1524,7 +1730,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
                    end
                 end
                 
-            case 4      %Pole-Zero-Map
+            case 6      %Pole-Zero-Map
                 
                 set(figureHandles,'Name','Pole-Zero Map');
                 
@@ -1535,30 +1741,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
                        systemList{i,5} = pzmap(systemList{i,2});
                    end
                 end
-                
-            case 5      %Singular Values
-                
-                set(figureHandles,'Name','Frequency Response');
-                
-                for i = 1:size(systemList,1)
-                   if get(handles.rb_auto,'Value')==0
-                       systemList{i,5} = sigma(systemList{i,2},frequency);
-                   else
-                       systemList{i,5} = sigma(systemList{i,2});
-                   end
-                end  
-                
-            case 6      %Bode Magnitude
-                
-                set(figureHandles,'Name','Magnitude');
-                
-                for i = 1:size(systemList,1)
-                   if get(handles.rb_auto,'Value')==0
-                       systemList{i,5} = bodemag(systemList{i,2},frequency);
-                   else
-                       systemList{i,5} = bodemag(systemList{i,2});
-                   end
-                end  
+                 
         end
         
         %Legend
@@ -5830,17 +6013,21 @@ function [variableName] = suggestPlotDataName(handles,sysName)
     
     switch selection
         
-        case 1
-            type = 'bode';
-        case 2 
+        case 1      %Bode
+            type = 'frd';
+        case 2      %Magnitude
+            type = 'frd';
+        case 3      %Singular
+            type = 'frd';
+        case 4 
             type = 'impulse';
-        case 3 
+        case 5 
             type = 'step';
-        case 4
-            type = 'pzm';
-        case 5
-            type = 'singular';
         case 6
+            type = 'pzm';
+        case 7
+            type = 'singular';
+        case 8
             type = 'mag';
     end
     
