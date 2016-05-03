@@ -2082,12 +2082,14 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
         set(handles.sl_mor_q,'Enable','off')
     else
         set(handles.sl_mor_q,'Max',size(sys.A,1));
-        set(handles.sl_mor_q,'Enable','on')
+        if get(handles.pu_mor_method,'Value') ~= 3  %not Krylov         
+            set(handles.sl_mor_q,'Enable','on')
+        end
     end
     set(handles.pb_mor_reduce,'Enable','on');
     
     %If Krylov is selected, set the default values for the expension points and
-    %show the right panel dependent on if the system is siso or mimo
+    %show the correct panel dependent on if the system is siso or mimo
 
     if get(handles.pu_mor_method,'Value')==3
 
@@ -2219,8 +2221,11 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
         set(handles.pu_an_sys1,'String',l);
         
         set(handles.virtgr_an_red_buttons,'Enable','on');
-        set(handles.ed_mor_q,'Enable','on')
-        set(handles.sl_mor_q,'Enable','on')
+        
+        if get(handles.pu_mor_method,'Value') ~= 3    %not Krylov
+            set(handles.ed_mor_q,'Enable','on')
+            set(handles.sl_mor_q,'Enable','on')
+        end        
         
         pu_mor_systems_Callback(handles.pu_mor_systems, eventdata, handles);
         lb_PaV_systemsWs_Callback(handles.lb_PaV_systemsWs,eventdata,handles);
