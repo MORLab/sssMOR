@@ -4,7 +4,8 @@ function name = getComputerName()
 % Syntax:
 % 	  name = getComputerName()
 %
-% WARN: output string is converted to lower case
+% WARN: 
+%	  output string is converted to lower case
 %
 %
 % See also:
