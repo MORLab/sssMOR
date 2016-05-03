@@ -134,9 +134,9 @@ classdef testTbr < sssTest
                 sys=testCase.sysCell{i};
                 if ~sys.isDae && sys.n>100
                     q=50;
-                    opts.adi='adi';
+                    opts.type='adi';
                     [~,~,~,actHsv]=tbr(sys,q,opts);
-                    opts.adi=0;
+                    opts.type='tbr';
                     [~,~,~,expHsv]=tbr(sys,q,opts);
                     
                     actSolution={actHsv(1:5)};
@@ -153,10 +153,9 @@ classdef testTbr < sssTest
                 if ~sys.isDae && sys.isSiso && sys.n>100
                     Opts.type='tbr';
                     Opts.redErr=1e-10;
-                    Opts.real='real';
                     [sysr,~,~,hsv]=tbr(sys,Opts);
-                    [impResSys,t]=step(sys);
-                    impResSysr=step(sysr,t');
+                    [impResSysr,t]=step(ss(sysr));
+                    impResSys=step(ss(sys),t);
                     hsvError=(sum(hsv(sysr.n+1:end))+hsv(end)*(sys.n-length(hsv)))/hsv(1)*2;
                     verifyLessThanOrEqual(testCase, norm(impResSys-impResSysr)/length(t), hsvError);
                 end 
@@ -165,11 +164,13 @@ classdef testTbr < sssTest
         function testMatchDcGain(testCase)
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
-                Opts.type='matchDcGain';
-                sysr=tbr(sys,10,Opts);
-                actSolution=freqresp(sys-sysr,0);
-                expSolution=dcgain(ss(sys-sysr));
-                verifyLessThanOrEqual(testCase, abs(actSolution-expSolution), 1e-8); 
+                if ~sys.isDae
+                    Opts.type='matchDcGain';
+                    sysr=tbr(sys,10,Opts);
+                    actSolution=freqresp(sys-sysr,0);
+                    expSolution=dcgain(ss(sys-sysr));
+                    verifyLessThanOrEqual(testCase, abs(actSolution-expSolution), 1e-8); 
+                end
             end
         end
     end

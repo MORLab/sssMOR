@@ -208,7 +208,7 @@ if strcmp(Opts.type,'adi')
     % low rank adi
     [R,Rout,eqn]=mess_lradi(eqn,messOpts,oper);
     
-    if sys.isSym && norm(full(sys.B-sys.C'))==0
+    if sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0
         L=R;
     else
         eqn.type='T';
@@ -238,7 +238,7 @@ if strcmp(Opts.type,'adi')
             end
         end
 
-        if ~(sys.isSym && norm(full(sys.B-sys.C'))==0) && qminR<q
+        if ~(sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0) && qminR<q
             qminL=q;
             nStop=0;
             for i=1:length(Lout.rc)
@@ -252,14 +252,14 @@ if strcmp(Opts.type,'adi')
                     break
                 end
             end
-        elseif sys.isSym && norm(full(sys.B-sys.C'))==0
+        elseif sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0
             qminL=qminR;
         end
         q_min_in=max(qminR,qminL);
         
         if q_min_in>0 && q_min_in < q && strcmp(Opts.warnOrError,'warn')
             warning(['After q=', num2str(q_min_in,'%d'),...
-            ' the contribution of the ADI iterates was very small.']);
+            ' the contribution of the ADI iterates was very small. Consider reducing the desired order accordingly.']);
         end
     end
     
@@ -480,7 +480,7 @@ switch Opts.type
             E11=EBal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
             E21=EBal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
             ERed=E11-A12/A22*E21;
-            CRed=C1-C2/A22*A21+C2*A22i*E21/ERed*ARed;
+            CRed=C1-C2/A22*A21+C2*A22*E21/ERed*ARed;
             DRed=sys.D-C2/A22*B2+C2/A22*E21/ERed*BRed;
             sysr = sss(ARed, BRed, CRed, DRed, ERed);
         else % Er=I
