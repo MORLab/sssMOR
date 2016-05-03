@@ -51,8 +51,6 @@ function [sysr, varargout] = tbr(sys, varargin)
 %		*Optional Input Arguments:*
 %       -q:     order of reduced system
 %       -Opts:              a structure containing following options
-%           -.real:         return real reduced system
-%                           [{'real'} / '0']
 %           -.type:         select amongst different tbr algorithms
 %                           [{'tbr'} / 'adi' / 'matchDcGain' ]
 %           -.redErr:       upper bound of reduction error
@@ -61,6 +59,8 @@ function [sysr, varargout] = tbr(sys, varargin)
 %                           [{'1e-15'} / positive float]
 %           -.warnOrError:  display warnings or errors
 %                           [{'warn'} / 'error' / '0']
+%           -.lse:          solve linear system of equations (only for adi)
+%                           [{'gauss'} / 'luChol']
 %
 % Output Arguments:
 %       -sysr:  reduced system
@@ -102,7 +102,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  16 Feb 2016
+% Last Change:  15 Apr 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -110,8 +110,8 @@ function [sysr, varargout] = tbr(sys, varargin)
 Def.type = 'tbr'; % select tbr method (tbr, adi, matchDcGain)
 Def.redErr = 0; % reduction error (redErr>2*sum(hsv(q+1:end)))
 Def.hsvTol = 1e-15; % hsv tolerance (hsv(q)<hsvTol)
-Def.real = 'real'; % real reduced system ('0', 'real')
 Def.warnOrError = 'warn'; % display warnings or errors (0,'warn','error')
+Def.lse = 'gauss'; % usfs for adi ('gauss', 'luChol')
 
 % check input for q and Opts
 if nargin>1
@@ -158,110 +158,61 @@ if strcmp(Opts.type,'adi')
 end
 
 if strcmp(Opts.type,'adi')
-    % lyapack options (lyaOpts):
-    %   method='heur': find ADI parameters with a heuristic method
-    %   (l0,kp,km)=(20,50,25): shifts p consist of l0 or l0+1 values of kp('LM')+km('SM') Ritz values
-    %   zk='Z': return cholesky factor of solution X=Z*Z' of lyapunov equation
-    %   rc='R'('C'): return real (complex) Z
-    %   adi.type='B'('C'): layponov equation type ('B','C')
-    %   adi.max_it=100: maximum number of iterations for ADI iteration (stopping criteria)
-    %   adi.min_res=0: minimum residual for ADI iteration - expensive(stopping criteria)
-    %   adi.with_rs='N': (S/N) stop ADI iteration if stagnation of error - very expensive (stopping criteria)
-    %   adi.min_in=1e-12: tolerance for difference between ADI iterates - inexpensive(stopping criteria)
-    %   adi.cc_upd=0: column compression parameter (0=never)
-    %   adi.cc_tol=sqrt(eps): column compression tolerance (default=sqrt(eps))
+    % options/structures used for mess
+    %
+    % messOpts.adi.shifts
+    %   .method='heur': find ADI parameters with a heuristic method
+    %   .(l0,kp,km)=(20,50,25): shifts p consist of l0 or l0+1 values of kp('LM')+km('SM') Ritz values
+    %   .b0: start vector for arnoldi algorithm
+    %   .info=0; information level
+    %
+    % messOpts.adi
+    %   adi.maxiter=300: maximum number of iterations for ADI iteration (stopping criteria)
+    %   adi.restol=0: minimum residual for ADI iteration - expensive(stopping criteria)
+    %   adi.rctol=1e-12: tolerance for difference between ADI iterates - inexpensive(stopping criteria)
     %   adi.info=0; information level
-    %   usfs.au: no descriptor (E=I), sparse, possibly unsymmetric
-    %   usfs.as: no descriptor (E=I), sparse, sys.A symmetric
-    %   usfs.munu: descriptor (E~=I), sparse, possibly unsymmetric
-    %   usfs.msns: descriptor (E~=I), sparse, sys.A and sys.E symmetric
-    
-    % required changes of lyapack functions (functions will error without changes):
-    %   routine\lp_lradi.m - line 427: insert 'full': svd(full(...)) - else 
-    %       error if Opts.real='real' because svd(sparse)
-    %   usfs\as_s - line 37: replace 'LP_U' with 'LP_UC' - else error if
-    %       Opts.sym='sym' and system is not descriptor because LP_U does not exist
-    
-    % optional changes of lyapack functions (function work without changes):
-    %   usfs\au_l_i, usfs\au_l, usfs\au_l_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
-    %   usfs\munu_l_i, usfs\munu_l, usfs\munu_l_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
-    %   usfs\au_s_i, usfs\au_s, usfs\au_s_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
-    %   usfs\munu_s_i, usfs\munu_s, usfs\munu_s_d: [L,U]=lu(A) replaced with [L,U,a,o,S] = lu(A)
- 
-    lyaOpts.l0=20;
-    lyaOpts.kp=50;
-    lyaOpts.km=25;
-    lyaOpts.method='heur';
-    lyaOpts.zk='Z';
-    
-    if strcmp(Opts.real,'real')
-        lyaOpts.rc='R';
-    else
-        lyaOpts.rc='C';
-    end
+    %   adi.norm='fro': frobenius (mess default) or 2-norm
+    %
+    % eqn
+    %   .type='N'/'T' lyapunov equation normal (with B) or transposed (with C)
+    %	.haveE=sys.isDescriptor: E-matrix identity
 
-    lyaOpts.adi=struct('type','B','max_it', 300,'min_res',0,'with_rs','N',...
-        'min_in',1e-12,'min_in_no_break',false,'info',0,'cc_upd',0,'cc_tol',0);
+    % eqn struct: system data
+    eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'type','N','haveE',sys.isDescriptor);
+    
+    % opts struct: mess options
+    messOpts.adi=struct('shifts',struct('l0',20,'kp',50,'km',25,'b0',ones(sys.n,1),...
+        'info',0),'maxiter',300,'restol',0,'rctol',1e-12,...
+        'info',0,'norm','fro');
+    
+    % user functions: default
+    if strcmp(Opts.lse,'gauss')
+        oper = operatormanager('default');
+    elseif strcmp(Opts.lse,'luChol')
+        if sys.isSym
+            oper = operatormanager('chol');
+        else
+            oper = operatormanager('lu');
+        end
+    end
     
     if exist('q','var') %size of cholesky factor [sys.n x q] -> qmax=q
-        lyaOpts.adi.max_it=q;
-        lyaOpts.adi.min_in_no_break=true;
+        messOpts.adi.maxiter=q;
+        messOpts.adi.restol=0;
+        messOpts.adi.rctol=1e-30;
     end
-
-    if sys.isSym
-        if ~sys.isDescriptor
-            lyaOpts.usfs=struct('s','as_s','m','as_m');
-            [A0,B0,C0]=as_pre(sys.A,sys.B,sys.C); %preprocessing: reduce bandwith of A
-            as_m_i(A0);
-            as_l_i;
-            p=lp_para(as,[],[],lyaOpts, ones(length(B0),1)); %determine ADI parameters p (Ritz values of A)
-            lyaOpts.p=p.p;
-            as_s_i(lyaOpts.p);
-        else
-            lyaOpts.usfs=struct('s','msns_s','m','msns_m');
-            [M0,MU0,N0,B0,C0]=msns_pre(sys.E,sys.A,sys.B,sys.C);
-            msns_m_i(M0,MU0,N0); 
-            msns_l_i;
-            p=lp_para(msns,[],[],lyaOpts,ones(length(B0),1));
-            lyaOpts.p=p.p;
-            msns_s_i(lyaOpts.p);
-        end
-    else
-        if ~sys.isDescriptor
-            lyaOpts.usfs=struct('s','au_s','m','au_m');
-            [A0,B0,C0]=au_pre(sys.A,sys.B,sys.C);
-            au_m_i(A0);
-            au_l_i;
-            p=lp_para(au,[],[],lyaOpts, ones(length(B0),1));
-            lyaOpts.p=p.p;
-            au_s_i(lyaOpts.p);
-        else
-            lyaOpts.usfs=struct('s','munu_s','m','munu_m');
-            [M0,ML0,MU0,N0,B0,C0]=munu_pre(sys.E,sys.A,sys.B,sys.C);
-            munu_m_i(M0,ML0,MU0,N0); 
-            munu_l_i;
-            p=lp_para(munu,[],[],lyaOpts,ones(length(B0),1));
-            lyaOpts.p=p.p;
-            munu_s_i(lyaOpts.p);
-        end
-    end 
     
-    % ADI solution of lyapunov equation
-    [R,Ropts]=lp_lradi([],[],B0,lyaOpts);
-    if sys.isSym && norm(full(sys.B-sys.C'))==0
+    % get adi shifts
+    [messOpts.adi.shifts.p, eqn]=mess_para(eqn,messOpts,oper);
+    
+    % low rank adi
+    [R,Rout,eqn]=mess_lradi(eqn,messOpts,oper);
+    
+    if sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0
         L=R;
-        Lopts=Ropts;
     else
-        lyaOpts.adi.type='C';
-        [L,Lopts]=lp_lradi([],[],C0,lyaOpts);
-    end
-    
-    if lyaOpts.adi.min_in_no_break
-        q_min_in=max([Ropts.adi.min_iter,Lopts.adi.min_iter]);
-        if q_min_in>0 && q_min_in < q
-        warning(['After q=', num2str(q_min_in,'%d'),...
-            ' the contribution of the ADI iterates was very small.']);
-        end
+        eqn.type='T';
+        [L,Lout,eqn]=mess_lradi(eqn,messOpts,oper);
     end
 
     qmax=min([size(R,2),size(L,2)]); %make sure R and L have the same size
@@ -269,12 +220,55 @@ if strcmp(Opts.type,'adi')
     L=L(:,1:qmax);
     qmaxAdi=qmax;
     
+    if exist('q','var') % warn user if rctol is satisfied before q_user
+        qminR=q;
+        qminL=q;
+        nStop=0;
+        
+        % rctol is satisfied if rc<tol for 10 times consecutively
+        for i=1:length(Rout.rc)
+            if Rout.rc(i)<1e-9
+                nStop=nStop+1;
+            else
+                nStop=0;
+            end
+            if nStop==10
+                qminR=i;
+                break
+            end
+        end
+
+        if ~(sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0) && qminR<q
+            qminL=q;
+            nStop=0;
+            for i=1:length(Lout.rc)
+                if Lout.rc(i)<1e-9
+                    nStop=nStop+1;
+                else
+                    nStop=0;
+                end
+                if nStop==10
+                    qminL=i;
+                    break
+                end
+            end
+        elseif sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0
+            qminL=qminR;
+        end
+        q_min_in=max(qminR,qminL);
+        
+        if q_min_in>0 && q_min_in < q && strcmp(Opts.warnOrError,'warn')
+            warning(['After q=', num2str(q_min_in,'%d'),...
+            ' the contribution of the ADI iterates was very small. Consider reducing the desired order accordingly.']);
+        end
+    end
+    
     % calculate balancing transformation and Hankel Singular Values
     [K,S,M]=svd(full(L'*R));
     hsv = diag(S);
     sys.HankelSingularValues = real(hsv);
     sys.TBalInv = R*M/diag(sqrt(hsv));
-    sys.TBal = diag(sqrt(hsv))\K'*L';
+    sys.TBal = diag(sqrt(hsv))\K'*L'/eqn.E_;
     
 else
     qmax=sys.n;
@@ -486,7 +480,7 @@ switch Opts.type
             E11=EBal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
             E21=EBal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
             ERed=E11-A12/A22*E21;
-            CRed=C1-C2/A22*A21+C2*A22i*E21/ERed*ARed;
+            CRed=C1-C2/A22*A21+C2*A22*E21/ERed*ARed;
             DRed=sys.D-C2/A22*B2+C2/A22*E21/ERed*BRed;
             sysr = sss(ARed, BRed, CRed, DRed, ERed);
         else % Er=I
@@ -496,13 +490,7 @@ switch Opts.type
         end
     
     case 'adi'
-        sysr=sss(W'*feval(lyaOpts.usfs.m,'N',V),W'*B0,C0*V,sys.D);
-
-        %delete global data
-        as_m_d; as_l_d; as_s_d(p.p);
-        msns_m_d; msns_l_d; msns_s_d(p.p)
-        au_m_d; au_l_d; au_s_d(p.p);
-        munu_m_d; munu_l_d; munu_s_d(p.p)
+          sysr = sss(W'*eqn.A_*V, W'*eqn.B, eqn.C*V, sys.D, W'*eqn.E_*V);
 end
 
 %   Rename ROM
