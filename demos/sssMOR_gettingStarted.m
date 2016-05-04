@@ -47,8 +47,9 @@ end
 
 %%  Initialization
 clearvars -except Opts
-clc
+
 warning('off','all');
+fprintf('\n\n\n'); 
 fprintf('Starting demo execution: sssMOR_gettingStarted...\n\n'); 
 
 %% Init
