@@ -363,7 +363,7 @@ classdef testArnoldi < sssTest
                   expMt = [expMt, {expM(:,:,jM)*Rt(:,iS), Lt(:,iS).'*expM(:,:,jM),...
                            Lt(:,iS).'*expM(:,:,jM)*Rt(:,iS), Lt(:,iS).'*expM(:,:,jM+1)*Rt(:,iS)}];
               end
-              verifyEqual(testCase, actMt, expMt, 'RelTol', 1e-6);
+              verifyEqual(testCase, actMt, expMt, 'AbsTol', 1e-6);
             end
         end
         function testArnoldi8(testCase) 
