@@ -1,5 +1,5 @@
 function RedData = compareMor(sys,redFct,Opts)
-% COMPAREMOR - compare different model reduction algorithms
+%COMPAREMOR - compare different model reduction algorithms
 %
 % Syntax:
 %   COMPAREMOR(sys,redFct)
@@ -29,18 +29,18 @@ function RedData = compareMor(sys,redFct,Opts)
 % See also:
 %   SSS
 %
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 %   This file is part of sssMOR, a Sparse State Space, Model Order
 %   Reduction and System Analysis Toolbox developed at the Institute 
 %   of Automatic Control, Technische Universitaet Muenchen.
 %   For updates and further information please visit www.rt.mw.tum.de
 %   For any suggestions, submission and/or bug reports, mail us at
 %                     -> sssMOR@rt.mw.tum.de <-
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 % Last Change:  02 Sep 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 
 %%  Input parsing
 %   Make redFct a cell even if it is a single handle

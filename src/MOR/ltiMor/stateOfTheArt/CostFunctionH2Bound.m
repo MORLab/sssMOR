@@ -1,9 +1,46 @@
 function [J, g, H] = CostFunctionH2Bound(A, B, E, p)
-% Cost Functional for H2 Error Bound Minimization, by A. Kohl
-%   Input:  A,B,E: HFM matrices; 
-%           p:       parameter vector [a,b]; 
-%   Output: cost functional J; gradient g; Hessian H
-% $\MatlabCopyright$
+% CostFunctionH2Bound - Cost Functional for H2 Error Bound Minimization, by A. Kohl
+%
+% Syntax:
+%       [sysr, s0] 		= cirka(sys, s0) 
+%	   [sysr, s0] 		= cirka(sys, s0, Opts) 
+%
+% Description:
+%	   TODO
+%
+% Input Arguments:
+%	   A,B,E: 	HFM matrices 
+%           p:      parameter vector [a,b] 
+%
+% Output Arguments:
+%	   J: 		cost functional
+%	   g:		gradient
+%	   H:	    	Hessian
+%
+% See Also: 
+%       TODO
+%
+% References:
+%	   TODO
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
+% Authors:      TODO
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  03 Mai 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
+
 
 a = p(1); b = p(2); s0 = p(1)+[1 -1]*sqrt(p(1)^2-p(2));
 As1 = A-s0(1)*E; As2 = A-s0(2)*E; L_E = chol(E);
