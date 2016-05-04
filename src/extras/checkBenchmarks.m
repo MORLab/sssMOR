@@ -23,18 +23,18 @@ function checkBenchmarks(directory)
 %   LOADSSS, SSS\ISSTABLE, SSS\ISSD, CONDEST
 %
 %
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 %   This file is part of sssMOR, a Sparse State Space, Model Order
 %   Reduction and System Analysis Toolbox developed at the Institute 
 %   of Automatic Control, Technische Universitaet Muenchen.
 %   For updates and further information please visit www.rt.mw.tum.de
 %   For any suggestions, submission and/or bug reports, mail us at
 %                     -> sssMOR@rt.mw.tum.de <-
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 % Last Change:  14 Aug 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 
 %   Go to benchmark directory
 currDir = cd;

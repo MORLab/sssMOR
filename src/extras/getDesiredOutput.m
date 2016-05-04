@@ -21,18 +21,18 @@ function varargout = getDesiredOutput(func,outputNo,varargin)
 % References:
 %   [1] http://stackoverflow.com/questions/3096281/skipping-outputs-with-anonymous-function-in-matlab
 %
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 %   This file is part of sssMOR, a Sparse State Space, Model Order
 %   Reduction and System Analysis Toolbox developed at the Institute 
 %   of Automatic Control, Technische Universitaet Muenchen.
 %   For updates and further information please visit www.rt.mw.tum.de
 %   For any suggestions, submission and/or bug reports, mail us at
 %                     -> sssMOR@rt.mw.tum.de <-
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 % Last Change:  02 Sep 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
-% ------------------------------------------------------------------
+%------------------------------------------------------------------
 
     varargout = cell(max(outputNo),1);
     [varargout{:}] = func(varargin{:});
