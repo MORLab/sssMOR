@@ -96,8 +96,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
     %   from the data collected during irka
     
     sysm = createSurrogate;
-    fprintf('Size of the surrogate model: %i \n',sysm.n)
-    isstable(sysm)
+    fprintf('Size of the surrogate model: %i \n',size(sysm.a,1))
+    fprintf('Stability of surrogate model: %i \n',isstable(sysm))
 %     figure; bode(sys,'b',sysr0,'--g',sysm,'--r'); keyboard
 
     %%  Make Hinf correction
@@ -211,7 +211,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
             
             % 1) cycle optimization
             Opts.solver = 'fmincon';
-            DrOpt = DrInit(Opts.DrInit); HinfVec = norm(ss(sysm-sysr0),Inf); tOpt = 0;
+            DrOpt = DrInit(Opts.DrInit); HinfVec = norm(sysm-ss(sysr0),Inf); tOpt = 0;
             for iOut = 1:sys.p
                 for jIn = 1:sys.m
                     Dr0 = DrOpt(iOut,jIn);
@@ -238,7 +238,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
         otherwise
             error('Specified Hinf optimization type not valid');
     end
-    
+    sysr = sss(sysr);
     %   See how the cost behaves around the chosen minimum?
     if Opts.plotCostOverDr
         nStep = 20; kRange = 5;
@@ -271,7 +271,11 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
         Hinf = norm(ss(sys-sysr),inf);%optimized
         HinfO = norm(ss(sys),inf); %original
         HinfRel = Hinf/HinfO;
-        HinfRatio = Hinf/norm(ss(sys-sysr0),inf); %ratio to irka ROM
+        HinfRatio = Hinf/norm(ss(sys-sysr0),inf) %ratio to irka ROM
+        
+        figure('Name','SV of error before and after optimization'); 
+        sigma(ss(sys-sysr),ss(sys-sysr0))
+        drawnow
         
         if nargout > 5
 %             bound = HinfBound(sys,B_,C_);
@@ -498,19 +502,19 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
         else
             DrMIMO(iOut,jIn) = Dr;
         end
-        sysr = sss(sysr0.A+Lt.'*DrMIMO*Rt, sysr0.B+Lt.'*DrMIMO, ...
-                                     sysr0.C+DrMIMO*Rt, DrMIMO, sysr0.E);
+        sysr = dss(full(sysr0.A)+Lt.'*DrMIMO*Rt, sysr0.B+Lt.'*DrMIMO, ...
+                                     sysr0.C+DrMIMO*Rt, DrMIMO, full(sysr0.E));
     end
     function [minDr, minVal] = plotOverDrRange(varargin)
         if isnumeric(DrRange) %vector of Dr values
             %initializing
             normVec = zeros(1,length(DrRange));
-            normO = norm(ss(sysm),inf); 
-            normVec(1) = norm(ss(sysm-sysr0),inf)/normO; 
+            normO = norm(sysm,inf); 
+            normVec(1) = norm(sysm-ss(sysr0),inf)/normO; 
             minVal = normVec(1); minDr = 0; DrRange = [0,DrRange];
             for iDr = 2:length(DrRange)
                 sysrTest = sysrfun(DrRange(iDr));
-                normVec(iDr) = norm(ss(sysm-sysrTest),inf)/normO;
+                normVec(iDr) = norm(sysm-ss(sysrTest),inf)/normO;
                 if normVec(iDr) < minVal
                     minDr = DrRange(iDr); minVal = normVec(iDr);
                 end
@@ -528,9 +532,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
             end
             
             % Add zero and Dr0 to the plot
-            currDr = 0; currVal = norm(ss(sysm-sysrfun(currDr)),inf)/normO;
+            currDr = 0; currVal = norm(sysm-sysrfun(currDr),inf)/normO;
             h(4) = plot(currDr, currVal,'ok');          
-            currDr = freqresp(sysm-sysrfun(0),0); currVal = norm(ss(sysm-sysrfun(currDr)),inf)/normO;
+            currDr = freqresp(sysm-sysrfun(0),0); currVal = norm(sysm-sysrfun(currDr),inf)/normO;
             h(5) = plot(currDr,currVal,'sm');
             legNames = [legNames, {'val@0','Ge0(0)'}];
             
@@ -548,7 +552,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
             
             Dr1Range = DrRange{1}; Dr2Range = DrRange{2};
             normMat = zeros(size(Dr1Range));
-            normO = norm(ss(sysm),inf); 
+            normO = norm(sysm,inf); 
             % in this case, we don't add 0 as a value to the grid
             minVal = Inf;
             for iDr = 1:size(Dr1Range,1)
@@ -556,7 +560,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
                     currDr(1) = Dr1Range(iDr,jDr);
                     currDr(2) = Dr2Range(iDr,jDr);
                     sysrTest = sysrfun(currDr);
-                    normMat(iDr,jDr) = norm(ss(sysm-sysrTest),inf)/normO;
+                    normMat(iDr,jDr) = norm(sysm-ss(sysrTest),inf)/normO;
                     if normMat(iDr,jDr) < minVal
                         minDr(1) = Dr1Range(iDr,jDr);
                         minDr(2) = Dr2Range(iDr,jDr);
@@ -578,10 +582,10 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
             end
             
             % Add zero and Dr0 to the plot
-            currDr = zeros(size(currDr)); currVal = norm(ss(sysm-sysrfun(currDr)),inf)/normO;
+            currDr = zeros(size(currDr)); currVal = norm(sysm-sysrfun(currDr),inf)/normO;
             h(4) = plot3(currDr(1),currDr(2),currVal,'ok','MarkerFaceColor','k');            
             currDr = abs(freqresp(sysm,0) - freqresp(sysr0,0));
-            currVal = norm(ss(sysm-sysrfun(currDr)),inf)/normO;
+            currVal = norm(sysm-sysrfun(currDr),inf)/normO;
             h(5) = plot3(currDr(1),currDr(2),currVal,'sm','MarkerFaceColor','m');
             legNames = [legNames, {'val@0','Ge0(0)'}];
             
@@ -659,7 +663,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
         % define values
         for iO = 1:p
             parfor jI = 1:m
-                val = norm(syse(iO,jI),inf);
+                val = norm(ss(syse(iO,jI)),inf);
                 lb(iO,jI) = -fac*val; ub(iO,jI) = fac*val;
             end
         end
@@ -668,7 +672,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
     function sysm = createSurrogate
         switch Opts.surrogate
             case 'original'
-                sysm = sys;
+                sysm = ss(sys);
             case 'model'
                 [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj);
                 arnoldiOpts.makeOrth = 0;
@@ -686,7 +690,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
 %                 fss = freqresp(sys,s0m); fss = reshape(fss,numel(fss(:,:,1)),length(fss));
                 f = freqresp(sys,s0m); f = reshape(f,numel(f(:,:,1)),length(f));
                            
-                nm = min([round(length(s0m)),60]);  %model function order
+%                 nm = min([round(length(s0m)),60]);  %model function order
+                nm = min([floor(length(s0m)/2),Opts.surrogateSize]);  %model function order
+
                 
                 m = sys.m; p = sys.p;
                 if m>1, nm = round(nm/m);end %avoid blowing-up for MIMO
@@ -714,10 +720,10 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, sysm, Virka, Rt] = HinfM
                     DD = [DD, SER.D];
                 end
                 
-                sysm = sss(AA,BB,CC,DD);
+                sysm = ss(full(AA),BB,CC,DD);
 %                 isstable(sysm)
                 figure('Name','Original Vs surrogate models');
-                bode(ss(sys),'b-',ss(sysm),'--r'); %keyboard;            
+                bodemag(sys,'b-',sysm,'--r'); %keyboard;            
             case 'loewner'
                 %   Get the data
                 [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj);
