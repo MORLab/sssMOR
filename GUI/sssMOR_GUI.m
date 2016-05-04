@@ -1848,11 +1848,10 @@ function pb_load_Callback(hObject, eventdata, handles)
            
            %Create system using loadSss
           
-           evalin('base',strcat(name,sprintf(' = loadSss(''%s%s'');',path,filename)));
+           sys = loadSss(strcat(path,filename));         
+           assignin('base',name,sys);
            
            %Check whether the system is DAE and warn the user if the case
-           
-           sys = evalin('base', name);
            
            if sys.isDae
                msgbox('System is DAE. This User-Interface does not fully support systems in DAE-format','Warning','Warn');
