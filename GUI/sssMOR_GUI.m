@@ -3908,6 +3908,8 @@ try
           set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{123,123,123,0});
        else
           set(handles.uitable_mor_krylov_MimoExps,'Data',data.inputData);
+          set(handles.uitable_mor_krylov_MimoExps_output,'Data',...
+              [data.inputData(:,1),data.inputData(:,2),data.inputData(:,4)]);
           set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{92,92,92,92});
        end
     end
