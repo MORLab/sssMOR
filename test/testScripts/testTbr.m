@@ -164,12 +164,12 @@ classdef testTbr < sssTest
         function testMatchDcGain(testCase)
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
-                if ~sys.isDae
+                if ~sys.isDae && ~strcmp(sys.Name,'heat-cont');
                     Opts.type='matchDcGain';
                     sysr=tbr(sys,10,Opts);
-                    actSolution=freqresp(sys-sysr,0);
-                    expSolution=dcgain(ss(sys-sysr));
-                    verifyLessThanOrEqual(testCase, abs(actSolution-expSolution), 1e-8); 
+                    actSolution= freqresp(sysr,0);
+                    expSolution= freqresp(sys,0);
+                    verifyLessThanOrEqual(testCase, abs(actSolution-expSolution), 1e-6); 
                 end
             end
         end

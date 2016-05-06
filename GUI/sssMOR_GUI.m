@@ -1,23 +1,42 @@
 function varargout = sssMOR_GUI(varargin)
-% SSSMOR_GUI - nes at end of demos 
-% ------------------------------------------------------------------
-% USAGE:  TODO
+% SSSMOR_GUI - sssMOR toolbox Graphical User Interface 
 %
-% See also SSSMOR_GETTINGSTARTED, SSS.
+% Syntax:
+%       SSSMOR_GUI
 %
-% ------------------------------------------------------------------
-% This file is part of sssMOR, a Sparse State Space, Model Order
-% Reduction and System Analysis Toolbox developed at the Institute 
-% of Automatic Control, Technische Universitaet Muenchen.
-% For updates and further information please visit www.rt.mw.tum.de
+% Description:
+%       The *sssMOR GUI* is a Graphical User Interface for Model Order Reduction,
+%       which uses the functions from the *sss Toolbox* and from the *sssMOR Toolbox*.  
+%
+%       The main menu of the user interface contains the five items *About*,
+%       *Loading and Setting up Models*, *Model Order Reduction*, *Postprocessing
+%       and Visualization* and *System Analysis*. The sequence of these five items
+%       follows the usual workflow for Model Order Reduction, which starts with
+%       loading the desired model, continues with the reduction and ends with an
+%       evaluation of the results.
+%
+% See Also:
+%       sss_gettingStarted, sssMOR_gettingStarted
+%
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                    -> sssMOR@rt.mw.tum.de <-
-% ------------------------------------------------------------------
-% Authors:      Heiko Panzer, Sylvia Cremer, Maria Cruz Varona, 
-%               Alessandro Castagnotto
-% Last Change:  11 Sep 2015
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
-% ------------------------------------------------------------------
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
+% Authors:      Heiko Panzer, Sylvia Cremer, Niklas Kochdumper,
+%               Maria Cruz Varona, Alessandro Castagnotto
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  05 May 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
 
 
 %Structure:
@@ -41,9 +60,6 @@ function varargout = sssMOR_GUI(varargin)
 %       FOOTER
 %
 %   UTILITY FUNCTIONS
-
-
-
 
 %--------------------------------------------------------------------------
 %                           INITIALIZATION
