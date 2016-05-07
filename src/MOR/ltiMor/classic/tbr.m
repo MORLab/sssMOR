@@ -471,6 +471,17 @@ switch Opts.type
         [A11,A12,A21,A22] = partition(ABal,q);
         B1=BBal(1:q,:);B2=BBal(q+1:end,:);
         C1=CBal(:,1:q);C2=CBal(:,q+1:end);
+        
+        if rcond(A22)<eps
+            if strcmp(Opts.warnOrError,'warn')
+                % don't display Matlab's warning several times, but display 
+                % only 1 warning that informs user of the consequences
+                warning('tbr:rcond','MatchDcGain might be inaccurate because of a nearly singular matrix.');
+                warning('off','MATLAB:nearlySingularMatrix');
+            elseif strcmp(Opts.warnOrError,'error')
+                error('tbr:rcond','Nearly singular matrix in matchDcGain.');
+            end
+        end
 
         ARed=A11-A12/A22*A21;
         BRed=B1-A12/A22*B2; 
@@ -488,6 +499,8 @@ switch Opts.type
             DRed=sys.D-C2/A22*B2;
             sysr = sss(ARed, BRed, CRed, DRed);
         end
+        
+        warning('on','MATLAB:nearlySingularMatrix');
     
     case 'adi'
           sysr = sss(W'*eqn.A_*V, W'*eqn.B, eqn.C*V, sys.D, W'*eqn.E_*V);
