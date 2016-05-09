@@ -57,7 +57,7 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = irka(
 %       -kIter:             number of iterations
 %
 % Examples:
-%       This code computes an H2-optimal approximation of order 8 of
+%       This code computes an H2-optimal approximation of order 8 to
 %       the benchmark model 'building'. One can use the function isH2opt to
 %       verify if the necessary conditions for optimality are satisfied.
 %
