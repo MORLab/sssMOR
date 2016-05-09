@@ -162,6 +162,7 @@ classdef testTbr < sssTest
             end
         end
         function testMatchDcGain(testCase)
+            warning('on','tbr:rcond');
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
                 if ~sys.isDae
