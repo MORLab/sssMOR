@@ -752,13 +752,13 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 
                 % generate frequency sample
 %                 fss = freqresp(sys,s0m); fss = reshape(fss,numel(fss(:,:,1)),length(fss));
-                f = freqresp(sys,s0m); f = reshape(f,numel(f(:,:,1)),length(f));
+                f = freqresp(syse0,s0m); f = reshape(f,numel(f(:,:,1)),length(f));
                            
 %                 nm = min([round(length(s0m)),60]);  %model function order
                 nm = min([floor(length(s0m)/2),Opts.surrogateSize]);  %model function order
 
                 
-                m = sys.m; p = sys.p;
+                m = syse0.m; p = syse0.p;
                 if m>1, nm = round(nm/m);end %avoid blowing-up for MIMO
                 if mod(nm,2) ~= 0, nm = nm-1; end   %make even
                 
