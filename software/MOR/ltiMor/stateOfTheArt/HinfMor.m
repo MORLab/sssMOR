@@ -251,9 +251,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     figure('Name','SV of true error before and after optimization'); 
     sigma(ss(sys)-sysr0,'b-',ss(sys-sysr),'--r'); legend('before','after');
     drawnow
-    figure('Name','SV of surrogate error before and after optimization'); 
-    sigma(syse0m,'b-',syse0m - sysrDelta(DrOpt),'--r'); legend('before','after');
-    drawnow
+%     figure('Name','SV of surrogate error before and after optimization'); 
+%     sigma(syse0m,'b-',ss(syse0m - sysrDelta(DrOpt),'minimal'),'--r'); legend('before','after');
+%     drawnow
     if Opts.debug, keyboard, end
 
     %   See how the cost behaves around the chosen minimum?
@@ -725,9 +725,11 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 sL  = - W'*syse0.A*V; %shifted Loewner matrix
 
                 %   Deflate
-                s = svd(L - sL); figure; semilogy(s/s(1)); title('Normalized singular values')
+                s = svd(L - sL); figure; semilogy(s/s(1)); title('Normalized singular values of L - sL')
 %                 s = svd([L, sL]); figure; semilogy(s/s(1)); title('Normalized singular values')
-                r = rank([L, sL],Opts.rankTol);
+                s = svd([L, sL]); figure; semilogy(s/s(1)); title('Normalized singular values of [L, sL]');
+                
+                r = find(s/s(1)<Opts.rankTol,1); if isempty(r), r = length(s); end 
                 if r == rank([L; sL],Opts.rankTol)
                     for iS = 1:length(s0m)
                         if rank(s0m(iS)*L-sL,Opts.rankTol) == r
