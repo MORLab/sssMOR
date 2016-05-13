@@ -1,8 +1,8 @@
-function varargout = porkW(W,S_W,Brt,B)
+function varargout = porkW(W,Sw,Lw,B)
 % PORKW - Pseudo-Optimal Rational Krylov (Output)
 %
 % Syntax: 
-%       [Ar,Br,Cr,Er] = porkW(W,S_W,Brt,B)
+%       [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B)
 %
 % Description:
 %       This function implements the pseudo-optimal rational Krylov
@@ -11,16 +11,16 @@ function varargout = porkW(W,S_W,Brt,B)
 %       Given a projection matrix W spanning an output Krylov subspace and
 %       the respective matrices from the Sylvester equation
 %
-%       $A^T W - E^T W S_W^T - C^T Brt^T = 0$
+%       $A^T W - E^T W S_w^T - C^T L_w = 0$
 %
 %       this function computes the reduced order matrices corresponding to
 %       the H2-pseudo-optimal reduced order model, i.e. a model
-%       interpolating the original according to (W,S_W,Brt) and having
+%       interpolating the original according to (W,Sw,Lw) and having
 %       eigenvalues as mirror images of the shifts.
 %
 % Input Arguments:
 %       *Required Input  Arguments:* 
-%       -W,S_W,Brt:      solution of  W.'*A - S_W*W.'*E - Brt*C = 0
+%       -W,Sw,Lw:        solution of  A.'*W - E.'*W*Sw.' - C.'*Lw = 0
 %       -B:              input matrix of the original model
 %
 % Output Arguments: 
@@ -33,8 +33,8 @@ function varargout = porkW(W,S_W,Brt,B)
 %> sys = loadSss('building');
 %> s0 = -eigs(sys,4,'sm').';
 %> [sysr, ~, W] = rk(sys,[],s0);
-%> [Brt, ~, S] = getSylvester(sys, sysr, W, 'W');
-%> sysrPO = porkW(W,S,Brt',sys.B)
+%> [Lw, ~, Sw] = getSylvester(sys, sysr, W, 'W');
+%> sysrPO = porkW(W,Sw,Lw,sys.B)
 % 
 % See Also: 
 %       porkV, spark, rk, getSylvester
@@ -59,14 +59,14 @@ function varargout = porkW(W,S_W,Brt,B)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  05 Nov 2015
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  13 Apr 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %%  Computation
-Pr_c = lyapchol(-S_W, Brt);
-Cr = -Brt.'/Pr_c/Pr_c.';
-Ar = S_W+Brt*Cr;
+Pr_c = lyapchol(-Sw.', Lw.');
+Cr = -Lw/Pr_c/Pr_c.';
+Ar = Sw.'+Lw.'*Cr;
 Br = W.'*B;
 Er = eye(size(Ar));
 

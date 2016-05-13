@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, kIter] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -10,7 +10,7 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, 
 %       [sysr, V, W, s0]                = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, s0Traj]        = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, s0Traj, Rt, Lt]= IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRslyv, Rsylv, C_, SLsylv, Lsylv, kIter] = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = IRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Iterative Rational Krylov
@@ -45,26 +45,15 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, 
 %						[{'combAny'} / 's0' / 'sysr' / 'combAll']
 %           -.suppressverbose: suppress any type of verbose for speedup;
 %                       [{0} / 1]
-%           -.real:     keep the projection matrices real
-%                       [{'real'} / '0']
-%           -.orth:     orthogonalization of new projection direction
-%                       [{'2mgs'} / 0 / 'dgks' / 'mgs']
-%           -.reorth:   reorthogonalization
-%                       [{'gs'} / 0 / 'qr']
-%           -.lse:      use LU or hessenberg decomposition
-%                       [{'sparse'} / 'full' / 'hess']
-%           -.dgksTol:  tolerance for dgks orthogonalization
-%                       [{1e-12} / positive float]
-%           -.krylov:   standard or cascaded krylov basis
-%                       [{0} / 'cascade]
+%           -.(refer to *arnoldi* or *rk* for other options)
 %
 % Output Arguments:      
 %       -sysr:              reduced order model (sss)
 %       -V,W:               resulting projection matrices
 %       -s0:                final choice of shifts
 %       -s0Traj:            trajectory of all shifst for all iterations
-%       -B_,SRsylv,Rsylv:   matrices of the input Sylvester equation
-%       -C_,SLsylv,Lsylv:   matrices of the output Sylvester equation
+%       -B_,Sv,Rv:          matrices of the input Sylvester equation
+%       -C_,Sw,Lw:          matrices of the output Sylvester equation
 %       -kIter:             number of iterations
 %
 % Examples:
@@ -99,8 +88,8 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv, 
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  31 Oct 2015
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  13 Apr 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
@@ -128,7 +117,7 @@ Def.stopCrit = 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
 Def.suppressverbose = 0;
 
 % create the options structure
-if ~exist('Opts','var') || isempty(Opts)
+if ~exist('Opts','var') || isempty(fieldnames(Opts))
     Opts = Def;
 else
     Opts = parseOpts(Opts,Def);
@@ -165,9 +154,9 @@ while true
     kIter=kIter+1; sysr_old = sysr;
     %   Reduction
     if sys.isSiso
-        [sysr, V, W, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv] = rk(sys, s0, s0,Opts);
+        [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0, s0,Opts);
     else
-        [sysr, V, W, B_, SRsylv, Rsylv, C_, SLsylv, Lsylv] = rk(sys, s0, s0, Rt, Lt,Opts);
+        [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0, s0, Rt, Lt,Opts);
     end 
     
     %   Update of the reduction parameters
@@ -200,6 +189,7 @@ while true
         s0 = s0_old; % function return value
         if ~sys.isSiso, Rt = Rt_old; Lt = Lt_old; end
         s0Traj = s0Traj(1:(kIter+1),:);
+        sysr.Name = sprintf('%s_%i_irka',sys.Name, sysr.n);
         break
     end      
 end
@@ -208,11 +198,11 @@ if ~Opts.suppressverbose %display at least the last value
             kIter, Opts.stopCrit, sprintf('% 3.1e', stopCrit));
 end
 if kIter>=Opts.maxiter
-    warning('IRKA:no_converged', ['IRKA has not converged after ' num2str(kIter) ' steps.']);
+    warning('sssMOR:irka:maxiter',['IRKA has not converged after ' num2str(kIter) ' steps.']);
     return
 end
 
-%------------------ AUXILIARY FUNCTIONS -------------------
+%%------------------ AUXILIARY FUNCTIONS -------------------
 function s0=s0_vect(s0)
     % change two-row notation to vector notation
     if size(s0,1)==2
@@ -232,7 +222,11 @@ function [stop,stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts)
 %   chosen
 switch Opts.stopCrit
     case 's0' %shift convergence
-        stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
+        if any(abs(s0))<1e-3
+             stopCrit = norm((s0-s0_old), 1)/sysr.n;
+        else
+            stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
+        end      
         stop = stopCrit <= Opts.tol;
     case 'sysr' %reduced model convergence
         stopCrit = inf; %initialize in case the reduced model is unstable
@@ -241,7 +235,11 @@ switch Opts.stopCrit
         end
         stop = stopCrit <= Opts.tol;
     case 'combAll'
-        stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
+        if any(abs(s0))<1e-3
+             stopCrit = norm((s0-s0_old), 1)/sysr.n;
+        else
+            stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
+        end 
         stopCrit = [stopCrit, inf]; 
         if all(real(eig(sysr))<0) && all(real(eig(sysr_old))<0)
                 stopCrit(2) = norm(sysr-sysr_old)/norm(sysr);
@@ -257,10 +255,3 @@ switch Opts.stopCrit
     otherwise
         error('The stopping criterion selected is incorrect or not implemented')
 end
-
-    
-    
-
-
-
-

@@ -1,4 +1,4 @@
-function sssMOR_gettingStarted
+function sssMOR_gettingStarted(Opts)
 % SSSMOR_GETTINGSTARTED - Introductory demo to sssMOR toolbox 
 % 
 % Syntax:
@@ -31,12 +31,29 @@ function sssMOR_gettingStarted
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
+%% Options
+Def.pause=true; % pause (true/false)
+Def.test=false; % testing, no inputs required (true/false)
+
+if ~exist('Opts','var') || isempty(Opts)
+    Opts = Def;
+else
+    Opts = parseOpts(Opts,Def);
+end
+
+if Opts.test
+    Opts.pause=false;
+end
+
 %%  Initialization
 clearvars -except Opts
 
 warning('off','all');
 fprintf('\n\n\n'); 
 fprintf('Starting demo execution: sssMOR_gettingStarted...\n\n'); 
+
+%% Init
+init_demo
 
 rule
 fprintf(['\t sssMOR - A sparse state-space and model reduction toolbox\n']); 
@@ -45,7 +62,7 @@ fprintf(['\tDeveloped at the Chair of Automatic Control, TUM\n']);
 fprintf(['\tNote: for academic use only.\n']);
 rule
 %%  Model Order Reduction
-clear
+clearvars -except Opts
 
 fprintf(['\t Model Order Reduction (MOR)\n\n']);
 
@@ -57,13 +74,13 @@ fprintf('The functions are implemented to work in combination with the sss- \n')
 fprintf('class and comprise classical MOR techniques, such as modal reduction, \n');
 fprintf('balanced truncation or rational Krylov, as well as more advanced \n');
 fprintf('techniques developed in recent years. \n');
-customPause
+customPause(Opts)
 
 fprintf('\nWe will now demonstrate the main MOR capabilities of the sssMOR \n');
 fprintf('toolbox through an example.\n');
 
 %   *Selection of a benchmark model
-[sysName,A,B,C,D,E] = selectModel;
+[sysName,A,B,C,D,E] = selectModel(Opts);
 
 %   *Display some information on the model
 fprintf('\nYou chose the "%s" model. \n',sysName);
@@ -78,7 +95,7 @@ fprintf('>> bode(sys)\n');
     spy(sys);
     [~,~,w] = bode(sys);%get frequency range
     figure;bode(sys);%plot
-customPause
+customPause(Opts)
 
 fprintf(['Only the first output and the first input of the CDplayer will\n'...
         'be taken into consideration in the reduction.\n']);
@@ -87,7 +104,7 @@ fprintf(['This can be done using the function truncate:\n'...
     sys=truncate(sys,1,1);
     fprintf('>>disp(sys)\n');
     disp(sys);
-customPause
+customPause(Opts)
 %   *Modal reduction
 fprintf('The first model reduction procedure we would like to test is\n');
 fprintf('MODAL REDUCTION, i.e. the truncation of less dominant modes in the\n');
@@ -96,7 +113,7 @@ fprintf('choice in "modalMor", the sssMOR function for modal reduction, is\n');
 fprintf('to select the eigenmodes corresponding to the first q eigenvalues \n');
 fprintf('with smallest magnitude (q is the desired reduced order). This can \n');
 fprintf('be computed quite efficiently using the "eigs" function.\n');
-customPause
+customPause(Opts)
     if strcmp(sysName,'CDplayer')
     q = round(size(sys.A,1)/6);
     isEven = ~(round(q/2)-q/2); if ~isEven, q=q-1; end 
@@ -108,7 +125,7 @@ fprintf('corresponds to approximately a one-sixth of the original order.\n');
 fprintf('For this example, we choose a reduced order of %i, which \n',q);
 fprintf('corresponds to approximately a third of the original order.\n');
     end
-customPause
+customPause(Opts)
 
 fprintf('\nThe reduction is performed by calling:\n');
 fprintf('>> sysrModal = modalMor(sys,q)\n');
@@ -123,7 +140,7 @@ fprintf('>> sysrModal = modalMor(sys,q)\n');
 fprintf('(This reduction took %4.2fs. The results will be shown later.)\n',tModal);
     h2ErrorModal = norm(sys-sysrModal);
     hInfErrorModal = norm(sys-sysrModal,Inf);
-customPause
+customPause(Opts)
     
 %   *Balanced Truncation
 fprintf('\nThe next reduction method we wish to test is BALANCED TRUNCATION.\n');
@@ -132,7 +149,7 @@ fprintf('where observability and controllability Gramians are equal and \n');
 fprintf('diagonal, and truncating states variables that are both badly contro-\n');
 fprintf('llable and observable. The reduction order is the same as in the modal \n');
 fprintf('case. \n');
-customPause
+customPause(Opts)
 
 fprintf('The reduction is performed by calling:\n');
 fprintf('>> sysrTbr = tbr(sys,q)\n');
@@ -140,7 +157,7 @@ tic, sysrTbr = tbr(sys,q); tTbr = toc;
 fprintf('(This reduction took %4.2fs. The results will be shown later.)\n',tTbr);
     h2ErrorTbr = norm(sys-sysrTbr);
     hInfErrorTbr = norm(sys-sysrTbr,Inf);
-customPause
+customPause(Opts)
     
 %   *Rational Krylov   
 fprintf('\nThe next reduction method we wish to test is implicit moment\n');
@@ -149,13 +166,13 @@ fprintf('procedure, moments, i.e. Taylor series coefficients, of the original\n'
 fprintf('model at chosen complex frequencies s0 are matched implicitly by\n');
 fprintf('projecting the dynamic equations onto input and output Krylov \n');
 fprintf('subspaces.\n');
-customPause
+customPause(Opts)
 
 fprintf('Since we assume no information about the original model is known \n');
 fprintf('we choose to match all moments at the origin. The reduced order q \n');
 fprintf('is the same as before, we perform two-sided reduction, hence 2q \n');
 fprintf('moments of the original model are matched. \n');
-customPause
+customPause(Opts)
 
 fprintf('\nThe definition of s0 can be done either by listing all frequencies \n');
 fprintf('in a row vector...\n');
@@ -164,7 +181,7 @@ fprintf('...or in a matrix having frequencies in the 1st and multiplicity in the
 fprintf('2nd row.\n');
 fprintf('>> s0 = [0;q]\n');
     s0 = [0;q];
-customPause
+customPause(Opts)
 
 fprintf('The reduction is performed by calling:\n');
 fprintf('>> sysrRk = rk(sys,s0,s0)\n');
@@ -175,21 +192,21 @@ fprintf('for the output Krylov subspace.)\n');
 fprintf('(This reduction took %4.2fs. The results will be shown later.)\n',tRk);
     h2ErrorRk = norm(sys-sysrRk);
     hInfErrorRk = norm(sys-sysrRk,Inf);
-customPause
+customPause(Opts)
     
 %   *IRKA
 fprintf('\nAnother algorithm based on rational Krylov which is aimed at \n');
 fprintf('finding a set of complex frequencies s0 such that the reduced model\n');
 fprintf('is a locally H2-optimal approximation of the original, is the \n');
 fprintf('Iterative Rational Krylov Algoritm (IRKA).\n');
-customPause
+customPause(Opts)
 
 fprintf('To initialize the iteration in IRKA, an initial guess of complex  \n');
 fprintf('frequencies s0 has to be provided. Also in this case, we assume \n');
 fprintf('no prior knowledge on the dynamics is given and initialize IRKA\n');
 fprintf('at the origin:\n');
 fprintf('>> s0 = [0 0 ... 0]\n');
-customPause
+customPause(Opts)
 
 fprintf('The reduction is performed by calling:\n');
 fprintf('>> sysrIrka = irka(sys,s0)\n');
@@ -197,7 +214,7 @@ fprintf('>> sysrIrka = irka(sys,s0)\n');
 fprintf('(This reduction took %4.2fs. The results will be shown later.)\n',tIrka);
     h2ErrorIrka = norm(sys-sysrIrka);
     hInfErrorIrka = norm(sys-sysrIrka,Inf);
-customPause
+customPause(Opts)
     
 %   *Comparison of the results
 fprintf('\nCOMPARISON OF THE RESULTS:\n');
@@ -205,7 +222,7 @@ fprintf('After reducing the system with several different strategies, we \n');
 fprintf('are now ready to compare the reduction results.\n');
 fprintf('To this end, we will compare bode plots, error norms and execution\n');
 fprintf('times graphically.\n');
-customPause
+customPause(Opts)
 
     labs = {'modal','tbr','rk','irka'};
 
@@ -226,7 +243,7 @@ customPause
 figure; bar([tModal,tTbr,tRk,tIrka]);
             title('Execution times /s');
             set(gca,'XTIckLabel',labs);
-customPause
+customPause(Opts)
 
 
 rule
@@ -240,17 +257,30 @@ fprintf('releases, sign up for our newsletter under "www.rt.mw.tum.de". \n');
 rule
 close all
 rule
+end
+
+%% Auxiliary functions
 function rule
 fprintf('--------------------------------------------------------------\n');
-function customPause
-fprintf('\n');
+end
+
+function customPause(Opts)
+if Opts.pause
+fprintf('\nPlease press any key to continue...\n');
 pause
-function [sysName,A,B,C,D,E] = selectModel
+end
+end
+
+function [sysName,A,B,C,D,E] = selectModel(Opts)
 %   *Selection of a benchmark model
 fprintf(['Choose one of the following benchmark models by pressing...\n',...
                 '\t "1" \t ..for the Los Angeles Hospital model (N=48)\n',...
                 '\t "2" \t ..for a CD-Player model (N=120)\n']);
-modelChosen = input('Model choice: ');
+if Opts.test
+    modelChosen=1;
+else
+    modelChosen = input('Model choice: ');
+end
 
 if isempty(modelChosen),modelChosen = 0;end
 isValid = 0;
@@ -283,4 +313,12 @@ while ~isValid
             if isempty(modelChosen),modelChosen = 0;end
     end
 end
+end
 
+function init_demo
+    sys = sss(-1,1,1);
+    modalMor(sys,0);
+    tbr(sys,1);
+    irka(sys,0,struct('suppressverbose',true));
+    clear sys ans;
+end

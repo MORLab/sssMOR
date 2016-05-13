@@ -87,7 +87,12 @@ end
 isH2opt = 0; %initialize
 %%  Computations 
 %   Check that eigenvalues are mirror images of shifts
-if (norm(setdiffVec(s0',-conj(eig(sysr))))/norm(s0))/sysr.n <=Opts.tol
+if any(abs(s0))<1e-3
+    condition = (norm(setdiffVec(s0',-conj(eig(sysr))),1))/sysr.n;
+else
+    condition = (norm(setdiffVec(s0',-conj(eig(sysr))),1)/norm(s0))/sysr.n;
+end
+if condition <=Opts.tol
     %   check Meier-Luenberger conditions
     for iShift = 1:length(s0)
         m   = moments(sys,s0(iShift),2);
