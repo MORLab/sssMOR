@@ -48,7 +48,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     Def.whatData    = 'new';        %'all','new'
     Def.deflate     = 1;
     Def.tol         = 1e-6; %ismemberf/getModelData
-    Def.rankTol     = 1e-6; %rank tolerance Loewner
+    Def.rankTol     = eps; %rank tolerance Loewner
+    Def.surrTol     = 1e-6;
     
     Def.vf.poles   = 'vectfit3'; %vectfit,eigs
     Def.vf.maxiter = 20;
@@ -102,6 +103,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     %   from the data collected during irka
     
     syse0m = createSurrogate(Opts.surrogate);
+    keyboard
     fprintf('Size of the surrogate model: %i \n',size(syse0m.a,1))
     fprintf('Stability of surrogate model: %i \n',isstable(syse0m))
 
@@ -717,7 +719,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
             case 'loewner'
                 %   Get the data
                 [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj);
-                [~,V,W] = rk(syse0,s0m,s0m,Rtm,Ltm);
+                rkOpts = struct('real',false,'orth',false);
+                [~,V,W] = rk(sss(syse0),s0m,s0m,Rtm,Ltm,rkOpts);
                 % note that V,W are orthogonal and real, so there is no
                 % need to postprocess the Loewner matrices
                 
@@ -726,13 +729,16 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 sL  = - W'*syse0.A*V; %shifted Loewner matrix
 
                 %   Deflate
-                s = svd(L - sL); figure; semilogy(s/s(1),'o-'); title('Normalized singular values of L - sL')
+%                 s = svd(L - sL); figure; semilogy(s/s(1),'o-'); title('Normalized singular values of L - sL')
 %                 s = svd([L, sL]); figure; semilogy(s/s(1)); title('Normalized singular values')
                 s = svd([L, sL]); figure; semilogy(s/s(1),'o-'); title('Normalized singular values of [L, sL]');
+                                  hold on; plot([1,length(s)],[Opts.surrTol,Opts.surrTol],'r--')
+                if Opts.debug, keyboard, end
+
                 
 %                 r = find(s/s(1)<Opts.rankTol,1); if isempty(r), r = length(s); end 
-                r = rank([L,sL], Opts.rankTol);
-                if r == rank([L; sL],Opts.rankTol)
+                r = rank([L,sL],Opts.rankTol);
+                if r == rank([L; sL], Opts.rankTol)
                     for iS = 1:length(s0m)
                         if rank(s0m(iS)*L-sL,Opts.rankTol) == r
                             break
@@ -742,12 +748,20 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                     warning('Loewner conditions not satisfied');
                     syse0m = syse0; return
                 end
+                
                 [Ws, ~, Vs] = svd(s0m(iS)*L-sL,'econ');
-                V= V*Vs(:,1:r); W= W*Ws(:,1:r);
+                rs = find(s/s(1)< Opts.surrTol,1);
+                if isempty(rs), rs = r; else rs = rs-1; end
+                V= V*Vs(:,1:rs); W= W*Ws(:,1:rs);
                 
                 %   Build the model function
                 syse0m = dss(W'*syse0.A*V, W'*syse0.B, syse0.C*V,syse0.D,W'*syse0.E*V);
             case 'vf'  
+                % Run Loewner (to determine reduced order)
+                syse0mLoew = createSurrogate('loewner');
+                nm = size(syse0mLoew.A,1);
+                
+                % Run VF
                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj);
                 figure('Name','Sampling frequencies for VF'); 
                 plot(complex(s0m),'o');xlabel('real');ylabel('imag')
@@ -759,7 +773,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 f = freqresp(syse0,s0m); f = reshape(f,numel(f(:,:,1)),length(f));
                            
 %                 nm = min([round(length(s0m)),60]);  %model function order
-                nm = min([floor(length(find(imag(s0m)))),Opts.surrogateSize]);  %model function order
+%                 nm = min([floor(length(find(imag(s0m)))),Opts.surrogateSize]);  %model function order
 
                 
                 m = size(syse0.b,2); p = size(syse0.c,1);
@@ -792,7 +806,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 syse0m = ss(full(AA),BB,CC,DD);  
                 
                 % Compare to loewner
-                syse0mLoew = createSurrogate('loewner');
                 figure('Name','Compare VF to Loewner');
                 bodemag(syse0,'b-',syse0mLoew,'--r',syse0m,'-.g'); 
                 legend(sprintf('original (n=%i)',size(syse0.A,1)),...
