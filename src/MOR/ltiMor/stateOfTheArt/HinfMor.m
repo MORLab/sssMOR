@@ -743,8 +743,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                         end
                     end
                 else
-                    warning('Loewner conditions not satisfied');
-                    syse0m = syse0; return
+                    error('Loewner conditions not satisfied');
+%                     syse0m = syse0; return
                 end
                 
                 %   Compute the projection using a real, orthonormal basis
