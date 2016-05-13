@@ -720,10 +720,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 %   Get the data
                 [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj);
                 rkOpts = struct('real',false,'orth',false);
-                [~,V,W] = rk(sss(syse0),s0m,s0m,Rtm,Ltm,rkOpts);
-                % note that V,W are orthogonal and real, so there is no
-                % need to postprocess the Loewner matrices
                 
+                [~,V,W] = rk(sss(syse0),s0m,s0m,Rtm,Ltm,rkOpts);
+                                
                 %   Create Loewner matrices
                 L   = - W'*syse0.E*V; %Loewner matrix
                 sL  = - W'*syse0.A*V; %shifted Loewner matrix
@@ -735,7 +734,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                                   hold on; plot([1,length(s)],[Opts.surrTol,Opts.surrTol],'r--')
                 if Opts.debug, keyboard, end
 
-                
 %                 r = find(s/s(1)<Opts.rankTol,1); if isempty(r), r = length(s); end 
                 r = rank([L,sL],Opts.rankTol);
                 if r == rank([L; sL], Opts.rankTol)
@@ -749,6 +747,11 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                     syse0m = syse0; return
                 end
                 
+                %   Compute the projection using a real, orthonormal basis
+%                 [~,V,W] = rk(sss(syse0),s0m,s0m,Rtm,Ltm);
+%                 L   = - W'*syse0.E*V; %Loewner matrix
+%                 sL  = - W'*syse0.A*V; %shifted Loewner matrix
+
                 [Ws, ~, Vs] = svd(s0m(iS)*L-sL,'econ');
                 rs = find(s/s(1)< Opts.surrTol,1);
                 if isempty(rs), rs = r; else rs = rs-1; end
