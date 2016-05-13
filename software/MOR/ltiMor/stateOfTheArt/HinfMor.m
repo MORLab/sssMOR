@@ -100,7 +100,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     %   To reduce the cost of Hinf optimization, create a surrogate model
     %   from the data collected during irka
     
-    syse0m = createSurrogate;
+    syse0m = createSurrogate(Opts.surrogate);
     fprintf('Size of the surrogate model: %i \n',size(syse0m.a,1))
     fprintf('Stability of surrogate model: %i \n',isstable(syse0m))
 
@@ -251,10 +251,10 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     figure('Name','SV of true error before and after optimization'); 
     sigma(ss(sys)-sysr0,'b-',ss(sys-sysr),'--r'); legend('before','after');
     drawnow
-%     figure('Name','SV of surrogate error before and after optimization'); 
-%     sigma(syse0m,'b-',ss(syse0m - sysrDelta(DrOpt),'minimal'),'--r'); legend('before','after');
-%     drawnow
-    if Opts.debug, keyboard, end
+    figure('Name','SV of surrogate error before and after optimization'); 
+    sigma(syse0m,'b-',ss(syse0m - sysrDelta(DrOpt),'minimal'),'--r'); legend('before','after');
+    drawnow
+%     if Opts.debug, keyboard, end
 
     %   See how the cost behaves around the chosen minimum?
     if Opts.plotCostOverDr
@@ -701,10 +701,10 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         end
         
     end
-    function syse0m = createSurrogate
+    function syse0m = createSurrogate(type)
         syse0 = ss(sys)-sysr0;
         if Opts.debug, keyboard, end
-        switch Opts.surrogate     
+        switch type  
             case 'original'
                 syse0m = syse0;
             case 'model' %is equivalent to Loewner
@@ -725,11 +725,12 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 sL  = - W'*syse0.A*V; %shifted Loewner matrix
 
                 %   Deflate
-                s = svd(L - sL); figure; semilogy(s/s(1)); title('Normalized singular values of L - sL')
+                s = svd(L - sL); figure; semilogy(s/s(1),'o-'); title('Normalized singular values of L - sL')
 %                 s = svd([L, sL]); figure; semilogy(s/s(1)); title('Normalized singular values')
-                s = svd([L, sL]); figure; semilogy(s/s(1)); title('Normalized singular values of [L, sL]');
+                s = svd([L, sL]); figure; semilogy(s/s(1),'o-'); title('Normalized singular values of [L, sL]');
                 
-                r = find(s/s(1)<Opts.rankTol,1); if isempty(r), r = length(s); end 
+%                 r = find(s/s(1)<Opts.rankTol,1); if isempty(r), r = length(s); end 
+                r = rank([L,sL], Opts.rankTol);
                 if r == rank([L; sL],Opts.rankTol)
                     for iS = 1:length(s0m)
                         if rank(s0m(iS)*L-sL,Opts.rankTol) == r
@@ -747,27 +748,28 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 syse0m = dss(W'*syse0.A*V, W'*syse0.B, syse0.C*V,syse0.D,W'*syse0.E*V);
             case 'vf'  
                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj);
+                figure('Name','Sampling frequencies for VF'); 
+                plot(complex(s0m),'o');xlabel('real');ylabel('imag')
                 % take only one complex conjugate partner
                 s0m = cplxpair(s0m); idx = find(imag(s0m)); s0m(idx(1:2:end)) = [];
-                figure('Name','Sampling frequencies for VF'); 
-                plot(s0m,'o');xlabel('real');ylabel('imag')
                 
                 % generate frequency sample
 %                 fss = freqresp(sys,s0m); fss = reshape(fss,numel(fss(:,:,1)),length(fss));
                 f = freqresp(syse0,s0m); f = reshape(f,numel(f(:,:,1)),length(f));
                            
 %                 nm = min([round(length(s0m)),60]);  %model function order
-                nm = min([floor(length(s0m)/2),Opts.surrogateSize]);  %model function order
+                nm = min([floor(length(find(imag(s0m)))),Opts.surrogateSize]);  %model function order
 
                 
-                m = syse0.m; p = syse0.p;
-                if m>1, nm = round(nm/m);end %avoid blowing-up for MIMO
+                m = size(syse0.b,2); p = size(syse0.c,1);
+%                 if m>1, nm = round(nm/m);end %avoid blowing-up for MIMO
                 if mod(nm,2) ~= 0, nm = nm-1; end   %make even
                 
 %                 figure; loglog(abs(imag(s0m)),abs(f),'bx'); hold on
 %                         loglog(abs(imag(s0m)),abs(fss),'or');
                          
-                poles = initializePoles(Opts.vf.poles,nm);
+                poles = initializePoles(syse0,Opts.vf.poles,nm);
+                hold on; plot(complex(poles),'rx');
 %                 poles = -logspace(-2,2,nm);
                           
                 %MIMO systems have to be fitted columnwise
@@ -786,11 +788,25 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                     DD = [DD, SER.D];
                 end
                 
-                syse0m = ss(full(AA),BB,CC,DD);          
+                syse0m = ss(full(AA),BB,CC,DD);  
+                
+                % Compare to loewner
+                syse0mLoew = createSurrogate('loewner');
+                figure('Name','Compare VF to Loewner');
+                bodemag(syse0,'b-',syse0mLoew,'--r',syse0m,'-.g'); 
+                legend(sprintf('original (n=%i)',size(syse0.A,1)),...
+                        sprintf('loewner (n=%i)',size(syse0mLoew.A,1)),...
+                        sprintf('vf (n=%i)',size(syse0m.A,1)))
+
+                if Opts.debug, keyboard; end
         end
         %                 isstable(sysm)
         figure('Name','Original Vs surrogate models');
-        bodemag(syse0,'b-',syse0m,'--r'); %legend('show') %keyboard;  
+        bodemag(syse0,'b-',syse0m,'--r'); 
+        legend(sprintf('original (n=%i)',size(syse0.A,1)),...
+               sprintf('%s (n=%i)',type, size(syse0m.A,1)));  
+        if Opts.debug, keyboard, end
+
     end
     function [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj)
         % get interpolation data out of the trajectories
