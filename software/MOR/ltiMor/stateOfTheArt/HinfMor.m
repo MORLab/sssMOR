@@ -837,23 +837,27 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         [~,cplxSorting] = ismember(s0m,s0mUnsrt);
         Rtm = Rtm(:,cplxSorting); Ltm = Ltm(:,cplxSorting);        
     end
-    function poles = initializePoles(type,nm)
+    function poles = initializePoles(sys,type,nm)
         switch type
             case 'eigs'
-                poles = eigs(sys,nm,'sm').';
+                poles = eigs(sss(sys),nm,'sm').';
             case 'vectfit3'
                 try
-                    wMax = abs(imag(eigs(sys,1,'li')));
+                    wMax = abs(imag(eigs(sss(sys),1,'li')));
                 catch
                     wMax = 1e3;
                 end
                 
                 %generate initial poles
-                bet=logspace(-2,log10(wMax),nm/2);
-                poles=[];
-                for k=1:length(bet)
-                    alf=-bet(k)*1e-2;
-                    poles=[poles (alf-1i*bet(k)) (alf+1i*bet(k)) ];
+                if nm > 1
+                    bet=logspace(-2,log10(wMax),nm/2);
+                    poles=[];
+                    for k=1:length(bet)
+                        alf=-bet(k)*1e-2;
+                        poles=[poles (alf-1i*bet(k)) (alf+1i*bet(k)) ];
+                    end
+                else %initialize at least one pole
+                    poles = wMax;
                 end
             case 'gershgorin'
         end
