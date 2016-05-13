@@ -32,7 +32,7 @@ classdef testIrka < sssTest
             load('building.mat');
             Opts=struct('epsilon',0.05,'maxiter',300,'type','stab','stopCrit','s0');
 
-            [sysr, V, W, s0, s0_traj] = irka(sss(A,B,C), ...
+            [sysr, V, W, s0, ~,~,~,~,~,~,~,~,~,s0_traj] = irka(sss(A,B,C), ...
                  [0,0,50,100,Inf, Inf,1+5i,1-5i,14-0.2i,14+0.2i],Opts);
             actSolution={full(sysr.A),full(sysr.B),full(sysr.C),V,W};
             
@@ -49,7 +49,7 @@ classdef testIrka < sssTest
             load('random.mat');
             opts=struct('epsilon',0.05,'maxiter',300,'type','stab','stopCrit','s0');
 
-            [sysr, V, W, s0, s0_traj] = irka(sss(A,B,C), [Inf, Inf, 3+5i, 3-5i, 3+5i, 3-5i, 60, 60, 60],opts);
+            [sysr, V, W, s0, ~,~,~,~,~,~,~,~,~,s0_traj]  = irka(sss(A,B,C), [Inf, Inf, 3+5i, 3-5i, 3+5i, 3-5i, 60, 60, 60],opts);
             actSolution={full(sysr.A),full(sysr.B),full(sysr.C),V,W};
             
             expV=arnoldi(eye(size(A)),A,B,s0);
@@ -65,7 +65,7 @@ classdef testIrka < sssTest
             load('fom.mat');
             opts=struct('epsilon',0.05,'maxiter',300,'type','orig','stopCrit','s0');
                
-            [sysr, V, W, s0, s0_traj] = irka(sss(A,B,C), ...
+            [sysr, V, W, s0, ~,~,~,~,~,~,~,~,~,s0_traj]  = irka(sss(A,B,C), ...
                  [0,0,3,300,Inf, Inf, 10+50i,10-50i], opts);
              
             expV=arnoldi(eye(size(A)),A,B,s0);
@@ -81,7 +81,7 @@ classdef testIrka < sssTest
             load('SpiralInductorPeec.mat');
             opts=struct('epsilon',0.05,'maxiter',300,'type','orig','stopCrit','s0');
 
-            [sysr, V, W, s0, s0_traj] = irka(sss(A, B, C,0,E), ...
+            [sysr, V, W, s0, ~,~,~,~,~,~,~,~,~,s0_traj]  = irka(sss(A, B, C,0,E), ...
                  [0,300000,25603+546i,25603-546i,Inf], opts);
 
             expV=arnoldi(E,A,B,s0);
@@ -103,7 +103,7 @@ classdef testIrka < sssTest
             B=[zeros(size(M,1),1); B];
             C=[C, zeros(1,size(M,1))];
 
-            [sysr, V, W, s0, s0_traj] = irka(sss(A, B, C,0,E), ...
+            [sysr, V, W, s0, ~,~,~,~,~,~,~,~,~,s0_traj]  = irka(sss(A, B, C,0,E), ...
                  [Inf, Inf, 3+5i, 3-5i, 3+5i, 3-5i, 60, 60, 60], opts);
             
             expV=arnoldi(E,A,B,s0);
@@ -123,8 +123,8 @@ classdef testIrka < sssTest
                 sys=testCase.sysCell{i};
                 
                 Opts=struct('epsilon',0.05,'maxiter',300,'type','stab','stopCrit','s0');
-                [sysr, V, W, s0, s0_traj, Rt, Lt] = irka(sys,zeros(1,10),ones(sys.m,10), ones(sys.p,10),Opts);
-                
+                [sysr, V, W, s0, Rt, Lt, ~,~,~,~,~,~,~,s0_traj] = irka(sys,zeros(1,10),ones(sys.m,10), ones(sys.p,10),Opts);
+
                 expV=arnoldi(sys.E,sys.A,sys.B,s0, Rt); 
                 expW=arnoldi(sys.E',sys.A',sys.C',s0, Lt);
                             
