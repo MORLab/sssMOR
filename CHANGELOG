@@ -1,21 +1,12 @@
-# sssMOR - Change Log & Release Notes
+# sssMOR - Changelog
 
 ## Roadmap (changes to come)
 
-## v1.05 [Work in Progress]
+## v1.05
 ### Changes
-### Bug Fixes
+- APP
+ - **New sssMOR app added**
 
-## v1.04 []
-### Changes
-### Bug Fixes
-
-## v1.03 []
-### Changes
-### Bug Fixes
-
-## v1.02 []
-### Changes
 - ARNOLDI
 	- **new outputs (matrices of Sylvester equation)**
 	- **new input (Opts structure)**
@@ -38,16 +29,7 @@
 - MODALMOR
 	- **new output (dominance analysis values)**
 	- Opts.dominance: dominance analysis, most dominant eigenvalue reduction
-	- Opts.tol for eigenspace computation
 
 - TBR
+	- **Alternating Direction Implicit (ADI) functionality added using the M.E.S.S. toolbox**
 	- plot decay of hsv and ask user (if q not defined)
-
-### Bug Fixes
-
-## v1.01 []
-### Changes
-### Bug Fixes
-
-## v1.00 - first Release [xx November 2016]
-

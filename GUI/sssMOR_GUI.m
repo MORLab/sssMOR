@@ -1,26 +1,71 @@
 function varargout = sssMOR_GUI(varargin)
-% SSSMOR_GUI - nes at end of demos 
-% ------------------------------------------------------------------
-% USAGE:  TODO
+% SSSMOR_GUI - sssMOR toolbox Graphical User Interface 
 %
-% See also SSSMOR_GETTINGSTARTED, SSS.
+% Syntax:
+%       SSSMOR_GUI
 %
-% ------------------------------------------------------------------
-% This file is part of sssMOR, a Sparse State Space, Model Order
-% Reduction and System Analysis Toolbox developed at the Institute 
-% of Automatic Control, Technische Universitaet Muenchen.
-% For updates and further information please visit www.rt.mw.tum.de
+% Description:
+%       The *sssMOR GUI* is a Graphical User Interface for Model Order Reduction,
+%       which uses the functions from the *sss Toolbox* and from the *sssMOR Toolbox*.  
+%
+%       The main menu of the user interface contains the five items *About*,
+%       *Loading and Setting up Models*, *Model Order Reduction*, *Postprocessing
+%       and Visualization* and *System Analysis*. The sequence of these five items
+%       follows the usual workflow for Model Order Reduction, which starts with
+%       loading the desired model, continues with the reduction and ends with an
+%       evaluation of the results.
+%
+% See Also:
+%       sss_gettingStarted, sssMOR_gettingStarted
+%
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                    -> sssMOR@rt.mw.tum.de <-
-% ------------------------------------------------------------------
-% Authors:      Heiko Panzer, Sylvia Cremer, Maria Cruz Varona, 
-%               Alessandro Castagnotto
-% Last Change:  11 Sep 2015
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
-% ------------------------------------------------------------------
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
+% Authors:      Heiko Panzer, Sylvia Cremer, Niklas Kochdumper,
+%               Maria Cruz Varona, Alessandro Castagnotto
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  05 May 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
 
-%%
-% initialization
+
+%Structure:
+%
+%   INITIALIZATION
+%
+%   FIGURE(TOP-LEVEL)
+%   
+%       MAIN-MENUE
+%
+%           ABOUT
+%
+%           POSTPROCESSING AND VISUALISATION
+%
+%           LOADING AND SETTING UP MODELS
+%
+%           MODEL ORDER REDUCTION
+%
+%           SYSTEM ANALYSIS
+%
+%       FOOTER
+%
+%   UTILITY FUNCTIONS
+
+%--------------------------------------------------------------------------
+%                           INITIALIZATION
+%--------------------------------------------------------------------------
+
+
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
@@ -963,7 +1008,57 @@ case 3 %Bode
     if get(handles.rb_ylog,'Value')==1
         text(0.01,0.5,'Magnitude [dB] ; Phase [deg]','Rotation',90)
     else
-        text(0.01,0.5,'Magnitude (abs) ; Phase [deg]','Rotation',90)
+        
+        %Create system with the function loadSss
+        
+        lastwarn('');
+        
+        try
+            
+           %Create a name for the system based on the filename
+            
+           splittedString = strsplit(filename,'.');
+           name = char(strcat('sys_',splittedString(1,1)));
+           
+           count = 1;
+           sTemp = name;
+                    
+           %Check wheater the name already exists in workspace
+           
+           while existInBaseWs(sTemp)~=0
+                sTemp = strcat(name,num2str(count));
+                count = count+1;
+           end
+           
+           name = sTemp;
+           
+           %Create system using loadSss
+          
+           sys = loadSss(strcat(path,filename));         
+           assignin('base',name,sys);
+           
+           %Check whether the system is DAE and warn the user if the case
+           
+           if sys.isDae
+               msgbox('System is DAE. This User-Interface does not fully support systems in DAE-format','Warning','Warn');
+               uiwait
+           end    
+           
+           error('loadSss:WarningOccured',lastwarn);
+            
+        catch ex
+            
+            if strcmp(ex.identifier,'loadSss:WarningOccured')
+                    if ~isempty(ex.message)
+                        msgbox(ex.message,'Warning','warn');
+                        uiwait
+                    end
+            else
+                    msgbox({'Error while evaluating function loadSss.', ...
+                            'Try to load the matrices and then compose the model.'},'Error','error');
+                    loadingSuccessfull = 0;
+            end            
+        end      
     end
     set(h,'HandleVisibility','off')
     hold on
@@ -2308,15 +2403,45 @@ if ~strcmp(class(sys), 'sss')
 end
 
 try
-    h2 = norm(sys, 2);
-    assignin('base', sysname, sys);
-catch ex
-    if strcmp(ex.identifier,'MATLAB:nomem')
-        errordlg('Out of memory, system is too large to solve lyapunov equotation','Error Dialog','modal')
-    elseif strcmp(ex.identifier,'Control:foundation:LyapChol4')
-        errordlg('A or (A,E) must have all their eigenvalues in the left-half plane','Error Dialog','modal')
-    else
-        errordlg(ex.message)
+    
+    if ~isempty(data.inputData)
+       if size(data.inputData,2) == 2
+          tableData = data.inputData;
+          tableData = [tableData, cell(size(tableData,1),2)];
+          
+          %Set default values for the input directions
+          
+          for i = 1:size(tableData,1)
+            tableData{i,3} = vec2string((1:parameter.system.m==min(i,parameter.system.m))); 
+          end
+          
+          %Set default values for the output directions
+          
+          for i = 1:size(tableData,1)
+            tableData{i,4} = vec2string((1:parameter.system.p==min(i,parameter.system.p))); 
+          end
+          
+          set(handles.uitable_mor_krylov_MimoExps,'Data',tableData); 
+          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{184,184,0,0});
+          handles.MimoParam.block = 1;
+       elseif size(data.inputData,2) == 3
+          tableData = data.inputData;
+          tableData = [tableData, cell(size(tableData,1),1)];
+          
+          %Set default values for the output directions
+          
+          for i = 1:size(tableData,1)
+            tableData{i,4} = vec2string((1:parameter.system.p==min(i,parameter.system.p))); 
+          end
+          
+          set(handles.uitable_mor_krylov_MimoExps,'Data',tableData);
+          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{123,123,123,0});
+       else
+          set(handles.uitable_mor_krylov_MimoExps,'Data',data.inputData);
+          set(handles.uitable_mor_krylov_MimoExps_output,'Data',...
+              [data.inputData(:,1),data.inputData(:,2),data.inputData(:,4)]);
+          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{92,92,92,92});
+       end
     end
     uiwait
     if isempty(eventdata) || eventdata~=1

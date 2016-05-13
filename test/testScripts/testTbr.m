@@ -167,6 +167,54 @@ classdef testTbr < matlab.unittest.TestCase
             verifyEqual(testCase, full(sysr.E),  expW'*E*expV,'RelTol',0.2,'AbsTol',0.0000000001,...
                     'sysr.E');
         end
+%         function testTbr6(testCase) %adi
+%             for i=1:length(testCase.sysCell)
+%                 sys=testCase.sysCell{i};
+%                 if ~sys.isDae && sys.n>100
+%                     q=50;
+%                     opts.type='adi';
+%                     [~,~,~,actHsv]=tbr(sys,q,opts);
+%                     opts.type='tbr';
+%                     [~,~,~,expHsv]=tbr(sys,q,opts);
+%                     
+%                     actSolution={actHsv(1:5)};
+%                     expSolution={expHsv(1:5)};
+% 
+%                     verifyEqual(testCase, actSolution, expSolution,'RelTol',0.3,...
+%                         'Difference between actual and expected exceeds relative tolerance');
+%                 end
+%             end
+%         end
+        function testTbr7(testCase)
+            for i=1:length(testCase.sysCell)
+                sys=testCase.sysCell{i};
+                if ~sys.isDae && sys.isSiso && sys.n>100
+                    Opts.type='tbr';
+                    Opts.redErr=1e-10;
+                    [sysr,~,~,hsv]=tbr(sys,Opts);
+                    [impResSysr,t]=step(ss(sysr));
+                    impResSys=step(ss(sys),t);
+                    hsvError=(sum(hsv(sysr.n+1:end))+hsv(end)*(sys.n-length(hsv)))/hsv(1)*2;
+                    verifyLessThanOrEqual(testCase, norm(impResSys-impResSysr)/length(t), hsvError);
+                end 
+            end
+        end
+        function testMatchDcGain(testCase)
+            warning('on','tbr:rcond');
+            for i=1:length(testCase.sysCell)
+                sys=testCase.sysCell{i};
+                if ~sys.isDae
+                    Opts.type='matchDcGain';
+                    sysr=tbr(sys,10,Opts);
+                    w = warning('query','last');
+                    if isempty(w) || ~strcmp(w.identifier,'tbr:rcond') %A22 not close to singular
+                        actSolution= freqresp(sysr,0);
+                        expSolution= freqresp(sys,0);
+                        verifyLessThanOrEqual(testCase, norm(abs(actSolution)-abs(expSolution)), 1e-6);
+                    end
+                end
+            end
+        end
     end
 end
 

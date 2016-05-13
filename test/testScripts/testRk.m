@@ -180,87 +180,274 @@ classdef testRk < matlab.unittest.TestCase
               
               verification(testCase, actSolution, expSolution, sysr);
          end 
-         function testRk5 (testCase) 
-%               %two-sided reduction for all benchmarks
-                for i=1:length(testCase.sysCell)
-                %  test system
-                sys=testCase.sysCell{i};
-                %  get good shifts
-                n = 6; r = ones(sys.m,n); l = ones(sys.p,n);
-                sysrIrka = irka(sys, zeros(1,n),r, l);
-                Opts.rType = 'dir';
-                [r,p] = residue (sysrIrka,Opts);
-                s0 = -(conj(p)); Lt = r{1}; Rt = r{2}.';
-                % make sure real shifts have real directions
-                k = find(imag(s0)==0);
-                if max(imag(Rt(k))) > 1e-10
-                    error('Tangential directions corresponding to real shifts are complex!')
-                else
-                    Rt(k) = real(Rt(k));
-                end
-                if max(imag(Lt(k))) > 1e-10
-                    error('Tangential directions corresponding to real shifts are complex!')
-                else
-                    Lt(k) = real(Lt(k));
-                end
-              
-               [sysr, V, W, Bb, ~, Rsylv, Cb, ~, Lsylv] = rk(sys,s0,s0,Rt,Lt);
-               [expV,~,~,expW,~] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0,Rt,Lt);
-              
-              % The transpose LU problem can be ill conditioned, check the
-              % subspaces instead of the actual matrices!
-              actSolution={sum(svd([V,expV])>1e-12), sum(svd([W,expW])>1e-12)};
-              expSolution={size(V,2), size(W,2)};
-              
-              % Add Sylvester EQ matrices
-              [expRsylv,expBb] = getSylvester(sys,sysr,V);
-              [expLsylv,expCb] = getSylvester(sys,sysr,W,'W');
-              
-              actSolution = [actSolution, {Rsylv, Bb, Lsylv, Cb}];
-              expSolution = [expSolution, {expRsylv,expBb,expLsylv,expCb}];
-              
-              verification(testCase, actSolution, expSolution, sysr);
-              
-              sysd = sys.'; sysrd = sysr.';
-              res1 = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A) - Bb*Rsylv);
-              res2 = norm(sysd.A*W - sysd.E*W*(sysrd.E\sysrd.A) - Cb'*Lsylv);
-               
-               verifyEqual(testCase, [res1, res2] , [0, 0], 'AbsTol', 1e-7,...
-                    'Sylvester EQ is not satisfied');
-              
-              % verify moment matching
-              actM = moments(sysr,s0, 2); expM = moments(sys,s0, 2);
-              actMt = {}; expMt = {};
-              for iS = 1:length(s0)
-                  jM = iS*2-1;
-                  actMt = [actMt, {actM(:,:,jM)*Rt(:,iS), Lt(:,iS).'*actM(:,:,jM),...
-                           Lt(:,iS).'*actM(:,:,jM)*Rt(:,iS), Lt(:,iS).'*actM(:,:,jM+1)*Rt(:,iS)}];
-                  expMt = [expMt, {expM(:,:,jM)*Rt(:,iS), Lt(:,iS).'*expM(:,:,jM),...
-                           Lt(:,iS).'*expM(:,:,jM)*Rt(:,iS), Lt(:,iS).'*expM(:,:,jM+1)*Rt(:,iS)}];
-              end
-              verifyEqual(testCase, actMt, expMt, 'RelTol', 1e-6);
-                end
-         end 
-%          function testRk6 (testCase) 
-              %TEST ERORRED
-%               %two-sided reduction with E-matrix, s0: Inf (multiple value)
-%               load('SpiralInductorPeec.mat');
-% 
-%               [expV1,expCt5] = arnoldi(E,A,B,[Inf],@(x,y) (x'*E*y));
-%               [expW1,expBt5] = arnoldi(E',A',C',[Inf],@(x,y) (x'*E*y));
-% 
-%               [sysr, V, W, Bb, Ct, Cb, Bt] = rk(sss(A,B,C,0,E),[Inf] ,[Inf],@(x,y) (x'*E*y));
-%               actSolution={W, expW1, full(sysr.A), full(sysr.B), full(sysr.C), full(sysr.E), V, W, Bt, Ct};
-%               
-% 
-%               [expV,expCt5,expW,expBt5] = arnoldi(E,A,B,C,[Inf],@(x,y) (x'*E*y));
-%               expSolution={ expW1,expW,expW'*A*expV, expW'*B, C*expV, expW'*E*expV,expV, expW, expBt5,expCt5};
-% 
-%               verification(testCase, actSolution, expSolution, sysr);
-% %               verifyEqual(testCase, {Cb, Bb}, {C - (C*expV)/(expW'*eye(size(A))*expV)*expW',  ...
-% %                    B - eye(size(A))*expV*((expW'*eye(size(A))*expV)\(expW'*B))},'AbsTol',0.3,...
-% %                    'Cb or Bb failed');
-%          end 
+         function MIMOoneSidedRealShifts (testCase)
+             sys = loadSss('CDplayer');
+             
+             n = 4; s0 = 100*rand(1,n);
+             
+             % Input
+             Rt = 100*rand(sys.m,n);
+             
+             sysr = rk(sys,s0,Rt);
+             
+             % verify moment matching
+             Me = moments(sys-sysr,s0,1);
+             Rt3D  = permute(Rt,[1,3,2]);
+             MeR = mmat(Me,Rt3D);
+             
+             verifyLessThanOrEqual(testCase,abs(MeR),1e-8,'MeR: Moments do not match')   
+             
+             % Output
+             Lt = 100*rand(sys.m,n);
+             
+             sysr = rk(sys,[],s0,[],Lt);
+             
+             % verify moment matching
+             Me = moments(sys-sysr,s0,1);
+             Lt3D  = permute(Lt.',[3,2,1]);
+             MeL = mmat(Lt3D,Me);
+             
+             verifyLessThanOrEqual(testCase,abs(MeL),1e-8,'MeL: Moments do not match') 
+         end
+         function MIMOoneSidedComplexShiftsRealModel (testCase)
+             sys = loadSss('CDplayer');
+             
+             n = 4; 
+             s0 = 100*(rand(1,n)+1i*randn(1,n)); s0([2,4]) = conj(s0([1,3]));
+
+             % Input
+             Rt = 100*(rand(sys.m,n)+1i*randn(sys.m,n)); Rt(:,[2,4]) = conj(Rt(:,[1,3]));
+             
+             sysr = rk(sys,s0,Rt);
+             
+             % verify moment matching
+             Me = moments(sys-sysr,s0,1);
+             Rt3D  = permute(Rt,[1,3,2]);
+             MeR = mmat(Me,Rt3D);
+             
+             verifyLessThanOrEqual(testCase,abs(MeR),1e-8,'MeR: Moments do not match')   
+             
+             % Output
+             Lt = 100*(rand(sys.m,n)+1i*randn(sys.m,n)); Lt(:,[2,4]) = conj(Lt(:,[1,3]));
+             
+             sysr = rk(sys,[],s0,[],Lt);
+             
+             % verify moment matching
+             Me = moments(sys-sysr,s0,1);
+             Lt3D  = permute(Lt.',[3,2,1]);
+             MeL = mmat(Lt3D,Me);
+             
+             verifyLessThanOrEqual(testCase,abs(MeL),1e-8,'MeL: Moments do not match') 
+         end
+         function MIMOoneSidedComplexShiftsComplexModel (testCase)
+             sys = loadSss('CDplayer');
+             
+             n = 4; Opts.real = false;
+             
+             s0 = 100*(rand(1,n)+1i*randn(1,n));
+            
+             % Input
+             Rt = 100*(rand(sys.m,n)+1i*randn(sys.m,n));
+             
+             sysr = rk(sys,s0,Rt,Opts);
+             
+             % verify moment matching
+             Me = moments(sys-sysr,s0,1);
+             Rt3D  = permute(Rt,[1,3,2]);
+             MeR = mmat(Me,Rt3D);
+             
+             verifyLessThanOrEqual(testCase,abs(MeR),1e-8,'MeR: Moments do not match')   
+             
+             % Output
+             Lt = 100*(rand(sys.m,n)+1i*randn(sys.m,n));
+             
+             sysr = rk(sys,[],s0,[],Lt,Opts);
+             
+             % verify moment matching
+             Me = moments(sys-sysr,s0,1);
+             Lt3D  = permute(Lt.',[3,2,1]);
+             MeL = mmat(Lt3D,Me);
+             
+             verifyLessThanOrEqual(testCase,abs(MeL),1e-8,'MeL: Moments do not match') 
+         end
+         function MIMOtwoSidedComplexShiftsComplexModel (testCase) 
+             sys = loadSss('CDplayer');
+             
+             n = 4; 
+             %  Complex shifts and tangential directions
+             Rt = ones(sys.m,n)+1i*ones(sys.m,n); 
+             Lt = ones(sys.p,n)-1i*ones(sys.p,n);
+             s0 = 100*(rand(1,n)+1i*rand(1,n));
+             
+             Opts.real = false;
+             sysr = rk(sys,s0,s0,Rt,Lt,Opts);
+             
+             % verify moment matching
+             Me2 = moments(sys-sysr,s0,2);
+             Me = Me2(:,:,1:2:end); Me2(:,:,1:2:end) = [];
+             
+             Lt3D  = permute(Lt.',[3,2,1]);
+             Rt3D  = permute(Rt,[1,3,2]);
+             
+             MeL = mmat(Lt3D,Me);
+             MeR = mmat(Me,Rt3D);
+             MeH = mmat(mmat(Lt3D,Me),Rt3D);
+             
+             verifyLessThanOrEqual(testCase,abs(MeL),1e-8,'MeL: Moments do not match')
+             verifyLessThanOrEqual(testCase,abs(MeR),1e-8,'MeR: Moments do not match')
+             verifyLessThanOrEqual(testCase,abs(MeH),1e-8,'MeH: Moments do not match')
+         end
+         function MIMOtwoSidedComplexShiftsRealModel (testCase) 
+             % test if sorting shifts/tangential directions messes up
+             % something
+             
+             sys = loadSss('CDplayer');
+             
+             n = 4; 
+             %  Complex shifts and tangential directions
+             Rt = 100*(rand(sys.m,n)+1i*randn(sys.m,n)); Rt(:,[2,4]) = conj(Rt(:,[1,3]));
+             Lt = 100*(rand(sys.p,n)+1i*randn(sys.p,n)); Lt(:,[2,4]) = conj(Lt(:,[1,3]));
+             s0 = 100*(rand(1,n)+1i*randn(1,n)); s0([2,4]) = conj(s0([1,3]));
+             
+             Opts.real = true; 
+             sysr = rk(sys,s0,s0,Rt,Lt,Opts);
+             
+             % verify moment matching
+             Me2 = moments(sys-sysr,s0,2);
+             Me = Me2(:,:,1:2:end); Me2(:,:,1:2:end) = [];
+             
+             Lt3D  = permute(Lt.',[3,2,1]);
+             Rt3D  = permute(Rt,[1,3,2]);
+             
+             MeL = mmat(Lt3D,Me);
+             MeR = mmat(Me,Rt3D);
+             MeH = mmat(mmat(Lt3D,Me2),Rt3D);
+             
+             verifyLessThanOrEqual(testCase,abs(MeL),1e-5,'MeL: Moments do not match')
+             verifyLessThanOrEqual(testCase,abs(MeR),1e-5,'MeR: Moments do not match')
+             verifyLessThanOrEqual(testCase,abs(MeH),1e-5,'MeH: Moments do not match')
+             
+             %unfortunately, it does not seem to be possible to guarantee a
+             %higher accuracy. Is this due to numerical error in Hermite
+             %interpolation? Or maybe roundoff errors in Gram Schmidt?
+             
+             % do by hand to verify the results
+%              [A,B,C,~,E] = dssdata(sys);
+%              
+%              V1 = (A-s0(1)*E)\(B*Rt(:,1));
+%              V2 = (A-s0(3)*E)\(B*Rt(:,3));
+%              V = [real(V1), imag(V1), real(V2), imag(V2)]; V = orth(V);
+%              
+%              W1 = (A-s0(1)*E).'\(C.'*Lt(:,1));
+%              W2 = (A-s0(3)*E).'\(C.'*Lt(:,3));
+%              W = [real(W1), imag(W1), real(W2), imag(W2)]; W = orth(W);
+%              
+%              sysr2 = projectiveMor(sys,V,W);
+%              
+%              Me2 = moments(sys-sysr2,s0,2);
+%              Me = Me2(:,:,1:2:end); Me2(:,:,1:2:end) = [];
+%              
+%              MeL = mmat(Lt3D,Me);
+%              MeR = mmat(Me,Rt3D);
+%              MeH = mmat(mmat(Lt3D,Me2),Rt3D);
+%              
+%              verifyLessThanOrEqual(testCase,abs(MeL),1e-8,'MeL: Moments do not match')
+%              verifyLessThanOrEqual(testCase,abs(MeR),1e-8,'MeR: Moments do not match')
+%              verifyLessThanOrEqual(testCase,abs(MeH),1e-8,'MeH: Moments do not match')
+  end
+         function benchmarksSweep2sided (testCase) 
+             %two-sided reduction for all benchmarks
+             for i=1:length(testCase.sysCell)
+                 %  test system
+                 sys = testCase.sysCell{i};
+                 %  get good shifts
+                 n = 4; r = ones(sys.m,n); l = ones(sys.p,n);
+                 sysrIrka = irka(sys, zeros(1,n),r, l);
+                 Opts.rType = 'dir';
+                 [r,p] = residue (sysrIrka,Opts);
+                 s0 = -(conj(p)); Lt = r{1}; Rt = r{2}.';
+                 % make sure real shifts have real directions
+                 k = find(imag(s0)==0);
+                 if max(imag(Rt(k))) > 1e-10
+                     error('Tangential directions corresponding to real shifts are complex!')
+                 else
+                     Rt(k) = real(Rt(k));
+                 end
+                 if max(imag(Lt(k))) > 1e-10
+                     error('Tangential directions corresponding to real shifts are complex!')
+                 else
+                     Lt(k) = real(Lt(k));
+                 end
+                 
+                 [sysr, V, W, B_, ~, Rv, C_, ~, Lw] = rk(sys,s0,s0,Rt,Lt);
+                 
+                 %  Verification with arnoldi
+                 [expV,~,~,expW,~] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0,Rt,Lt);
+                 
+                 % Verification by hand
+                 [A,B,C,~,E] = dssdata(sys);
+
+                 V1 = (A-s0(1)*E)\(B*Rt(:,1));
+                 V2 = (A-s0(3)*E)\(B*Rt(:,3));
+                 Vh = full([real(V1), imag(V1), real(V2), imag(V2)]); Vh = orth(Vh);
+
+                 W1 = (A-s0(1)*E).'\(C.'*Lt(:,1));
+                 W2 = (A-s0(3)*E).'\(C.'*Lt(:,3));
+                 Wh = full([real(W1), imag(W1), real(W2), imag(W2)]); Wh = orth(Wh);
+                 
+                 verifyLessThanOrEqual(testCase, subspace(V,Vh),1e-6);
+                 verifyLessThanOrEqual(testCase, subspace(W,Wh),1e-6);
+                 
+                 % The transpose LU problem can be ill conditioned, check the
+                 % subspaces instead of the actual matrices!
+                 actSolution={sum(svd([V,expV])>1e-12), sum(svd([W,expW])>1e-12)};
+                 expSolution={size(V,2), size(W,2)};
+                 
+                 % Add Sylvester EQ matrices
+                 [expRv,expB_] = getSylvester(sys,sysr,V);
+                 [expLw,expC_] = getSylvester(sys,sysr,W,'W');
+                 
+                 actSolution = [actSolution, {Rv, B_, Lw, C_}];
+                 expSolution = [expSolution, {expRv,expB_,expLw,expC_}];
+                 
+                 verification(testCase, actSolution, expSolution, sysr);
+                 
+                 sysd = sys.'; sysrd = sysr.';
+                 res1 = norm(sys.A*V - sys.E*V*(sysr.E\sysr.A) - B_*Rv);
+                 res2 = norm(sysd.A*W - sysd.E*W*(sysrd.E\sysrd.A) - C_.'*Lw);
+                 
+                 verifyEqual(testCase, [res1, res2] , [0, 0], 'AbsTol', 1e-7,...
+                     'Sylvester EQ is not satisfied');
+                 
+                 % verify moment matching only if the "actual" solution
+                 % achieves the desired accuracy
+                 
+                 sysrh = projectiveMor(sys,Vh,Wh);
+
+                 Me2 = moments(sys-sysrh,s0,2);
+                 Me = Me2(:,:,1:2:end); Me2(:,:,1:2:end) = [];
+                 
+                 Lt3D  = permute(Lt.',[3,2,1]);
+                 Rt3D  = permute(Rt,[1,3,2]);
+
+                 MeL = mmat(Lt3D,Me);
+                 MeR = mmat(Me,Rt3D);
+                 MeH = mmat(mmat(Lt3D,Me2),Rt3D);
+                 
+                 if all(all(abs(MeL)<1e-8)) && all(all(abs(MeR)<1e-8)) && all(all(abs(MeH)<1e-8))
+                     Me2 = moments(sys-sysr,s0,2);
+                     Me = Me2(:,:,1:2:end); Me2(:,:,1:2:end) = [];
+
+                     MeL = mmat(Lt3D,Me);
+                     MeR = mmat(Me,Rt3D);
+                     MeH = mmat(mmat(Lt3D,Me2),Rt3D);
+
+                     verifyLessThanOrEqual(testCase,abs(MeL),1e-8,'MeL: Moments do not match')
+                     verifyLessThanOrEqual(testCase,abs(MeR),1e-8,'MeR: Moments do not match')
+                     verifyLessThanOrEqual(testCase,abs(MeH),1e-8,'MeH: Moments do not match')
+                 end
+             end
+         end          
     end
 end
 

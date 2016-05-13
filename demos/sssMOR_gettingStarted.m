@@ -32,8 +32,10 @@ function sssMOR_gettingStarted
 %------------------------------------------------------------------
 
 %%  Initialization
-clear, clc
+clearvars -except Opts
+
 warning('off','all');
+fprintf('\n\n\n'); 
 fprintf('Starting demo execution: sssMOR_gettingStarted...\n\n'); 
 
 rule

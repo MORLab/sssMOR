@@ -188,7 +188,57 @@ end
 V = sys.TBalInv(:,1:q);
 W = sys.TBal(1:q,:)';
 
-sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+switch Opts.type
+    case 'tbr'
+        sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+    case 'matchDcGain'
+        W=sys.TBalInv;
+        V=sys.TBal;
+        ABal=W*sys.A*V;
+        BBal=W*sys.B;
+        CBal=sys.C*V;
+
+        [A11,A12,A21,A22] = partition(ABal,q);
+        B1=BBal(1:q,:);B2=BBal(q+1:end,:);
+        C1=CBal(:,1:q);C2=CBal(:,q+1:end);
+        
+        if rcond(A22)<eps
+            if strcmp(Opts.warnOrError,'warn')
+                % don't display Matlab's warning several times, but display 
+                % only 1 warning that informs user of the consequences
+                warning('tbr:rcond','MatchDcGain might be inaccurate because of a nearly singular matrix.');
+                warning('off','MATLAB:nearlySingularMatrix');
+            elseif strcmp(Opts.warnOrError,'error')
+                error('tbr:rcond','Nearly singular matrix in matchDcGain.');
+            end
+        end
+
+        ARed=A11-A12/A22*A21;
+        BRed=B1-A12/A22*B2; 
+
+        if sys.isDescriptor
+            EBal=W'*sys.E*V;
+            E11=EBal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
+            E21=EBal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
+            ERed=E11-A12/A22*E21;
+            CRed=C1-C2/A22*A21+C2*A22*E21/ERed*ARed;
+            DRed=sys.D-C2/A22*B2+C2/A22*E21/ERed*BRed;
+            sysr = sss(ARed, BRed, CRed, DRed, ERed);
+        else % Er=I
+            CRed=C1-C2/A22*A21;
+            DRed=sys.D-C2/A22*B2;
+            sysr = sss(ARed, BRed, CRed, DRed);
+        end
+        
+        warning('on','MATLAB:nearlySingularMatrix');
+    
+    case 'adi'
+          sysr = sss(W'*eqn.A_*V, W'*eqn.B, eqn.C*V, sys.D, W'*eqn.E_*V);
+end
+
+%   Rename ROM
+sysr.Name = sprintf('%s_%i_tbr',sys.Name,sysr.n);
+
 if nargout>1
     varargout{1} = V;
     varargout{2} = W;
