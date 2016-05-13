@@ -200,8 +200,8 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                     
                     [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,C_);                   
                 case 'irka'
-                    [sysrTemp,V,W,~,~,~,~,~,~,Rv] = irka(sys,s0);
-                                      
+                    [sysrTemp,V,W,~,~,~,~,~,Rv] = irka(sys,s0);
+                  
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                     
                 case 'rk+pork'
@@ -228,7 +228,7 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                     
                     [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B_);
                 case 'irka'
-                    [sysrTemp,V,W,~,~,~,~,~,~,~,~,~,Lw] = irka(sys,s0);
+                    [sysrTemp,V,W,~,~,~,~,~,~,~,~,Lw] = irka(sys,s0);
                     
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                     
