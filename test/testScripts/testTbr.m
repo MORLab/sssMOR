@@ -1,10 +1,10 @@
-classdef testTbr < matlab.unittest.TestCase
+classdef testTbr < sssTest
 % testtbr - testing of tbr.m
 %
 % Description:
 %   The function tbr.m is tested (5 tests) on:
 %    + q: 5, 10, 15, 20, 25
-%    + test systems: build, beam, fom, random, LF10 (with E-matrix).
+%    + test systems: building, beam, fom, random, LF10 (with E-matrix).
 %    + comparing sysr with directly calculated solution 
 %    + W'*V identity matrix
 %    + Ar, Er purely real
@@ -20,42 +20,17 @@ classdef testTbr < matlab.unittest.TestCase
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 %               Lisa Jeschek
-% Last Change:  05 Sep 2015
+% Last Change:  11 Feb 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------ 
-    properties
-         sysCell;
-         testPath;
-    end
- 
-    methods(TestMethodSetup)
-        function getBenchmarks(testCase)
-            testCase.testPath=pwd;
-            if exist('benchmarksSysCell.mat','file')
-                load('benchmarksSysCell.mat');
-                testCase.sysCell=benchmarksSysCell;
-            end
-            
-            %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
-            pathBenchmarks = [p(1:k-1),'benchmarks'];
-            cd(pathBenchmarks);
-        end
-    end
-    
-    methods(TestMethodTeardown)
-        function changePath(testCase)
-            cd(testCase.testPath);
-        end
-    end
     
     methods(Test)
         function testTbr1(testCase) %q=5
-            load('build.mat');      
+            load('building.mat');      
             q=5;
             
             [sysr, V, W, calchsv] = tbr(sss(A,B,C,0),q);
-            load build hsv;
+            load building hsv;
             actSolution={full(sysr.A),full(sysr.B),full(sysr.C),V,W, calchsv};
            
             S=lyapchol(full(A),full(B));
@@ -93,8 +68,9 @@ classdef testTbr < matlab.unittest.TestCase
         function testTbr3(testCase) %q=25
             load('fom.mat');
             q=25;
+            Opts.type='tbr';
             
-            [sysr, V, W] = tbr(sss(A,B,C,0),q);
+            [sysr, V, W] = tbr(sss(A,B,C,0),q, Opts);
             actSolution={full(sysr.A),full(sysr.B),full(sysr.C),V,W};
             
             S=lyapchol(full(A),full(B));
@@ -152,6 +128,54 @@ classdef testTbr < matlab.unittest.TestCase
             verification(testCase, actSolution, expSolution, sysr);
             verifyEqual(testCase, full(sysr.E),  expW'*E*expV,'RelTol',0.2,'AbsTol',0.0000000001,...
                     'sysr.E');
+        end
+%         function testTbr6(testCase) %adi
+%             for i=1:length(testCase.sysCell)
+%                 sys=testCase.sysCell{i};
+%                 if ~sys.isDae && sys.n>100
+%                     q=50;
+%                     opts.type='adi';
+%                     [~,~,~,actHsv]=tbr(sys,q,opts);
+%                     opts.type='tbr';
+%                     [~,~,~,expHsv]=tbr(sys,q,opts);
+%                     
+%                     actSolution={actHsv(1:5)};
+%                     expSolution={expHsv(1:5)};
+% 
+%                     verifyEqual(testCase, actSolution, expSolution,'RelTol',0.3,...
+%                         'Difference between actual and expected exceeds relative tolerance');
+%                 end
+%             end
+%         end
+        function testTbr7(testCase)
+            for i=1:length(testCase.sysCell)
+                sys=testCase.sysCell{i};
+                if ~sys.isDae && sys.isSiso && sys.n>100
+                    Opts.type='tbr';
+                    Opts.redErr=1e-10;
+                    [sysr,~,~,hsv]=tbr(sys,Opts);
+                    [impResSysr,t]=step(ss(sysr));
+                    impResSys=step(ss(sys),t);
+                    hsvError=(sum(hsv(sysr.n+1:end))+hsv(end)*(sys.n-length(hsv)))/hsv(1)*2;
+                    verifyLessThanOrEqual(testCase, norm(impResSys-impResSysr)/length(t), hsvError);
+                end 
+            end
+        end
+        function testMatchDcGain(testCase)
+            warning('on','tbr:rcond');
+            for i=1:length(testCase.sysCell)
+                sys=testCase.sysCell{i};
+                if ~sys.isDae
+                    Opts.type='matchDcGain';
+                    sysr=tbr(sys,10,Opts);
+                    w = warning('query','last');
+                    if isempty(w) || ~strcmp(w.identifier,'tbr:rcond') %A22 not close to singular
+                        actSolution= freqresp(sysr,0);
+                        expSolution= freqresp(sys,0);
+                        verifyLessThanOrEqual(testCase, norm(abs(actSolution)-abs(expSolution)), 1e-6);
+                    end
+                end
+            end
         end
     end
 end

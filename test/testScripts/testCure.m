@@ -1,32 +1,5 @@
-classdef testCure < matlab.unittest.TestCase
-    
-    properties
-         sysCell;
-         testPath;
-    end
- 
-    methods(TestMethodSetup)
-        function getBenchmarks(testCase)
-            testCase.testPath=pwd;
-            if exist('benchmarksSysCell.mat','file')
-                load('benchmarksSysCell.mat');
-                testCase.sysCell=benchmarksSysCell;
-            end
-            
-            %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
-            pathBenchmarks = [p(1:k-1),'benchmarks'];
-            cd(pathBenchmarks);
-        end
-    end
-    
-    methods(TestMethodTeardown)
-        function changePath(testCase)
-            cd(testCase.testPath);
-        end
-    end
-    
-    %Test functions
+classdef testCure < sssTest
+   
     methods (Test)  
         function testCureDef(testCase)
             for i=1:length(testCase.sysCell)
@@ -57,7 +30,7 @@ classdef testCure < matlab.unittest.TestCase
             Opts.cure = struct('fact','W',...
                           'init','slm',...
                           'stop','h2Error',...
-                          'stopval',norm(sys)*1e-1,...
+                          'stopval',5e-2,...
                           'verbose', 1,...
                           'test', 1,...
                           'gif',1,...

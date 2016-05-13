@@ -1,11 +1,11 @@
-classdef testModal < matlab.unittest.TestCase
+classdef testModal < sssTest
 % testModal - testing of modalMor.m
 %
 % Description:
 %   The function modalMor.m is tested (3 tests) on:
 %    + comparing the eigenvalues of the reduced system to the solution of
 %      modreal (only 'SM' possible).
-%    + test systems: diagonal, build, LF10 (with E-matrix)
+%    + test systems: diagonal, building, LF10 (with E-matrix)
 %
 % ------------------------------------------------------------------
 %   This file is part of sssMOR, a Sparse State Space, Model Order
@@ -20,31 +20,6 @@ classdef testModal < matlab.unittest.TestCase
 % Last Change:  07 Sep 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
-    properties
-         sysCell;
-         testPath;
-    end
- 
-    methods(TestMethodSetup)
-        function getBenchmarks(testCase)
-            testCase.testPath=pwd;
-            if exist('benchmarksSysCell.mat','file')
-                load('benchmarksSysCell.mat');
-                testCase.sysCell=benchmarksSysCell;
-            end
-            
-            %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
-            pathBenchmarks = [p(1:k-1),'benchmarks'];
-            cd(pathBenchmarks);
-        end
-    end
-    
-    methods(TestMethodTeardown)
-        function changePath(testCase)
-            cd(testCase.testPath);
-        end
-    end
  
     methods(Test)
         function testModal1(testCase) 
@@ -66,7 +41,7 @@ classdef testModal < matlab.unittest.TestCase
         end
         function testModal2(testCase) 
             %without E-matrix
-            load('build.mat');
+            load('building.mat');
 
             Opts.type='SM';
             [sysr] = modalMor(sss(A,B,C,0), 6, Opts);

@@ -44,7 +44,6 @@ Temporary Items
 
 # MATLAB stuff
 *.asv
-*.mat
 
 # LaTeX stuff
 *.acn
@@ -94,3 +93,4 @@ Temporary Items
 
 # Complete directories
 benchmarks/CURE.gif
+test/testScripts/CURE.gif

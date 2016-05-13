@@ -1,4 +1,4 @@
-# sssMOR
+﻿# sssMOR
 A sparse state-space, model order reduction toolbox developed at the Chair of 
 Automatic Control, Technische Universität München
 
@@ -8,7 +8,7 @@ Automatic Control, Technische Universität München
 
 For the tests, a unitTest environment has been created. New functionalities, as well as new ways of calling the functions, should be included as test cases. You can find more information about this in the "test" directory of sssMOR.
 
-**Important:** in oder to run the tests you need the add the benchmarks form the SLICOT library (available [here](http://www.icm.tu-bs.de/NICONET/benchmodred.html)) to the directory "benchmarks", since ".mat" files are not included by Git.
+**Important:** in oder to run the tests you need the add the benchmarks from the SLICOT library (available [here](http://www.icm.tu-bs.de/NICONET/benchmodred.html)) to the directory "benchmarks", since ".mat" files are not included by Git.
 
 Please make sure to **avoid using following benchmarks** for testing since they are badly conditioned: *LF10, beam, random, SpiralInductorPeec*
 
@@ -27,4 +27,4 @@ rail_1357       | 10^3
 LF10            | 10^9
 beam            | 10^8
 random          | 10^7
-SpiralInductorPeec | 10^6 
+SpiralInductorPeec | 10^6

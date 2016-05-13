@@ -1,4 +1,4 @@
-classdef testIsH2opt < matlab.unittest.TestCase
+classdef testIsH2opt < sssTest
 % testIsH2opt - testing of isH2opt.m
 %
 % Description:
@@ -18,38 +18,12 @@ classdef testIsH2opt < matlab.unittest.TestCase
 % Last Change:  28 Sep 2015
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------ 
-    properties
-         sysCell;
-         testPath;
-    end
- 
-    methods(TestMethodSetup)
-        function getBenchmarks(testCase)
-            testCase.testPath=pwd;
-            if exist('benchmarksSysCell.mat','file')
-                load('benchmarksSysCell.mat');
-                testCase.sysCell=benchmarksSysCell;
-            end
-            
-            %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, 'test\'); 
-            pathBenchmarks = [p(1:k-1),'benchmarks'];
-            cd(pathBenchmarks);
-        end
-    end
-    
-    methods(TestMethodTeardown)
-        function changePath(testCase)
-            cd(testCase.testPath);
-        end
-    end
- 
     
     methods(Test)
         function testIsH2opt1(testCase)
             %local H2-optimal
-            load('build.mat');
-            opts=struct('epsilon',0.0005,'maxiter',300,'type','stab','stopCrit','s0');
+            load('building.mat');
+            opts=struct('tol',0.0005,'maxiter',300,'type','stab','stopCrit','s0');
 
             s0=[0,0,50,100,Inf, Inf, 1+5i,1-5i,14-0.2i,14+0.2i];
             sys=sss(A,B,C);
@@ -75,7 +49,7 @@ classdef testIsH2opt < matlab.unittest.TestCase
         function testIsH2opt2(testCase)
             %not local H2-optimal ('Warning: IRKA has not converged after 3
             %steps')
-            load('build.mat');
+            load('building.mat');
             opts=struct('epsilon',0.1,'maxiter',3,'type','stab','stopCrit','sysr');
             
             s0=[0,0,50,100,Inf, Inf, 1+5i,1-5i,14-0.2i,14+0.2i];
