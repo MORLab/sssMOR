@@ -1,46 +1,5 @@
-classdef testSpark < matlab.unittest.TestCase
+classdef testSpark < sssTest
     
-    properties 
-        pwdPath
-        sysCell
-        deleteBenchmarks
-        testPath
-    end
-
-    methods(TestClassSetup)
-        function getBenchmarks(testCase)
-            testCase.pwdPath=pwd;
-            if exist('benchmarksSysCell.mat','file')
-                testCase.deleteBenchmarks=0;
-            else
-                testCase.testPath=loadBenchmarks;
-                testCase.deleteBenchmarks=1;
-            end
-            
-            temp=load('benchmarksSysCell.mat');
-            testCase.sysCell=temp.benchmarksSysCell;
-            if isempty(testCase.sysCell)
-                error('No benchmarks loaded.');
-            end
-
-            %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, fullfile('test',filesep));  
-            pathBenchmarks = [p(1:k-1),'benchmarks'];
-            cd(pathBenchmarks);
-        end
-    end
-    
-    methods(TestClassTeardown)
-        function changePath(testCase)
-            if testCase.deleteBenchmarks
-                cd(testCase.testPath);
-                delete('benchmarksSysCell.mat');
-            end
-            cd(testCase.pwdPath);
-        end
-    end
-    
-    %Test functions
     methods (Test)  
         function testSparkDef(testCase)
             for i=1:length(testCase.sysCell)
@@ -53,12 +12,12 @@ classdef testSpark < matlab.unittest.TestCase
                 
                 % run spark (default options)
                 s0 = rand(1,2);
-                [V,S,R] = spark(sys,s0);
+                [V,Sv,Rv] = spark(sys,s0);
                 
                 % check Sylvester equation
-                res = norm(sys.A*V - sys.E*V*S - sys.B*R);
+                res = norm(sys.A*V - sys.E*V*Sv - sys.B*Rv);
                 
-                actSolution={V,S,R,res,sys};
+                actSolution={V,Sv,Rv,res,sys};
                 
                 verification (testCase, actSolution);
                 end
@@ -80,12 +39,12 @@ classdef testSpark < matlab.unittest.TestCase
                           'fTol',1e-5,...
                           'modelTol',1e-3);
 
-            [V,S,R] = spark(sys,s0,Opts);
+            [V,Sv,Rv] = spark(sys,s0,Opts);
             close all
             % check Sylvester equation
-            res = norm(sys.A*V - sys.E*V*S - sys.B*R);
+            res = norm(sys.A*V - sys.E*V*Sv - sys.B*Rv);
 
-            actSolution={V,S,R,res,sys};
+            actSolution={V,Sv,Rv,res,sys};
 
             verification (testCase, actSolution);
         end

@@ -1,4 +1,4 @@
-classdef testTbr < matlab.unittest.TestCase
+classdef testTbr < sssTest
 % testtbr - testing of tbr.m
 %
 % Description:
@@ -20,48 +20,9 @@ classdef testTbr < matlab.unittest.TestCase
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 %               Lisa Jeschek
-% Last Change:  05 Sep 2015
+% Last Change:  11 Feb 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------ 
-    properties 
-        pwdPath
-        sysCell
-        deleteBenchmarks
-        testPath
-    end
-
-    methods(TestClassSetup)
-        function getBenchmarks(testCase)
-            testCase.pwdPath=pwd;
-            if exist('benchmarksSysCell.mat','file')
-                testCase.deleteBenchmarks=0;
-            else
-                testCase.testPath=loadBenchmarks;
-                testCase.deleteBenchmarks=1;
-            end
-            
-            temp=load('benchmarksSysCell.mat');
-            testCase.sysCell=temp.benchmarksSysCell;
-            if isempty(testCase.sysCell)
-                error('No benchmarks loaded.');
-            end
-
-            %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, fullfile('test',filesep));  
-            pathBenchmarks = [p(1:k-1),'benchmarks'];
-            cd(pathBenchmarks);
-        end
-    end
-    
-    methods(TestClassTeardown)
-        function changePath(testCase)
-            if testCase.deleteBenchmarks
-                cd(testCase.testPath);
-                delete('benchmarksSysCell.mat');
-            end
-            cd(testCase.pwdPath);
-        end
-    end
     
     methods(Test)
         function testTbr1(testCase) %q=5
@@ -107,8 +68,9 @@ classdef testTbr < matlab.unittest.TestCase
         function testTbr3(testCase) %q=25
             load('fom.mat');
             q=25;
+            Opts.type='tbr';
             
-            [sysr, V, W] = tbr(sss(A,B,C,0),q);
+            [sysr, V, W] = tbr(sss(A,B,C,0),q, Opts);
             actSolution={full(sysr.A),full(sysr.B),full(sysr.C),V,W};
             
             S=lyapchol(full(A),full(B));

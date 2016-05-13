@@ -1,46 +1,5 @@
-classdef testPork < matlab.unittest.TestCase
-    
-    properties 
-        pwdPath
-        sysCell
-        deleteBenchmarks
-        testPath
-    end
+classdef testPork < sssTest   
 
-    methods(TestClassSetup)
-        function getBenchmarks(testCase)
-            testCase.pwdPath=pwd;
-            if exist('benchmarksSysCell.mat','file')
-                testCase.deleteBenchmarks=0;
-            else
-                testCase.testPath=loadBenchmarks;
-                testCase.deleteBenchmarks=1;
-            end
-            
-            temp=load('benchmarksSysCell.mat');
-            testCase.sysCell=temp.benchmarksSysCell;
-            if isempty(testCase.sysCell)
-                error('No benchmarks loaded.');
-            end
-
-            %the directory "benchmark" is in sssMOR
-            p = mfilename('fullpath'); k = strfind(p, fullfile('test',filesep));  
-            pathBenchmarks = [p(1:k-1),'benchmarks'];
-            cd(pathBenchmarks);
-        end
-    end
-    
-    methods(TestClassTeardown)
-        function changePath(testCase)
-            if testCase.deleteBenchmarks
-                cd(testCase.testPath);
-                delete('benchmarksSysCell.mat');
-            end
-            cd(testCase.pwdPath);
-        end
-    end
-    
-    %Test functions
     methods (Test)  
         function testPorkV(testCase)
             for i=1:length(testCase.sysCell)
@@ -63,11 +22,11 @@ classdef testPork < matlab.unittest.TestCase
                     [sysr, V] = rk(sys,s0,r);
                 end              
                 
-                % get (S,R)
-                [R, ~, S] = getSylvester(sys, sysr, V);
+                % get (Sv,Rv)
+                [Rv, ~, Sv] = getSylvester(sys, sysr, V);
                 
                 % perform pseudo-optimal reduction
-                [Ar,Br,Cr,Er] = porkV(V,S,R,sys.C);
+                [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,sys.C);
                 sysr = sss(Ar,Br,Cr,sys.D,Er);
                 
                 actSolution={sysr,sys,s0,r};
@@ -84,31 +43,26 @@ classdef testPork < matlab.unittest.TestCase
                 
                 if ~any(strcmp(sys.Name,badBenchmarks)) && ~sys.isDae
                     disp(sys)
-                % get irka shifts and tangential directions
-                n = 10; r = ones(sys.m,n); l = ones(sys.p,n);
-                sysrIrka = irka(sys, zeros(1,n),r,l);
-                
-                if sys.isSiso || sys.isSimo
-                    s0 = -(conj(eig(sysrIrka))).';
-                    [sysr, ~, W] = rk(sys,[],s0);
-                else
-                    Opts.rType = 'dir';[r,p] = residue (sysrIrka,Opts);
-                    s0 = -(conj(p)); l = r{1}; 
-                    [sysr, ~, W] = rk(sys,[],s0,[],l);
-                end              
-                
-                % get (S,L)
-                warning off
-                [L, ~, S] = getSylvester(sys, sysr, W, 'W');
-                warning on
-                
-                % perform pseudo-optimal reduction
-                [Ar,Br,Cr,Er] = porkW(W,S,L.',sys.B);
-                sysr = sss(Ar,Br,Cr,sys.D,Er);
-                
-                actSolution={sysr.',sys.',s0, l}; %pass dual system
-                
-                verification (testCase, actSolution);
+                    % get irka shifts and tangential directions
+                    n = 10; r = ones(sys.m,n); l = ones(sys.p,n);
+                    sysrIrka = irka(sys, zeros(1,n),r,l);
+
+                    if sys.isSiso || sys.isSimo
+                        s0 = -(conj(eig(sysrIrka))).';
+                        [~, ~, W, ~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0);
+                    else
+                        Opts.rType = 'dir';[r,p] = residue (sysrIrka,Opts);
+                        s0 = -(conj(p)); l = r{1}; 
+                        [~, ~, W,~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0,[],l);
+                    end              
+
+                    % perform pseudo-optimal reduction
+                    [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,sys.B);
+                    sysr = sss(Ar,Br,Cr,sys.D,Er);
+
+                    actSolution={sysr.',sys.',s0, l}; %pass dual system
+
+                    verification (testCase, actSolution);
                 end
             end
         end

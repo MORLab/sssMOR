@@ -23,16 +23,16 @@ function result = testSssMor(Opts)
 
 import matlab.unittest.TestSuite;
 
-%%  Change to testScripts folder
-testCase.Path = pwd; %original
-
 %% Choose benchmarks
 % Default benchmarks
-Def.option = 'light'; %'light','full','heavy'
-Def.size =400'; %'light': only benchmarks with sys.n<=Opts.size are tested
-                %'heavy': only benchmarks with sys.n>Opts.size are tested
-Def.number = 3; %choose maximum number of tested benchmarks
-Def.loadBench = 1; %loadBenchmarks (for testAll)
+Def.cond = 'good'; % condition of benchmarks: 'good','bad','all'
+                   % 'bad': LF10, beam, random, SpiralInductorPeec
+                   % 'good': all benchmarks that are not 'bad'
+Def.minSize     = 0; % test benchmarks with sys.n >= minSize
+Def.maxSize     = 400; % test benchmarks with sys.n <= minSize
+Def.number      = 3; % choose maximum number of tested benchmarks
+Def.loadBench   = 1; %loadBenchmarks (for testAll)
+Def.suite       = 'suiteAll';
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -43,45 +43,40 @@ end
 
 % sssMor testScripts
 p = mfilename('fullpath'); k = strfind(p, fullfile(filesep,'test')); 
-testpathSssMor = p(1:k(end)-1);
+testPathSssMor = p(1:k(end)-1);
 
-% load benchmarks and change to folder 'testScripts'
+% load benchmarks
 if Opts.loadBench == 1
-    testpathSss=loadBenchmarks(Opts);
+    testPathSss=loadBenchmarks(Opts);
 end
-
-cd(testpathSssMor);
 
 %% Test specific unittest-files
 % Classic MOR:
-suite1=TestSuite.fromFile('testArnoldi.m');
-suite2=TestSuite.fromFile('testRk.m');
-suite3=TestSuite.fromFile('testIrka.m');
-suite4=TestSuite.fromFile('testTbr.m'); 
-suite5=TestSuite.fromFile('testModal.m'); 
-suite6=TestSuite.fromFile('testMoments.m'); 
+suiteClassic = [TestSuite.fromFile(fullfile(testPathSssMor,'testArnoldi.m')),...
+                TestSuite.fromFile(fullfile(testPathSssMor,'testDemoSssMor.m')),...
+                TestSuite.fromFile(fullfile(testPathSssMor,'testIrka.m')),...
+                TestSuite.fromFile(fullfile(testPathSssMor,'testIsH2opt.m')),...
+                TestSuite.fromFile(fullfile(testPathSssMor,'testModal.m')),... 
+                TestSuite.fromFile(fullfile(testPathSssMor,'testMoments.m')),...
+                TestSuite.fromFile(fullfile(testPathSssMor,'testRk.m')),...
+                TestSuite.fromFile(fullfile(testPathSssMor,'testTbr.m'))]; 
+
 
 % State of the art MOR:
-suite7=TestSuite.fromFile('testSylvester.m');
-suite8=TestSuite.fromFile('testPork.m');
-suite9=TestSuite.fromFile('testSpark.m');
-suite10=TestSuite.fromFile('testCure.m');
+suiteStateOfTheArt = [TestSuite.fromFile(fullfile(testPathSssMor,'testSylvester.m')),...
+                      TestSuite.fromFile(fullfile(testPathSssMor,'testPork.m')),...
+                      TestSuite.fromFile(fullfile(testPathSssMor,'testSpark.m')),...
+                      TestSuite.fromFile(fullfile(testPathSssMor,'testCure.m'))];
 
-suiteClassic=[suite1,suite2,suite3,suite4,suite5,suite6];
-suiteStateOfTheArt=[suite7,suite8,suite9,suite10];
-suiteAll=[suite1,suite2,suite3,suite4,suite5,suite6,suite7,suite8,suite9,suite10];
+suiteAll=[suiteClassic, suiteStateOfTheArt];
 
 %% Run and show results
 % Choose between suiteClassic, suiteStateOfTheArt, suiteAll
-result = run(suiteAll);
+eval(sprintf('result = run(%s);',Opts.suite));
 disp(result);
 
 if Opts.loadBench==1
-    cd(testpathSss);
-	('benchmarksSysCell.mat');
+	(fullfile(testPathSss,'benchmarksSysCell.mat'));
 end
-
-%% Go back to original folder
-cd(testCase.Path);
 end
 
