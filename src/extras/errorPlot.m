@@ -21,7 +21,8 @@ for iSysr = 1:nSysr
 end
 
 %% Plotting
-fh = nicefigure('compareMor - results (error)');
+% fh = nicefigure('compareMor - results (error)');
+fh = figure;
 
 %   Create axis
 for iOut = 1:sys.p
