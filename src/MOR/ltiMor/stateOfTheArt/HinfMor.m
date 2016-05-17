@@ -251,12 +251,14 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     end
     
     sysr = sss(sysr);
-    figure('Name','SV of true error before and after optimization'); 
-    sigma(ss(sys)-sysr0,'b-',ss(sys-sysr),'--r'); legend('before','after');
-    drawnow
-    figure('Name','SV of surrogate error before and after optimization'); 
-    sigma(syse0m,'b-',ss(syse0m - sysrDelta(DrOpt),'minimal'),'--r'); legend('before','after');
-    drawnow
+    if Opts.plot
+        figure('Name','SV of true error before and after optimization'); 
+        sigma(ss(sys)-sysr0,'b-',ss(sys-sysr),'--r'); legend('before','after');
+        drawnow
+        figure('Name','SV of surrogate error before and after optimization'); 
+        sigma(syse0m,'b-',ss(syse0m - sysrDelta(DrOpt)),'--r'); legend('before','after');
+        drawnow
+    end
 %     if Opts.debug, keyboard, end
 
     %   See how the cost behaves around the chosen minimum?
@@ -735,8 +737,12 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 %   Deflate
 %                 s = svd(L - sL); figure; semilogy(s/s(1),'o-'); title('Normalized singular values of L - sL')
 %                 s = svd([L, sL]); figure; semilogy(s/s(1)); title('Normalized singular values')
-                s = svd([L, sL]); figure; semilogy(s/s(1),'o-'); title('Normalized singular values of [L, sL]');
-                                  hold on; plot([1,length(s)],[Opts.surrTol,Opts.surrTol],'r--')
+                s = svd([L, sL]); 
+                if Opts.debug, 
+                    figure; 
+                    semilogy(s/s(1),'o-'); title('Normalized singular values of [L, sL]');
+                    hold on; plot([1,length(s)],[Opts.surrTol,Opts.surrTol],'r--')
+                end
 
 %                 r = find(s/s(1)<Opts.rankTol,1); if isempty(r), r = length(s); end 
                 r = rank([L,sL],Opts.rankTol);
@@ -786,22 +792,28 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 % if mod(n,2) ~= 0, n = n-1; end   %make even
                 Opts.forceReal = false;
                 [syse0m,polesVF] = vectorFitting(syse0,nm,s0m,Opts);
-                plot(complex(polesVF),'xg');
+                
+                if Opts.debug
+                    plot(complex(polesVF),'xg');
+                end
                 
                 % Compare to loewner
-                figure('Name','Compare VF to Loewner');
-                bodemag(syse0,'b-',syse0mLoew,'--r',syse0m,'-.g'); 
-                legend(sprintf('original (n=%i)',size(syse0.A,1)),...
-                        sprintf('loewner (n=%i)',size(syse0mLoew.A,1)),...
-                        sprintf('vf (n=%i)',size(syse0m.A,1)))
-
-                if Opts.debug, keyboard; end
+                if Opts.debug
+                    figure('Name','Compare VF to Loewner');
+                    bodemag(syse0,'b-',syse0mLoew,'--r',syse0m,'-.g'); 
+                    legend(sprintf('original (n=%i)',size(syse0.A,1)),...
+                            sprintf('loewner (n=%i)',size(syse0mLoew.A,1)),...
+                            sprintf('vf (n=%i)',size(syse0m.A,1)))
+                    keyboard;
+                end
         end
         %                 isstable(sysm)
-        figure('Name','Original Vs surrogate models');
-        bodemag(syse0,'b-',syse0m,'--r'); 
-        legend(sprintf('original (n=%i)',size(syse0.A,1)),...
-               sprintf('%s (n=%i)',type, size(syse0m.A,1)));  
+        if Opts.debug
+            figure('Name','Original Vs surrogate models');
+            bodemag(syse0,'b-',syse0m,'--r'); 
+            legend(sprintf('original (n=%i)',size(syse0.A,1)),...
+                   sprintf('%s (n=%i)',type, size(syse0m.A,1)));  
+        end
 %         if Opts.debug, keyboard, end
     end
     function [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj,tol)

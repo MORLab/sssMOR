@@ -1,7 +1,9 @@
 function [sysr, polesvf3]  = vectorFitting(sys,n,s0,Opts)
 
-figure('Name','Sampling frequencies for VF');
-plot(complex(s0),'o');xlabel('real');ylabel('imag')
+if Opts.debug
+    figure('Name','Sampling frequencies for VF');
+    plot(complex(s0),'o');xlabel('real');ylabel('imag')
+end
 
 % take only one complex conjugate partner
 % s0 = cplxpair(s0); idx = find(imag(s0)); s0(idx(1:2:end)) = [];
@@ -31,7 +33,9 @@ end
 wReLim  = [min(real(s0)),max(real(s0))];
 
 polesvf3 = initializePoles(sys,Opts.vf.poles,n,wLims,wReLim);
-hold on; plot(complex(polesvf3),'rx');
+if Opts.debug
+    hold on; plot(complex(polesvf3),'rx');
+end
 
 
 if 1 %old code by Alessandro
@@ -60,6 +64,7 @@ else %using code from Serkan
     end
     sysr = vecfit3_to_ss(SS_vectfit3,polesvf3,n,m,p);
 end
+    if Opts.debug, plot(complex(polesvf3),'xg');end
 end
 
 function poles = initializePoles(sys,type,nm,wLim,wReLim)
