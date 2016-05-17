@@ -47,14 +47,13 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     Def.surrogate   = 'original';   %original, 'model', 'vf', 'loewner'
     Def.whatData    = 'new';        %'all','new'
     Def.deflate     = 1;
-    Def.tol         = 1e-6; %ismemberf/getModelData
+    Def.tol         = 1e-10; %ismemberf/getModelData
     Def.rankTol     = eps; %rank tolerance Loewner
-    Def.surrTol     = 1e-6;
+    Def.surrTol     = 1e-10;
     
     Def.vf.poles   = 'eigs'; %vectfit,eigs, serkan
     Def.vf.maxiter = 20;
-    Def.vf.tol     = 1e-8;
-    Def.vf.wLims   = [1e-3, 1e2];
+    Def.vf.tol     = 1e-20;
     
     Def.debug       = false;
     
@@ -78,8 +77,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         %   compute one step of tangential Krylov at 0 to get initial tangent 
         %   directions
         
-%         s0 = zeros(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
-        s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+        s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+%         s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
         sysr = rk(sys,s0,s0,Rt,Lt);  [X,D,Y] = eig(sysr);
         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
         %run IRKA
@@ -748,7 +747,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                         end
                     end
                 else
-                    error('Loewner conditions not satisfied');
+                    warning('Loewner conditions not satisfied');
+                    iS = 1;
 %                     syse0m = syse0; return
                 end
                 
@@ -780,7 +780,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 m = size(syse0.b,2);
                 if m>1, nm = ceil(nm/m);end 
                 %resize nm according to the data available
-                nm = min([nm, ceil(length(s0m)/m)]);
+                nm = min([nm, ceil(2*length(s0m)/m)]);
                 %                 
                 % if mod(n,2) ~= 0, n = n-1; end   %make even
                 
@@ -800,7 +800,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         bodemag(syse0,'b-',syse0m,'--r'); 
         legend(sprintf('original (n=%i)',size(syse0.A,1)),...
                sprintf('%s (n=%i)',type, size(syse0m.A,1)));  
-        if Opts.debug, keyboard, end
+%         if Opts.debug, keyboard, end
     end
     function [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj,tol)
         % get interpolation data out of the trajectories
