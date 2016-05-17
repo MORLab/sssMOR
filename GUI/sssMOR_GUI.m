@@ -137,7 +137,7 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     
     addpath(genpath(path));
     
-    %Set default-values for the variables in saved in handles
+    %Set default-values for the variables saved in handles
     
     handles.splash = splash('splash.png');
     handles.output = hObject;
@@ -167,7 +167,19 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     newPath = strcat(newPath,'src\sss\benchmarks\');
     
     if exist(newPath,'dir') == 7
+        %Path exists
         handles.letzterpfad = newPath;
+        
+    else
+        %Path don't exists: Try to find the path in the matlab search path.
+        %This is important if the GUI is installed as an App
+        
+        [newPath,name,ending] = fileparts(which('CDplayer.mat'));
+        newPath = strcat(newPath,'\');
+        
+        if exist(newPath,'dir') == 7
+           handles.letzterpfad = newPath; 
+        end        
     end
     
     %Set the footer visible or not dependent on the size of the screen
