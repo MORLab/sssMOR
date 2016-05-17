@@ -774,6 +774,15 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 nm = size(syse0mLoew.A,1);
                 
                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj,Opts.tol);
+                s0m = cplxpair(s0m); idx = find(imag(s0m)); s0m(idx(1:2:end)) = [];
+                
+                %avoid blowing-up for MIMO
+                m = size(syse0.b,2);
+                if m>1, nm = ceil(nm/m);end 
+                %resize nm according to the data available
+                nm = min([nm, ceil(length(s0m)/m)]);
+                %                 
+                % if mod(n,2) ~= 0, n = n-1; end   %make even
                 
                 syse0m = vectorFitting(syse0,nm,s0m,Opts);
                 
