@@ -51,9 +51,10 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     Def.rankTol     = eps; %rank tolerance Loewner
     Def.surrTol     = 1e-6;
     
-    Def.vf.poles   = 'vectfit3'; %vectfit,eigs
+    Def.vf.poles   = 'eigs'; %vectfit,eigs, serkan
     Def.vf.maxiter = 20;
-    Def.vf.tol     = 1e-10;
+    Def.vf.tol     = 1e-8;
+    Def.vf.wLims   = [1e-3, 1e2];
     
     Def.debug       = false;
     
@@ -103,7 +104,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     %   from the data collected during irka
     
     syse0m = createSurrogate(Opts.surrogate);
-    keyboard
+%     keyboard
     fprintf('Size of the surrogate model: %i \n',size(syse0m.a,1))
     fprintf('Stability of surrogate model: %i \n',isstable(syse0m))
 
@@ -295,8 +296,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         HinfRatio = Hinf/Hinf0 %ratio to irka ROM
         
         if Opts.debug, keyboard, end
-
-        
+       
         if nargout > 5
 %             bound = HinfBound(sys,B_,C_);
             bound  =[];
@@ -706,7 +706,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     end
     function syse0m = createSurrogate(type)
         syse0 = ss(sys)-sysr0;
-        if Opts.debug, keyboard, end
+%         if Opts.debug, keyboard, end
         switch type  
             case 'original'
                 syse0m = syse0;
@@ -718,7 +718,13 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 syse0m = dss(W'*syse0.A*V, W'*syse0.B, syse0.C*V,syse0.D,W'*syse0.E*V);               
             case 'loewner'
                 %   Get the data
-                [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj);
+                ismemberTol = Opts.tol;
+                [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj,ismemberTol);
+                while length(s0m)> size(syse0.A,1)
+                    ismemberTol = ismemberTol*10
+                    [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj,ismemberTol);
+                end
+                
                 rkOpts = struct('real',false,'orth',false);
                 
                 [~,V,W] = rk(sss(syse0),s0m,s0m,Rtm,Ltm,rkOpts);
@@ -732,7 +738,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %                 s = svd([L, sL]); figure; semilogy(s/s(1)); title('Normalized singular values')
                 s = svd([L, sL]); figure; semilogy(s/s(1),'o-'); title('Normalized singular values of [L, sL]');
                                   hold on; plot([1,length(s)],[Opts.surrTol,Opts.surrTol],'r--')
-                if Opts.debug, keyboard, end
 
 %                 r = find(s/s(1)<Opts.rankTol,1); if isempty(r), r = length(s); end 
                 r = rank([L,sL],Opts.rankTol);
@@ -753,8 +758,12 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %                 sL  = - W'*syse0.A*V; %shifted Loewner matrix
 
                 [Ws, ~, Vs] = svd(s0m(iS)*L-sL,'econ');
-                rs = find(s/s(1)< Opts.surrTol,1);
-                if isempty(rs), rs = r; else rs = rs-1; end
+                if Opts.debug
+                    rs = input('Choose surrogate order: ');
+                else
+                    rs = find(s/s(1)< Opts.surrTol,1);
+                    if isempty(rs), rs = r; else rs = rs-1; end
+                end
                 V= V*Vs(:,1:rs); W= W*Ws(:,1:rs);
                 
                 %   Build the model function
@@ -783,9 +792,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         legend(sprintf('original (n=%i)',size(syse0.A,1)),...
                sprintf('%s (n=%i)',type, size(syse0m.A,1)));  
         if Opts.debug, keyboard, end
-
     end
-    function [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj)
+    function [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj,tol)
         % get interpolation data out of the trajectories
         kIrka = size(s0Traj,3); nRed = size(s0Traj,2);
         % initialize
@@ -796,9 +804,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
             
             switch Opts.whatData
                 case 'new'
-                    idxS = ismemberf(s0new,s0m,'tol',Opts.tol); %available in the matlab central
-                    idxR = ismemberf(Rtnew.',Rtm.','rows','tol',Opts.tol).';
-                    idxL = ismemberf(Ltnew.',Ltm.','rows','tol',Opts.tol).';
+                    idxS = ismemberf(s0new,s0m,'tol',tol); %available in the matlab central
+                    idxR = ismemberf(Rtnew.',Rtm.','rows','tol',tol).';
+                    idxL = ismemberf(Ltnew.',Ltm.','rows','tol',tol).';
                     idxNew = or(or(~idxS, ~idxR),~idxL);
                 case 'all'
                     idxNew = 1:nRed; %take all
