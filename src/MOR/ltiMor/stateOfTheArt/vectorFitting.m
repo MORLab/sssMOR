@@ -1,4 +1,4 @@
-function sysr  = vectorFitting(sys,n,s0,Opts)
+function [sysr, polesvf3]  = vectorFitting(sys,n,s0,Opts)
 
 figure('Name','Sampling frequencies for VF');
 plot(complex(s0),'o');xlabel('real');ylabel('imag')
@@ -23,9 +23,14 @@ f = freqresp(sss(sys),s0);
 
 f = reshape(f,m*p,nSample);
 
-wLims = [min(imag(s0)),max(imag(s0))];
+if Opts.forceReal
+    wLims = [1e-3,1e-3];
+else
+    wLims   = [min(imag(s0)),max(imag(s0))];
+end
+wReLim  = [min(real(s0)),max(real(s0))];
 
-polesvf3 = initializePoles(sys,Opts.vf.poles,n,wLims);
+polesvf3 = initializePoles(sys,Opts.vf.poles,n,wLims,wReLim);
 hold on; plot(complex(polesvf3),'rx');
 
 
@@ -57,7 +62,7 @@ else %using code from Serkan
 end
 end
 
-function poles = initializePoles(sys,type,nm,wLim)
+function poles = initializePoles(sys,type,nm,wLim,wReLim)
 switch type
     case 'eigs'
         poles = eigs(sss(sys),nm,'sm').';
@@ -81,12 +86,18 @@ switch type
         end
     case 'serkan'
         onemore = nm - 2*fix(nm/2) ;
-        bet=logspace(max([log10(wLim(1)),-2]),log10(wLim(2)),fix(nm/2)+onemore);
+        bet=logspace(max([log10(wLim(1)),-2]),max([log10(wLim(2)),-2]),...
+            fix(nm/2)+onemore);
+        if abs(diff(wReLim))< 1e-3 %all shifts have the same real part
+            alf = bet;
+        else
+            alf=logspace(max([log10(wReLim(1)),-2]),log10(wReLim(2)),fix(nm/2)+onemore);
+        end
         poles=[];
-        if onemore, poles0(1) = -bet(1); end ;
+        if onemore, poles(1) = -alf(1); end ;
         for iIter = 1 + onemore : length(bet)
-            alf=-bet(iIter);
-            poles=[poles ; (alf-1i*bet(iIter)) ; (alf+1i*bet(iIter)) ];
+%             alf=-bet(iIter);
+            poles=[poles ; (-alf(iIter)-1i*bet(iIter)) ; (-alf(iIter)+1i*bet(iIter)) ];
         end
         poles = poles.';
     case 'gershgorin'
