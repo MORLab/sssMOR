@@ -350,10 +350,6 @@ else
     sys.TBal = diag(sqrt(hsv))\M'*L/sys.E;
 end
 
-% store system
-if inputname(1)
-    assignin('caller', inputname(1), sys);
-end
 
 % determine reduction order
 if exist('q','var') || Opts.redErr>0
