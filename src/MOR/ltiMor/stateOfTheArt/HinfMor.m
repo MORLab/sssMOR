@@ -764,49 +764,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 syse0mLoew = createSurrogate('loewner');
                 nm = size(syse0mLoew.A,1);
                 
-                % Run VF
-                [s0m] = getModelData(s0Traj,RtTraj,LtTraj);
-                figure('Name','Sampling frequencies for VF'); 
-                plot(complex(s0m),'o');xlabel('real');ylabel('imag')
-                % take only one complex conjugate partner
-                s0m = cplxpair(s0m); idx = find(imag(s0m)); s0m(idx(1:2:end)) = [];
+                [s0m] = getModelData(s0Traj,RtTraj,LtTraj,Opts.tol);
                 
-                % generate frequency sample
-%                 fss = freqresp(sys,s0m); fss = reshape(fss,numel(fss(:,:,1)),length(fss));
-                f = freqresp(syse0,s0m); f = reshape(f,numel(f(:,:,1)),length(f));
-                           
-%                 nm = min([round(length(s0m)),60]);  %model function order
-%                 nm = min([floor(length(find(imag(s0m)))),Opts.surrogateSize]);  %model function order
-
-                
-                m = size(syse0.b,2); p = size(syse0.c,1);
-%                 if m>1, nm = round(nm/m);end %avoid blowing-up for MIMO
-                if mod(nm,2) ~= 0, nm = nm-1; end   %make even
-                
-%                 figure; loglog(abs(imag(s0m)),abs(f),'bx'); hold on
-%                         loglog(abs(imag(s0m)),abs(fss),'or');
-                         
-                poles = initializePoles(syse0,Opts.vf.poles,nm);
-                hold on; plot(complex(poles),'rx');
-%                 poles = -logspace(-2,2,nm);
-                          
-                %MIMO systems have to be fitted columnwise
-                AA = []; BB = []; CC = []; DD = [];
-                weight=ones(p,size(f,2));
-                for iCol = 1:m
-                    fm = f((iCol-1)*p+1 : iCol*p,:);
-                for iter = 1:Opts.vf.maxiter
-                    [SER,poles,rmserr] =vectfit3(fm,s0m,poles,weight);
-                    fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
-                    if rmserr <= Opts.vf.tol, break, end
-                end
-                    AA = blkdiag(AA,SER.A); 
-                    BB = blkdiag(BB,SER.B);
-                    CC = [CC, SER.C];
-                    DD = [DD, SER.D];
-                end
-                
-                syse0m = ss(full(AA),BB,CC,DD);  
+                syse0m = vectorFitting(syse0,nm,s0m,Opts);
                 
                 % Compare to loewner
                 figure('Name','Compare VF to Loewner');
@@ -853,31 +813,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         % get permutation indices, since cplxpair does not do it for you
         [~,cplxSorting] = ismember(s0m,s0mUnsrt);
         Rtm = Rtm(:,cplxSorting); Ltm = Ltm(:,cplxSorting);        
-    end
-    function poles = initializePoles(sys,type,nm)
-        switch type
-            case 'eigs'
-                poles = eigs(sss(sys),nm,'sm').';
-            case 'vectfit3'
-                try
-                    wMax = abs(imag(eigs(sss(sys),1,'li')));
-                catch
-                    wMax = 1e3;
-                end
-                
-                %generate initial poles
-                if nm > 1
-                    bet=logspace(-2,log10(wMax),nm/2);
-                    poles=[];
-                    for k=1:length(bet)
-                        alf=-bet(k)*1e-2;
-                        poles=[poles (alf-1i*bet(k)) (alf+1i*bet(k)) ];
-                    end
-                else %initialize at least one pole
-                    poles = wMax;
-                end
-            case 'gershgorin'
-        end
     end
 
     %% Trash
