@@ -4,18 +4,28 @@ figure('Name','Sampling frequencies for VF');
 plot(complex(s0),'o');xlabel('real');ylabel('imag')
 
 % take only one complex conjugate partner
-s0 = cplxpair(s0); idx = find(imag(s0)); s0(idx(1:2:end)) = [];
+% s0 = cplxpair(s0); idx = find(imag(s0)); s0(idx(1:2:end)) = [];
 
 m = size(sys.b,2); p = size(sys.c,1);
 %                 if m>1, n = round(n/m);end %avoid blowing-up for MIMO
-if mod(n,2) ~= 0, n = n-1; end   %make even
+% if mod(n,2) ~= 0, n = n-1; end   %make even
 
 nSample = length(s0);
 
 f = freqresp(sss(sys),s0); 
+
+%     H0 = zeros(m,p,nSample);
+%     for iW = 1:nSample;
+%         H0(:,:,iW) = sys.C*((s0(iW)*sys.E-sys.A)\sys.B)+sys.D;
+%     end
+%     norm(reshape(H0 - f, m*p,nSample)) %for comparison
+%     keyboard
+
 f = reshape(f,m*p,nSample);
 
-polesvf3 = initializePoles(sys,Opts.vf.poles,n,Opts.vf.wLims);
+wLims = [min(imag(s0)),max(imag(s0))];
+
+polesvf3 = initializePoles(sys,Opts.vf.poles,n,wLims);
 hold on; plot(complex(polesvf3),'rx');
 
 
@@ -28,7 +38,7 @@ if 1 %old code by Alessandro
         for iter = 1:Opts.vf.maxiter
             [SER,polesvf3,rmserr] =vectfit3(fm,s0,polesvf3,rho);
             fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
-            if rmserr <= Opts.vf.tol, break, end
+%             if rmserr <= Opts.vf.tol, break, end
         end
         AA = blkdiag(AA,SER.A);
         BB = blkdiag(BB,SER.B);
