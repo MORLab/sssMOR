@@ -81,7 +81,7 @@ switch type
         end
     case 'serkan'
         onemore = nm - 2*fix(nm/2) ;
-        bet=logspace(log10(wLim(1)),log10(wLim(2)),fix(nm/2)+onemore);
+        bet=logspace(max([log10(wLim(1)),-2]),log10(wLim(2)),fix(nm/2)+onemore);
         poles=[];
         if onemore, poles0(1) = -bet(1); end ;
         for iIter = 1 + onemore : length(bet)
