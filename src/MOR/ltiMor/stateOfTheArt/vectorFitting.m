@@ -14,25 +14,17 @@ m = size(sys.b,2); p = size(sys.c,1);
 
 nSample = length(s0);
 
-f = freqresp(sss(sys),s0); 
+% f = freqresp(sss(sys),s0); 
 
-%     H0 = zeros(m,p,nSample);
-%     for iW = 1:nSample;
-%         H0(:,:,iW) = sys.C*((s0(iW)*sys.E-sys.A)\sys.B)+sys.D;
-%     end
-%     norm(reshape(H0 - f, m*p,nSample)) %for comparison
+f = zeros(m,p,nSample);
+for iW = 1:nSample;
+    f(:,:,iW) = sys.C*((s0(iW)*sys.E-sys.A)\sys.B)+sys.D;
+end
 %     keyboard
 
 f = reshape(f,m*p,nSample);
 
-if Opts.forceReal
-    wLims = [1e-3,1e-3];
-else
-    wLims   = [min(imag(s0)),max(imag(s0))];
-end
-wReLim  = [min(real(s0)),max(real(s0))];
-
-polesvf3 = initializePoles(sys,Opts.vf.poles,n,wLims,wReLim);
+polesvf3 = initializePoles(sys,Opts.vf.poles,n,Opts.wLims);
 if Opts.plot
     hold on; plot(complex(polesvf3),'rx');
 end
@@ -91,7 +83,7 @@ switch type
         end
     case 'serkan'
         onemore = nm - 2*fix(nm/2) ;
-        bet=logspace(max([log10(wLim(1)),-2]),max([log10(wLim(2)),-2]),...
+        bet=logspace(max([log10(wLim(1)),-6]),max([log10(wLim(2)),-6]),...
             fix(nm/2)+onemore);
         poles=[];
         if onemore, poles(1) = -bet(1); end ;
@@ -119,7 +111,6 @@ switch type
     case 'gershgorin'
 end
 end
-
 function sysrvf3 = vecfit3_to_ss(SS_vectfit3,polesvf3,r,m,p)
 
 % INPUTS
