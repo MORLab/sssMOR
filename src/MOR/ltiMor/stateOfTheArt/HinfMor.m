@@ -79,17 +79,19 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         %   directions
         
         %   Initialize trivially
-%         s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
-        s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
-        sysr = rk(sys,s0,s0,Rt,Lt);  
-%         sysr = tbr(sys,n);
-        [X,D,Y] = eig(sysr);
-        Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
+        s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+%         s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+%         sysr = rk(sys,s0,s0,Rt,Lt);  
+% %         sysr = tbr(sys,n);
+%         [X,D,Y] = eig(sysr);
+%         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
         %run IRKA
         [sysr0, Virka, ~, s0opt, rt, lt, ~, ~, Rt, ~, ~, Lt,~, s0Traj,RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
         if Opts.plot; 
             figure; plot(complex(reshape(s0Traj,1,numel(s0Traj))),'x');
-            title('IRKA shifts');
+            plotName = sprintf('%s_%s_n%i_IRKAshifts',sys.Name,Opts.surrogate,n);
+            title(plotName,'Interpreter','none');
+            saveas(gcf,fullfile('..','res',sprintf('%s.fig',plotName)));
        end
     end
     
@@ -123,8 +125,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         fprintf('Stability of surrogate model: %i \n',isstable(sysm))
     end
 %     keyboard
-    
-
     %%  Make Hinf correction
     %
     % steadyState: just take the current steady state error (can yield worse
@@ -284,16 +284,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     end
     
     sysr = sss(sysr);
-    if Opts.plot
-        figure('Name','SV of true error before and after optimization'); 
-        sigma(ss(sys)-sysr0,'b-',ss(sys-sysr),'--r'); legend('before','after');
-        drawnow
-%         figure('Name','SV of surrogate error before and after optimization'); 
-% %         sigma(syse0m,'b-',ss(syse0m) - ss(sysrDelta(DrOpt),'minimal'),'--r'); legend('before','after');
-%         sigma(syse0m,'b-',ss(syse0m) - ss(sysrDelta(DrOpt)),'--r'); legend('before','after');
-%         drawnow
-    end
-%     if Opts.debug, keyboard, end
 
     %   See how the cost behaves around the chosen minimum?
     if Opts.plotCostOverDr
@@ -780,6 +770,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                     figure; 
                     semilogy(s/s(1),'o-'); title('Normalized singular values of [L, sL]');
                     hold on; plot([1,length(s)],[Opts.surrTol,Opts.surrTol],'r--')
+                    plotName = sprintf('%s_%s_n%i_LoewnerDecay',sys.Name,Opts.surrogate,n);
+                    title(plotName,'Interpreter','none'); 
+                    saveas(gcf,fullfile('..','res',[plotName,'.fig']));
                 end
 
 %                 r = find(s/s(1)<Opts.rankTol,1); if isempty(r), r = length(s); end 
@@ -806,7 +799,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                     rs = input('Choose surrogate order: ');
                 else
                     rs = find(s/s(1)< Opts.surrTol,1);
-                    if isempty(rs), rs = r; else rs = rs-1; end
+                    if isempty(rs), rs = r; end
                 end
                 V= V*Vs(:,1:rs); W= W*Ws(:,1:rs);
                 
@@ -814,7 +807,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 syse0m = dss(W.'*syse0.A*V, W.'*syse0.B, syse0.C*V,syse0.D,W.'*syse0.E*V);
             case 'vf'  
                 % Run Loewner (to determine reduced order)
-                syse0mLoew = createSurrogate('loewner');
+                syse0mLoew = createSurrogate(syse0,'loewner');
                 nm = size(syse0mLoew.A,1);
                 
 %                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj,Opts.tol);
@@ -846,12 +839,12 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 if Opts.debug, keyboard; end
         end
         %                 isstable(sysm)
-        if Opts.plot
-            figure('Name','Original Vs surrogate models');
-            bodemag(syse0,'b-',syse0m,'--r'); 
-            legend(sprintf('original (n=%i)',size(syse0.A,1)),...
-                   sprintf('%s (n=%i)',type, size(syse0m.A,1)));  
-        end
+%         if Opts.plot
+%             figure('Name','Original Vs surrogate models');
+%             bodemag(syse0,'b-',syse0m,'--r'); 
+%             legend(sprintf('original (n=%i)',size(syse0.A,1)),...
+%                    sprintf('%s (n=%i)',type, size(syse0m.A,1)));  
+%         end
 %         if Opts.debug, keyboard, end
     end
     function [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj,tol)
@@ -877,11 +870,11 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
             Rtm = [Rtm, Rtnew(:,idxNew)]; Ltm = [Ltm, Ltnew(:,idxNew)];
         end
         
-        %   Do complexpair
-        s0mUnsrt = s0m; s0m = cplxpair(s0mUnsrt);
-        % get permutation indices, since cplxpair does not do it for you
-        [~,cplxSorting] = ismember(s0m,s0mUnsrt);
-        Rtm = Rtm(:,cplxSorting); Ltm = Ltm(:,cplxSorting);        
+%         %   Do complexpair
+%         s0mUnsrt = s0m; s0m = cplxpair(s0mUnsrt);
+%         % get permutation indices, since cplxpair does not do it for you
+%         [~,cplxSorting] = ismember(s0m,s0mUnsrt);
+%         Rtm = Rtm(:,cplxSorting); Ltm = Ltm(:,cplxSorting);        
     end
 
     %% Trash
