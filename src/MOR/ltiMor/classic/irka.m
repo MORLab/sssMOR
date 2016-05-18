@@ -265,7 +265,7 @@ switch Opts.stopCrit
         stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
         stopCrit = [stopCrit, inf]; 
         if all(real(eig(sysr))<0) && all(real(eig(sysr_old))<0)
-                stopCrit(2) = norm(sysr-sysr_old)/norm(sysr);
+                stopCrit(2) = norm(ss(sysr-sysr_old))/norm(ss(sysr));
         end
         stop = any(stopCrit <= Opts.tol);
     otherwise
