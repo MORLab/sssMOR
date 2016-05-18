@@ -42,8 +42,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     Def.DrInit      = '0'; %0, '0', Ge0, matchGe0, maxGe
     Def.plot        = 0; % generate analysis plot
     Def.sampling    = 'random'; %sampling for sweepDr
-    Def.sweepPoints = 2e3;
+    Def.sweepPoints = 5e3;
     
+    Def.surrogateError = true; %create a surrogate of the error, not of sys
     Def.surrogate   = 'original';   %original, 'model', 'vf', 'loewner'
     Def.whatData    = 'new';        %'all','new'
     Def.deflate     = 1;
@@ -70,42 +71,59 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         try s0 = -eigs(sys,n,'sm').'; catch , s0 = zeros(1,n); end
 %         s0 = zeros(1,n);
         % run IRKA
-        [sysr0, Virka, ~, ~, ~, ~, ~, ~, Rt, ~, ~, Lt,~, s0Traj,RtTraj, LtTraj] = irka(sys,s0,Opts.irka);
+        [sysr0, Virka, ~, s0opt, rt, lt, ~, ~, Rt, ~, ~, Lt,~, s0Traj,RtTraj, LtTraj] = irka(sys,s0,Opts.irka);
 
     else %MIMO
         % initialize
         %   compute one step of tangential Krylov at 0 to get initial tangent 
         %   directions
         
-        s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
-%         s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
-        sysr = rk(sys,s0,s0,Rt,Lt);  [X,D,Y] = eig(sysr);
+        %   Initialize trivially
+%         s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+        s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+        sysr = rk(sys,s0,s0,Rt,Lt);  
+%         sysr = tbr(sys,n);
+        [X,D,Y] = eig(sysr);
         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
         %run IRKA
-        [sysr0, Virka, ~, ~, ~, ~, ~, ~, Rt, ~, ~, Lt,~, s0Traj,RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
+        [sysr0, Virka, ~, s0opt, rt, lt, ~, ~, Rt, ~, ~, Lt,~, s0Traj,RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
+        if Opts.plot; 
+            figure; plot(complex(reshape(s0Traj,1,numel(s0Traj))),'x');
+            title('IRKA shifts');
+       end
     end
     
     sysr0 = ss(sysr0);
     
-    %   Transform (A- s0*E) to (s0*E- A)
-%     sysr0.C = -sysr0.C; sysr0.B = -sysr0.B;
-%     Rt = -Rt; Lt = -Lt;
+    % Check interpolation of the D-shifted model
+%     keyboard
+%  
+%     Dr = rand(2,2);
+% %     sysrD = sysrfun(Dr);   
+%     sysrD = dss(sysr0.A+Lt.'*Dr*Rt, sysr0.B+Lt.'*Dr, sysr0.C+Dr*Rt, Dr, sysr0.E);
+%     H = @(sys,s) sys.C*((sys.E*s-sys.A)\sys.B) + sys.D;
+%     
+%     for iS0 = 1:length(s0)
+%         (H(sysr0,s0opt(iS0))-H(sysrD,s0opt(iS0)))*rt(:,iS0)
+%         lt(:,iS0).'*(H(sysr0,s0opt(iS0))-H(sysrD,s0opt(iS0)))
+%     end
 
-    % % Check that the generalized tangential directions are correct
-    % R = getSylvester(sys,sysr0,-V); L = getSylvester(sys,sysr0,-W,'W'); 
-    % if norm(Rt-R)> 1e-5 || norm(Lt-L)> 1e-5
-    %     warning('Residuals could be wrong')
-    %     keyboard
-    % end
     
     %%  Create Surrogate Model
     %   To reduce the cost of Hinf optimization, create a surrogate model
     %   from the data collected during irka
-    
-    syse0m = createSurrogate(Opts.surrogate);
+    if Opts.surrogateError
+        syse0  = ss(sys)-sysr0; 
+        syse0m = createSurrogate(syse0, Opts.surrogate);
+        fprintf('Size of the surrogate model: %i \n',size(syse0m.a,1))
+        fprintf('Stability of surrogate model: %i \n',isstable(syse0m))
+    else
+        sysm = createSurrogate(sys, Opts.surrogate);
+        fprintf('Size of the surrogate model: %i \n',size(sysm.a,1))
+        fprintf('Stability of surrogate model: %i \n',isstable(sysm))
+    end
 %     keyboard
-    fprintf('Size of the surrogate model: %i \n',size(syse0m.a,1))
-    fprintf('Stability of surrogate model: %i \n',isstable(syse0m))
+    
 
     %%  Make Hinf correction
     %
@@ -220,11 +238,22 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
             
             % 1) cycle optimization
             Opts.solver = 'fmincon';
-            DrOpt = DrInit(Opts.DrInit); HinfVec = norm(syse0m,Inf); tOpt = 0;
+            DrOpt = DrInit(Opts.DrInit); 
+            if Opts.surrogateError
+                HinfVec = norm(syse0m,Inf); 
+            else
+                HinfVec = norm(sysm,Inf); 
+            end
+            tOpt = 0;
+                
             for iOut = 1:sys.p
                 for jIn = 1:sys.m
                     Dr0 = DrOpt(iOut,jIn);
-                    cost = @(Dr) norm(syse0m-sysrDelta(Dr,iOut,jIn,DrOpt),Inf);
+                    if Opts.surrogateError
+                        cost = @(Dr) norm(syse0m-sysrDelta(Dr,iOut,jIn,DrOpt),Inf);
+                    else
+                        cost = @(Dr) norm(sysm-sysrfun(Dr,iOut,jIn,DrOpt),Inf);
+                    end
                     constr = @(Dr) stabilityConstraintCycle(Dr,iOut,jIn,DrOpt);
                     [DrOptCurr, ~,tOptCurr] = normOpt(Dr0,cost,constr);
                     tOpt = tOpt+tOptCurr;
@@ -233,7 +262,11 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
             end
             
             % 2) multivariate optimization
-            cost = @(Dr) norm(syse0m - sysrDelta(Dr),Inf);
+            if Opts.surrogateError
+                cost = @(Dr) norm(syse0m - sysrDelta(Dr),Inf);
+            else
+                cost = @(Dr) norm(sysm - sysrfun(Dr),Inf);
+            end
             [DrOpt, Hinf,tOptCurr] = normOpt(DrOpt,cost);
             tOpt = tOpt + tOptCurr;
             
@@ -241,7 +274,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %             sysr = ss(sysr0 + sysrDelta(DrOpt),'minimal');
 %             figure; sigma(sysrfun(DrOpt),sysr0 + sysrDelta(DrOpt),'--r')
         case 'sweepDr'
-            cost = @(Dr) norm(ss(syse0m-sysrfun(Dr)),Inf);
+            cost = @(Dr) norm(ss(syse0m-sysrDelta(Dr)),Inf);
             [DrOpt, tOpt, DrArray,costArray] = sweepDr(cost);
             assignin('caller','DrArray',DrArray);
             assignin('caller','costArray',costArray);
@@ -255,9 +288,10 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         figure('Name','SV of true error before and after optimization'); 
         sigma(ss(sys)-sysr0,'b-',ss(sys-sysr),'--r'); legend('before','after');
         drawnow
-        figure('Name','SV of surrogate error before and after optimization'); 
-        sigma(syse0m,'b-',ss(syse0m - sysrDelta(DrOpt)),'--r'); legend('before','after');
-        drawnow
+%         figure('Name','SV of surrogate error before and after optimization'); 
+% %         sigma(syse0m,'b-',ss(syse0m) - ss(sysrDelta(DrOpt),'minimal'),'--r'); legend('before','after');
+%         sigma(syse0m,'b-',ss(syse0m) - ss(sysrDelta(DrOpt)),'--r'); legend('before','after');
+%         drawnow
     end
 %     if Opts.debug, keyboard, end
 
@@ -314,19 +348,19 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 Dr0 = DrInit('0');    
                 type = '0'; %overwrite for stability check at the end
             case 'Ge0'   
-                Dr0 = freqresp(syse0m,0)-freqresp(sysr0,0);      
+                Dr0 = freqresp(sysem,0)-freqresp(sysr0,0);      
             case 'Ge0half'
                 Dr0 = DrInit('Ge0')/2;
             case 'matchGe0_old'        
                 % this computation does not work well for MIMO systems
                 % since is sweeping Dr0 only along a hyperline with
                 % direction of the absolute value of Dr0
-                G0 = freqresp(syse0m,0); %the only costly part
+                G0 = freqresp(sysem,0); %the only costly part
 
                 Dr0 = DrInit('Ge0'); %get an initial feedthrough
                 deltaDr = 20*abs(Dr0); nStep = 100; 
                 DrSet(:,:,1) = DrInit('0'); dSet(:,:,1) = Dr0; dMin = norm(Dr0); %initial error
-                if Opts.plot, figure; sigma(syse0m-sysr0,'b', 'LineWidth',2); end
+                if Opts.plot, figure; sigma(sysem-sysr0,'b', 'LineWidth',2); end
                 
                 for k = 0:nStep
                     Dr = Dr0-deltaDr + k*(2*deltaDr)/nStep;
@@ -339,7 +373,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                         dSet(:,:,end+1) = d;
                         DrSet(:,:,end+1)= Dr;
                         if Opts.plot
-                            syse = syse0m-sysr; sigma(syse,'Color',rand(1,3)); 
+                            syse = sysem-sysr; sigma(syse,'Color',rand(1,3)); 
                             drawnow
                         end
                     end
@@ -348,7 +382,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 %   response at 0 and Inf
                 Dr0 = DrSet(:,:,end); 
                 if Opts.plot 
-                    syse = syse0m-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
+                    syse = sysem-sysrfun(Dr0); sigma(syse,'Color',rand(1,3),...
                                                    'LineWidth',2); 
                     drawnow 
                 end
@@ -357,7 +391,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 %   The claim is that all computations are cheap since we
                 %   compute G0 once.
                 
-                G0 = freqresp(syse0m,0); %the only costly part
+                G0 = freqresp(sysem,0); %the only costly part
                 sweepcost = @(Dr0) norm(G0 - (freqresp(sysrfun(Dr0),0) + Dr0));
                 
                 Dr0 = sweepDr(sweepcost);
@@ -367,8 +401,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 % sweep to minimize the error at w
                 
                 %expensive computations
-                [~, w] = norm(ss(syse0m-sysr0),inf);
-                Gew = freqresp(syse0m,w);
+                [~, w] = norm(ss(sysem-sysr0),inf);
+                Gew = freqresp(sysem,w);
                 
                 sweepcost = @(Dr0) norm(Gew - freqresp(sysrfun(Dr0),w));
                 
@@ -390,7 +424,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         
         %   Determine the relevant frequency range for Dr based on the Hinf
         %   error after IRKA
-        [~,wmax] = norm(ss(syse0m),inf); deltaDr = freqresp(syse0m-sysr0,wmax);
+        [~,wmax] = norm(ss(syse0m),inf); deltaDr = freqresp(syse0m,wmax);
         
         probSize = sys.m*sys.p; %dimension of the search space
 
@@ -414,7 +448,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                         {linspace(-deltaDr(iOut,jIn),deltaDr(iOut,jIn),nStep).'}];
                     case 'random'
                         x = [x, ...
-                        {randn(nStep,1)*3*deltaDr(iOut,jIn)}];
+                        {[0;randn(nStep,1)*3*deltaDr(iOut,jIn)]}];
                 end
             end
         end
@@ -436,6 +470,11 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         tOpt = toc;
         [~, idxMin] = min(squeeze(costArray));
         DrOpt = DrArray(:,:,idxMin);    
+        if Opts.plot, 
+            figure; plot(squeeze(costArray)); hold on
+            plot([1,length(costArray)],[1,1]*sweepcost(zeros(sys.p,sys.m)),'r--');
+            title('Cost for Dr sweep'); ylabel('cost'); xlabel('index');
+        end
     end
     function [DrOpt, Hinf,tOpt] = normOpt(Dr0,cost,constr)       
 
@@ -523,8 +562,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         else
             DrMIMO(iOut,jIn) = Dr;
         end
-        sysr = dss(full(sysr0.A)-Lt.'*DrMIMO*Rt, sysr0.B-Lt.'*DrMIMO, ...
-                                     sysr0.C-DrMIMO*Rt, DrMIMO, full(sysr0.E));
+        sysr = dss(full(sysr0.A)+Lt.'*DrMIMO*Rt, sysr0.B+Lt.'*DrMIMO, ...
+                                     sysr0.C+DrMIMO*Rt, DrMIMO, full(sysr0.E));
     end
     function sysrDelta = sysrDelta(Dr,iOut,jIn,DrMIMO)
         if nargin == 1
@@ -533,14 +572,13 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         else
             DrMIMO(iOut,jIn) = Dr;
         end
-        sysrDelta1 = sysr0; sysrDelta1.B = Lt.'*DrMIMO;
-        sysrDelta2 = sysr0; sysrDelta2.C = DrMIMO*Rt; sysrDelta2.B = sysr0.B-Lt.'*DrMIMO;
-        sysrDelta3 = sysr0; sysrDelta3.C = sysr0.C-DrMIMO*Rt; sysrDelta3.B = Lt.';
-        sysrDelta4 = sysr0; sysrDelta4.C = DrMIMO*Rt; sysrDelta4.B = Lt.'; sysrDelta4.D = eye(sys.p);
+        sysrDelta1 = sysr0; sysrDelta1.B = Lt.'*Dr; %sysrDelta1.D = Dr;
+        sysrDelta2 = sysr0; sysrDelta2.C = Dr*Rt; sysrDelta2.B = sysr0.B+Lt.'*Dr;
+        sysrDelta3 = sysr0; sysrDelta3.C = sysr0.C+Dr*Rt; sysrDelta3.B = Lt.';
+        sysrDelta4 = sysr0; sysrDelta4.C = -Dr*Rt; sysrDelta4.B = Lt.'; sysrDelta4.D = eye(sys.p);
 
-%         sysrDelta = ss(-sysrDelta1 - sysrDelta2 - sysrDelta3*inv(sysrDelta4)*sysrDelta2 + DrMIMO,'minimal');
-        sysrDelta = -sysrDelta1 - sysrDelta2 - sysrDelta3*inv(sysrDelta4)*sysrDelta2 + DrMIMO;
-    end
+        %         sysrDelta = ss(-sysrDelta1 - sysrDelta2 - sysrDelta3*inv(sysrDelta4)*sysrDelta2 + DrMIMO,'minimal');
+        sysrDelta = sysrDelta1 + sysrDelta2 + sysrDelta3*inv(sysrDelta4)*sysrDelta2 + Dr;    end
     function [minDr, minVal] = plotOverDrRange(varargin)
         if isnumeric(DrRange) %vector of Dr values
             %initializing
@@ -673,7 +711,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 cd(cdir);
             end
     end
-    function [c,ceq]=stabilityConstraint(x)
+    function [c,ceq]    =stabilityConstraint(x)
         % define a nonlinear constraint to impose stability
         ceq = 1-isstable(ss(sysrfun(x)));
         c = [];
@@ -705,8 +743,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         end
         
     end
-    function syse0m = createSurrogate(type)
-        syse0 = ss(sys)-sysr0;
+    function syse0m = createSurrogate(syse0, type)
 %         if Opts.debug, keyboard, end
         switch type  
             case 'original'
@@ -721,18 +758,19 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 %   Get the data
                 ismemberTol = Opts.tol;
                 [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj,ismemberTol);
-                while length(s0m)> size(syse0.A,1)
-                    ismemberTol = ismemberTol*10
-                    [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj,ismemberTol);
-                end
+%                 while length(s0m)> size(syse0.A,1)
+%                     ismemberTol = ismemberTol*10
+%                     [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj,ismemberTol);
+%                 end
                 
                 rkOpts = struct('real',false,'orth',false);
+%                 rkOpts = struct();
                 
                 [~,V,W] = rk(sss(syse0),s0m,s0m,Rtm,Ltm,rkOpts);
                                 
                 %   Create Loewner matrices
-                L   = - W'*syse0.E*V; %Loewner matrix
-                sL  = - W'*syse0.A*V; %shifted Loewner matrix
+                L   = - W.'*syse0.E*V; %Loewner matrix
+                sL  = - W.'*syse0.A*V; %shifted Loewner matrix
 
                 %   Deflate
 %                 s = svd(L - sL); figure; semilogy(s/s(1),'o-'); title('Normalized singular values of L - sL')
@@ -773,7 +811,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 V= V*Vs(:,1:rs); W= W*Ws(:,1:rs);
                 
                 %   Build the model function
-                syse0m = dss(W'*syse0.A*V, W'*syse0.B, syse0.C*V,syse0.D,W'*syse0.E*V);
+                syse0m = dss(W.'*syse0.A*V, W.'*syse0.B, syse0.C*V,syse0.D,W.'*syse0.E*V);
             case 'vf'  
                 % Run Loewner (to determine reduced order)
                 syse0mLoew = createSurrogate('loewner');
