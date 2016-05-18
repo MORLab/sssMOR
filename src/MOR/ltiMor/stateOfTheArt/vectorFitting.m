@@ -1,6 +1,6 @@
 function [sysr, polesvf3]  = vectorFitting(sys,n,s0,Opts)
 
-if Opts.debug
+if Opts.plot
     figure('Name','Sampling frequencies for VF');
     plot(complex(s0),'o');xlabel('real');ylabel('imag')
 end
@@ -33,7 +33,7 @@ end
 wReLim  = [min(real(s0)),max(real(s0))];
 
 polesvf3 = initializePoles(sys,Opts.vf.poles,n,wLims,wReLim);
-if Opts.debug
+if Opts.plot
     hold on; plot(complex(polesvf3),'rx');
 end
 
@@ -64,7 +64,7 @@ else %using code from Serkan
     end
     sysr = vecfit3_to_ss(SS_vectfit3,polesvf3,n,m,p);
 end
-    if Opts.debug, plot(complex(polesvf3),'xg');end
+    if Opts.plot, plot(complex(polesvf3),'xg');end
 end
 
 function poles = initializePoles(sys,type,nm,wLim,wReLim)
@@ -90,6 +90,17 @@ switch type
             poles = wMax;
         end
     case 'serkan'
+        onemore = nm - 2*fix(nm/2) ;
+        bet=logspace(max([log10(wLim(1)),-2]),max([log10(wLim(2)),-2]),...
+            fix(nm/2)+onemore);
+        poles=[];
+        if onemore, poles(1) = -bet(1); end ;
+        for iIter = 1 + onemore : length(bet)
+            alf=-bet(iIter);
+            poles=[poles ; (alf-1i*bet(iIter)) ; (alf+1i*bet(iIter)) ];
+        end
+        poles = poles.';
+    case 'serkan+ale'
         onemore = nm - 2*fix(nm/2) ;
         bet=logspace(max([log10(wLim(1)),-2]),max([log10(wLim(2)),-2]),...
             fix(nm/2)+onemore);
