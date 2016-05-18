@@ -738,7 +738,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %                 s = svd(L - sL); figure; semilogy(s/s(1),'o-'); title('Normalized singular values of L - sL')
 %                 s = svd([L, sL]); figure; semilogy(s/s(1)); title('Normalized singular values')
                 s = svd([L, sL]); 
-                if Opts.debug, 
+                if Opts.plot, 
                     figure; 
                     semilogy(s/s(1),'o-'); title('Normalized singular values of [L, sL]');
                     hold on; plot([1,length(s)],[Opts.surrTol,Opts.surrTol],'r--')
@@ -784,31 +784,31 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 s0m = cplxpair(s0m); idx = find(imag(s0m)); s0m(idx(1:2:end)) = [];
                 
                 %avoid blowing-up for MIMO
-%                 m = size(syse0.b,2);
-%                 if m>1, nm = ceil(nm/m);end 
-%                 %resize nm according to the data available
-%                 nm = min([nm, ceil(2*length(s0m)/m)]);
+                m = size(syse0.b,2);
+                if m>1, nm = ceil(nm/m);end 
+                %resize nm according to the data available
+                nm = min([nm, ceil(2*length(s0m)/m)]);
                 %                 
                 % if mod(n,2) ~= 0, n = n-1; end   %make even
                 Opts.forceReal = false;
                 [syse0m,polesVF] = vectorFitting(syse0,nm,s0m,Opts);
                 
-                if Opts.debug
+                if Opts.plot
                     plot(complex(polesVF),'xg');
                 end
                 
                 % Compare to loewner
-                if Opts.debug
+                if Opts.plot
                     figure('Name','Compare VF to Loewner');
                     bodemag(syse0,'b-',syse0mLoew,'--r',syse0m,'-.g'); 
                     legend(sprintf('original (n=%i)',size(syse0.A,1)),...
                             sprintf('loewner (n=%i)',size(syse0mLoew.A,1)),...
                             sprintf('vf (n=%i)',size(syse0m.A,1)))
-                    keyboard;
                 end
+                if Opts.debug, keyboard; end
         end
         %                 isstable(sysm)
-        if Opts.debug
+        if Opts.plot
             figure('Name','Original Vs surrogate models');
             bodemag(syse0,'b-',syse0m,'--r'); 
             legend(sprintf('original (n=%i)',size(syse0.A,1)),...
