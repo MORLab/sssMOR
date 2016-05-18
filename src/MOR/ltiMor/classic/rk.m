@@ -213,9 +213,9 @@ if exist('s0_out', 'var')
 else
     s0_out = [];
 end
-if length(s0_inp)> sys.n || length(s0_out)>sys.n
-    error('sssMOR:arnoldi:reducedOrderExceedsOriginal','The desired reduced order exceeds the original order');
-end
+% if length(s0_inp)> sys.n || length(s0_out)>sys.n
+%     error('sssMOR:arnoldi:reducedOrderExceedsOriginal','The desired reduced order exceeds the original order');
+% end
 
 if ~isempty(s0_inp) && ~isempty(s0_out)
     % check if number of input/output expansion points matches
