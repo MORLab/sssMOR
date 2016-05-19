@@ -36,7 +36,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     end
     
     Def.plotCostOverDr = 0;
-    Def.irka        = struct('stopCrit','combAny','tol',1e-6); %run irka with defaul parameters
+    Def.irka        = struct('stopCrit','combAny','tol',1e-5,'type','stab');
     Def.corrType    = 'normOptCycle';
     Def.solver      = 'fmincon'; %optimization solver
     Def.DrInit      = '0'; %0, '0', Ge0, matchGe0, maxGe
