@@ -79,12 +79,12 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         %   directions
         
         %   Initialize trivially
-        s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+%         s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
 %         s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
 %         sysr = rk(sys,s0,s0,Rt,Lt);  
-% %         sysr = tbr(sys,n);
-%         [X,D,Y] = eig(sysr);
-%         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
+        sysr = tbr(sys,n);
+        [X,D,Y] = eig(sysr);
+        Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
         %run IRKA
         [sysr0, Virka, ~, s0opt, rt, lt, ~, ~, Rt, ~, ~, Lt,~, s0Traj,RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
         if Opts.plot; 
