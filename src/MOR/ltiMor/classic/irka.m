@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj, LtTraj] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -8,9 +8,9 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = irka(
 %       sysr                            = IRKA(sys, s0,..., Opts)
 %       [sysr, V, W]                    = IRKA(sys, s0,... )
 %       [sysr, V, W, s0]                = IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj]        = IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj, Rt, Lt]= IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt]= IRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter,  s0Traj, RtTraj, LtTraj] = IRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Iterative Rational Krylov
@@ -51,17 +51,17 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = irka(
 %       -sysr:              reduced order model (sss)
 %       -V,W:               resulting projection matrices
 %       -s0:                final choice of shifts
-%       -s0Traj:            trajectory of all shifst for all iterations
 %       -B_,Sv,Rv:          matrices of the input Sylvester equation
 %       -C_,Sw,Lw:          matrices of the output Sylvester equation
 %       -kIter:             number of iterations
+%		-s0Traj,RtTraj,..:  trajectory of all shifst and tangential directions for all iterations
 %
 % Examples:
 %       This code computes an H2-optimal approximation of order 8 to
-%       the benchmark model 'fom'. One can use the function isH2opt to
+%       the benchmark model 'building'. One can use the function isH2opt to
 %       verify if the necessary conditions for optimality are satisfied.
 %
-%> sys = loadSss('fom')
+%> sys = loadSss('building')
 %> [sysr, ~, ~, s0opt] = irka(sys, -eigs(sys,8).');
 %> bode(sys,'-',sysr,'--r');
 %> isH2opt(sys, sysr, s0opt)
@@ -129,6 +129,7 @@ if Opts.tol<=0 || ~isreal(Opts.tol)
 end
 
 s0 = s0_vect(s0);
+r = length(s0);
 
 % sort expansion points & tangential directions
 s0old = s0;
@@ -138,16 +139,23 @@ if exist('Rt','var') && ~isempty(Rt)
     Rt = Rt(:,cplxSorting);
     Lt = Lt(:,cplxSorting);
 else
-    Rt = ones(sys.m,length(s0));
-    Lt = ones(sys.p,length(s0));
+    Rt = ones(sys.m,r);
+    Lt = ones(sys.p,r);
 end
 clear s0old
 
 % Initialize variables
 sysr = sss([],[],[]);
-s0Traj = zeros(Opts.maxiter+2, length(s0));
-s0Traj(1,:) = s0;
 
+if nargout > 13
+    s0Traj = zeros(1,r,Opts.maxiter);
+    RtTraj = zeros(sys.m,r,Opts.maxiter);
+    LtTraj = zeros(sys.p,r,Opts.maxiter);
+
+    s0Traj(:,:,1) = s0;
+    RtTraj(:,:,1) = Rt;
+    LtTraj(:,:,1) = Lt;
+end
 %% IRKA iteration
 kIter=0;
 while true
@@ -178,7 +186,11 @@ while true
         % mirror shifts with negative real part
         s0 = s0.*sign(real(s0));
     end
-    s0Traj(kIter+1,:) = s0;
+    if nargout > 13
+        s0Traj(:,:,kIter+1) = s0;
+        RtTraj(:,:,kIter+1) = Rt; 
+        LtTraj(:,:,kIter+1) = Lt;
+    end
     
     [stop, stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts);
     if Opts.verbose
@@ -188,7 +200,11 @@ while true
     if stop || kIter>= Opts.maxiter
         s0 = s0_old; % function return value
         if ~sys.isSiso, Rt = Rt_old; Lt = Lt_old; end
-        s0Traj = s0Traj(1:(kIter+1),:);
+        if nargout > 13
+            % keep only what has been computed
+            s0Traj = s0Traj(:,:,1:kIter);
+            RtTraj = RtTraj(:,:,1:kIter); LtTraj = LtTraj(:,:,1:kIter);
+        end
         sysr.Name = sprintf('%s_%i_irka',sys.Name, sysr.n);
         break
     end      

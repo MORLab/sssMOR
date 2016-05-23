@@ -356,8 +356,8 @@ classdef testRk < sssTest
                  W2 = (A-s0(3)*E).'\(C.'*Lt(:,3));
                  Wh = full([real(W1), imag(W1), real(W2), imag(W2)]); Wh = orth(Wh);
                  
-                 verifyLessThanOrEqual(testCase, subspace(V,Vh),1e-10);
-                 verifyLessThanOrEqual(testCase, subspace(W,Wh),1e-10);
+                 verifyLessThanOrEqual(testCase, subspace(V,Vh),1e-6);
+                 verifyLessThanOrEqual(testCase, subspace(W,Wh),1e-6);
                  
                  % The transpose LU problem can be ill conditioned, check the
                  % subspaces instead of the actual matrices!

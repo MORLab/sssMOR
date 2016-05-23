@@ -7,7 +7,7 @@ classdef testPork < sssTest
                 badBenchmarks = {'LF10.mat','beam.mat','random.mat',...
                     'SpiralInductorPeec.mat','heat-cont.mat','rail_1357.mat'};
                 
-                if ~any(strcmp(sys.Name,badBenchmarks))
+                if ~any(strcmp(sys.Name,badBenchmarks)) && ~sys.isDae
                     disp(sys)
                 % get irka shifts and tangential directions
                 n = 10; r = ones(sys.m,n); l = ones(sys.p,n);
@@ -41,7 +41,7 @@ classdef testPork < sssTest
                 badBenchmarks = {'LF10.mat','beam.mat','random.mat',...
                     'SpiralInductorPeec.mat','heat-cont.mat'};
                 
-                if ~any(strcmp(sys.Name,badBenchmarks))
+                if ~any(strcmp(sys.Name,badBenchmarks)) && ~sys.isDae
                     disp(sys)
                     % get irka shifts and tangential directions
                     n = 10; r = ones(sys.m,n); l = ones(sys.p,n);

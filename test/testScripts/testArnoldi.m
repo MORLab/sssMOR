@@ -377,7 +377,7 @@ classdef testArnoldi < sssTest
                 [V, Sv, Rv] = arnoldi(sys.E,sys.A,sys.B,s0,Opts);
                 % residual of sylvester equation
                 actSolution=norm(sys.A*V-sys.E*V*Sv-sys.B*Rv);
-                verifyLessThan(testCase,actSolution,1e-8);
+                verifyLessThan(testCase,actSolution,1e-5);
             end
         end
     end

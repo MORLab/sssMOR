@@ -162,14 +162,18 @@ classdef testTbr < sssTest
             end
         end
         function testMatchDcGain(testCase)
+            warning('on','tbr:rcond');
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
-                if ~sys.isDae && ~strcmp(sys.Name,'heat-cont');
+                if ~sys.isDae
                     Opts.type='matchDcGain';
                     sysr=tbr(sys,10,Opts);
-                    actSolution= freqresp(sysr,0);
-                    expSolution= freqresp(sys,0);
-                    verifyLessThanOrEqual(testCase, abs(actSolution-expSolution), 1e-6); 
+                    w = warning('query','last');
+                    if isempty(w) || ~strcmp(w.identifier,'tbr:rcond') %A22 not close to singular
+                        actSolution= freqresp(sysr,0);
+                        expSolution= freqresp(sys,0);
+                        verifyLessThanOrEqual(testCase, norm(abs(actSolution)-abs(expSolution)), 1e-6);
+                    end
                 end
             end
         end
