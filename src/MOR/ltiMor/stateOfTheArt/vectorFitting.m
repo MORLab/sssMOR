@@ -62,7 +62,9 @@ end
 function poles = initializePoles(sys,type,nm,wLim,wReLim)
 switch type
     case 'eigs'
-        poles = eigs(sss(sys),nm,'sm').';
+        onemore = nm - 2*fix(nm/2) ;
+        poles = eigs(sss(sys),nm-onemore,'sm').';
+        if onemore, poles = [-abs(imag(poles(1))), poles]; end
     case 'vectfit3'
         try
             wMax = abs(imag(eigs(sss(sys),1,'li')));
