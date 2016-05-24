@@ -36,7 +36,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     end
     
     Def.plotCostOverDr = 0;
-    Def.irka        = struct('stopCrit','combAny','tol',1e-5,'type','stab');
+    Def.irka        = struct('stopCrit','s0','tol',1e-5,'type','stab');
     Def.corrType    = 'normOptCycle';
     Def.solver      = 'fmincon'; %optimization solver
     Def.DrInit      = '0'; %0, '0', Ge0, matchGe0, maxGe
@@ -48,9 +48,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     Def.surrogate   = 'original';   %original, 'model', 'vf', 'loewner'
     Def.whatData    = 'new';        %'all','new'
     Def.deflate     = 1;
-    Def.tol         = 1e-10; %ismemberf/getModelData
+    Def.tol         = 1e-1; %ismemberf/getModelData
     Def.rankTol     = eps; %rank tolerance Loewner
-    Def.surrTol     = 1e-10;
+    Def.surrTol     = 1e-4;
     
     Def.vf.poles   = 'eigs'; %vectfit,eigs, serkan
     Def.vf.maxiter = 20;
@@ -79,9 +79,14 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         %   Initialize trivially
 %         s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
 %         s0 = rand(1,n); Rt = rand(sys.m,n); Lt = rand(sys.p,n);
-        s0 = linspace(Opts.wLims(1),Opts.wLims(1),n/2); s0 = [1i*s0,-1i*s0];
-        Rt = rand(sys.m,n/2); Rt = [1i*Rt,-1i*Rt];
-        Lt = rand(sys.p,n/2); Lt = [1i*Lt,-1i*Lt];
+
+%         s0 = linspace(Opts.wLims(1),Opts.wLims(2),n/2); s0 = [1i*s0,-1i*s0];
+%         Rt = ones(sys.m,n/2); Rt = [1i*Rt,-1i*Rt];
+%         Lt = ones(sys.p,n/2); Lt = [1i*Lt,-1i*Lt];
+
+        s0 = logspace(log10(Opts.wLims(1)),log10(Opts.wLims(2)),n);
+        Rt = ones(sys.m,n);
+        Lt = ones(sys.p,n); 
         
 %         Rt = rand(sys.m,n); Lt = rand(sys.p,n);
 %         s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n)
@@ -89,8 +94,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %         sysr = tbr(sys,n);
 %         [X,D,Y] = eig(sysr);
 %         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
+
         %run IRKA
-        [sysr0, Virka, ~, s0opt, rt, lt, ~, ~, Rt, ~, ~, Lt,~, s0Traj,RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
+        [sysr0, Virka, Wirka, s0opt, rt, lt, ~, Sv, Rt, ~, Sw, Lt,~, s0Traj,RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
         if Opts.plot; 
             figure; plot(complex(reshape(s0Traj,1,numel(s0Traj))),'x');
             plotName = sprintf('%s_%s_n%i_IRKAshifts',sys.Name,Opts.surrogate,n);
@@ -101,10 +107,14 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     
     sysr0 = ss(sysr0);
     
+    %   Check Rt and Lt
+%     normest(sys.A*Virka-sys.E*Virka*Sv-sys.B*Rt)
+%     normest(sys.A.'*Wirka-sys.E.'*Wirka*Sw.'-sys.C.'*Lt)
+%     
     % Check interpolation of the D-shifted model
 %     keyboard
 %  
-%     Dr = rand(2,2);
+%     Dr = rand(sys.p,sys.m);
 % %     sysrD = sysrfun(Dr);   
 % %     sysrD = dss(sysr0.A+Lt.'*Dr*Rt, sysr0.B+Lt.'*Dr, sysr0.C+Dr*Rt, Dr, sysr0.E);
 %     sysrD = sysr0 + sysrDelta(Dr); 
@@ -245,11 +255,11 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
             % 1) cycle optimization
             Opts.solver = 'fmincon';
             DrOpt = DrInit(Opts.DrInit); 
-            if Opts.surrogateError
-                HinfVec = norm(syse0m,Inf); 
-            else
-                HinfVec = norm(sysm,Inf); 
-            end
+%             if Opts.surrogateError
+%                 HinfVec = norm(syse0m,Inf); 
+%             else
+%                 HinfVec = norm(sysm,Inf); 
+%             end
             tOpt = 0;
                 
             for iOut = 1:sys.p
@@ -481,7 +491,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 
                 case 'fmincon'
                 optOpts = optimoptions('fmincon','UseParallel',1,...
-                                        'algorithm','sqp');
+                                        'algorithm','sqp',...
+                                        'MaxFunEvals',5e2);
                 if ~exist('constr','var')
                     constr = @stabilityConstraint;
                 end
@@ -565,7 +576,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         else
             DrMIMO(iOut,jIn) = Dr;
         end
-        sysrDelta1 = sysr0; sysrDelta1.B = Lt.'*DrMIMO; %sysrDelta1.D = Dr;
+        sysrDelta1 = sysr0; sysrDelta1.B = Lt.'*DrMIMO;
         sysrDelta2 = sysr0; sysrDelta2.C = DrMIMO*Rt; sysrDelta2.B = sysr0.B+Lt.'*DrMIMO;
         sysrDelta3 = sysr0; sysrDelta3.C = sysr0.C+DrMIMO*Rt; sysrDelta3.B = Lt.';
         sysrDelta4 = sysr0; sysrDelta4.C = -DrMIMO*Rt; sysrDelta4.B = Lt.'; sysrDelta4.D = eye(sys.p);
@@ -813,14 +824,14 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 syse0mLoew = createSurrogate(syse0,'loewner');
                 nm = size(syse0mLoew.A,1);
                 
-%                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj,Opts.tol);
-                s0m = reshape(s0Traj,1,numel(s0Traj));
+                [s0m] = getModelData(s0Traj,RtTraj,LtTraj,Opts.tol);
+%                 s0m = reshape(s0Traj,1,numel(s0Traj));
                 s0m = cplxpair(s0m); idx = find(imag(s0m)); s0m(idx(1:2:end)) = [];
                 % remove real shifts
-                s0m(imag(s0m)==0) = [];
+%                 s0m(imag(s0m)==0) = [];
                 
                 %avoid blowing-up for MIMO
-                m = size(syse0.b,2);
+%                 m = size(syse0.b,2);
 %                 if m>1, nm = ceil(nm/m);end 
                 %resize nm according to the data available
 %                 nm = min([nm, ceil(2*length(s0m)/m)]);
@@ -842,7 +853,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                             sprintf('loewner (n=%i)',size(syse0mLoew.A,1)),...
                             sprintf('vf (n=%i)',size(syse0m.A,1)))
                 end
-                if Opts.debug, keyboard; end
+                drawnow
+%                 if Opts.debug, keyboard; end
         end
         %                 isstable(sysm)
 %         if Opts.plot
