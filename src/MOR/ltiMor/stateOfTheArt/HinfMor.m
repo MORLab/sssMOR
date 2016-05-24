@@ -63,8 +63,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         Opts = Def;
     else
         Opts = parseOpts(Opts,Def);
-    end
-    
+    end  
     %%  Run IRKA
     if sys.isSiso
         % initialize
@@ -72,7 +71,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %         s0 = zeros(1,n);
         % run IRKA
         [sysr0, Virka, ~, s0opt, rt, lt, ~, ~, Rt, ~, ~, Lt,~, s0Traj,RtTraj, LtTraj] = irka(sys,s0,Opts.irka);
-
     else %MIMO
         % initialize
         %   compute one step of tangential Krylov at 0 to get initial tangent 
@@ -80,11 +78,17 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         
         %   Initialize trivially
 %         s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
-%         s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+%         s0 = rand(1,n); Rt = rand(sys.m,n); Lt = rand(sys.p,n);
+        s0 = linspace(Opts.wLims(1),Opts.wLims(1),n/2); s0 = [1i*s0,-1i*s0];
+        Rt = rand(sys.m,n/2); Rt = [1i*Rt,-1i*Rt];
+        Lt = rand(sys.p,n/2); Lt = [1i*Lt,-1i*Lt];
+        
+%         Rt = rand(sys.m,n); Lt = rand(sys.p,n);
+%         s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n)
 %         sysr = rk(sys,s0,s0,Rt,Lt);  
-        sysr = tbr(sys,n);
-        [X,D,Y] = eig(sysr);
-        Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
+%         sysr = tbr(sys,n);
+%         [X,D,Y] = eig(sysr);
+%         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
         %run IRKA
         [sysr0, Virka, ~, s0opt, rt, lt, ~, ~, Rt, ~, ~, Lt,~, s0Traj,RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
         if Opts.plot; 
@@ -102,14 +106,16 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %  
 %     Dr = rand(2,2);
 % %     sysrD = sysrfun(Dr);   
-%     sysrD = dss(sysr0.A+Lt.'*Dr*Rt, sysr0.B+Lt.'*Dr, sysr0.C+Dr*Rt, Dr, sysr0.E);
+% %     sysrD = dss(sysr0.A+Lt.'*Dr*Rt, sysr0.B+Lt.'*Dr, sysr0.C+Dr*Rt, Dr, sysr0.E);
+%     sysrD = sysr0 + sysrDelta(Dr); 
+% 
 %     H = @(sys,s) sys.C*((sys.E*s-sys.A)\sys.B) + sys.D;
 %     
 %     for iS0 = 1:length(s0)
 %         (H(sysr0,s0opt(iS0))-H(sysrD,s0opt(iS0)))*rt(:,iS0)
 %         lt(:,iS0).'*(H(sysr0,s0opt(iS0))-H(sysrD,s0opt(iS0)))
-%     end
-
+%     end    
+    
     
     %%  Create Surrogate Model
     %   To reduce the cost of Hinf optimization, create a surrogate model
@@ -302,7 +308,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         end
         plotOverDrRange(DrOpt,Hinf);
     end
-
     %% Additional outputs
     if nargout > 1
         % Error indicators
@@ -318,16 +323,15 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         Hinf = norm(ss(sys-sysr),inf);%optimized
         Hinf0 = norm(ss(sys)-sysr0,inf); %before optimization
         HinfRel = Hinf/HinfO;
-        HinfRatio = Hinf/Hinf0 %ratio to irka ROM
+        HinfRatio = Hinf/Hinf0; %ratio to irka ROM
         
-        if Opts.debug, keyboard, end
+%         if Opts.debug, keyboard, end
        
         if nargout > 5
 %             bound = HinfBound(sys,B_,C_);
             bound  =[];
         end
     end
-
     %% ======= Auxiliary ========
     function Dr0 = DrInit(type)
         %   Initialize Dr for optimization
@@ -467,7 +471,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         end
     end
     function [DrOpt, Hinf,tOpt] = normOpt(Dr0,cost,constr)       
-
             switch Opts.solver
                 case 'fminsearch'
                 tic, [DrOpt, Hinf] = fminsearch(cost,Dr0); tOpt = toc;
@@ -562,10 +565,10 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         else
             DrMIMO(iOut,jIn) = Dr;
         end
-        sysrDelta1 = sysr0; sysrDelta1.B = Lt.'*Dr; %sysrDelta1.D = Dr;
-        sysrDelta2 = sysr0; sysrDelta2.C = Dr*Rt; sysrDelta2.B = sysr0.B+Lt.'*Dr;
-        sysrDelta3 = sysr0; sysrDelta3.C = sysr0.C+Dr*Rt; sysrDelta3.B = Lt.';
-        sysrDelta4 = sysr0; sysrDelta4.C = -Dr*Rt; sysrDelta4.B = Lt.'; sysrDelta4.D = eye(sys.p);
+        sysrDelta1 = sysr0; sysrDelta1.B = Lt.'*DrMIMO; %sysrDelta1.D = Dr;
+        sysrDelta2 = sysr0; sysrDelta2.C = DrMIMO*Rt; sysrDelta2.B = sysr0.B+Lt.'*DrMIMO;
+        sysrDelta3 = sysr0; sysrDelta3.C = sysr0.C+DrMIMO*Rt; sysrDelta3.B = Lt.';
+        sysrDelta4 = sysr0; sysrDelta4.C = -DrMIMO*Rt; sysrDelta4.B = Lt.'; sysrDelta4.D = eye(sys.p);
 
         %         sysrDelta = ss(-sysrDelta1 - sysrDelta2 - sysrDelta3*inv(sysrDelta4)*sysrDelta2 + DrMIMO,'minimal');
         sysrDelta = sysrDelta1 + sysrDelta2 + sysrDelta3*inv(sysrDelta4)*sysrDelta2 + Dr;    end
@@ -813,12 +816,15 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj,Opts.tol);
                 s0m = reshape(s0Traj,1,numel(s0Traj));
                 s0m = cplxpair(s0m); idx = find(imag(s0m)); s0m(idx(1:2:end)) = [];
+                % remove real shifts
+                s0m(imag(s0m)==0) = [];
                 
                 %avoid blowing-up for MIMO
                 m = size(syse0.b,2);
-                if m>1, nm = ceil(nm/m);end 
+%                 if m>1, nm = ceil(nm/m);end 
                 %resize nm according to the data available
-                nm = min([nm, ceil(2*length(s0m)/m)]);
+%                 nm = min([nm, ceil(2*length(s0m)/m)]);
+                nm = min([nm, length(s0m)-2]);
                 %                 
                 % if mod(n,2) ~= 0, n = n-1; end   %make even
                 Opts.forceReal = false;
@@ -876,7 +882,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %         [~,cplxSorting] = ismember(s0m,s0mUnsrt);
 %         Rtm = Rtm(:,cplxSorting); Ltm = Ltm(:,cplxSorting);        
     end
-
     %% Trash
     function Dr0 = sweepDr0(sweepcost)
         %   Compute Dr0 from a sweep that tries to minimize "cost"
@@ -950,7 +955,6 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 bound = norm(full(C_S*B_S)) + norm(full(B_S))*norm(full(C_S));
             end
     end
-
 end
 
 
