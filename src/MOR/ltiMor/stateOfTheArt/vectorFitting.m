@@ -16,9 +16,11 @@ nSample = length(s0);
 
 % f = freqresp(sss(sys),s0); 
 
+[A,B,C,D,E] = dssdata(sys);
+
 f = zeros(m,p,nSample);
 for iW = 1:nSample;
-    f(:,:,iW) = sys.C*((s0(iW)*sys.E-sys.A)\sys.B)+sys.D;
+    f(:,:,iW) = C*((s0(iW)*E-A)\B)+D;
 end
 %     keyboard
 
@@ -30,7 +32,7 @@ if Opts.plot
 end
 
 
-if 1 %old code by Alessandro
+if 0 %old code by Alessandro
     %MIMO systems have to be fitted columnwise
     AA = []; BB = []; CC = []; DD = [];
     rho=ones(1,nSample);
