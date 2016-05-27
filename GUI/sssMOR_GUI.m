@@ -121,13 +121,14 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     %Add the subfolder from the GUI-folder-structure to the search-paths
     
     guiPath = which('sssMOR_GUI.m');
-    pathArray = strsplit(guiPath,'\');
+    seperator = filesep;
+    pathArray = strsplit(guiPath,seperator);
     path = '';
     
     for i = 1:(size(pathArray,2)-1)
        
         if i > 1
-           path = strcat(path,'\',pathArray{1,i});
+           path = strcat(path,seperator,pathArray{1,i});
         else
            path = strcat(path,pathArray{1,i}); 
         end       
@@ -157,14 +158,14 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     handles.letzterpfad='*';
     
     path = mfilename('fullpath');
-    pathDirectories = strsplit(path,'\');
+    pathDirectories = strsplit(path,seperator);
     newPath = '';    
     
     for i = 1:length(pathDirectories)-2
-       newPath = strcat(newPath,strcat(pathDirectories{1,i},'\'));
+       newPath = strcat(newPath,strcat(pathDirectories{1,i},seperator));
     end
     
-    newPath = strcat(newPath,'src\sss\benchmarks\');
+    newPath = strcat(newPath,'src',seperator,'sss',seperator,'benchmarks',seperator);
     
     if exist(newPath,'dir') == 7
         %Path exists
@@ -175,7 +176,7 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
         %This is important if the GUI is installed as an App
         
         [newPath,name,ending] = fileparts(which('CDplayer.mat'));
-        newPath = strcat(newPath,'\');
+        newPath = strcat(newPath,seperator);
         
         if exist(newPath,'dir') == 7
            handles.letzterpfad = newPath; 
@@ -325,7 +326,7 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
 function logo_tum_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
     %load TUM logo
     addRelativePaths();
-    A=imread('pictures\Heading.png');
+    A=imread('Heading.png');
     h=image(A);
     set(h,'HitTest','off')
     set(hObject,'YDir','reverse');
@@ -419,7 +420,7 @@ function pb_about_Callback(hObject, eventdata, handles)
 function logo_about_CreateFcn(hObject, eventdata, handles)
     % load About logo
     addRelativePaths();
-    A=imread('pictures\MOR.jpg');
+    A=imread('MOR.jpg');
     image(A);
     set(hObject,'YDir','reverse');
 
@@ -1250,7 +1251,7 @@ savePlotData(handles);
 function pb_PaV_infoSaveData_Callback(hObject, eventdata, handles)
 %Show a information-box with information about the selectable options
 
-    infoBox({'pictures\InfoSaveData.png'});
+    infoBox({'InfoSaveData.png'});
     uiwait;
 
     
@@ -1988,7 +1989,7 @@ function pb_infoLoadOptions_Callback(hObject, eventdata, handles)
 
     %Show a information-box with information about the selectable options
 
-    infoBox({'pictures\InfoLoadOptions.png'});
+    infoBox({'InfoLoadOptions.png'});
     uiwait;
 
     
@@ -3426,7 +3427,7 @@ guidata(hObject,handles)
 
 function pb_info_tbr_Callback(hObject, eventdata, handles)
 
-    infoBox({'pictures\InfoErrorBound.png'});
+    infoBox({'InfoErrorBound.png'});
     uiwait;
 
 %Callbacks for Modal
@@ -3810,29 +3811,29 @@ set(handles.pb_mor_krylov_input,'BackgroundColor',[0.94;0.94;0.94]);
 
 function pb_mor_krylov_infoHermite_Callback(hObject, eventdata, handles)
 
-    infoBox({'pictures\InfoHermiteInterpolation.png'});
+    infoBox({'InfoHermiteInterpolation.png'});
     uiwait;
 
 function pb_mor_krylov_infoInOut_Callback(hObject, eventdata, handles)
 
-    infoBox({'pictures\InfoMomentMatching.png'});
+    infoBox({'InfoMomentMatching.png'});
     uiwait;
 
 function pb_mor_krylov_infoAlgoParams_Callback(hObject, eventdata, handles)
 
-    infoBox({'pictures\InfoStoppingCriterium.png'});
+    infoBox({'InfoStoppingCriterium.png'});
     uiwait;
     
 function pb_mor_krylov_infoExpPoints_Callback(hObject, eventdata, handles)
 
     if get(handles.pu_mor_krylov_algorithm,'Value')==1  %IRKA
        
-        infoBox({'pictures\InfoStartingPointsIRKA.png'});
+        infoBox({'InfoStartingPointsIRKA.png'});
         uiwait;
         
     else
         
-        infoBox({'pictures\InfoExpansionPointsRK.png'});
+        infoBox({'InfoExpansionPointsRK.png'});
         uiwait;
         
     end
@@ -4942,12 +4943,12 @@ function pb_an_compare_hinf_Callback(hObject, eventdata, handles)
 
 function pb_an_compare_h2_info_Callback(hObject, eventdata, handles)
 
-    infoBox({'pictures\InfoDifferenceSystemH2Norm.png'});
+    infoBox({'InfoDifferenceSystemH2Norm.png'});
     uiwait;
 
 function pb_an_compare_hinf_info_Callback(hObject, eventdata, handles)
 
-    infoBox({'pictures\InfoDifferenceSystemHinfNorm.png'});
+    infoBox({'InfoDifferenceSystemHinfNorm.png'});
     uiwait;
 
 %--------------------------------------------------------------------------
@@ -4960,7 +4961,7 @@ function logos_footer_CreateFcn(hObject, eventdata, handles)
     %Load the bitmap with the logos
     
     addRelativePaths();
-    A=imread('Pictures\Footer.png');
+    A=imread('Footer.png');
     h=image(A);
     set(h,'HitTest','off');
     set(hObject,'XTick',[]);
@@ -6215,13 +6216,13 @@ function [] = addRelativePaths()
 %Add the subfolder from the GUI-folder-structure to the search-paths
     
     guiPath = which('sssMOR_GUI.m');
-    pathArray = strsplit(guiPath,'\');
+    pathArray = strsplit(guiPath,filesep);
     path = '';
     
     for i = 1:(size(pathArray,2)-1)
        
         if i > 1
-           path = strcat(path,'\',pathArray{1,i});
+           path = strcat(path,filesep,pathArray{1,i});
         else
            path = strcat(path,pathArray{1,i}); 
         end       
