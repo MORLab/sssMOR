@@ -104,7 +104,7 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
               
              % Get current text, position and tag
              t = 'nothing'; 
-             set(l,'units','pixels');
+             set(l,'units','characters');
              s = get(l,'string');
              p = get(l,'position');
              parent = get(l,'parent');
@@ -113,7 +113,7 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
              delete(l);
              
              % Replace it with an axis with an text object on it
-             handles.(t) = axes('parent',parent,'units','pixels','position',[p(1) p(2) p(3) p(4)],'visible','off');
+             handles.(t) = axes('parent',parent,'units','characters','position',[p(1) p(2) p(3) p(4)],'visible','off');
              handles.(t) = text(0,0.3,s,'interpreter','latex');            
           end
     end
@@ -184,58 +184,61 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     end
     
     %Set the footer visible or not dependent on the size of the screen
+    %(to convert from pixel units to chararcter units the values are
+    %multiplied with 0.198 for horizontal dimensions and with 0.0747 for
+    %vertical dimensions)
     
     screensize = get( 0, 'Screensize' );
     
     position = get(handles.figure1,'Position');
-    position(1,1) = max(round((screensize(1,3)-1046)/2),0);
-    position(1,2) = max(round((screensize(1,4)-746)/2),0);
+    position(1,1) = max(round((screensize(1,3)-1046)/2),0)*0.198;
+    position(1,2) = max(round((screensize(1,4)-746)/2),0)*0.0747;
     set(handles.figure1,'Position',position);
     
     if screensize(1,4) < 860    %Footer ausblenden
         
         position = get(handles.figure1,'Position');
-        position(1,4) = 716;
+        position(1,4) = 716*0.0747;
         set(handles.figure1,'Position',position);
         
         position = get(handles.pb_loading,'Position');
-        position(1,2) = 630;
+        position(1,2) = 630*0.0747;
         set(handles.pb_loading,'Position',position);
         
         position = get(handles.pb_postprocessing,'Position');
-        position(1,2) = 630;
+        position(1,2) = 630*0.0747;
         set(handles.pb_postprocessing,'Position',position);
         
         position = get(handles.pb_analysis,'Position');
-        position(1,2) = 630;
+        position(1,2) = 630*0.0747;
         set(handles.pb_analysis,'Position',position);
         
         position = get(handles.pb_about,'Position');
-        position(1,2) = 630;
+        position(1,2) = 630*0.0747;
         set(handles.pb_about,'Position',position);
         
         position = get(handles.pb_mor,'Position');
-        position(1,2) = 630;
+        position(1,2) = 630*0.0747;
         set(handles.pb_mor,'Position',position);
         
         position = get(handles.panel_load,'Position');
-        position(1,2) = 3;
+        position(1,2) = 3*0.0747;
         set(handles.panel_load,'Position',position);
         
         position = get(handles.panel_post,'Position');
-        position(1,2) = 3;
+        position(1,2) = 3*0.0747;
         set(handles.panel_post,'Position',position);
         
         position = get(handles.panel_about,'Position');
-        position(1,2) = 3;
+        position(1,2) = 3*0.0747;
         set(handles.panel_about,'Position',position);
         
         position = get(handles.panel_mor,'Position');
-        position(1,2) = 3;
+        position(1,2) = 3*0.0747;
         set(handles.panel_mor,'Position',position);
         
         position = get(handles.panel_analysis,'Position');
-        position(1,2) = 3;
+        position(1,2) = 3*0.0747;
         set(handles.panel_analysis,'Position',position);
     end
     
@@ -287,13 +290,19 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
     %Show a hand as the mouse-symbol if the mouse is over a logo with a weblink
     %behind
-
+    %(to convert from pixel units to chararcter units the values are
+    %multiplied with 0.198 for horizontal dimensions and with 0.0747 for
+    %vertical dimensions)
+    
     p = get(hObject,'CurrentPoint');
+    
+    p(1,1) = p(1,1)/0.198;
+    p(1,2) = p(1,2)/0.0747;
 
-    if p(1,1)>945 && p(1,1)<1040 && p(1,2)>700 && p(1,2)<750
+    if p(1,1)>945 && p(1,1)<1040 && p(1,2)>720 && p(1,2)<770
         %TUM-Logo (Header)
         set(gcf,'Pointer','hand'); 
-    elseif p(1,1)> 5 && p(1,1)<55 && p(1,2)>700 && p(1,2)<750 
+    elseif p(1,1)> 5 && p(1,1)<55 && p(1,2)>720 && p(1,2)<770 
         %Lehrstuhl-Logo (Header)
         set(gcf,'Pointer','hand');
     elseif p(1,1)>5 && p(1,1)<80 && p(1,2)>0 && p(1,2)<40
@@ -331,16 +340,19 @@ function logo_tum_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
     set(hObject,'YDir','reverse');
     set(hObject,'XTick',[]);
     set(hObject,'YTick',[]);
-    set(hObject,'HitTest','on');
+    set(hObject,'HitTest','on'); 
     
     %Hide footer if the screen is not large enougth
+    %(to convert from pixel units to chararcter units the values are
+    %multiplied with 0.198 for horizontal dimensions and with 0.0747 for
+    %vertical dimensions)
     
     screensize = get( 0, 'Screensize' );
     
     if screensize(1,4) < 860
         
         position = get(hObject,'Position');
-        position(1,2) = 630;
+        position(1,2) = 630*0.0747;
         set(hObject,'Position',position);
     end
 
@@ -4966,12 +4978,17 @@ function logos_footer_CreateFcn(hObject, eventdata, handles)
     set(hObject,'XTick',[]);
     set(hObject,'YTick',[]);
     
+    %Footer ausblenden, falls der Screen zu klein ist
+    %(to convert from pixel units to chararcter units the values are
+    %multiplied with 0.198 for horizontal dimensions and with 0.0747 for
+    %vertical dimensions)
+    
     screensize = get( 0, 'Screensize' );
     
     if screensize(1,4) < 860    %Footer ausblenden
         
         position = get(hObject,'Position');
-        position(1,2) = -40;
+        position(1,2) = -40*0.0747;
         set(hObject,'Position',position);
     end
 
