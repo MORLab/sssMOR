@@ -265,7 +265,6 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
 function timer_Callback(handles)
     % removes the splashscreen after given time
     splash(handles.splash,'off')
-    evalin('base','stop(timerfind),delete(timerfind)')
 
 
 function varargout = sssMOR_GUI_OutputFcn(hObject, eventdata, handles)
