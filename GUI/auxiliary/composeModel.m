@@ -83,7 +83,7 @@ function composeModel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*IN
               
              % Get current text, position and tag
              t = 'nothing'; 
-             set(l,'units','pixels');
+             set(l,'units','characters');
              s = get(l,'string');
              p = get(l,'position');
              parent = get(l,'parent');
@@ -92,7 +92,7 @@ function composeModel_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*IN
              delete(l);
              
              % Replace it with an axis with an text object on it
-             handles.(t) = axes('parent',parent,'units','pixels','position',[p(1) p(2) p(3) p(4)],'visible','off');
+             handles.(t) = axes('parent',parent,'units','characters','position',[p(1) p(2) p(3) p(4)],'visible','off');
              handles.(t) = text(0,0.6,s,'interpreter','latex','FontSize',13);            
           end
     end
