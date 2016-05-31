@@ -50,20 +50,26 @@ path = cell2mat(varargin{1,1});
 
 h = imread(path);
 
+set(hObject,'Units','pixels');
 pos = get(hObject,'Position');
 pos(1,3) = size(h,2);
 pos(1,4) = size(h,1);
 set(hObject,'Position',pos);
+set(hObject,'Units','characters');
 
 posAxes = pos;
 posAxes(1,1) = 0;
 posAxes(1,2) = 0;
+set(handles.axes,'Units','pixels');
 set(handles.axes,'Position',posAxes);
+set(handles.axes,'Units','characters');
 
+set(handles.pb,'Units','pixels');
 posPb = get(handles.pb,'Position');
 posPb(1,1) = round((pos(1,3) - posPb(1,3))/2);
 posPb(1,2) = 25;
 set(handles.pb,'Position',posPb);
+set(handles.pb,'Units','characters');
 
 h = image(h);
 
