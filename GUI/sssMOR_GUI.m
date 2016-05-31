@@ -3931,7 +3931,7 @@ try
             tableData{i,4} = vec2string((1:parameter.system.p==min(i,parameter.system.p))); 
           end
           
-          set(handles.uitable_mor_krylov_MimoExps,'Data',tableData); 
+          set(handles.uitable_mor_krylov_MimoExps,'Data',tableData);
           set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{184,184,0,0});
           handles.MimoParam.block = 1;
        elseif size(data.inputData,2) == 3
