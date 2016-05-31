@@ -299,10 +299,10 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
     p(1,1) = p(1,1)/0.198;
     p(1,2) = p(1,2)/0.0747;
 
-    if p(1,1)>945 && p(1,1)<1040 && p(1,2)>720 && p(1,2)<770
+    if p(1,1)>925 && p(1,1)<1040 && p(1,2)>720 && p(1,2)<770
         %TUM-Logo (Header)
         set(gcf,'Pointer','hand'); 
-    elseif p(1,1)> 5 && p(1,1)<55 && p(1,2)>720 && p(1,2)<770 
+    elseif p(1,1)> 5 && p(1,1)<75 && p(1,2)>720 && p(1,2)<770 
         %Lehrstuhl-Logo (Header)
         set(gcf,'Pointer','hand');
     elseif p(1,1)>5 && p(1,1)<80 && p(1,2)>0 && p(1,2)<40
@@ -334,8 +334,13 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
 function logo_tum_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
     %load TUM logo
     addRelativePaths();
-    A=imread('Heading.png');
-    h=image(A);
+    A = imread('Heading.png');
+    %Scale image to the correct size
+    set(hObject,'Units','pixels');
+    p = get(hObject,'Position');
+    set(hObject,'Units','characters');
+    %Show image and set properties
+    h=image(imresize(A,[round(p(1,4)),round(p(1,3))]));
     set(h,'HitTest','off')
     set(hObject,'YDir','reverse');
     set(hObject,'XTick',[]);
@@ -4973,7 +4978,12 @@ function logos_footer_CreateFcn(hObject, eventdata, handles)
     
     addRelativePaths();
     A=imread('Footer.png');
-    h=image(A);
+    %Scale image to the correct size
+    set(hObject,'Units','pixels');
+    p = get(hObject,'Position');
+    set(hObject,'Units','characters');
+    %Show image and set properties
+    h=image(imresize(A,[round(p(1,4)),round(p(1,3))]));
     set(h,'HitTest','off');
     set(hObject,'XTick',[]);
     set(hObject,'YTick',[]);
