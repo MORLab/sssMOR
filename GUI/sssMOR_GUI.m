@@ -138,6 +138,33 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     
     addpath(genpath(path));
     
+    %Add the pictures for Header and footer
+    
+    A = imread('Heading.png');
+    %Scale image to the correct size
+    set(handles.logo_tum,'Units','pixels');
+    p = get(handles.logo_tum,'Position');
+    set(handles.logo_tum,'Units','characters');
+    axes(handles.logo_tum);
+    %Show image and set properties
+    h=image(imresize(A,[round(p(1,4)),round(p(1,3))]));
+    set(h,'ButtonDownFcn',@(hObject,eventdata)sssMOR_GUI('logo_tum_ButtonDownFcn',handles.logo_tum,eventdata,guidata(hObject)));
+    set(handles.logo_tum,'XTick',[]);
+    set(handles.logo_tum,'YTick',[]);
+    
+    A=imread('Footer.png');
+    %Scale image to the correct size
+    set(handles.logos_footer,'Units','pixels');
+    p = get(handles.logos_footer,'Position');
+    set(handles.logos_footer,'Units','characters');
+    axes(handles.logos_footer);
+    %Show image and set properties
+    h=image(imresize(A,[round(p(1,4)),round(p(1,3))]));
+    set(h,'ButtonDownFcn',@(hObject,eventdata)sssMOR_GUI('logos_footer_ButtonDownFcn',handles.logos_footer,eventdata,guidata(hObject)));
+    set(handles.logos_footer,'XTick',[]);
+    set(handles.logos_footer,'YTick',[]);
+
+    
     %Set default-values for the variables saved in handles
     
     handles.splash = splash('splash.png');
@@ -190,10 +217,12 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     
     screensize = get( 0, 'Screensize' );
     
+    set(handles.figure1,'Units','pixels');
     position = get(handles.figure1,'Position');
-    position(1,1) = max(round((screensize(1,3)-1046)/2),0)*0.198;
-    position(1,2) = max(round((screensize(1,4)-746)/2),0)*0.0747;
+    position(1,1) = max(round((screensize(1,3)-position(1,3))/2),0);
+    position(1,2) = max(round((screensize(1,4)-position(1,4))/2),0);
     set(handles.figure1,'Position',position);
+    set(handles.figure1,'Units','characters');
     
     if screensize(1,4) < 860    %Footer ausblenden
         
@@ -240,6 +269,14 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
         position = get(handles.panel_analysis,'Position');
         position(1,2) = 3*0.0747;
         set(handles.panel_analysis,'Position',position);
+        
+        position = get(handles.logo_tum,'Position');
+        position(1,2) = 630*0.0747;
+        set(handles.logo_tum,'Position',position);
+        
+        position = get(handles.logos_footer,'Position');
+        position(1,2) = -40*0.0747;
+        set(handles.logos_footer,'Position',position);
     end
     
 
@@ -298,6 +335,11 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
     
     p(1,1) = p(1,1)/0.198;
     p(1,2) = p(1,2)/0.0747;
+    
+    screensize = get( 0, 'Screensize' );
+    if screensize(1,4) < 860       %Footer not shown
+       p(1,2) = p(1,2) + 40; 
+    end
 
     if p(1,1)>925 && p(1,1)<1040 && p(1,2)>720 && p(1,2)<770
         %TUM-Logo (Header)
