@@ -458,9 +458,11 @@ end
 V = sys.TBalInv(:,1:q);
 W = sys.TBal(1:q,:)';
 
+Opts.originalOrder = sys.n;
+
 switch Opts.type
     case 'tbr'
-        sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
     case 'matchDcGain'
         W=sys.TBalInv;
         V=sys.TBal;
@@ -493,17 +495,17 @@ switch Opts.type
             ERed=E11-A12/A22*E21;
             CRed=C1-C2/A22*A21+C2*A22*E21/ERed*ARed;
             DRed=sys.D-C2/A22*B2+C2/A22*E21/ERed*BRed;
-            sysr = sss(ARed, BRed, CRed, DRed, ERed);
+            sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed, ERed);
         else % Er=I
             CRed=C1-C2/A22*A21;
             DRed=sys.D-C2/A22*B2;
-            sysr = sss(ARed, BRed, CRed, DRed);
+            sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed);
         end
         
         warning('on','MATLAB:nearlySingularMatrix');
     
     case 'adi'
-          sysr = sss(W'*eqn.A_*V, W'*eqn.B, eqn.C*V, sys.D, W'*eqn.E_*V);
+          sysr = ssRed('tbr',Opts,W'*eqn.A_*V, W'*eqn.B, eqn.C*V, sys.D, W'*eqn.E_*V);
 end
 
 %   Rename ROM
