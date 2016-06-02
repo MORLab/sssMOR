@@ -144,27 +144,27 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     % the hole GUI is in 'characters' this leads to visualisation errors 
     % on different operating systems)
     
-    set(handles.uitable_mor_krylov_MimoExps,'Units','pixels');
-    p = get(handles.uitable_mor_krylov_MimoExps,'Position');
-    set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(p(1,3)/4),round(p(1,3)/4),round(p(1,3)/4),round(p(1,3)/4)});
-    handles.widthTableMimoKrylovInput = p(1,3);
-    set(handles.uitable_mor_krylov_MimoExps,'Units','characters');
+    p = get(handles.figure1,'Position');
+    widthChar = p(1,3);
+    set(handles.figure1,'Units','pixels');
+    p = get(handles.figure1,'Position');
+    widthPix = p(1,3);
+    charToPix = widthPix/widthChar;
     
-    set(handles.uitable_mor_krylov_MimoExps_output,'Units','pixels');
-    p = get(handles.uitable_mor_krylov_MimoExps_output,'Position');
-    set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{round(p(1,3)/3),round(p(1,3)/3),round(p(1,3)/3)});
-    handles.widthTableMimoKrylovOutput = p(1,3);
-    set(handles.uitable_mor_krylov_MimoExps_output,'Units','characters');
+    w = charToPix*74;
+    set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(w/4),round(w/4),round(w/4),round(w/4)});
+    handles.widthTableMimoKrylovInput = w;
     
-    set(handles.uitable_mor_krylov,'Units','pixels');
-    p = get(handles.uitable_mor_krylov,'Position');
-    set(handles.uitable_mor_krylov,'ColumnWidth',{round(p(1,3)/2),round(p(1,3)/2)});
-    set(handles.uitable_mor_krylov,'Units','characters');
+    w = charToPix*74;
+    set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{round(w/3),round(w/3),round(w/3)});
+    handles.widthTableMimoKrylovOutput = w;
     
-    set(handles.uitable_mor_krylov_output,'Units','pixels');
-    p = get(handles.uitable_mor_krylov_output,'Position');
-    set(handles.uitable_mor_krylov_output,'ColumnWidth',{round(p(1,3)/2),round(p(1,3)/2)});
-    set(handles.uitable_mor_krylov_output,'Units','characters');
+    w = charToPix*40;
+    set(handles.uitable_mor_krylov,'ColumnWidth',{round(w/2),round(w/2)});
+    
+    w = charToPix*40;
+    set(handles.uitable_mor_krylov_output,'ColumnWidth',{round(w/2),round(w/2)});
+    
     
     %Add the pictures for Header and footer
     
@@ -252,59 +252,61 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     set(handles.figure1,'Position',position);
     set(handles.figure1,'Units','characters');
     
-    if screensize(1,4) < position(1,4)+300    %Footer ausblenden
+    if screensize(1,4) < position(1,4)+100    %Footer ausblenden
+        
+        position = get(handles.logos_footer,'Position');
+        diff = position(1,4);
+        position(1,2) = position(1,2) - diff;
+        set(handles.logos_footer,'Position',position);
         
         position = get(handles.figure1,'Position');
-        position(1,4) = 716*0.0747;
+        position(1,4) = position(1,4) - diff;
         set(handles.figure1,'Position',position);
         
         position = get(handles.pb_loading,'Position');
-        position(1,2) = 630*0.0747;
+        position(1,2) = position(1,2) - diff;
         set(handles.pb_loading,'Position',position);
         
         position = get(handles.pb_postprocessing,'Position');
-        position(1,2) = 630*0.0747;
+        position(1,2) = position(1,2) - diff;
         set(handles.pb_postprocessing,'Position',position);
         
         position = get(handles.pb_analysis,'Position');
-        position(1,2) = 630*0.0747;
+        position(1,2) = position(1,2) - diff;
         set(handles.pb_analysis,'Position',position);
         
         position = get(handles.pb_about,'Position');
-        position(1,2) = 630*0.0747;
+        position(1,2) = position(1,2) - diff;
         set(handles.pb_about,'Position',position);
         
         position = get(handles.pb_mor,'Position');
-        position(1,2) = 630*0.0747;
+        position(1,2) = position(1,2) - diff;
         set(handles.pb_mor,'Position',position);
         
         position = get(handles.panel_load,'Position');
-        position(1,2) = 3*0.0747;
+        position(1,2) = position(1,2) - diff;
         set(handles.panel_load,'Position',position);
         
         position = get(handles.panel_post,'Position');
-        position(1,2) = 3*0.0747;
+        position(1,2) = position(1,2) - diff;
         set(handles.panel_post,'Position',position);
         
         position = get(handles.panel_about,'Position');
-        position(1,2) = 3*0.0747;
+        position(1,2) = position(1,2) - diff;
         set(handles.panel_about,'Position',position);
         
         position = get(handles.panel_mor,'Position');
-        position(1,2) = 3*0.0747;
+        position(1,2) = position(1,2) - diff;
         set(handles.panel_mor,'Position',position);
         
         position = get(handles.panel_analysis,'Position');
-        position(1,2) = 3*0.0747;
+        position(1,2) = position(1,2) - diff;
         set(handles.panel_analysis,'Position',position);
         
         position = get(handles.logo_tum,'Position');
-        position(1,2) = 630*0.0747;
+        position(1,2) = position(1,2) - diff;
         set(handles.logo_tum,'Position',position);
         
-        position = get(handles.logos_footer,'Position');
-        position(1,2) = -40*0.0747;
-        set(handles.logos_footer,'Position',position);
     end
     
 
@@ -368,7 +370,7 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
     set(handles.figure1,'Units','pixels');
     position = get(handles.figure1,'Position');
     set(handles.figure1,'Units','characters');
-    if screensize(1,4) < position(1,4)+300       %Footer not shown
+    if screensize(1,4) < position(1,4)+100       %Footer not shown
        p(1,2) = p(1,2) + 40; 
     end
 
