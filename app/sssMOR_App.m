@@ -1,8 +1,8 @@
-function varargout = sssMOR_GUI(varargin)
-% SSSMOR_GUI - sssMOR toolbox Graphical User Interface 
+function varargout = sssMOR_App(varargin)
+% SSSMOR_APP - sssMOR toolbox Graphical User Interface 
 %
 % Syntax:
-%       SSSMOR_GUI
+%       SSSMOR_APP
 %
 % Description:
 %       The *sssMOR GUI* is a Graphical User Interface for Model Order Reduction,
@@ -69,8 +69,8 @@ function varargout = sssMOR_GUI(varargin)
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @sssMOR_GUI_OpeningFcn, ...
-                   'gui_OutputFcn',  @sssMOR_GUI_OutputFcn, ...
+                   'gui_OpeningFcn', @sssMOR_App_OpeningFcn, ...
+                   'gui_OutputFcn',  @sssMOR_App_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -88,7 +88,7 @@ end
 % end
         
         
-function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INUSL>
+function sssMOR_App_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INUSL>
 
     %Make latex code possible for all static text-fields whose tag names start
     %with "latex"  
@@ -337,7 +337,7 @@ function timer_Callback(handles)
     splash(handles.splash,'off')
 
 
-function varargout = sssMOR_GUI_OutputFcn(hObject, eventdata, handles)
+function varargout = sssMOR_App_OutputFcn(hObject, eventdata, handles)
     varargout{1} = handles.output;
 
 
