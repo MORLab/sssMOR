@@ -138,6 +138,34 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     
     addpath(genpath(path));
     
+    %Save the Width of all Tables in pixels in the handles-structure and
+    %correctly set the width of the columns of all tables
+    %(Nescesarray because the column width has to be in 'pixels', but because
+    % the hole GUI is in 'characters' this leads to visualisation errors 
+    % on different operating systems)
+    
+    set(handles.uitable_mor_krylov_MimoExps,'Units','pixels');
+    p = get(handles.uitable_mor_krylov_MimoExps,'Position');
+    set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(p(1,3)/4),round(p(1,3)/4),round(p(1,3)/4),round(p(1,3)/4)});
+    handles.widthTableMimoKrylovInput = p(1,3);
+    set(handles.uitable_mor_krylov_MimoExps,'Units','characters');
+    
+    set(handles.uitable_mor_krylov_MimoExps_output,'Units','pixels');
+    p = get(handles.uitable_mor_krylov_MimoExps_output,'Position');
+    set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{round(p(1,3)/3),round(p(1,3)/3),round(p(1,3)/3)});
+    handles.widthTableMimoKrylovOutput = p(1,3);
+    set(handles.uitable_mor_krylov_MimoExps_output,'Units','characters');
+    
+    set(handles.uitable_mor_krylov,'Units','pixels');
+    p = get(handles.uitable_mor_krylov,'Position');
+    set(handles.uitable_mor_krylov,'ColumnWidth',{round(p(1,3)/2),round(p(1,3)/2)});
+    set(handles.uitable_mor_krylov,'Units','characters');
+    
+    set(handles.uitable_mor_krylov_output,'Units','pixels');
+    p = get(handles.uitable_mor_krylov_output,'Position');
+    set(handles.uitable_mor_krylov_output,'ColumnWidth',{round(p(1,3)/2),round(p(1,3)/2)});
+    set(handles.uitable_mor_krylov_output,'Units','characters');
+    
     %Add the pictures for Header and footer
     
     A = imread('Heading.png');
@@ -224,7 +252,7 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     set(handles.figure1,'Position',position);
     set(handles.figure1,'Units','characters');
     
-    if screensize(1,4) < 860    %Footer ausblenden
+    if screensize(1,4) < position(1,4)+300    %Footer ausblenden
         
         position = get(handles.figure1,'Position');
         position(1,4) = 716*0.0747;
@@ -337,7 +365,10 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
     p(1,2) = p(1,2)/0.0747;
     
     screensize = get( 0, 'Screensize' );
-    if screensize(1,4) < 860       %Footer not shown
+    set(handles.figure1,'Units','pixels');
+    position = get(handles.figure1,'Position');
+    set(handles.figure1,'Units','characters');
+    if screensize(1,4) < position(1,4)+300       %Footer not shown
        p(1,2) = p(1,2) + 40; 
     end
 
@@ -372,36 +403,6 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
 %--------------------------------------------------------------------------
 
 %Callbacks of the panel
-
-function logo_tum_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
-    %load TUM logo
-    addRelativePaths();
-    A = imread('Heading.png');
-    %Scale image to the correct size
-    set(hObject,'Units','pixels');
-    p = get(hObject,'Position');
-    set(hObject,'Units','characters');
-    %Show image and set properties
-    h=image(imresize(A,[round(p(1,4)),round(p(1,3))]));
-    set(h,'HitTest','off')
-    set(hObject,'YDir','reverse');
-    set(hObject,'XTick',[]);
-    set(hObject,'YTick',[]);
-    set(hObject,'HitTest','on'); 
-    
-    %Hide footer if the screen is not large enougth
-    %(to convert from pixel units to chararcter units the values are
-    %multiplied with 0.198 for horizontal dimensions and with 0.0747 for
-    %vertical dimensions)
-    
-    screensize = get( 0, 'Screensize' );
-    
-    if screensize(1,4) < 860
-        
-        position = get(hObject,'Position');
-        position(1,2) = 630*0.0747;
-        set(hObject,'Position',position);
-    end
 
 function logo_tum_ButtonDownFcn(hObject, eventdata, handles)
     % link to web page
@@ -3961,6 +3962,9 @@ handles.MimoParam.block = 0;
 
 try
     
+    wOut = handles.widthTableMimoKrylovOutput;
+    wIn = handles.widthTableMimoKrylovInput;
+    
     if ~isempty(data.inputData)
        if size(data.inputData,2) == 2
           tableData = data.inputData;
@@ -3979,7 +3983,7 @@ try
           end
           
           set(handles.uitable_mor_krylov_MimoExps,'Data',tableData);
-          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{184,184,0,0});
+          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/2),round(wIn/2),0,0});
           handles.MimoParam.block = 1;
        elseif size(data.inputData,2) == 3
           tableData = data.inputData;
@@ -3992,12 +3996,12 @@ try
           end
           
           set(handles.uitable_mor_krylov_MimoExps,'Data',tableData);
-          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{123,123,123,0});
+          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/3),round(wIn/3),round(wIn/3),0});
        else
           set(handles.uitable_mor_krylov_MimoExps,'Data',data.inputData);
           set(handles.uitable_mor_krylov_MimoExps_output,'Data',...
               [data.inputData(:,1),data.inputData(:,2),data.inputData(:,4)]);
-          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{92,92,92,92});
+          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/4),round(wIn/4),round(wIn/4),round(wIn/4)});
        end
     end
 
@@ -4013,12 +4017,12 @@ try
           end
           
           set(handles.uitable_mor_krylov_MimoExps_output,'Data',tableData); 
-          set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{184,184,0});
+          set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{round(wOut/2),round(wOut/2),0});
           handles.MimoParam.block = 1;
        else
           tableData = data.outputData;
           set(handles.uitable_mor_krylov_MimoExps_output,'Data',tableData);
-          set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{123,123,123});
+          set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{round(wIn/3),round(wIn/3),round(wIn/3)});
        end
     end
 
@@ -5015,35 +5019,6 @@ function pb_an_compare_hinf_info_Callback(hObject, eventdata, handles)
 
 %Callbacks of the panel
 
-function logos_footer_CreateFcn(hObject, eventdata, handles)
-    %Load the bitmap with the logos
-    
-    addRelativePaths();
-    A=imread('Footer.png');
-    %Scale image to the correct size
-    set(hObject,'Units','pixels');
-    p = get(hObject,'Position');
-    set(hObject,'Units','characters');
-    %Show image and set properties
-    h=image(imresize(A,[round(p(1,4)),round(p(1,3))]));
-    set(h,'HitTest','off');
-    set(hObject,'XTick',[]);
-    set(hObject,'YTick',[]);
-    
-    %Footer ausblenden, falls der Screen zu klein ist
-    %(to convert from pixel units to chararcter units the values are
-    %multiplied with 0.198 for horizontal dimensions and with 0.0747 for
-    %vertical dimensions)
-    
-    screensize = get( 0, 'Screensize' );
-    
-    if screensize(1,4) < 860    %Footer ausblenden
-        
-        position = get(hObject,'Position');
-        position(1,2) = -40*0.0747;
-        set(hObject,'Position',position);
-    end
-
 function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
     %Web-links to the diverent homepages (Open if the user klicks on a logo)
 
@@ -5750,6 +5725,9 @@ function result = checkPointsSisoKrylov(cellArray)
 function [] = layoutMimoKrylov(handles)
 %Sets the right table with shifts and directions visible for Mimo-systems 
 
+    wOut = handles.widthTableMimoKrylovOutput;
+    wIn = handles.widthTableMimoKrylovInput;
+
     if get(handles.pu_mor_krylov_algorithm,'Value') == 1        %IRKA
         
         set(handles.uitable_mor_krylov_MimoExps,'Visible','on');
@@ -5758,7 +5736,7 @@ function [] = layoutMimoKrylov(handles)
         set(handles.pb_mor_krylov_MimoExps_Input,'Visible','off');
         set(handles.pb_mor_krylov_MimoExps_Output,'Visible','off');
         
-        set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{92 92 92 92});
+        set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/4) round(wIn/4) round(wIn/4) round(wIn/4)});
         
     else                                                        %RK
         
@@ -5770,7 +5748,7 @@ function [] = layoutMimoKrylov(handles)
             set(handles.pb_mor_krylov_MimoExps_Input,'Visible','off');
             set(handles.pb_mor_krylov_MimoExps_Output,'Visible','off');
         
-            set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{123 123 123 0});
+            set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/3) round(wIn/3) round(wIn/3) 0});
             
         elseif get(handles.rb_mor_krylov_output,'Value') == 1
             
@@ -5790,7 +5768,7 @@ function [] = layoutMimoKrylov(handles)
                 set(handles.pb_mor_krylov_MimoExps_Input,'Visible','off');
                 set(handles.pb_mor_krylov_MimoExps_Output,'Visible','off');
         
-                set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{92 92 92 92});              
+                set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/4) round(wIn/4) round(wIn/4) round(wIn/4)});              
                 
             else
                 
@@ -5803,7 +5781,7 @@ function [] = layoutMimoKrylov(handles)
                 set(handles.pb_mor_krylov_MimoExps_Input,'BackgroundColor',[1 0.843 0]);
                 set(handles.pb_mor_krylov_MimoExps_Output,'BackgroundColor',[0.94 0.94 0.94]);
         
-                set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{123 123 123 0});
+                set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/3) round(wIn/3) round(wIn/3) 0});
                 
             end          
         end   
