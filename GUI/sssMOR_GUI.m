@@ -408,7 +408,22 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
 
 function logo_tum_ButtonDownFcn(hObject, eventdata, handles)
     % link to web page
+    
+    p = get(handles.figure1,'Position');
+    widthCharX = p(1,3);
+    widthCharY = p(1,4);
+    set(handles.figure1,'Units','pixels');
+    p = get(handles.figure1,'Position');
+    widthPixX = p(1,3);
+    widthPixY = p(1,4);
+    charToPixX = widthPixX/widthCharX;
+    charToPixY = widthPixY/widthCharY;
+    set(handles.figure1,'Units','characters');
+    
     p=get(hObject,'CurrentPoint');
+    p(1,1) = (p(1,1)/charToPixX)/0.198;
+    p(1,2) = (p(1,2)/charToPixY)/0.0744;
+    
     if p(1,1)>945 && p(1,1)<1040 && p(1,2)>5 && p(1,2)<80
         web www.tum.de
     elseif p(1,1)> 5 && p(1,1)<55 && p(1,2)>5 && p(1,2)<80  
@@ -2523,9 +2538,6 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     %list vectors in workspace that might be s0
     
     set(handles.pu_mor_krylov_s0,'String',listS0InWorkspace);
-
-
-
 
 return
 
@@ -5024,7 +5036,20 @@ function pb_an_compare_hinf_info_Callback(hObject, eventdata, handles)
 function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
     %Web-links to the diverent homepages (Open if the user klicks on a logo)
 
+    p = get(handles.figure1,'Position');
+    widthCharX = p(1,3);
+    widthCharY = p(1,4);
+    set(handles.figure1,'Units','pixels');
+    p = get(handles.figure1,'Position');
+    widthPixX = p(1,3);
+    widthPixY = p(1,4);
+    charToPixX = widthPixX/widthCharX;
+    charToPixY = widthPixY/widthCharY;
+    set(handles.figure1,'Units','characters');
+    
     p=get(hObject,'CurrentPoint');
+    p(1,1) = (p(1,1)/charToPixX)/0.198;
+    p(1,2) = (p(1,2)/charToPixY)/0.0744;
 
     if p(1,1)>990 && p(1,1)<1040
         web www.tum.de
