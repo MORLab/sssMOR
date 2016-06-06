@@ -1,5 +1,5 @@
 function sysr = projectiveMor(sys,V,varargin)
-% PROJECTIVEMOR - reduce dynamic model by projection
+% PROJECTIVEMOR - Reduces dynamic model by projection
 % 
 % Syntax:
 %       sysr				= PROJECTIVEMOR(sys,V)
