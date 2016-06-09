@@ -148,6 +148,9 @@ end
 
 sysr = projectiveMor(sys,V,W);
 if ~ischar(Opts.type), Opts.type = num2str(Opts.type); end
+if ~ischar(Opts.dominance), Opts.dominance = num2str(Opts.dominance); end
+Opts.originalOrder = sys.n;
+sysr = ssRed('modalMor',Opts,sysr);
 sysr.Name = sprintf('%s_%i_modal_%s',sys.Name,sysr.n,Opts.type);
 
 %% ------------------ AUXILIARY FUNCTIONS --------------------------

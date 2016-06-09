@@ -273,6 +273,9 @@ else
         C_ = sys.C - sysr.C/sysr.E*W'*sys.E;
     end
 end
+% Convert to ssRed-object
+Opts.originalOrder = sys.n;
+sysr = ssRed('rk',Opts,sysr);
 
 
 %% ----------- AUXILIARY --------------

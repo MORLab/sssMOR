@@ -27,7 +27,7 @@ function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj,
 %
 % Input Arguments:  
 %       *Required Input Arguments:*
-%       -sys:			full oder model (sss)
+%       -sys:			full order model (sss)
 %       -s0:			vector of initial shifts
 %
 %       *Optional Input Arguments:*
@@ -209,6 +209,10 @@ while true
         break
     end      
 end
+% Convert the reduced system to an ssRed-object
+%Opts.originalOrder = sys.n;
+%sysr = ssRed('irka',Opts,sysr);
+
 if ~Opts.suppressverbose %display at least the last value
     fprintf('IRKA step %03u - Convergence (%s): %s \n', ...
             kIter, Opts.stopCrit, sprintf('% 3.1e', stopCrit));
