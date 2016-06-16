@@ -209,9 +209,18 @@ while true
         break
     end      
 end
-% Convert the reduced system to an ssRed-object
-%Opts.originalOrder = sys.n;
-%sysr = ssRed('irka',Opts,sysr);
+
+%%  Storing additional parameters
+%Stroring additional information about thr reduction in the object 
+%containing the reduced model:
+%   1. Define a new field for the Opts struct and write the information
+%      that should be stored to this field
+%   2. Adapt the method "checkParamsStruct" of the class "ssRed" in such a
+%      way that the new defined field passes the check
+Opts.originalOrder = sys.n;
+
+% Convert the reduced system to a ssRed-object
+sysr = ssRed('irka',Opts,sysr);
 
 if ~Opts.suppressverbose %display at least the last value
     fprintf('IRKA step %03u - Convergence (%s): %s \n', ...

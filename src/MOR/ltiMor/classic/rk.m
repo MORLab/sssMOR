@@ -273,8 +273,17 @@ else
         C_ = sys.C - sysr.C/sysr.E*W'*sys.E;
     end
 end
-% Convert to ssRed-object
+
+%%  Storing additional parameters
+%Stroring additional information about thr reduction in the object 
+%containing the reduced model:
+%   1. Define a new field for the Opts struct and write the information
+%      that should be stored to this field
+%   2. Adapt the method "checkParamsStruct" of the class "ssRed" in such a
+%      way that the new defined field passes the check
 Opts.originalOrder = sys.n;
+
+% Convert to ssRed-object
 sysr = ssRed('rk',Opts,sysr);
 
 

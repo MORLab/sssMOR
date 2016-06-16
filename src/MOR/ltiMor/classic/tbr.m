@@ -458,6 +458,13 @@ end
 V = sys.TBalInv(:,1:q);
 W = sys.TBal(1:q,:)';
 
+% Storing additional parameters
+%Stroring additional information about thr reduction in the object 
+%containing the reduced model:
+%   1. Define a new field for the Opts struct and write the information
+%      that should be stored to this field
+%   2. Adapt the method "checkParamsStruct" of the class "ssRed" in such a
+%      way that the new defined field passes the check
 Opts.originalOrder = sys.n;
 
 switch Opts.type

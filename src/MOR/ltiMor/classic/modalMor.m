@@ -149,7 +149,17 @@ end
 sysr = projectiveMor(sys,V,W);
 if ~ischar(Opts.type), Opts.type = num2str(Opts.type); end
 if ~ischar(Opts.dominance), Opts.dominance = num2str(Opts.dominance); end
+
+%%  Storing additional parameters
+%Stroring additional information about thr reduction in the object 
+%containing the reduced model:
+%   1. Define a new field for the Opts struct and write the information
+%      that should be stored to this field
+%   2. Adapt the method "checkParamsStruct" of the class "ssRed" in such a
+%      way that the new defined field passes the check
 Opts.originalOrder = sys.n;
+
+% Convert the reduced system to an ssRed-object
 sysr = ssRed('modalMor',Opts,sysr);
 sysr.Name = sprintf('%s_%i_modal_%s',sys.Name,sysr.n,Opts.type);
 

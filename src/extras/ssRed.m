@@ -15,7 +15,7 @@ classdef ssRed < ss
 %
 % Input Arguments:
 %       -method: name of the used reduction algorithm;
-%                ['tbr' / 'modalMor' / 'irka' / 'rk']
+%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'cure']
 %       -params (tbr):          structure with the parameters for the tbr-algorithm;
 %           -.originalOrder:    Model order before reduction;
 %           -.type:             select amongst different tbr algorithms
@@ -61,6 +61,42 @@ classdef ssRed < ss
 %           -.originalOrder:    Model order before reduction
 %           -.real:             keep the projection matrices real
 %                               [true / false]
+%       -params (projectiveMor):structure with the parameters for the
+%                               projectiveMor-algorithm
+%           -.originalOrder:    Model order before reduction
+%           -.trans:            choose how W should be transposed
+%                               [ {T} / H ]
+%       -params (cure):         structure with the parameters for the
+%                               cure-algorithm
+%           -.originalOrder:    Model order before reduction
+%           -.cure.redfun:      reduction algorithm
+%                               [{'spark'} / 'irka' / 'rk+pork']
+%           -.cure.nk:          reduced order at each iteration 
+%                               [{'2'} / positive integer]
+%           -.cure.fact:        factorization mode 
+%                               [{'V'} / 'W']
+%           -.cure.init:        shift initialization mode 
+%                               [{'sm'} / 'zero' / 'lm' / 'slm']
+%           -.cure.stop:        stopping criterion
+%                               [{'nmax'} / 'h2Error']
+%           -.cure.stopval:     value according to which the stopping criterion is evaluated
+%                               [{'round(sqrt(sys.n))'} / positive integer]
+%           -.cure.verbose:     display text during cure 
+%                               [{'0'} / '1']
+%           -.cure.SE_DAE:      reduction of index 1 semiexplicit DAE 
+%                               [{'0'} / '1']
+%           -.cure.test:        execute analysis code 
+%                               [{'0'} / '1']
+%           -.cure.gif:         produce a .gif file of the CURE iteration
+%                               [{'0'} / '1']
+%           -.cure.maxIter:     maximum number of CURE iterations
+%                               [{'20'} / positive integer]
+%           -.warn:             show warnings
+%                               [{'0'} / '1']
+%           -.w:                frequencies for analysis plots
+%                               [{''} / '{wmin,wmax}' / vector of frequencies]
+%           -.zeroThers:        value that can be used to replace 0 
+%                               [{'1e-4'} / postivie float]
 %       -A: system matrix
 %       -B: input matrix
 %       -C: output matrix
@@ -125,17 +161,17 @@ classdef ssRed < ss
             elseif nargin == 3
                 sys = varargin{3};
                 if isa(sys,'ss')
-                   A = sys.A;
-                   B = sys.B;
-                   C = sys.C;
-                   D = sys.D;
-                   E = sys.E;
+                   A = sys.a;
+                   B = sys.b;
+                   C = sys.c;
+                   D = sys.d;
+                   E = sys.e;
                 elseif isa(sys,'sss')
-                   A = full(sys.A);
-                   B = full(sys.B);
-                   C = full(sys.C);
-                   D = full(sys.D);
-                   E = full(sys.E);
+                   A = full(sys.a);
+                   B = full(sys.b);
+                   C = full(sys.c);
+                   D = full(sys.d);
+                   E = full(sys.e);
                 else
                    error('The third argument has to be an object of type "ss" or "sss"'); 
                 end
@@ -156,7 +192,7 @@ classdef ssRed < ss
                 end             
             end
             
-            if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr','modalMor','rk','irka'}) == 0
+            if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr','modalMor','rk','irka','projectiveMor','cure'}) == 0
                 error('The first argument has a wrong format. Type "help ssRed" for more information.');
             end
             
@@ -424,8 +460,51 @@ classdef ssRed < ss
                if params.real ~= 1 && params.real ~= 0
                    error('params.verbose: Wrong value. Value 0 or 1 required');
                end
-            end           
-        end                
+            elseif strcmp(method,'projectiveMor')       %projectiveMor
+               if ~isfield(params,'trans')
+                   error('Struct params does not contain the field "trans"!');
+               end
+               if ~(ischar(params.trans) && ismember(params.trans,{'T','H'})) 
+                   error('params.trans: Wrong value. Type "help ssRed" for more information.');
+               end
+            elseif strcmp(method,'cure')
+               if ~isfield(params,'cure')
+                   error('Struct params does not contain the field "cure"!');
+               elseif ~isfield(params,'warn')
+                   error('Struct params does not contain the field "warn"!');
+               elseif ~isfield(params,'w')
+                   error('Struct params does not contain the field "w"!');
+               elseif ~isfield(params,'zeroThres')
+                   error('Struct params does not contain the field "zeroThres"!');
+               end
+               
+               paramCure = params.cure;               
+               
+               if ~isfield(paramCure,'redfun')
+                   error('Struct params does not contain the field "cure.redfun"!');
+               elseif ~isfield(paramCure,'nk')
+                   error('Struct params does not contain the field "cure.nk"!');
+               elseif ~isfield(paramCure,'fact')
+                   error('Struct params does not contain the field "cure.fact"!');
+               elseif ~isfield(paramCure,'init')
+                   error('Struct params does not contain the field "cure.init"!');
+               elseif ~isfield(paramCure,'stop')
+                   error('Struct params does not contain the field "cure.stop"!');
+               elseif ~isfield(paramCure,'stopval')
+                   error('Struct params does not contain the field "cure.stopval"!');
+               elseif ~isfield(paramCure,'verbose')
+                   error('Struct params does not contain the field "cure.verbose"!');
+               elseif ~isfield(paramCure,'SE_DAE')
+                   error('Struct params does not contain the field "cure.SE_DAE"!');
+               elseif ~isfield(paramCure,'test')
+                   error('Struct params does not contain the field "cure.test"!');
+               elseif ~isfield(paramCure,'gif')
+                   error('Struct params does not contain the field "cure.gif"!');
+               elseif ~isfield(paramCure,'maxIter')
+                   error('Struct params does not contain the field "cure.maxiter"!');
+               end           
+            end
+        end
     end    
 end
 

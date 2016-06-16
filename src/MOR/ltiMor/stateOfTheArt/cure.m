@@ -53,7 +53,7 @@ function sysr = cure(sys,Opts)
 %                           [{'0'} / '1']
 %           -.w:            frequencies for analysis plots
 %                           [{''} / '{wmin,wmax}' / vector of frequencies]
-%           -.zeroThers:    value that can be used to replace 0 
+%           -.zeroThres:    value that can be used to replace 0 
 %                           [{'1e-4'} / postivie float]
 %
 % Output Arguments:     
@@ -262,8 +262,17 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
         BrL_tot = [BrL_tot; Lw.'];   BrR_tot = [BrR_tot; zeros(n,m)];
         CrL_tot = [CrL_tot, Cr];    CrR_tot = [CrR_tot, zeros(m,n)];
     end
+    
+    %%  Storing additional parameters
+    %Stroring additional information about thr reduction in the object 
+    %containing the reduced model:
+    %   1. Define a new field for the Opts struct and write the information
+    %      that should be stored to this field
+    %   2. Adapt the method "checkParamsStruct" of the class "ssRed" in such a
+    %      way that the new defined field passes the check
+    Opts.originalOrder = sys.n;
 
-    sysr    = sss(Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot);
+    sysr    = ssRed('cure',Opts,Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot);
     
     % display
     if Opts.cure.test
