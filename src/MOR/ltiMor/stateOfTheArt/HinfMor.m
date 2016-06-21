@@ -1,4 +1,4 @@
-function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = HinfMor(sys, n, varargin) 
+function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = HinfMor(sys, n, varargin) 
     % HINFMOR - H-infinity reduction by tangential interpolation
     % ------------------------------------------------------------------
     % TODO
@@ -45,7 +45,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     Def.sweepPoints = 5e3;
     
     Def.surrogateError = true; %create a surrogate of the error, not of sys
-    Def.surrogate   = 'original';   %original, 'model', 'vf', 'loewner'
+    Def.surrogate   = 'vf';   %original, 'model', 'vf', 'loewner'
     Def.whatData    = 'new';        %'all','new'
     Def.deflate     = 1;
     Def.tol         = 1e-1; %ismemberf/getModelData
@@ -63,7 +63,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         Opts = Def;
     else
         Opts = parseOpts(Opts,Def);
-    end  
+    end    
     %%  Run IRKA
     if sys.isSiso
         % initialize
@@ -77,7 +77,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         %   directions
         
         %   Initialize trivially
-%         s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+        s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
 %         s0 = rand(1,n); Rt = rand(sys.m,n); Lt = rand(sys.p,n);
 
 %         s0 = linspace(Opts.wLims(1),Opts.wLims(2),n/2); s0 = [1i*s0,-1i*s0];
@@ -115,7 +115,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %     keyboard
 %  
 %     Dr = rand(sys.p,sys.m);
-% %     sysrD = sysrfun(Dr);   
+%     sysrD = sysrfun(Dr);   
 % %     sysrD = dss(sysr0.A+Lt.'*Dr*Rt, sysr0.B+Lt.'*Dr, sysr0.C+Dr*Rt, Dr, sysr0.E);
 %     sysrD = sysr0 + sysrDelta(Dr); 
 % 
@@ -124,9 +124,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %     for iS0 = 1:length(s0)
 %         (H(sysr0,s0opt(iS0))-H(sysrD,s0opt(iS0)))*rt(:,iS0)
 %         lt(:,iS0).'*(H(sysr0,s0opt(iS0))-H(sysrD,s0opt(iS0)))
-%     end    
-    
-    
+%     end  
     %%  Create Surrogate Model
     %   To reduce the cost of Hinf optimization, create a surrogate model
     %   from the data collected during irka
@@ -214,7 +212,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
             Dr0 = DrInit(Opts.DrInit);
             cost = @(Dr) norm(syse0m - sysrDelta(Dr),Inf);
             [DrOpt, Hinf,tOpt] = normOpt(Dr0,cost);
-            sysr = sysrfun(DrOpt);   
+            sysr = sysrfun(DrOpt); 
         case 'normOptCycle'
             % running optimization wr to each entry of D individually
             % the cost function takes into account the whole MIMO system
@@ -283,7 +281,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
             else
                 cost = @(Dr) norm(sysm - sysrfun(Dr),Inf);
             end
-            [DrOpt, Hinf,tOptCurr] = normOpt(DrOpt,cost);
+            constr = @(Dr) stabilityConstraint(Dr);
+            [DrOpt, Hinf,tOptCurr] = normOpt(DrOpt,cost,constr);
             tOpt = tOpt + tOptCurr;
             
             sysr = sysrfun(DrOpt); 
@@ -329,10 +328,8 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %         HinfRatio = Hinf/norm(sysm-sysr0,inf); %ratio to irka ROM
 
         % Real error
-        HinfO = norm(ss(sys),inf); %original
-        Hinf = norm(ss(sys-sysr),inf);%optimized
+        HinfErr = norm(ss(sys-sysr),inf);%optimized
         Hinf0 = norm(ss(sys)-sysr0,inf); %before optimization
-        HinfRel = Hinf/HinfO;
         HinfRatio = Hinf/Hinf0; %ratio to irka ROM
         
 %         if Opts.debug, keyboard, end
@@ -483,12 +480,10 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     function [DrOpt, Hinf,tOpt] = normOpt(Dr0,cost,constr)       
             switch Opts.solver
                 case 'fminsearch'
-                tic, [DrOpt, Hinf] = fminsearch(cost,Dr0); tOpt = toc;
-                
+                tic, [DrOpt, Hinf] = fminsearch(cost,Dr0); tOpt = toc;               
                 case 'fminunc'
                 optOpts = optimoptions(@fminunc, 'algorithm','quasi-newton');
-                tic, [DrOpt, Hinf] = fminunc(cost,Dr0,optOpts); tOpt = toc;
-                
+                tic, [DrOpt, Hinf] = fminunc(cost,Dr0,optOpts); tOpt = toc;               
                 case 'fmincon'
                 optOpts = optimoptions('fmincon','UseParallel',1,...
                                         'algorithm','sqp',...
@@ -499,26 +494,25 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 tic, [DrOpt, Hinf] = fmincon(cost,Dr0,[],[],[],...
                     [],[],[],constr,optOpts); tOpt = toc;
                
-                case 'gs'
-                    
+                case 'gs'                    
                 % Restrict the search space to improve execution
-                [lb,ub] = searchSpaceLimits(syse0m-sysr0);    
+                [lb,ub] = searchSpaceLimits(syse0m);    
                 
                 % Define optimization parameters
                 optOpts = optimoptions('fmincon','UseParallel',1,...
-                                        'algorithm','sqp');
+                                        'algorithm','sqp',...
+                                        'MaxFunEvals',2e2);
                 problem = createOptimProblem('fmincon',...
                             'objective',cost,'x0',Dr0,'options',optOpts,...
                             'nonlcon',@stabilityConstraint,...
                             'lb',lb,'ub',ub);
                 gs = GlobalSearch('NumStageOnePoints',20,...%start points
                                   'NumTrialPoints',400,... %set of all potential start points
-                                  'StartPointsToRun','bounds-ineqs',...%exclude certain points?
-                                  'Display','iter',...
-                                  'MaxTime',300); %stop after 5 min
+                                  'StartPointsToRun','bounds-ineqs'); %exclude certain points?
+%                                   'Display','iter',...
+%                                   'MaxTime',300); %stop after 5 min
                                  
-                tic,  [DrOpt,Hinf] = run(gs,problem); tOpt = toc;
-                              
+                tic,  [DrOpt,Hinf] = run(gs,problem); tOpt = toc;                              
                 case 'ms'
                 optOpts = optimoptions('fminunc', 'algorithm','quasi-newton');
                 problem = createOptimProblem('fminunc',....
@@ -538,8 +532,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                         Hinf  = allmins(k).Fval;
                         break
                     end
-                end
-                
+                end                
                 case 'ga'
                     options = gaoptimset('UseParallel',true,...
                                          'PopulationSize',25,...
@@ -576,12 +569,11 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         else
             DrMIMO(iOut,jIn) = Dr;
         end
-        sysrDelta1 = sysr0; sysrDelta1.B = Lt.'*DrMIMO;
+        sysrDelta1 = sysr0; sysrDelta1.B = Lt.'*DrMIMO; %sysrDelta1.D = Dr;
         sysrDelta2 = sysr0; sysrDelta2.C = DrMIMO*Rt; sysrDelta2.B = sysr0.B+Lt.'*DrMIMO;
         sysrDelta3 = sysr0; sysrDelta3.C = sysr0.C+DrMIMO*Rt; sysrDelta3.B = Lt.';
         sysrDelta4 = sysr0; sysrDelta4.C = -DrMIMO*Rt; sysrDelta4.B = Lt.'; sysrDelta4.D = eye(sys.p);
 
-        %         sysrDelta = ss(-sysrDelta1 - sysrDelta2 - sysrDelta3*inv(sysrDelta4)*sysrDelta2 + DrMIMO,'minimal');
         sysrDelta = sysrDelta1 + sysrDelta2 + sysrDelta3*inv(sysrDelta4)*sysrDelta2 + Dr;    end
     function [minDr, minVal] = plotOverDrRange(varargin)
         if isnumeric(DrRange) %vector of Dr values
@@ -715,9 +707,9 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
                 cd(cdir);
             end
     end
-    function [c,ceq]    =stabilityConstraint(x)
+    function [c,ceq]=stabilityConstraint(x)
         % define a nonlinear constraint to impose stability
-        ceq = 1-isstable(ss(sysrfun(x)));
+        ceq = 1-isstable(sysrfun(x));
         c = [];
     end
     function [c,ceq]=stabilityConstraintGA(x)
@@ -725,14 +717,14 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         [c,ceq]=stabilityConstraint(reshape(x,size(Dr0,1),size(Dr0,2)));
     end
     function [c,ceq]= stabilityConstraintCycle(Dr,iOut,jIn,DrOpt)
-        ceq = 1-isstable(ss(sysrfun(Dr,iOut,jIn,DrOpt)));
+        ceq = 1-isstable(sysrfun(Dr,iOut,jIn,DrOpt));
         c = [];
     end
     function [lb,ub] = searchSpaceLimits(syse)
         %syse: error system
         %[lb,ub] matrix values lower and upper bounds on Dr
         
-        fac = 5; %scaling/robustness factor
+        fac = 3; %scaling/robustness factor
         %initialize
         
         p = size(syse.c,1); m = size(syse.b,2);
@@ -751,7 +743,7 @@ function [sysr, HinfRel, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %         if Opts.debug, keyboard, end
         switch type  
             case 'original'
-                syse0m = syse0;
+                syse0m = ss(syse0);
             case 'model' %is equivalent to Loewner
                 [s0m,Rtm,Ltm] = getModelData(s0Traj,RtTraj,LtTraj);
                 arnoldiOpts.makeOrth = 1;

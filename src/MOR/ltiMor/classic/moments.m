@@ -83,7 +83,6 @@ else
 end       
 
 if Opts.refine.active, I = speye(size(sys.A)); end %auxiliary variable
-
 %%  Defining execution parameters
 nS0 = length(s0);
 if nS0 > 1
