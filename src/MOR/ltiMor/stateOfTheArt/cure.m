@@ -256,7 +256,7 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     if Opts.cure.fact=='V'
         B_ = B_ - sys.e*(V*(Er\Br));    % B_bot
         BrL_tot = [BrL_tot; zeros(n,p)];    BrR_tot = [BrR_tot; Br];
-        CrL_tot = [CrL_tot, zeros(p,n)];    CrR_tot = [CrR_tot, Rv];
+        CrL_tot = [CrL_tot, zeros(p,n)];    CrR_tot = [CrR_tot, Cr];
     elseif Opts.cure.fact=='W'
         C_ = C_ - Cr/Er*W.'*sys.e;		% C_bot
         BrL_tot = [BrL_tot; Lw.'];   BrR_tot = [BrR_tot; zeros(n,m)];
