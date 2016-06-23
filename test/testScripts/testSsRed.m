@@ -9,6 +9,10 @@ classdef testSsRed < sssTest
 %       - tf
 %       - bode
 %       - impulse
+%       - zero
+%       - pole
+%       - zpk
+%       - tzero (only for MIMO-models)
 % ------------------------------------------------------------------
 %   This file is part of sssMOR, a Sparse State Space, Model Order
 %   Reduction and System Analysis Toolbox developed at the Institute 
@@ -34,6 +38,9 @@ classdef testSsRed < sssTest
             tf(sysr);
             bode(sysr);
             impulse(sysr);
+            pole(sysr);
+            zero(sysr);
+            zpk(sysr);
             
             % Create ssRed-object througth reduction with tbr (MIMO)          
             sys = loadSss('CDplayer.mat');
@@ -43,7 +50,11 @@ classdef testSsRed < sssTest
             % ssRed-object (MIMO)
             tf(sysr);
             bode(sysr);
-            impulse(sysr);                        
+            impulse(sysr);
+            pole(sysr);
+            zero(sysr);
+            zpk(sysr);
+            tzero(sysr);
         end
         
         function testSsRedIrka(testCase)
@@ -60,6 +71,9 @@ classdef testSsRed < sssTest
             tf(sysr);
             bode(sysr);
             impulse(sysr);
+            pole(sysr);
+            zero(sysr);
+            zpk(sysr);
             
             % Create ssRed-object througth reduction with irka (MIMO)          
             sys = loadSss('CDplayer.mat');
@@ -71,7 +85,11 @@ classdef testSsRed < sssTest
             % ssRed-object (MIMO)
             tf(sysr);
             bode(sysr);
-            impulse(sysr);                        
+            impulse(sysr);
+            pole(sysr);
+            zero(sysr);
+            zpk(sysr);
+            tzero(sysr);
         end
         
         function testSsRedRk(testCase)
@@ -88,6 +106,9 @@ classdef testSsRed < sssTest
             tf(sysr);
             bode(sysr);
             impulse(sysr);
+            pole(sysr);
+            zero(sysr);
+            zpk(sysr);
             
             % Create ssRed-object througth reduction with rk (MIMO)          
             sys = loadSss('CDplayer.mat');
@@ -99,7 +120,11 @@ classdef testSsRed < sssTest
             % ssRed-object (MIMO)
             tf(sysr);
             bode(sysr);
-            impulse(sysr);                        
+            impulse(sysr);
+            pole(sysr);
+            zero(sysr);
+            zpk(sysr);
+            tzero(sysr);
         end
         
         function testSsRedModalMor(testCase)
@@ -117,6 +142,9 @@ classdef testSsRed < sssTest
             tf(sysr);
             bode(sysr);
             impulse(sysr);
+            pole(sysr);
+            zero(sysr);
+            zpk(sysr);
             
             % Create ssRed-object througth reduction with modalMor (MIMO)          
             sys = loadSss('CDplayer.mat');
@@ -128,7 +156,11 @@ classdef testSsRed < sssTest
             % ssRed-object (MIMO)
             tf(sysr);
             bode(sysr);
-            impulse(sysr);                        
+            impulse(sysr);
+            pole(sysr);
+            zero(sysr);
+            zpk(sysr);
+            tzero(sysr);
         end
         
 %         function testSsRedModalCure(testCase)
