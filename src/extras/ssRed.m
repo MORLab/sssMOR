@@ -386,18 +386,18 @@ classdef ssRed < ss
                    error('Struct params does not contain the field "lse"!');
                end
                
-               if ~(ischar(params.type) && ismember(params.type,{'tbr','adi','matchDcGain'}))
-                   error('params.type: Wrong value. Type "help ssRed" for more information.');
-               elseif ~(ischar(params.redErr) && strcmp(params.redErr,'0')) && ...
-                      ~(isscalar(params.redErr) && params.redErr >= 0)
-                   error('params.redErr: Wrong value. Type "help ssRed" for more information.');
-               elseif ~isscalar(params.hsvTol) || params.hsvTol <= 0
-                   error('params.redErr: Wrong value. Positive float value required!');
-               elseif ~(ischar(params.warnOrError) && ismember(params.warnOrError,{'warn','error','0'}))
-                   error('params.warnOrError: Wrong value. Type "help ssRed" for more information.');
-               elseif ~(ischar(params.lse) && ismember(params.lse,{'gauss','luChol'}))
-                   error('params.lse: Wrong value. Type "help ssRed" for more information.');
-               end               
+%                if ~(ischar(params.type) && ismember(params.type,{'tbr','adi','matchDcGain'}))
+%                    error('params.type: Wrong value. Type "help ssRed" for more information.');
+%                elseif ~(ischar(params.redErr) && strcmp(params.redErr,'0')) && ...
+%                       ~(isscalar(params.redErr) && params.redErr >= 0)
+%                    error('params.redErr: Wrong value. Type "help ssRed" for more information.');
+%                elseif ~isscalar(params.hsvTol) || params.hsvTol <= 0
+%                    error('params.redErr: Wrong value. Positive float value required!');
+%                elseif ~(ischar(params.warnOrError) && ismember(params.warnOrError,{'warn','error','0'}))
+%                    error('params.warnOrError: Wrong value. Type "help ssRed" for more information.');
+%                elseif ~(ischar(params.lse) && ismember(params.lse,{'gauss','luChol'}))
+%                    error('params.lse: Wrong value. Type "help ssRed" for more information.');
+%                end               
             elseif strcmp(method,'modalMor')            %modalMor          
                if ~isfield(params,'type')
                    error('Struct params does not contain the field "type"!');
@@ -411,18 +411,18 @@ classdef ssRed < ss
                    error('Struct params does not contain the field "dominance"!');
                end
                
-               if ~isscalar(params.type) && ~(ischar(params.type) && ...
-                  ismember(params.type,{'SM','LM','SA','LA','SR','LR'}))
-                   error('params.type: Wrong value. Type "help ssRed" for more information.');
-               elseif ~(ischar(params.orth) && ismember(params.orth,{'0','qr'}))
-                   error('params.orth: Wrong value. Type "help ssRed" for more information.');
-               elseif ~(ischar(params.real) && ismember(params.real,{'real','0'}))
-                   error('params.real: Wrong value. Type "help ssRed" for more information.');
-               elseif ~isscalar(params.tol) || params.tol <= 0
-                   error('params.tol: Wrong value. Positive float value required');
-               elseif ~(ischar(params.dominance) && ismember(params.dominance,{'0','analyze','2q','3q','4q'}))
-                   error('params.dominance: Wrong value. Type "help ssRed" for more information.');
-               end
+%                if ~isscalar(params.type) && ~(ischar(params.type) && ...
+%                   ismember(params.type,{'SM','LM','SA','LA','SR','LR'}))
+%                    error('params.type: Wrong value. Type "help ssRed" for more information.');
+%                elseif ~(ischar(params.orth) && ismember(params.orth,{'0','qr'}))
+%                    error('params.orth: Wrong value. Type "help ssRed" for more information.');
+%                elseif ~(ischar(params.real) && ismember(params.real,{'real','0'}))
+%                    error('params.real: Wrong value. Type "help ssRed" for more information.');
+%                elseif ~isscalar(params.tol) || params.tol <= 0
+%                    error('params.tol: Wrong value. Positive float value required');
+%                elseif ~(ischar(params.dominance) && ismember(params.dominance,{'0','analyze','2q','3q','4q'}))
+%                    error('params.dominance: Wrong value. Type "help ssRed" for more information.');
+%                end
             elseif strcmp(method,'irka')                %irka
                if ~isfield(params,'maxiter')
                    error('Struct params does not contain the field "maxiter"!');
@@ -438,35 +438,35 @@ classdef ssRed < ss
                    error('Struct params does not contain the field "suppressverbose"!');
                end
                
-               if ~isscalar(params.maxiter) || mod(params.maxiter,1) ~= 0 || ...
-                  params.maxiter <= 0
-                   error('params.maxiter: Wrong value. Positive integer value required');
-               elseif ~isscalar(params.tol) || params.tol <= 0
-                   error('params.tol: Wrong value. Positive float value required');
-               elseif ~(ischar(params.type) && ismember(params.type,{'','stab'}))
-                   error('params.type: Wrong value. Type "help ssRed" for more information.');
-               elseif params.verbose ~= 0 && params.verbose ~= 1
-                   error('params.verbose: Wrong value. Value 0 or 1 required');
-               elseif ~(ischar(params.stopCrit) && ismember(params.stopCrit,{'combAny','s0','sysr','combAll'}))
-                   error('params.stopCrit: Wrong value. Type "help ssRed" for more information.');
-               elseif params.suppressverbose ~= 0 && params.suppressverbose ~= 1
-                   error('params.suppressverbose: Wrong value. Value 0 or 1 required');
-               end               
+%                if ~isscalar(params.maxiter) || mod(params.maxiter,1) ~= 0 || ...
+%                   params.maxiter <= 0
+%                    error('params.maxiter: Wrong value. Positive integer value required');
+%                elseif ~isscalar(params.tol) || params.tol <= 0
+%                    error('params.tol: Wrong value. Positive float value required');
+%                elseif ~(ischar(params.type) && ismember(params.type,{'','stab'}))
+%                    error('params.type: Wrong value. Type "help ssRed" for more information.');
+%                elseif params.verbose ~= 0 && params.verbose ~= 1
+%                    error('params.verbose: Wrong value. Value 0 or 1 required');
+%                elseif ~(ischar(params.stopCrit) && ismember(params.stopCrit,{'combAny','s0','sysr','combAll'}))
+%                    error('params.stopCrit: Wrong value. Type "help ssRed" for more information.');
+%                elseif params.suppressverbose ~= 0 && params.suppressverbose ~= 1
+%                    error('params.suppressverbose: Wrong value. Value 0 or 1 required');
+%                end               
             elseif strcmp(method,'rk')                  %rk
                if ~isfield(params,'real')
                    error('Struct params does not contain the field "real"!');
                end
                
-               if params.real ~= 1 && params.real ~= 0
-                   error('params.verbose: Wrong value. Value 0 or 1 required');
-               end
+%                if params.real ~= 1 && params.real ~= 0
+%                    error('params.verbose: Wrong value. Value 0 or 1 required');
+%                end
             elseif strcmp(method,'projectiveMor')       %projectiveMor
                if ~isfield(params,'trans')
                    error('Struct params does not contain the field "trans"!');
                end
-               if ~(ischar(params.trans) && ismember(params.trans,{'T','H'})) 
-                   error('params.trans: Wrong value. Type "help ssRed" for more information.');
-               end
+%                if ~(ischar(params.trans) && ismember(params.trans,{'T','H'})) 
+%                    error('params.trans: Wrong value. Type "help ssRed" for more information.');
+%                end
             elseif strcmp(method,'cure')
                if ~isfield(params,'cure')
                    error('Struct params does not contain the field "cure"!');
