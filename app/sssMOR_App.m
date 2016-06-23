@@ -1986,6 +1986,7 @@ function pb_load_Callback(hObject, eventdata, handles)
     set(handles.lb_systems,'String',systemsInWorkspace)
     set(handles.lb_matrixes,'Value',[])
     set(handles.lb_matrixes,'String',matricesInWorkspace)
+    pb_refreshsys_Callback(hObject, eventdata, handles);
     
     if loadingSuccessfull == 1
         
@@ -2313,7 +2314,29 @@ msgbox('Extraction was successful.','Information','modal')
 uiwait
 
 
+%Callbacks for "Truncate Model"
 
+function pb_LaSuM_truncate_Callback(hObject, eventdata, handles)
+%Open the Sub-GUI for Model-Truncation
+
+    list = get(handles.pu_LaSuM_truncate,'String');
+    sysName = list{get(handles.pu_LaSuM_truncate,'Value'),1};
+
+    try
+        sys = evalin('base',sysName);
+    catch
+        errordlg('No valid system selected! Please correct this first!','Error Dialog','modal');
+        return;
+    end
+    
+    truncateModel({sys});
+    uiwait;
+    
+    % Refresh the displayes of systems in the workspace
+    
+    pb_refreshsys_Callback(hObject, eventdata, handles);
+    set(handles.lb_systems,'Value',[])
+    set(handles.lb_systems,'String',systemsInWorkspace)
 
 
 %--------------------------------------------------------------------------
@@ -2495,6 +2518,44 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
 
     else
       set(handles.pu_mor_systems,'Value',1);
+    end
+    
+    
+    %Loading and Setting up Models
+
+    l_alt = get(handles.pu_LaSuM_truncate,'String');
+    l_mimo = {};
+    
+    for i = 1:length(l)      %Show only MIMO-models
+        try
+            sysTemp = evalin('base',l{i,1});
+            if size(sysTemp.B,2) > 1 || size(sysTemp.C,1) > 1
+               l_mimo{end+1,1} = l{i,1}; 
+            end
+        end          
+    end
+    
+    if ~isempty(l_alt)
+
+        sOld=l_alt{get(handles.pu_LaSuM_truncate,'Value')};
+        indexOld=find(strcmp(sOld,l_mimo));
+
+        if ~isempty(indexOld)
+            set(handles.pu_LaSuM_truncate,'Value',indexOld);
+        else
+            set(handles.pu_LaSuM_truncate,'Value',1);
+        end
+
+    else
+      set(handles.pu_LaSuM_truncate,'Value',1);
+    end
+    
+    if ~isempty(l_mimo) && size(l_mimo,1) >= 1
+        set(handles.pu_LaSuM_truncate,'String',l_mimo);
+        set(handles.pb_LaSuM_truncate,'Enable','on');
+    else
+        set(handles.pu_LaSuM_truncate,'String', [{''}; l_mimo]);
+        set(handles.pb_LaSuM_truncate,'Enable','off');
     end
     
     
@@ -6302,8 +6363,6 @@ function [] = addRelativePaths()
     end
     
     addpath(genpath(path));
-
-
 
 
 
