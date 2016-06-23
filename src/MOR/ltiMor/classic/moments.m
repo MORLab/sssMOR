@@ -107,7 +107,11 @@ for iS0 = 1:nS0
     currIdx = sum(n(1:iS0-1));
     if isinf(s0(iS0))
         M(:,:,currIdx+1) = sys.D;
-        [L,U,p,q,R]=lu(sys.E, 'vector');
+        if issparse(sys.E)
+            [L,U,p,q,R]=lu(sys.E, 'vector');
+        else
+            [L,U,p,q,R]=lu(sparse(sys.E), 'vector');
+        end
         tempR=sys.B; %temp right side
         for iO=2:n(iS0)
            tempS(q,:) = U\(L\(R(:,p)\tempR)); %temp solution
@@ -123,7 +127,11 @@ for iS0 = 1:nS0
             tempR=sys.A*tempS;
         end
     else %finite frequency
-        [L,U,p,q,R]=lu(sys.A - s0(iS0)*sys.E, 'vector');
+        if issparse(sys.A)
+            [L,U,p,q,R]=lu(sys.A - s0(iS0)*sys.E, 'vector');
+        else
+            [L,U,p,q,R]=lu(sparse(sys.A - s0(iS0)*sys.E), 'vector');
+        end
         tempR=sys.B;
         for iO=1:n(iS0)
             tempS(q,:) = U\(L\(R(:,p)\tempR));
