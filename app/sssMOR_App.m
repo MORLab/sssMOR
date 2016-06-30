@@ -1113,7 +1113,7 @@ function lb_PaV_systemsWs_Callback(hObject, eventdata, handles)
         %Load system from workspace
 
         sys = evalin('base', y);
-        if ~strcmp(class(sys), 'ss') && ~strcmp(class(sys), 'sss')
+        if ~isa(sys, 'ss') && ~isa(sys, 'sss')
             errordlg('Variable is not a valid state space model.','Error Dialog','modal')
             set(handles.sysinfo,'String','Invalid model')
             uiwait
@@ -2294,7 +2294,7 @@ sys=evalin('base',y);
 if isa(sys,'ss')
    sys = sss(sys);
 end
-if ~strcmp(class(sys), 'sss')
+if ~isa(sys, 'sss')
     errordlg('Variable is not a valid state space model.','Error Dialog','modal')
     uiwait
     return
@@ -2360,7 +2360,7 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
     end
 
     sys = evalin('base', y);
-    if ~strcmp(class(sys), 'sss')
+    if ~isa(sys, 'sss')
         try
             sys = sss(sys);
         catch ex %#ok<NASGU>
@@ -2610,7 +2610,7 @@ try
     y=x{get(handles.syschoice,'Value')};
     if ~isempty(y)
         sys = evalin('base', y);
-        if ~strcmp(class(sys), 'sss')
+        if ~isa(sys, 'sss')
             errordlg('Variable is not a valid state space model.')            
         else 
             set(handles.sysinfo, 'String', sys.disp);
@@ -2914,7 +2914,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
 
     % convert to sss
     
-    if ~strcmp(class(sys), 'sss')
+    if ~isa(sys, 'sss')
         try
             sys=sss(sys);
         catch ex
@@ -6020,7 +6020,8 @@ function x = systemsInWorkspace()
     % preallocate memory
     x=cell(length(s),1);
     for i=1:length(s)
-        if strcmp(s(i).class,'ss') || strcmp(s(i).class,'sss') && ...
+        if strcmp(s(i).class,'ss') || strcmp(s(i).class,'sss') || ...
+             strcmp(s(i).class,'ssRed') && ...
             ~strcmp(s(i).name,'load_var_dont_destroy') && ...
             ~strcmp(s(i).name,'GUI_dont_destroy')
             % save name
@@ -6065,7 +6066,7 @@ end
 sys = evalin('base', sysname);
 
 % convert to sss
-if ~strcmp(class(sys), 'sss')
+if ~isa(sys, 'sss')
     sys=sss(sys);
 end
 
