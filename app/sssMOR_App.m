@@ -207,6 +207,7 @@ function sssMOR_App_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     handles.zoom=[];
     handles.plotData = [];
     handles.chosenSystems = 0;
+    handles.storedHsv = {};
     
     %Set the default-folder for opening data-files
     
@@ -2310,14 +2311,7 @@ if get(handles.ed_extract_A,'UserData')==1||...
 end
 
 sys=evalin('base',y);
-if isa(sys,'ss')
-   sys = sss(sys);
-end
-if ~isa(sys, 'sss')
-    errordlg('Variable is not a valid state space model.','Error Dialog','modal')
-    uiwait
-    return
-end
+
 z=[handles.ed_extract_A,handles.ed_extract_B,handles.ed_extract_C,handles.ed_extract_D,handles.ed_extract_E];
 w='A';
 % if a field is left empty, matrix is not loaded to workspace
@@ -2381,7 +2375,11 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
     sys = evalin('base', y);
     if ~isa(sys, 'sss')
         try
-            sys = sss(sys);
+            if isa(sys,'ssRed')
+                sys = sss(sys.A,sys.B,sys.C,sys.D,sys.E); 
+            else
+                sys = sss(sys);
+            end
         catch ex %#ok<NASGU>
             set(handles.pb_mor_reduce,'Enable','off')
             set(handles.panel_mor_hsv,'Visible','off')
@@ -2453,7 +2451,7 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
             try
                sys = evalin('base', y);
 
-               if ~isempty(sys.HankelSingularValues)
+               if getHankelSingularValues(sys,y,handles)
                    updateTBR(handles.pb_mor_hsv,eventdata,handles);
                else
                    set(handles.panel_mor_hsv,'Visible','off');
@@ -2620,7 +2618,6 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     set(handles.pu_mor_krylov_s0,'String',listS0InWorkspace);
 
 
-
 function pu_mor_method_Callback(hObject, eventdata, handles)
 % selection of reduction method
 if get(hObject,'Value')==1
@@ -2658,7 +2655,7 @@ if get(handles.pu_mor_method,'Value')==1
         try
            sys = evalin('base', y);
 
-           if ~isempty(sys.HankelSingularValues)
+           if getHankelSingularValues(sys,y,handles)
                updateTBR(handles.pb_mor_hsv,eventdata,handles);
            else
                set(handles.panel_mor_hsv,'Visible','off');
@@ -2697,7 +2694,11 @@ if get(hObject,'Value')==3
        
        
        if ~isa(sys,'sss')
-          sys = sss(sys);
+          if isa(sys,'ssRed')
+             sys = sss(sys.A,sys.B,sys.C,sys.D,sys.E);
+          else
+             sys = sss(sys); 
+          end
        end
        
        if sys.m > 1 || sys.p > 1    %MIMO
@@ -2873,7 +2874,11 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     
     if ~isa(sys, 'sss')
         try
-            sys=sss(sys);
+            if isa(sys,'ssRed')
+                sys = sss(sys.A,sys.B,sys.C,sys.D,sys.E);
+            else
+                sys=sss(sys);
+            end
         catch ex
             set(hObject,'String','Plot')
             set(hObject,'Enable','on') 
@@ -2888,7 +2893,10 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     switch get(handles.pu_mor_method,'Value')
         
     case 1 %TBR
-        if isempty(sys.HankelSingularValues) || isempty(sys.TBal) || isempty(sys.TBalInv)
+        
+        [hsvStored,hsv,TBal,TBalInv] = getHankelSingularValues(sys,sysname,handles);
+        
+        if ~hsvStored || isempty(hsv) || isempty(TBal) || isempty(TBalInv)
             set(handles.figure1,'Pointer','arrow')
             set(hObject,'Enable','on')
             errordlg('Please calculate Hankel Singular Values first.','Error Dialog','modal')
@@ -2909,8 +2917,6 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
 
                 [sysr, V, W] = tbr(sys, q, Opts);
 
-                %TODO check what happend to that code
-                %sysr.morInfo = struct('time', clock, 'method', 'TBR', 'orgsys', sysname);
             else
                 % match DC gain
 
@@ -3235,7 +3241,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     end
     
     if get(handles.cb_mor_saveHsv,'Value')==1 && get(handles.pu_mor_method,'Value')==1
-        assignin('base',get(handles.ed_mor_saveHsv,'String'),sys.HankelSingularValues); 
+        assignin('base',get(handles.ed_mor_saveHsv,'String'),hsv); 
     end
 
     %Tell the user that the reduction was successfull
@@ -3355,11 +3361,13 @@ function updateTBR(hObject, eventdata, handles)
         set(handles.sl_mor_q,'Value',1);
     end
     
-    if get(handles.pu_mor_method,'Value')==1 && ~isempty(sys.HankelSingularValues)
+    [hsvStored,hsv] = getHankelSingularValues(sys,sysname,handles);
+    
+    if get(handles.pu_mor_method,'Value')==1 && hsvStored
         %Calculate the signal-norms H_1 and H_inf
         
-        e=2*sum(sys.HankelSingularValues((q+1):end));
-        erel=e/max(sys.HankelSingularValues);
+        e=2*sum(hsv((q+1):end));
+        erel=e/max(hsv);
         set(handles.st_mor_tbr_error,'String',num2str(e, '%.3e'))
         set(handles.st_mor_tbr_relerror,'String',num2str(erel, '%.3e'))
         
@@ -3371,11 +3379,11 @@ function updateTBR(hObject, eventdata, handles)
 
         if get(handles.rb_mor_tbr_norm,'Value')==1
 
-            maxValue = max(sys.HankelSingularValues);
-            h = plot(handles.axes_mor_hsv,sys.HankelSingularValues./maxValue);
+            maxValue = max(hsv);
+            h = plot(handles.axes_mor_hsv,hsv./maxValue);
 
         else
-            h = plot(handles.axes_mor_hsv, sys.HankelSingularValues);
+            h = plot(handles.axes_mor_hsv, hsv);
         end
 
         % make callback react to click on red HSV line
@@ -3400,7 +3408,6 @@ function updateTBR(hObject, eventdata, handles)
             set(hr,'XData',[q,q])
             set(hr,'YData',get(handles.axes_mor_hsv,'YLim'));
         else
-            %hr=plot(handles.axes_mor_hsv, [q,q],sys.HankelSingularValues([end,1]),'r');
             hr=plot(handles.axes_mor_hsv,[q,q], get(handles.axes_mor_hsv,'YLim'),'r');
             set(handles.axes_mor_hsv,'UserData',hr)
         end
@@ -3437,7 +3444,7 @@ drawnow
 % Get the system from the workspace
 
 try
-    [sys, sysname] = getSysFromWs(handles.pu_mor_systems);
+    [sys, sysname, originalClass] = getSysFromWs(handles.pu_mor_systems);
 catch ex
     set(handles.figure1,'Pointer','arrow')
     set(hObject,'Enable','on')
@@ -3454,7 +3461,10 @@ end
 
 try 
     tbr(sys,1);
-    assignin('base', sysname, sys)
+    if strcmp(originalClass,'sss')
+        assignin('base', sysname, sys)
+    end
+    handles = saveHankelSingularValues(sys,sysname,sys.HankelSingularValues,sys.TBal,sys.TBalInv,handles);
 catch ex %***
     if strcmp(ex.identifier,'MATLAB:nomem')
         errordlg('Out of memory. System is too large to calculate Hankel Singular Values.','Error Dialog','modal')
@@ -3957,7 +3967,12 @@ if ~isempty(y)
         parameter.system = evalin('base',y);
         
         if ~isa(parameter.system,'sss')
-           parameter.system = sss(parameter.system); 
+           if isa(parameter.system,'ssRed')
+              parameter.system = sss(parameter.system.A,parameter.system.B, ...
+                  parameter.system.C,parameter.system.D,parameter.system.D);
+           else
+              parameter.system = sss(parameter.system);
+           end
         end
         
     catch ex
@@ -4206,10 +4221,7 @@ function pu_an_sys1_Callback(hObject, eventdata, handles)
     for i = 1:length(l)      
         try
            sysTemp = evalin('base',l{i,1}); 
-           if isa(sysTemp,'ss')
-              sysTemp = sss(sysTemp); 
-           end
-           if sysTemp.p ~= sys.p || sysTemp.m ~= sysTemp.m
+           if size(sysTemp.B,2) ~= size(sys.B,2) || size(sysTemp.C,1) ~= size(sys.C,1)
               l{i,1} = []; 
            end
         catch ex
@@ -4251,7 +4263,6 @@ function pb_an_sys1_calcall_Callback(hObject, eventdata, handles)
 
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
-        assignin('base', sysname, sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4390,7 +4401,7 @@ function pb_an_sys1_h2_Callback(hObject, eventdata, handles)
     %Get system from workspace
 
     try
-        [sys,sysname] = getSysFromWs(handles.pu_an_sys1);
+        [sys,sysname,originalClass] = getSysFromWs(handles.pu_an_sys1);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4418,7 +4429,10 @@ function pb_an_sys1_h2_Callback(hObject, eventdata, handles)
 
         try
             h2 = norm(sys, 2);
-            assignin('base', sysname, sys);
+            if strcmp(originalClass,'sss')
+                sys.h2Norm = h2;
+                assignin('base', sysname, sys);
+            end
         catch ex
             if strcmp(ex.identifier,'MATLAB:nomem')
                 errordlg('Out of memory, system is too large to solve lyapunov equotation','Error Dialog','modal')
@@ -4452,7 +4466,7 @@ function pb_an_sys1_hinf_Callback(hObject, eventdata, handles)
     %Get system from workspace
     
     try
-        [sys,sysname] = getSysFromWs(handles.pu_an_sys1);
+        [sys,sysname,originalClass] = getSysFromWs(handles.pu_an_sys1);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4480,7 +4494,10 @@ function pb_an_sys1_hinf_Callback(hObject, eventdata, handles)
     
         try
             hinf=norm(sys, inf);
-            assignin('base', sysname, sys);
+            if strcmp(originalClass,'sss')
+                sys.hInfNorm = hinf;
+                assignin('base', sysname, sys);
+            end
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             set(handles.figure1,'Pointer','arrow')
@@ -4507,7 +4524,6 @@ function pb_an_sys1_decaytime_Callback(hObject, eventdata, handles)
     
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys1);
-        assignin('base', sysname, sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4622,7 +4638,6 @@ function pb_an_sys2_calcall_Callback(hObject, eventdata, handles)
     
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
-        assignin('base', sysname, sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4761,7 +4776,7 @@ function pb_an_sys2_h2_Callback(hObject, eventdata, handles)
     %Get system from workspace
 
     try
-        [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
+        [sys,sysname,originalClass] = getSysFromWs(handles.pu_an_sys2);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4789,7 +4804,10 @@ function pb_an_sys2_h2_Callback(hObject, eventdata, handles)
 
         try
             h2 = norm(sys, 2);
-            assignin('base', sysname, sys);
+            if strcmp(originalClass,'sss')
+                sys.h2Norm = h2;
+                assignin('base', sysname, sys);
+            end
         catch ex
             if strcmp(ex.identifier,'MATLAB:nomem')
                 errordlg('Out of memory, system is too large to solve lyapunov equotation','Error Dialog','modal')
@@ -4823,7 +4841,7 @@ function pb_an_sys2_hinf_Callback(hObject, eventdata, handles)
     %Get system from workspace
     
     try
-        [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
+        [sys,sysname,originalClass] = getSysFromWs(handles.pu_an_sys2);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4851,7 +4869,10 @@ function pb_an_sys2_hinf_Callback(hObject, eventdata, handles)
     
         try
             hinf=norm(sys, inf);
-            assignin('base', sysname, sys);
+            if strcmp(originalClass,'sss')
+                sys.hInfNorm = hinf;
+                assignin('base', sysname, sys);
+            end
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             uiwait
@@ -4878,7 +4899,6 @@ function pb_an_sys2_decaytime_Callback(hObject, eventdata, handles)
     
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
-        assignin('base', sysname, sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -5532,7 +5552,11 @@ if get(handles.pu_mor_method,'Value')==3        %Krylov selected
         sys = evalin('base', y);
         
         if ~isa(sys,'sss')
-           sys = sss(sys); 
+           if isa(sys,'ssRed')
+              sys = sss(sys.A,sys.B,sys.C,sys.D,sys.E);
+           else
+              sys = sss(sys); 
+           end
         end
     
         if sys.m > 1 || sys.p > 1                       %Mimo system
@@ -5762,8 +5786,7 @@ function result = checkPointsSisoKrylov(cellArray)
       end     
     end
         
-        
-    
+           
     
 %Different Layouts for SISO- and MIMO-Krylov
     
@@ -5899,7 +5922,9 @@ function [] = displaySystemInformation(object,sys)
 %Prevents the display of the full name of the system which could include
 %full path names
 
-    if isa(sys,'ss')
+    if isa(sys,'ssRed')
+       sys = sss(sys.A,sys.B,sys.C,sys.D,sys.E);
+    elseif isa(sys,'ss')
        sys = sss(sys); 
     end
 
@@ -5966,6 +5991,55 @@ function [] = suggestNamesMOR(sysName,handles)
         set(handles.ed_mor_saveShifts,'String','');
         
     end
+    
+function updatedHandles = saveHankelSingularValues(sys,sysName,hsv,Tbal,TbalInv,handles)
+%Stores the HankelSingularValues hsv to the table saved in handles
+
+    % check if values for this system already exist and override them if
+    % the case
+    for i = 1:size(handles.storedHsv,1)
+       if strcmp(handles.storedHsv{i,1},sysName) && handles.storedHsv{i,2} == size(sys.A,1)
+           handles.storedHsv{i,3} = hsv;
+           handles.storedHsv{i,4} = Tbal;
+           handles.storedHsv{i,5} = TbalInv;
+           guidata(handles.figure1,handles);
+           updatedHandles = handles;
+           return;
+       end
+    end
+    
+    % add a new row containing the system-name, the system order and the
+    % HankelSingularValues to the table
+    index = size(handles.storedHsv,1)+1;
+    handles.storedHsv{index,1} = sysName;
+    handles.storedHsv{index,2} = size(sys.A,1);
+    handles.storedHsv{index,3} = hsv;
+    handles.storedHsv{index,4} = Tbal;
+    handles.storedHsv{index,5} = TbalInv;
+    updatedHandles = handles;
+    guidata(handles.figure1,handles);
+    
+function [success,hsv,Tbal,TbalInv] = getHankelSingularValues(sys,sysName,handles)
+%Reads out the HankelSingularValues for the given system from the table
+%stored in the handles-structure
+
+    % check if values for this system exist and read them out if the case
+    for i = 1:size(handles.storedHsv,1)
+       if strcmp(handles.storedHsv{i,1},sysName) && handles.storedHsv{i,2} == size(sys.A,1)
+           hsv = handles.storedHsv{i,3};
+           Tbal = handles.storedHsv{i,4};
+           TbalInv = handles.storedHsv{i,5};
+           success = 1;
+           return;
+       end
+    end   
+    
+    % the HankelSingularValues for this system are not stored
+    success = 0;
+    hsv = [];
+    Tbal = [];
+    TbalInv = [];
+    
         
     
 %Functions which list variables from workspace    
@@ -6003,7 +6077,7 @@ end
 % remove empty (non-system) entries
 x(cellfun(@isempty,x)) = [];
 
-function [sys, sysname] = getSysFromWs(namehandle)
+function [sys, sysname, originalClass] = getSysFromWs(namehandle)
 % imports system from base workspace
 % namehandle may be system name or handle to an edit/combo-control
 
@@ -6024,7 +6098,15 @@ sys = evalin('base', sysname);
 
 % convert to sss
 if ~isa(sys, 'sss')
-    sys=sss(sys);
+    if isa(sys,'ssRed')
+        sys=sss(sys.A,sys.B,sys.C,sys.D,sys.E);
+        originalClass = 'ssRed';
+    else
+        sys = sss(sys); 
+        originalClass = 'ss';
+    end
+else
+    originalClass = 'sss';
 end
 
 function x = listClassesInWorkspace(class)
