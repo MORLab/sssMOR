@@ -633,11 +633,14 @@ function pb_PaV_move_Callback(hObject, eventdata, handles)
         data.name = selectedSystem;
         data.isSystem = 1;
 
-        if sys.p > 1|| sys.m > 1
+        p = size(sys.A,2);
+        m = size(sys.C,1);
+        
+        if p > 1|| m > 1
            data.in = 'all';
            data.out = 'all';
-           data.sizeInputs = sys.m;
-           data.sizeOutputs = sys.p;
+           data.sizeInputs = m;
+           data.sizeOutputs = p;
            %data.legendText = suggestDefaultLegendText(handles,selectedSystem,1);
         else
            data.in = [];
@@ -2375,11 +2378,7 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
     sys = evalin('base', y);
     if ~isa(sys, 'sss')
         try
-            if isa(sys,'ssRed')
-                sys = sss(sys.A,sys.B,sys.C,sys.D,sys.E); 
-            else
-                sys = sss(sys);
-            end
+            sys = convertToSss(sys);
         catch ex %#ok<NASGU>
             set(handles.pb_mor_reduce,'Enable','off')
             set(handles.panel_mor_hsv,'Visible','off')
@@ -2691,15 +2690,7 @@ if get(hObject,'Value')==3
     
     if ~isempty(y)
        sys = evalin('base', y);
-       
-       
-       if ~isa(sys,'sss')
-          if isa(sys,'ssRed')
-             sys = sss(sys.A,sys.B,sys.C,sys.D,sys.E);
-          else
-             sys = sss(sys); 
-          end
-       end
+       sys = convertToSss(sys);
        
        if sys.m > 1 || sys.p > 1    %MIMO
            
@@ -2874,11 +2865,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     
     if ~isa(sys, 'sss')
         try
-            if isa(sys,'ssRed')
-                sys = sss(sys.A,sys.B,sys.C,sys.D,sys.E);
-            else
-                sys=sss(sys);
-            end
+            convertToSss(sys);
         catch ex
             set(hObject,'String','Plot')
             set(hObject,'Enable','on') 
@@ -3444,7 +3431,9 @@ drawnow
 % Get the system from the workspace
 
 try
-    [sys, sysname, originalClass] = getSysFromWs(handles.pu_mor_systems);
+    [sys, sysname] = getSysFromWs(handles.pu_mor_systems);
+    originalClass = class(sys);
+    sys = convertToSss(sys);
 catch ex
     set(handles.figure1,'Pointer','arrow')
     set(hObject,'Enable','on')
@@ -3964,17 +3953,8 @@ y = x{get(handles.pu_mor_systems,'Value')};
     
 if ~isempty(y)
     try
-        parameter.system = evalin('base',y);
-        
-        if ~isa(parameter.system,'sss')
-           if isa(parameter.system,'ssRed')
-              parameter.system = sss(parameter.system.A,parameter.system.B, ...
-                  parameter.system.C,parameter.system.D,parameter.system.D);
-           else
-              parameter.system = sss(parameter.system);
-           end
-        end
-        
+        parameter.system = evalin('base',y);        
+        parameter.system = convertToSss(parameter.system);        
     catch ex
        errordlg('Selected system could not be found in the workspace.')
        uiwait
@@ -4192,21 +4172,21 @@ function pu_an_sys1_Callback(hObject, eventdata, handles)
     
     %Set the values which belong to all systems
     
-    if eventdata ~= -1
+    if eventdata ~= -1 
         
-        if ~isempty(sys.h2Norm)
+        if isa(sys,'sss') && ~isempty(sys.h2Norm)
             set(handles.tx_an_sys1_h2,'String', num2str(sys.h2Norm))
         else
             set(handles.tx_an_sys1_h2,'String','')
         end
 
-        if ~isempty(sys.hInfNorm)
+        if isa(sys,'sss') && ~isempty(sys.hInfNorm)
             set(handles.tx_an_sys1_hinf,'String',num2str(sys.hInfNorm))
         else
             set(handles.tx_an_sys1_hinf,'String','')
         end
 
-        if ~isempty(sys.decayTime)
+        if isa(sys,'sss') && ~isempty(sys.decayTime)
             set(handles.tx_an_sys1_decaytime,'String',num2str(sys.decayTime))
         else
             set(handles.tx_an_sys1_decaytime,'String','')
@@ -4349,6 +4329,7 @@ function pb_an_sys1_dissipativity_Callback(hObject, eventdata, handles)
     
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys1);
+        sys = convertToSss(sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4401,7 +4382,7 @@ function pb_an_sys1_h2_Callback(hObject, eventdata, handles)
     %Get system from workspace
 
     try
-        [sys,sysname,originalClass] = getSysFromWs(handles.pu_an_sys1);
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys1);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4425,11 +4406,15 @@ function pb_an_sys1_h2_Callback(hObject, eventdata, handles)
 
     %Get the h2-norm of the system
 
-    if isempty(sys.h2Norm)
+    if isa(sys,'sss') && ~isempty(sys.h2Norm)
 
+        h2 = sys.h2Norm;
+        
+    else
+        
         try
             h2 = norm(sys, 2);
-            if strcmp(originalClass,'sss')
+            if isa(sys,'sss')
                 sys.h2Norm = h2;
                 assignin('base', sysname, sys);
             end
@@ -4446,11 +4431,6 @@ function pb_an_sys1_h2_Callback(hObject, eventdata, handles)
             set(handles.virtgr_an_red_buttons,'Enable','on')
             return
         end
-
-    else
-
-        h2 = sys.h2Norm;
-
     end
 
     %Display the solution to the user
@@ -4466,7 +4446,7 @@ function pb_an_sys1_hinf_Callback(hObject, eventdata, handles)
     %Get system from workspace
     
     try
-        [sys,sysname,originalClass] = getSysFromWs(handles.pu_an_sys1);
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys1);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4490,11 +4470,13 @@ function pb_an_sys1_hinf_Callback(hObject, eventdata, handles)
     
     %Get hInf-Norm
 
-    if isempty(sys.hInfNorm)
-    
+    if isa(sys,'sss') && ~isempty(sys.hInfNorm)   
+        hinf = sys.hInfNorm;
+    else
+        
         try
             hinf=norm(sys, inf);
-            if strcmp(originalClass,'sss')
+            if isa(sys,'sss')
                 sys.hInfNorm = hinf;
                 assignin('base', sysname, sys);
             end
@@ -4505,9 +4487,6 @@ function pb_an_sys1_hinf_Callback(hObject, eventdata, handles)
             uiwait
             return
         end
-    
-    else
-        hinf = sys.hInfNorm;
     end
 
     %Display solution to the user
@@ -4524,6 +4503,8 @@ function pb_an_sys1_decaytime_Callback(hObject, eventdata, handles)
     
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys1);
+        originalClass = class(sys);
+        sys = convertToSss(sys);      
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4550,6 +4531,10 @@ function pb_an_sys1_decaytime_Callback(hObject, eventdata, handles)
     if isempty(sys.decayTime)
         try
             decTime = decayTime(sys);
+            if strcmp(originalClass,'sss')
+               sys.decayTime = decTime;
+               assignin('base',sysname,sys);
+            end
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             set(handles.figure1,'Pointer','arrow')
@@ -4613,19 +4598,19 @@ function pu_an_sys2_Callback(hObject, eventdata, handles)
     
     if eventdata ~= -1
         
-        if ~isempty(sys.h2Norm)
+        if isa(sys,'sss') && ~isempty(sys.h2Norm)
             set(handles.tx_an_sys2_h2,'String', num2str(sys.h2Norm))
         else
             set(handles.tx_an_sys2_h2,'String','')
         end
 
-        if ~isempty(sys.hInfNorm)
+        if isa(sys,'sss') && ~isempty(sys.hInfNorm)
             set(handles.tx_an_sys2_hinf,'String',num2str(sys.hInfNorm))
         else
             set(handles.tx_an_sys2_hinf,'String','')
         end
 
-        if ~isempty(sys.decayTime)
+        if isa(sys,'sss') && ~isempty(sys.decayTime)
             set(handles.tx_an_sys2_decaytime,'String',num2str(sys.decayTime))
         else
             set(handles.tx_an_sys2_decaytime,'String','')
@@ -4724,6 +4709,7 @@ function pb_an_sys2_dissipativity_Callback(hObject, eventdata, handles)
     
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
+        sys = convertToSss(sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4776,7 +4762,7 @@ function pb_an_sys2_h2_Callback(hObject, eventdata, handles)
     %Get system from workspace
 
     try
-        [sys,sysname,originalClass] = getSysFromWs(handles.pu_an_sys2);
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4800,11 +4786,12 @@ function pb_an_sys2_h2_Callback(hObject, eventdata, handles)
 
     %Get the h2-norm of the system
 
-    if isempty(sys.h2Norm)
-
+    if isa(sys,'sss') && ~isempty(sys.h2Norm)
+        h2 = sys.h2Norm;
+    else
         try
             h2 = norm(sys, 2);
-            if strcmp(originalClass,'sss')
+            if isa(sys,'sss')
                 sys.h2Norm = h2;
                 assignin('base', sysname, sys);
             end
@@ -4821,11 +4808,6 @@ function pb_an_sys2_h2_Callback(hObject, eventdata, handles)
             set(handles.virtgr_an_red_buttons,'Enable','on')
             return
         end
-
-    else
-
-        h2 = sys.h2Norm;
-
     end
 
     %Display the solution to the user
@@ -4841,7 +4823,7 @@ function pb_an_sys2_hinf_Callback(hObject, eventdata, handles)
     %Get system from workspace
     
     try
-        [sys,sysname,originalClass] = getSysFromWs(handles.pu_an_sys2);
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4865,11 +4847,12 @@ function pb_an_sys2_hinf_Callback(hObject, eventdata, handles)
     
     %Get hInf-Norm
 
-    if isempty(sys.hInfNorm)
-    
+    if isa(sys,'sss') && ~isempty(sys.hInfNorm)
+        hinf = sys.hInfNorm;
+    else
         try
             hinf=norm(sys, inf);
-            if strcmp(originalClass,'sss')
+            if isa(sys,'sss')
                 sys.hInfNorm = hinf;
                 assignin('base', sysname, sys);
             end
@@ -4880,9 +4863,6 @@ function pb_an_sys2_hinf_Callback(hObject, eventdata, handles)
             set(handles.virtgr_an_red_buttons,'Enable','on')
             return
         end
-    
-    else
-        hinf = sys.hInfNorm;
     end
 
     %Display solution to the user
@@ -4899,6 +4879,8 @@ function pb_an_sys2_decaytime_Callback(hObject, eventdata, handles)
     
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
+        originalClass = class(sys);
+        sys = convertToSss(sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4925,6 +4907,10 @@ function pb_an_sys2_decaytime_Callback(hObject, eventdata, handles)
     if isempty(sys.decayTime)
         try
             decTime = decayTime(sys);
+            if strcmp(originalClass,'sss')
+               sys.decayTime = decTime;
+               assignin('base',sysname,sys);
+            end
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             uiwait
@@ -4963,7 +4949,9 @@ function pb_an_compare_h2_Callback(hObject, eventdata, handles)
     
     try
         sys1 = getSysFromWs(handles.pu_an_sys1);
+        sys1 = convertToSss(sys1);
         sys2 = getSysFromWs(handles.pu_an_sys2);
+        sys2 = convertToSss(sys2);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -5018,7 +5006,9 @@ function pb_an_compare_hinf_Callback(hObject, eventdata, handles)
     
     try
         sys1 = getSysFromWs(handles.pu_an_sys1);
+        sys1 = convertToSss(sys1);
         sys2 = getSysFromWs(handles.pu_an_sys2);
+        sys2 = convertToSss(sys2);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -5065,6 +5055,8 @@ function pb_an_compare_hinf_info_Callback(hObject, eventdata, handles)
     infoBox({'InfoDifferenceSystemHinfNorm.png'});
     uiwait;
 
+    
+    
 %--------------------------------------------------------------------------
 %                               FOOTER
 %--------------------------------------------------------------------------
@@ -5549,15 +5541,8 @@ if get(handles.pu_mor_method,'Value')==3        %Krylov selected
     
     if ~isempty(y)
         
-        sys = evalin('base', y);
-        
-        if ~isa(sys,'sss')
-           if isa(sys,'ssRed')
-              sys = sss(sys.A,sys.B,sys.C,sys.D,sys.E);
-           else
-              sys = sss(sys); 
-           end
-        end
+        sys = evalin('base', y);        
+        sys = convertToSss(sys);
     
         if sys.m > 1 || sys.p > 1                       %Mimo system
 
@@ -5922,11 +5907,7 @@ function [] = displaySystemInformation(object,sys)
 %Prevents the display of the full name of the system which could include
 %full path names
 
-    if isa(sys,'ssRed')
-       sys = sss(sys.A,sys.B,sys.C,sys.D,sys.E);
-    elseif isa(sys,'ss')
-       sys = sss(sys); 
-    end
+    sys = convertToSss(sys);
 
     systemName = sys.Name;
     sys.Name = '';
@@ -6077,7 +6058,7 @@ end
 % remove empty (non-system) entries
 x(cellfun(@isempty,x)) = [];
 
-function [sys, sysname, originalClass] = getSysFromWs(namehandle)
+function [sys, sysname] = getSysFromWs(namehandle)
 % imports system from base workspace
 % namehandle may be system name or handle to an edit/combo-control
 
@@ -6096,18 +6077,19 @@ end
 
 sys = evalin('base', sysname);
 
-% convert to sss
-if ~isa(sys, 'sss')
-    if isa(sys,'ssRed')
-        sys=sss(sys.A,sys.B,sys.C,sys.D,sys.E);
-        originalClass = 'ssRed';
+
+function sysSss = convertToSss(sys)
+%Converts a system of class sss, ss or ssRed to a sss-object
+
+    if isa(sys,'sss')
+        sysSss = sys;
+    elseif isa(sys,'ssRed')
+        sysSss = sss(sys.A,sys.B,sys.C,sys.D,sys.E);
+    elseif isa(sys,'ss')
+        sysSss = sss(sys);
     else
-        sys = sss(sys); 
-        originalClass = 'ss';
-    end
-else
-    originalClass = 'sss';
-end
+        error('Convertion to a sss-object is not defined for sss-, ss- or ssRed-objects'); 
+    end     
 
 function x = listClassesInWorkspace(class)
 %Finds and lists all objects of the given class from workspace
