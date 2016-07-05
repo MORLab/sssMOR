@@ -1356,14 +1356,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
             sysname = list{i,1};
             
             try
-            sys = evalin('base', sysname);
-
-            if isa(sys,'ss')
-                try
-                    sys = sss(sys);
-                end
-            end
-            
+                sys = evalin('base', sysname);            
             catch ex
                pb_PaV_refeshObjects_Callback(handles.pb_PaV_refeshObjects, eventdata, handles);
                pb_refreshsys_Callback(handles.pb_refreshsys, eventdata, handles)
@@ -1384,15 +1377,16 @@ function pb_plot_Callback(hObject, eventdata, handles)
         %Chosen input- and output- channels for MIMO-systems
         
         for i = 1:size(systemList,1);
-           if isa(systemList{i,2},'sss') && systemList{i,2}.isMimo
+           if (isa(systemList{i,2},'sss') || isa(systemList{i,2},'ss')) && ...
+               (size(systemList{i,2}.B,2) > 1 || size(systemList{i,2}.C,1) > 1) %Mimo
               in = systemList{i,3}.in;
-              out = systemList{i,3}.out;
+              out = systemList{i,3}.out; 
               if ~strcmp(in,'all') && ~strcmp(out,'all')
                  systemList{i,2} = systemList{i,2}(str2num(in),str2num(out)); 
               elseif ~strcmp(in,'all')
-                 systemList{i,2} = systemList{i,2}(1:systemList{i,2}.m,str2num(out));
+                 systemList{i,2} = systemList{i,2}(1:size(systemList{i,2}.B,2),str2num(out));
               elseif ~strcmp(out,'all')
-                 systemList{i,2} = systemList{i,2}(1:systemList{i,2}.p,str2num(out));
+                 systemList{i,2} = systemList{i,2}(1:size(systemList{i,2}.C,1),str2num(out));
               end              
            end
         end
@@ -1400,7 +1394,8 @@ function pb_plot_Callback(hObject, eventdata, handles)
         %Frequency/Time-vector
         
         for i = 1:size(systemList,1)
-            if isa(systemList{i,2},'sss') && strcmp(systemList{i,3}.resolution,'manual')
+            if (isa(systemList{i,2},'sss') || isa(systemList{i,2},'ss')) && ... 
+                    strcmp(systemList{i,3}.resolution,'manual')
 
                 data = systemList{i,3};
                 
@@ -1524,6 +1519,14 @@ function pb_plot_Callback(hObject, eventdata, handles)
                        else
                             systemList{i,5} = freqresp(systemList{i,2},struct('frd',1));
                        end
+                   elseif isa(systemList{i,2},'ss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                           frequencyResponse = freqresp(systemList{i,2},systemList{i,6});
+                           systemList{i,5} = frd(frequencyResponse,systemList{i,6},systemList{i,2});
+                       else
+                           [frequencyResponse,omega] = freqresp(systemList{i,2});
+                           systemList{i,5} = frd(frequencyResponse,omega,systemList{i,2});
+                       end
                    else
                        systemList{i,5} = systemList{i,2}; 
                    end
@@ -1624,6 +1627,14 @@ function pb_plot_Callback(hObject, eventdata, handles)
                        else
                             systemList{i,5} = freqresp(systemList{i,2},struct('frd',1));
                        end
+                   elseif isa(systemList{i,2},'ss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                           frequencyResponse = freqresp(systemList{i,2},systemList{i,6});
+                           systemList{i,5} = frd(frequencyResponse,systemList{i,6},systemList{i,2});
+                       else
+                           [frequencyResponse,omega] = freqresp(systemList{i,2});
+                           systemList{i,5} = frd(frequencyResponse,omega,systemList{i,2});
+                       end
                    else
                        systemList{i,5} = systemList{i,2}; 
                    end
@@ -1723,7 +1734,15 @@ function pb_plot_Callback(hObject, eventdata, handles)
                        else
                             systemList{i,5} = freqresp(systemList{i,2},struct('frd',1));
                        end
-                   else
+                   elseif isa(systemList{i,2},'ss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                           frequencyResponse = freqresp(systemList{i,2},systemList{i,6});
+                           systemList{i,5} = frd(frequencyResponse,systemList{i,6},systemList{i,2});
+                       else
+                           [frequencyResponse,omega] = freqresp(systemList{i,2});
+                           systemList{i,5} = frd(frequencyResponse,omega,systemList{i,2});
+                       end
+                   else                 %Frd-object
                        systemList{i,5} = systemList{i,2}; 
                    end
                 end
@@ -2600,69 +2619,7 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     
     set(handles.pu_mor_krylov_s0,'String',listS0InWorkspace);
 
-return
 
-
-% systems from list in workspace
-x = get(handles.syschoice,'String');
-try
-    % system chosen for postprocessing
-    y=x{get(handles.syschoice,'Value')};
-    if ~isempty(y)
-        sys = evalin('base', y);
-        if ~isa(sys, 'sss')
-            errordlg('Variable is not a valid state space model.')            
-        else 
-            set(handles.sysinfo, 'String', sys.disp);
-            if sys.isMimo
-                if get(handles.pu_in,'Value') > sys.m + 1
-                    set(handles.pu_in,'Value', 1)
-                end
-                if get(handles.pu_out,'Value') > sys.p + 1
-                    set(handles.pu_out,'Value', 1)
-                end
-                set(handles.panel_intoout,'Visible','on')
-                in={num2str((1:size(sys.B,2))'),'all'};
-                out={num2str((1:size(sys.C,1))'),'all'};
-                set(handles.pu_in,'String',in)
-                set(handles.pu_out,'String',out)
-            else
-                set(handles.panel_intoout,'Visible','off')
-            end
-        end
-    else
-        set(handles.sysinfo,'String','Please choose system')
-        set(handles.panel_intoout,'Visible','off')
-    end
-catch ex  %#ok<NASGU>
-    set(handles.panel_intoout,'Visible','off')
-    set(handles.sysinfo,'String','')
-end
-
-% system chosen for MOR
-try
-    sys = getSysFromWs(handles.pu_mor_systems);
-    set(handles.st_mor_sysinfo, 'String', sys.disp);
-catch ex
-    if strfind(ex.identifier, 'unassigned')
-        set(handles.st_mor_sysinfo,'String','Please choose a system.')
-        return
-    end
-    set(handles.st_mor_sysinfo,'String','Variable is not a sparse state space model.')
-end
-
-% system chosen for Analysis
-try
-    sys = getSysFromWs(handles.pu_an_sys1);
-    set(handles.tx_an_sys1_sysinfo, 'String', sys.disp);
-catch ex
-    if strfind(ex.identifier, 'unassigned')
-        set(handles.tx_an_sys1_sysinfo,'String','Please choose a system.')
-        return
-    end
-    set(handles.tx_an_sys1_sysinfo,'String','Variable is not a sparse state space model.')
-end
-pu_an_sys1_Callback(handles.pu_an_sys1, eventdata, handles)
 
 function pu_mor_method_Callback(hObject, eventdata, handles)
 % selection of reduction method
