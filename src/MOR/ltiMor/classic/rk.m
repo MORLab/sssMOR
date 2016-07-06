@@ -282,10 +282,19 @@ end
 %   2. Adapt the method "checkParamsStruct" of the class "ssRed" in such a
 %      way that the new defined field passes the check
 Opts.originalOrder = sys.n;
+if ~isfield(Opts,'orth') Opts.orth = '2mgs'; end
+if ~isfield(Opts,'reorth') Opts.reorth = 0; end
+if ~isfield(Opts,'lse') Opts.lse = 'sparse'; end
+if ~isfield(Opts,'dgksTol') Opts.dgksTol = 1e-12; end
+if ~isfield(Opts,'krylov') Opts.krylov = 0; end
+Opts.IP = IP;
+if ~exist('Rt','var') Opts.Rt = []; else Opts.Rt = Rt; end
+if ~exist('Lt','var') Opts.Lt = []; else Opts.Lt = Lt; end
+if ~exist('s0_inp','var') Opts.s0_inp = []; else Opts.s0_inp = s0_inp; end
+if ~exist('s0_out','var') Opts.s0_out = []; else Opts.s0_out = s0_out; end
 
 % Convert to ssRed-object
 sysr = ssRed('rk',Opts,sysr);
-
 
 %% ----------- AUXILIARY --------------
 function s0=s0_vect(s0)

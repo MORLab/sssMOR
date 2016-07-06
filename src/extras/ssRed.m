@@ -28,6 +28,7 @@ classdef ssRed < ss
 %                               ['warn' / 'error' / '0']
 %           -.lse:              solve linear system of equations (only for adi)
 %                               ['gauss' / 'luChol']
+%           -.hsv:              Hankel singular values
 %       -params (modalMor):     structure with the parameters for the
 %                               modalMor-algorithm
 %           -.originalOrder:    Model order before reduction
@@ -56,11 +57,46 @@ classdef ssRed < ss
 %                               ['combAny' / 's0' / 'sysr' / 'combAll']
 %           -.suppressverbose: suppress any type of verbose for speedup;
 %                               [0 / 1]
+%           -.orth:             orthogonalization of new projection direction
+%                               ['2mgs' / 0 / 'dgks' / 'mgs']
+%           -.reorth:           reorthogonalization
+%                               ['gs' / 0 / 'qr']
+%           -.lse:              use LU or hessenberg decomposition
+%                               ['sparse' / 'full' / 'hess']
+%           -.dgksTol:          tolerance for dgks orthogonalization
+%                               [1e-12 / positive float]
+%           -.krylov:           standard or cascaded krylov basis
+%                               [0 / 'cascade]
+%           -.kIter:            number of iterations
+%           -.s0:               final choice of shifts
+%           -.Rt:               final choice of right tangential directions
+%                               for MIMO
+%           -.Lt:               final choice of left tangential directions
+%                               for MIMO
+%           -.s0Traj:           trajectory of all shift
+%           -.RtTraj:           trajectory of right tangential directions
+%           -.LtTraj:           trajectory of left tangential directions
 %       -params (rk):           structure with the parameters for the
 %                               rk-algorithm
 %           -.originalOrder:    Model order before reduction
 %           -.real:             keep the projection matrices real
 %                               [true / false]
+%           -.orth:             orthogonalization of new projection direction
+%                               ['2mgs' / 0 / 'dgks' / 'mgs']
+%           -.reorth:           reorthogonalization
+%                               ['gs' / 0 / 'qr']
+%           -.lse:              use LU or hessenberg decomposition
+%                               ['sparse' / 'full' / 'hess']
+%           -.dgksTol:          tolerance for dgks orthogonalization
+%                               [1e-12 / positive float]
+%           -.krylov:           standard or cascaded krylov basis
+%                               [0 / 'cascade]
+%           -.IP:               inner product
+%           -.s0_inp:           expansion points for input Krylov subspaces
+%           -.s0_out:           expansion points for output Krylov
+%                               subspaces
+%           -.Rt:               right tangential directions for MIMO
+%           -.Lt:               left tangential directions for MIMO
 %       -params (projectiveMor):structure with the parameters for the
 %                               projectiveMor-algorithm
 %           -.originalOrder:    Model order before reduction
@@ -384,20 +420,9 @@ classdef ssRed < ss
                    error('Struct params does not contain the field "warnOrError"!');
                elseif ~isfield(params,'lse')
                    error('Struct params does not contain the field "lse"!');
-               end
-               
-%                if ~(ischar(params.type) && ismember(params.type,{'tbr','adi','matchDcGain'}))
-%                    error('params.type: Wrong value. Type "help ssRed" for more information.');
-%                elseif ~(ischar(params.redErr) && strcmp(params.redErr,'0')) && ...
-%                       ~(isscalar(params.redErr) && params.redErr >= 0)
-%                    error('params.redErr: Wrong value. Type "help ssRed" for more information.');
-%                elseif ~isscalar(params.hsvTol) || params.hsvTol <= 0
-%                    error('params.redErr: Wrong value. Positive float value required!');
-%                elseif ~(ischar(params.warnOrError) && ismember(params.warnOrError,{'warn','error','0'}))
-%                    error('params.warnOrError: Wrong value. Type "help ssRed" for more information.');
-%                elseif ~(ischar(params.lse) && ismember(params.lse,{'gauss','luChol'}))
-%                    error('params.lse: Wrong value. Type "help ssRed" for more information.');
-%                end               
+               elseif ~isfield(params,'hsv')
+                   error('Struct params does not contain the field "hsv"!');
+               end           
             elseif strcmp(method,'modalMor')            %modalMor          
                if ~isfield(params,'type')
                    error('Struct params does not contain the field "type"!');
@@ -410,19 +435,6 @@ classdef ssRed < ss
                elseif ~isfield(params,'dominance')
                    error('Struct params does not contain the field "dominance"!');
                end
-               
-%                if ~isscalar(params.type) && ~(ischar(params.type) && ...
-%                   ismember(params.type,{'SM','LM','SA','LA','SR','LR'}))
-%                    error('params.type: Wrong value. Type "help ssRed" for more information.');
-%                elseif ~(ischar(params.orth) && ismember(params.orth,{'0','qr'}))
-%                    error('params.orth: Wrong value. Type "help ssRed" for more information.');
-%                elseif ~(ischar(params.real) && ismember(params.real,{'real','0'}))
-%                    error('params.real: Wrong value. Type "help ssRed" for more information.');
-%                elseif ~isscalar(params.tol) || params.tol <= 0
-%                    error('params.tol: Wrong value. Positive float value required');
-%                elseif ~(ischar(params.dominance) && ismember(params.dominance,{'0','analyze','2q','3q','4q'}))
-%                    error('params.dominance: Wrong value. Type "help ssRed" for more information.');
-%                end
             elseif strcmp(method,'irka')                %irka
                if ~isfield(params,'maxiter')
                    error('Struct params does not contain the field "maxiter"!');
@@ -436,37 +448,57 @@ classdef ssRed < ss
                    error('Struct params does not contain the field "stopCrit"!');
                elseif ~isfield(params,'suppressverbose')
                    error('Struct params does not contain the field "suppressverbose"!');
-               end
-               
-%                if ~isscalar(params.maxiter) || mod(params.maxiter,1) ~= 0 || ...
-%                   params.maxiter <= 0
-%                    error('params.maxiter: Wrong value. Positive integer value required');
-%                elseif ~isscalar(params.tol) || params.tol <= 0
-%                    error('params.tol: Wrong value. Positive float value required');
-%                elseif ~(ischar(params.type) && ismember(params.type,{'','stab'}))
-%                    error('params.type: Wrong value. Type "help ssRed" for more information.');
-%                elseif params.verbose ~= 0 && params.verbose ~= 1
-%                    error('params.verbose: Wrong value. Value 0 or 1 required');
-%                elseif ~(ischar(params.stopCrit) && ismember(params.stopCrit,{'combAny','s0','sysr','combAll'}))
-%                    error('params.stopCrit: Wrong value. Type "help ssRed" for more information.');
-%                elseif params.suppressverbose ~= 0 && params.suppressverbose ~= 1
-%                    error('params.suppressverbose: Wrong value. Value 0 or 1 required');
-%                end               
+               elseif ~isfield(params,'orth')
+                   error('Struct params does not contain the field "orth"!');
+               elseif ~isfield(params,'lse')
+                   error('Struct params does not contain the field "lse"!');
+               elseif ~isfield(params,'dgksTol')
+                   error('Struct params does not contain the field "dgksTol"!');
+               elseif ~isfield(params,'krylov')
+                   error('Struct params does not contain the field "krylov"!');
+               elseif ~isfield(params,'s0')
+                   error('Struct params does not contain the field "s0"!');
+               elseif ~isfield(params,'Rt')
+                   error('Struct params does not contain the field "Rt"!');
+               elseif ~isfield(params,'Lt')
+                   error('Struct params does not contain the field "Lt"!');
+               elseif ~isfield(params,'kIter')
+                   error('Struct params does not contain the field "kIter"!');
+               elseif ~isfield(params,'s0Traj')
+                   error('Struct params does not contain the field "s0Traj"!');
+               elseif ~isfield(params,'RtTraj')
+                   error('Struct params does not contain the field "RtTraj"!');
+               elseif ~isfield(params,'LtTraj')
+                   error('Struct params does not contain the field "LtTraj"!');
+               end    
             elseif strcmp(method,'rk')                  %rk
                if ~isfield(params,'real')
                    error('Struct params does not contain the field "real"!');
+               elseif ~isfield(params,'orth')
+                   error('Struct params does not contain the field "orth"!');
+               elseif ~isfield(params,'reorth')
+                   error('Struct params does not contain the field "reorth"!');
+               elseif ~isfield(params,'lse')
+                   error('Struct params does not contain the field "lse"!');
+               elseif ~isfield(params,'dgksTol')
+                   error('Struct params does not contain the field "dgksTol"!');
+               elseif ~isfield(params,'krylov')
+                   error('Struct params does not contain the field "krylov"!');
+               elseif ~isfield(params,'IP')
+                   error('Struct params does not contain the field "IP"!');
+               elseif ~isfield(params,'Rt')
+                   error('Struct params does not contain the field "Rt"!');
+               elseif ~isfield(params,'Lt')
+                   error('Struct params does not contain the field "Lt"!');
+               elseif ~isfield(params,'s0_inp')
+                   error('Struct params does not contain the field "s0_inp"!');
+               elseif ~isfield(params,'s0_out')
+                   error('Struct params does not contain the field "s0_out"!');
                end
-               
-%                if params.real ~= 1 && params.real ~= 0
-%                    error('params.verbose: Wrong value. Value 0 or 1 required');
-%                end
             elseif strcmp(method,'projectiveMor')       %projectiveMor
                if ~isfield(params,'trans')
                    error('Struct params does not contain the field "trans"!');
                end
-%                if ~(ischar(params.trans) && ismember(params.trans,{'T','H'})) 
-%                    error('params.trans: Wrong value. Type "help ssRed" for more information.');
-%                end
             elseif strcmp(method,'cure')
                if ~isfield(params,'cure')
                    error('Struct params does not contain the field "cure"!');

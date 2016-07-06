@@ -147,15 +147,14 @@ clear s0old
 % Initialize variables
 sysr = sss([],[],[]);
 
-if nargout > 13
-    s0Traj = zeros(1,r,Opts.maxiter);
-    RtTraj = zeros(sys.m,r,Opts.maxiter);
-    LtTraj = zeros(sys.p,r,Opts.maxiter);
+s0Traj = zeros(1,r,Opts.maxiter);
+RtTraj = zeros(sys.m,r,Opts.maxiter);
+LtTraj = zeros(sys.p,r,Opts.maxiter);
 
-    s0Traj(:,:,1) = s0;
-    RtTraj(:,:,1) = Rt;
-    LtTraj(:,:,1) = Lt;
-end
+s0Traj(:,:,1) = s0;
+RtTraj(:,:,1) = Rt;
+LtTraj(:,:,1) = Lt;
+
 %% IRKA iteration
 kIter=0;
 while true
@@ -186,11 +185,10 @@ while true
         % mirror shifts with negative real part
         s0 = s0.*sign(real(s0));
     end
-    if nargout > 13
-        s0Traj(:,:,kIter+1) = s0;
-        RtTraj(:,:,kIter+1) = Rt; 
-        LtTraj(:,:,kIter+1) = Lt;
-    end
+
+    s0Traj(:,:,kIter+1) = s0;
+    RtTraj(:,:,kIter+1) = Rt; 
+    LtTraj(:,:,kIter+1) = Lt;
     
     [stop, stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts);
     if Opts.verbose
@@ -200,11 +198,9 @@ while true
     if stop || kIter>= Opts.maxiter
         s0 = s0_old; % function return value
         if ~sys.isSiso, Rt = Rt_old; Lt = Lt_old; end
-        if nargout > 13
-            % keep only what has been computed
-            s0Traj = s0Traj(:,:,1:kIter);
-            RtTraj = RtTraj(:,:,1:kIter); LtTraj = LtTraj(:,:,1:kIter);
-        end
+        % keep only what has been computed
+        s0Traj = s0Traj(:,:,1:kIter);
+        RtTraj = RtTraj(:,:,1:kIter); LtTraj = LtTraj(:,:,1:kIter);
         sysr.Name = sprintf('%s_%i_irka',sys.Name, sysr.n);
         break
     end      
@@ -218,6 +214,18 @@ end
 %   2. Adapt the method "checkParamsStruct" of the class "ssRed" in such a
 %      way that the new defined field passes the check
 Opts.originalOrder = sys.n;
+if ~isfield(Opts,'orth') Opts.orth = '2mgs'; end
+if ~isfield(Opts,'reorth') Opts.reorth = 0; end
+if ~isfield(Opts,'lse') Opts.lse = 'sparse'; end
+if ~isfield(Opts,'dgksTol') Opts.dgksTol = 1e-12; end
+if ~isfield(Opts,'krylov') Opts.krylov = 0; end
+Opts.Rt = Rt;
+Opts.Lt = Lt;
+Opts.kIter = kIter;
+Opts.s0Traj = s0Traj;
+Opts.RtTraj = RtTraj;
+Opts.LtTraj = LtTraj;
+Opts.s0 = s0;
 
 % Convert the reduced system to a ssRed-object
 sysr = ssRed('irka',Opts,sysr);

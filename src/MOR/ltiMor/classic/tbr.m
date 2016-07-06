@@ -466,6 +466,7 @@ W = sys.TBal(1:q,:)';
 %   2. Adapt the method "checkParamsStruct" of the class "ssRed" in such a
 %      way that the new defined field passes the check
 Opts.originalOrder = sys.n;
+Opts.hsv = hsv;
 
 switch Opts.type
     case 'tbr'
