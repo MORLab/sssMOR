@@ -3449,11 +3449,16 @@ end
 %Calculate the Hankel-Singular-Values
 
 try 
-    tbr(sys,1);
-    if strcmp(originalClass,'sss')
-        assignin('base', sysname, sys)
+    if isa(sys,'sss') && ~isempty(sys.HankelSingularValues) && ...
+            ~isempty(sys.TBal) && ~isempty(sys.TBalInv)
+        handles = saveHankelSingularValues(sys,sysname,sys.HankelSingularValues,sys.TBal,sys.TBalInv,handles);
+    else    
+        tbr(sys,1);
+        if strcmp(originalClass,'sss')
+            assignin('base', sysname, sys)
+        end
+        handles = saveHankelSingularValues(sys,sysname,sys.HankelSingularValues,sys.TBal,sys.TBalInv,handles);
     end
-    handles = saveHankelSingularValues(sys,sysname,sys.HankelSingularValues,sys.TBal,sys.TBalInv,handles);
 catch ex %***
     if strcmp(ex.identifier,'MATLAB:nomem')
         errordlg('Out of memory. System is too large to calculate Hankel Singular Values.','Error Dialog','modal')
