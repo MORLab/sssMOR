@@ -2452,7 +2452,11 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
 
                if getHankelSingularValues(sys,y,handles)
                    updateTBR(handles.pb_mor_hsv,eventdata,handles);
-               else
+               elseif isa(sys,'sss') && ~isempty(sys.HankelSingularValues) && ...
+                      ~isempty(sys.TBal) && ~isempty(sys.TBalInv)
+                   handles = saveHankelSingularValues(sys,y,sys.HankelSingularValues,sys.TBal,sys.TBalInv,handles);
+                   updateTBR(handles.pb_mor_hsv,eventdata,handles);
+               else                  
                    set(handles.panel_mor_hsv,'Visible','off');
                end 
             catch ex
@@ -2656,6 +2660,10 @@ if get(handles.pu_mor_method,'Value')==1
 
            if getHankelSingularValues(sys,y,handles)
                updateTBR(handles.pb_mor_hsv,eventdata,handles);
+           elseif isa(sys,'sss') && ~isempty(sys.HankelSingularValues) && ...
+                  ~isempty(sys.TBal) && ~isempty(sys.TBalInv)
+               handles = saveHankelSingularValues(sys,y,sys.HankelSingularValues,sys.TBal,sys.TBalInv,handles);
+               updateTBR(handles.pb_mor_hsv,eventdata,handles);   
            else
                set(handles.panel_mor_hsv,'Visible','off');
            end 
