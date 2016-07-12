@@ -385,9 +385,22 @@ end
         % far! Therefore, if two shifts are the same, give an error
         
         if any(diff(sort(s0))==0)
-            error(['Multiplicities in the shifts detected. Tangential '...
-                'matching of higher order moments with block'...
-                'Krylov not implemented (yet)!']);
+            s0=sort(s0);
+            s0(end+1)=NaN;
+            [us0,ia,~]=unique(s0);
+            ns0=diff(ia);
+            s0=s0(1:end-1);
+            us0=us0(1:end-1);
+            
+            Rt=[];
+            
+            for i=1:length(us0)
+                tempRt=[];
+                for j=1:size(B,2)
+                   tempRt=blkdiag(tempRt,ones(1,ns0(i)));
+                end
+                Rt=[Rt,tempRt];
+            end
         end
         
         s0old = s0; nS0=length(s0); s0 = [];
