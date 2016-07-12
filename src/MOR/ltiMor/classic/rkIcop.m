@@ -118,36 +118,41 @@ for i=1:Opts.maxIter
                 sOpt=sOpt';
                 tempLt=[];
                 Rt=[];
-                Lt=zeros(sys.p,sys.m*q);
+                Lt=[];
 
                 for j=1:sys.m
-                   tempLt=blkdiag(tempLt,ones(1,q));
-                   Rt=blkdiag(Rt,ones(1,q*sys.m));
+                   Rt=blkdiag(Rt,ones(1,q*sys.p));
                 end
-
+                
                 for j=1:sys.p
-                    Lt(:,sys.m*q*(j-1)+1:sys.m*q*j)=tempLt;
+                    tempLt=blkdiag(tempLt,ones(1,q));
+                end                    
+
+                for j=1:sys.m
+                    Lt=[Lt,tempLt];
                 end
+                
                 [sysr,V,W] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*q],[sOpt(:)';ones(1,sys.m*sys.p)*q],Rt,Lt);
             case 'input'
                 sOpt=sOpt';
                 Rt=[];
 
                 for j=1:sys.m
-                   Rt=blkdiag(Rt,ones(1,q*sys.m));
+                   Rt=blkdiag(Rt,ones(1,q*sys.p));
                 end
+                
                 [sysr,V,W] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*q],Rt);
             case 'output'
-               sOpt=sOpt';
+                sOpt=sOpt';
                 tempLt=[];
-                Lt=zeros(sys.p,sys.m*q);
+                Lt=[];
+                
+                for j=1:sys.p
+                    tempLt=blkdiag(tempLt,ones(1,q));
+                end                    
 
                 for j=1:sys.m
-                   tempLt=blkdiag(tempLt,ones(1,q));
-                end
-
-                for j=1:sys.p
-                    Lt(:,sys.m*q*(j-1)+1:sys.m*q*j)=tempLt;
+                    Lt=[Lt,tempLt];
                 end
                 [sysr,V,W] = rk(sys,[],[sOpt(:)';ones(1,sys.m*sys.p)*q],[],Lt);
             otherwise

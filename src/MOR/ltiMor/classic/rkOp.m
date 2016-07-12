@@ -110,7 +110,7 @@ elseif isa(varargin{1},'sss') || isa(varargin{1},'ss') % from lyapunov equation
     else
         sys = varargin{1};
     end
-    sOpt=zeros(sys.m,sys.p);
+    sOpt=zeros(sys.p,sys.m);
     if sys.isDescriptor
         A = sys.E\sys.A; 
     else
@@ -146,14 +146,15 @@ end
 
 % return reduced system
 if length(varargin)==2 && ~isa(varargin{1},'double') && isscalar(varargin{2})
+    q=varargin{2};
     if sys.isSiso
         switch(Opts.rk)
             case 'twoSided'
-                [varargout{1},varargout{2},varargout{3}] = rk(sys,[sOpt;varargin{2}],[sOpt;varargin{2}]);
+                [varargout{1},varargout{2},varargout{3}] = rk(sys,[sOpt;q],[sOpt;q]);
             case 'input'
-                [varargout{1},varargout{2},varargout{3}] = rk(sys,[sOpt;varargin{2}]);
+                [varargout{1},varargout{2},varargout{3}] = rk(sys,[sOpt;q]);
             case 'output'
-                [varargout{1},varargout{2},varargout{3}] = rk(sys,[],[sOpt;varargin{2}]);
+                [varargout{1},varargout{2},varargout{3}] = rk(sys,[],[sOpt;q]);
             otherwise
                 error('Wrong Opts.');
         end
@@ -161,17 +162,21 @@ if length(varargin)==2 && ~isa(varargin{1},'double') && isscalar(varargin{2})
         switch(Opts.rk)
             case 'twoSided'
                 sOpt=sOpt';
+                sOpt=sOpt';
                 tempLt=[];
                 Rt=[];
-                Lt=zeros(sys.p,sys.m*varargin{2});
+                Lt=[];
 
-                for i=1:sys.m
-                   tempLt=blkdiag(tempLt,ones(1,varargin{2}));
-                   Rt=blkdiag(Rt,ones(1,varargin{2}*sys.m));
+                for j=1:sys.m
+                   Rt=blkdiag(Rt,ones(1,q*sys.p));
                 end
+                
+                for j=1:sys.p
+                    tempLt=blkdiag(tempLt,ones(1,q));
+                end                    
 
-                for i=1:sys.p
-                    Lt(:,sys.m*varargin{2}*(i-1)+1:sys.m*varargin{2}*i)=tempLt;
+                for j=1:sys.m
+                    Lt=[Lt,tempLt];
                 end
                 
                 [varargout{1},varargout{2},varargout{3}] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*varargin{2}],[sOpt(:)';ones(1,sys.m*sys.p)*varargin{2}],Lt,Lt);
@@ -179,22 +184,22 @@ if length(varargin)==2 && ~isa(varargin{1},'double') && isscalar(varargin{2})
                 sOpt=sOpt';
                 Rt=[];
 
-                for i=1:sys.m
-                   Rt=blkdiag(Rt,ones(1,varargin{2}*sys.m));
+                for j=1:sys.m
+                   Rt=blkdiag(Rt,ones(1,q*sys.p));
                 end
                 
                 [varargout{1},varargout{2},varargout{3}] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*varargin{2}],Rt);
             case 'output'
                 sOpt=sOpt';
                 tempLt=[];
-                Lt=zeros(sys.p,sys.m*varargin{2});
+                Lt=[];
+                
+                for j=1:sys.p
+                    tempLt=blkdiag(tempLt,ones(1,q));
+                end                    
 
-                for i=1:sys.m
-                   tempLt=blkdiag(tempLt,ones(1,varargin{2}));
-                end
-
-                for i=1:sys.p
-                    Lt(:,sys.m*varargin{2}*(i-1)+1:sys.m*varargin{2}*i)=tempLt;
+                for j=1:sys.m
+                    Lt=[Lt,tempLt];
                 end
                 
                 [varargout{1},varargout{2},varargout{3}] = rk(sys,[],[sOpt(:)';ones(1,sys.m*sys.p)*varargin{2}],[],Lt);
