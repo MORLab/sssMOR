@@ -85,6 +85,7 @@ else
     Opts = parseOpts(Opts,Def);
 end
 
+% compute sOpt
 if isa(varargin{1},'double') && length(varargin)==2 && length(varargin{1})==length(varargin{2}) % from impulse response
     h = varargin{1};
     th = varargin{2};
@@ -104,33 +105,46 @@ if isa(varargin{1},'double') && length(varargin)==2 && length(varargin{1})==leng
     end
     
 elseif isa(varargin{1},'sss') || isa(varargin{1},'ss') % from lyapunov equation
-    sys = sss(varargin{1});
+    if isa(varargin{1},'ss')
+    	sys = sss(varargin{1});
+    else
+        sys = varargin{1};
+    end
+    sOpt=zeros(sys.m,sys.p);
     if sys.isDescriptor
         A = sys.E\sys.A; 
-        B = sys.E\sys.B; 
     else
         A = sys.A;
-        B = sys.B;
     end
-    C = sys.C;
+    for i=1:sys.p
+        for j=1:sys.m
+            if sys.isDescriptor
+                B = sys.E\sys.B(:,j);
+            else
+                B = sys.B(:,j);
+            end
+            C = sys.C(i,:);
 
-    try
-        P=lyap(A,B*B');
-        Y=lyap(A,P);
-    catch ex
-        error(['Error during calculation of rkOp: ' ex.message]);
-    end
+            try
+                P=lyap(A,B*B');
+                Y=lyap(A,P);
+            catch ex
+                error(['Error during calculation of rkOp: ' ex.message]);
+            end
 
-    sOpt=sqrt((C*A*Y*A'*C')/(C*Y*C'));
-    if nnz(sOpt<0) || ~isreal(sOpt)
-        warning(['The optimal expansion point is negative or complex.'...
-            'It has been replaced by its absolute value.']);
-        sOpt = abs(sOpt);
+            sOpt(i,j)=sqrt((C*A*Y*A'*C')/(C*Y*C'));
+            if nnz(sOpt(i,j)<0) || ~isreal(sOpt(i,j))
+                warning(['The optimal expansion point is negative or complex.'...
+                    'It has been replaced by its absolute value.']);
+                sOpt(i,j) = abs(sOpt(i,j));
+            end
+        end
     end
 else
     error('Wrong input.');
 end
 
+% return reduced system
 if length(varargin)==2 && ~isa(varargin{1},'double') && isscalar(varargin{2})
     if sys.isSiso
         switch(Opts.rk)
@@ -143,12 +157,50 @@ if length(varargin)==2 && ~isa(varargin{1},'double') && isscalar(varargin{2})
             otherwise
                 error('Wrong Opts.');
         end
-        
-    else
-        varargout{1}=[];
-        varargout{2}=[];
-        varargout{3}=[];
-        warning('sysr is not yet implemented for mimo.');
+    else        
+        switch(Opts.rk)
+            case 'twoSided'
+                sOpt=sOpt';
+                tempLt=[];
+                Rt=[];
+                Lt=zeros(sys.p,sys.m*varargin{2});
+
+                for i=1:sys.m
+                   tempLt=blkdiag(tempLt,ones(1,varargin{2}));
+                   Rt=blkdiag(Rt,ones(1,varargin{2}*sys.m));
+                end
+
+                for i=1:sys.p
+                    Lt(:,sys.m*varargin{2}*(i-1)+1:sys.m*varargin{2}*i)=tempLt;
+                end
+                
+                [varargout{1},varargout{2},varargout{3}] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*varargin{2}],[sOpt(:)';ones(1,sys.m*sys.p)*varargin{2}],Lt,Lt);
+            case 'input'
+                sOpt=sOpt';
+                Rt=[];
+
+                for i=1:sys.m
+                   Rt=blkdiag(Rt,ones(1,varargin{2}*sys.m));
+                end
+                
+                [varargout{1},varargout{2},varargout{3}] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*varargin{2}],Rt);
+            case 'output'
+                sOpt=sOpt';
+                tempLt=[];
+                Lt=zeros(sys.p,sys.m*varargin{2});
+
+                for i=1:sys.m
+                   tempLt=blkdiag(tempLt,ones(1,varargin{2}));
+                end
+
+                for i=1:sys.p
+                    Lt(:,sys.m*varargin{2}*(i-1)+1:sys.m*varargin{2}*i)=tempLt;
+                end
+                
+                [varargout{1},varargout{2},varargout{3}] = rk(sys,[],[sOpt(:)';ones(1,sys.m*sys.p)*varargin{2}],[],Lt);
+            otherwise
+                error('Wrong Opts.');
+        end
     end
     varargout{4}=sOpt;
     

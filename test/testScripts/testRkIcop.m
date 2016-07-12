@@ -5,7 +5,7 @@ classdef testRkIcop < sssTest
             Opts.rk='output';
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
-                if ~sys.isDae && sys.isSiso
+                if ~sys.isDae
                     sOpt1 = rkOp(sys);
                     [~,~,~,sOpt2] = rkIcop(sys,10,30);
                     rkIcop(ss(sys),0.5,12,Opts);

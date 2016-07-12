@@ -88,10 +88,10 @@ else
     Opts = parseOpts(Opts,Def);
 end
 
-sOpt=s0;
 if isa(sys,'ss')
     sys=sss(sys);
 end
+sOpt=s0*ones(sys.p,sys.m);
 
 if q<10
     warning('The results may be unprecise for small q.');
@@ -101,15 +101,58 @@ for i=1:Opts.maxIter
     sOptOld=sOpt;
     
     % calculate reduced system
-    switch(Opts.rk)
-        case 'twoSided'
-            [sysr, V, W] = rk(sys, [sOpt;q], [sOpt;q]);
-        case 'input'
-            [sysr, V, W] = rk(sys, [sOpt;q]);
-        case 'output'
-            [sysr, V, W] = rk(sys, [], [sOpt;q]);
-        otherwise
-            error('Wrong Opts.');
+    if sys.isSiso
+        switch(Opts.rk)
+            case 'twoSided'
+                [sysr, V, W] = rk(sys, [sOpt;q], [sOpt;q]);
+            case 'input'
+                [sysr, V, W] = rk(sys, [sOpt;q]);
+            case 'output'
+                [sysr, V, W] = rk(sys, [], [sOpt;q]);
+            otherwise
+                error('Wrong Opts.');
+        end
+    else
+        switch(Opts.rk)
+            case 'twoSided'
+                sOpt=sOpt';
+                tempLt=[];
+                Rt=[];
+                Lt=zeros(sys.p,sys.m*q);
+
+                for j=1:sys.m
+                   tempLt=blkdiag(tempLt,ones(1,q));
+                   Rt=blkdiag(Rt,ones(1,q*sys.m));
+                end
+
+                for j=1:sys.p
+                    Lt(:,sys.m*q*(j-1)+1:sys.m*q*j)=tempLt;
+                end
+                [sysr,V,W] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*q],[sOpt(:)';ones(1,sys.m*sys.p)*q],Rt,Lt);
+            case 'input'
+                sOpt=sOpt';
+                Rt=[];
+
+                for j=1:sys.m
+                   Rt=blkdiag(Rt,ones(1,q*sys.m));
+                end
+                [sysr,V,W] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*q],Rt);
+            case 'output'
+               sOpt=sOpt';
+                tempLt=[];
+                Lt=zeros(sys.p,sys.m*q);
+
+                for j=1:sys.m
+                   tempLt=blkdiag(tempLt,ones(1,q));
+                end
+
+                for j=1:sys.p
+                    Lt(:,sys.m*q*(j-1)+1:sys.m*q*j)=tempLt;
+                end
+                [sysr,V,W] = rk(sys,[],[sOpt(:)';ones(1,sys.m*sys.p)*q],[],Lt);
+            otherwise
+                error('Wrong Opts.');
+        end
     end
     
     % calculate sOpt
