@@ -389,26 +389,26 @@ end
             s0(end+1)=NaN;
             [us0,ia,~]=unique(s0);
             ns0=diff(ia);
-            s0=s0(1:end-1);
+            as0=s0(1:end-1);
             us0=us0(1:end-1);
             
             Rt=[];
-            
+            s0=[];
             for i=1:length(us0)
                 tempRt=[];
                 for j=1:size(B,2)
                    tempRt=blkdiag(tempRt,ones(1,ns0(i)));
+                   s0=[s0,us0(i)*ones(1,ns0(i))];
                 end
                 Rt=[Rt,tempRt];
             end
+        else
+            s0old = s0; nS0=length(s0); s0 = [];
+            for iShift = 1:nS0
+                s0 = [s0, s0old(iShift)*ones(1,size(B,2))];
+            end
+            Rt = repmat(speye(size(B,2)),1,nS0);
         end
-        
-        s0old = s0; nS0=length(s0); s0 = [];
-        for iShift = 1:nS0
-            s0 = [s0, s0old(iShift)*ones(1,size(B,2))];
-        end
-        Rt = repmat(speye(size(B,2)),1,nS0);
-        
     end
     if hermite
         if size(B,2) ~=size(C,1)
