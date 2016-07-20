@@ -23,8 +23,13 @@ classdef testSolveLse < sssTest
                         (sys.A-4*sys.E)\sys.B,(sys.A-(1+i)*sys.E)\sys.B,...
                         (sys.A-(1-i)*sys.E)\sys.B]);
                     
-                    actSolution={actX1,actX2,actY2,actX3,actX4};
-                    expSolution={expX1,expX2,expY2,expX3,expX4};
+                    % test iterative solver
+                    Opts.lse='iterative';
+                    actX5=solveLse(sys.A,sys.B,sys.E,6,Opts);
+                    expX5=full((sys.A-6*sys.E)\sys.B);
+                    
+                    actSolution={actX1,actX2,actY2,actX3,actX4,actX5};
+                    expSolution={expX1,expX2,expY2,expX3,expX4,expX5};
                     
                 	verification(testCase, actSolution, expSolution);
                 end

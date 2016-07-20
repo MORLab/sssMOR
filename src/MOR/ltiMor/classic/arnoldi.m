@@ -87,11 +87,21 @@ function [V, Sv, Rv, W, Sw, Lw] = arnoldi(E,A,B,varargin)
 %           -.reorth:       reorthogonalization
 %                           [{'gs'} / 0 / 'qr']
 %           -.lse:          use LU or hessenberg decomposition
-%                           [{'sparse'} / 'full' / 'hess']
+%                           [{'sparse'} / 'full' / 'hess' /'iterative']
 %           -.dgksTol:      tolerance for dgks orthogonalization
 %                           [{1e-12} / positive float]
 %           -.krylov:       standard or cascaded krylov basis
 %                           [{'standardKrylov'} / 'cascadedKrylov']
+%           -.maxiterlse:   maximum number of iterations in iterSolve
+%                           [{1e3} / positive integer]
+%           -.tollse:       residual tolerance in iterSolve
+%                           [{1e-6} / positive float]
+%           -.solver:       preferred solver in iterSolve
+%                           [{'cgs'} / 'bicgstab' / 'bicg']
+%           -.verbose:      show warnings?
+%                           [{1} / 0]
+%           -.force:        force solve iteratively when not converging
+%                           [{0} / 1]
 %
 % Output Arguments:
 %       -V:        Orthonormal basis spanning the input Krylov subsp. 

@@ -56,11 +56,21 @@ function [varargout] = solveLse(varargin)
 %           -.reorth:       reorthogonalization
 %                           [{'gs'} / 0 / 'qr']
 %           -.lse:          use LU or hessenberg decomposition
-%                           [{'sparse'} / 'full' / 'hess']
+%                           [{'sparse'} / 'full' / 'hess' / 'iterative']
 %           -.dgksTol:      tolerance for dgks orthogonalization
 %                           [{1e-12} / positive float]
 %           -.krylov:       standard or cascaded krylov basis
 %                           [{0} / 'standardKrylov' / 'cascadedKrylov']
+%           -.maxiterlse:   maximum number of iterations in iterSolve
+%                           [{1e3} / positive integer]
+%           -.tollse:       residual tolerance in iterSolve
+%                           [{1e-6} / positive float]
+%           -.solver:       preferred solver in iterSolve
+%                           [{'cgs'} / 'bicgstab' / 'bicg']
+%           -.verbose:      show warnings?
+%                           [{1} / 0]
+%           -.force:        force solve iteratively when not converging
+%                           [{0} / 1]
 %
 % Output Arguments:
 %       -X:        Lse solution corresp. to B/Orthonormal basis spanning the input Krylov subsp. 
@@ -103,9 +113,15 @@ function [varargout] = solveLse(varargin)
 Def.real = false; %keep the projection matrices real?
 Def.orth = 0; %orthogonalization after every direction {0,'dgks','mgs','2mgs'}
 Def.reorth = 0; %reorthogonaliation at the end {0, 'mgs', 'qr'}
-Def.lse = 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess'}
+Def.lse = 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess','iterative'}
 Def.dgksTol = 1e-12; %orthogonality tolerance: norm(V'*V-I,'fro')<tol
 Def.krylov = 0; %standard or cascaded krylov basis (only for siso) {0,'cascade'}  
+
+Def.solver = 'cgs'; %first iterative solver to try
+Def.maxiterlse = 1000; %maximum number of iterations in iterative solver
+Def.tollse = 1e-6; %residual tolerance in iterSolve 
+Def.verbose = 1; %display warnings when iterative methods fail
+Def.force = 0;  %not converging in iterSolve leads to error (0) or warning (1)
 
 %% parsing of inputs
 if isa(varargin{end},'struct')
@@ -640,48 +656,301 @@ if isinf(s0(jCol)) %Realization problem (match Markov parameters)
         end
     end
 else %Rational Krylov
-    if newlu==0
-        if size(B,2)==1 %SISO
-            tempV=E*tempV;
-            if hermite, tempW = E.'*tempW; end
-        elseif newtan==0
-            % Tangential matching of higher order moments
-            tempV=E*tempV;
-            if hermite, tempW = E.'*tempW; end
+    if ~strcmp(Opts.lse,'iterative') %direct methods
+        if newlu==0
+            if size(B,2)==1 %SISO
+                tempV=E*tempV;
+                if hermite, tempW = E.'*tempW; end
+            elseif newtan==0
+                % Tangential matching of higher order moments
+                tempV=E*tempV;
+                if hermite, tempW = E.'*tempW; end
+            end
         end
-    end
-    if newlu==1
-        if withoutE
-            switch Opts.lse
+        if newlu==1
+            if withoutE
+                switch Opts.lse
+                    case 'sparse'
+                        % vector LU for sparse matrices
+                        [L,U,a,o,S]=lu(A,'vector');
+                    case 'full'
+                        [L,U] = lu(A);
+                end
+            else
+                switch Opts.lse
                 case 'sparse'
                     % vector LU for sparse matrices
-                    [L,U,a,o,S]=lu(A,'vector');
+                    [L,U,a,o,S]=lu(A-s0(jCol)*E,'vector');
                 case 'full'
-                    [L,U] = lu(A);
+                    [L,U] = lu(A-s0(jCol)*E);
+                end
             end
-        else
-            switch Opts.lse
+        end
+        % Solve the linear system of equations
+        switch Opts.lse
             case 'sparse'
-                % vector LU for sparse matrices
-                [L,U,a,o,S]=lu(A-s0(jCol)*E,'vector');
+                tempV(o,:) = U\(L\(S(:,a)\tempV)); %LU x(o,:) = S(:,a)\b 
+                if hermite, tempW = (S(:,a)).'\(L.'\(U.'\(tempW(o,:)))); end %U'L'S(:,a) x = c'(o,:) 
             case 'full'
-                [L,U] = lu(A-s0(jCol)*E);
+                tempV = U\(L\tempV);
+                if hermite, tempW = (L.'\(U.'\(tempW))); end 
+            case 'hess'
+                tempV = (A-s0(jCol)*E)\tempV;
+                if hermite, tempW = (A-s0(jCol)*E).'\tempW; end 
+        end
+    else %iterative methods
+        if withoutE
+            [tempV,flag,method] = iterSolve(A,tempV,newlu,hermite);
+            if Opts.verbose, disp(method); end
+            if hermite
+                [tempW,flag,method] = iterSolve((A).',tempW,0,hermite);
+                if Opts.verbose, disp('entering hermite section'); end
+            end
+        else                
+            if newlu
+                [tempV,flag,method] = iterSolve(A-s0(jCol)*E,tempV,newlu,hermite);
+                if Opts.verbose, disp(method); end
+                if hermite
+                    [tempW,flag,method] = iterSolve((A-s0(jCol)*E).',tempW,0,hermite);
+                    if Opts.verbose, disp('entering hermite section'); end
+                end
+            else
+                [tempV,flag,method] = iterSolve(A-s0(jCol)*E,E*tempV,newlu,hermite);
+                if Opts.verbose, disp(method); end
+                if hermite
+                    [tempW,flag,method] = iterSolve((A-s0(jCol)*E).',E.'*tempW,0,hermite);
+                    if Opts.verbose, disp('entering hermite section'); end
+                end
             end
         end
     end
-    % Solve the linear system of equations
-    switch Opts.lse
-        case 'sparse'
-            tempV(o,:) = U\(L\(S(:,a)\tempV)); %LU x(o,:) = S(:,a)\b 
-            if hermite, tempW = (S(:,a)).'\(L.'\(U.'\(tempW(o,:)))); end %U'L'S(:,a) x = c'(o,:) 
-        case 'full'
-            tempV = U\(L\tempV);
-            if hermite, tempW = (L.'\(U.'\(tempW))); end 
-        case 'hess'
-            tempV = (A-s0(jCol)*E)\tempV;
-            if hermite, tempW = (A-s0(jCol)*E).'\tempW; end 
-    end
 end
+end
+
+function [ x, varargout ] = iterSolve( A, b, newlu, hermite)
+%ITERSOLVE function to solve the linear system A*x=b iteratively
+%   Detailed explanation goes here
+
+persistent first L U sym pd flag method failed nolu solver;   
+
+if isempty(first);
+    first = 1;
+end
+
+if first == 1           % set persistent variables on first call of function
+
+    failed = {};
+
+    if hermite==1 && newlu==0;             % LU factorization for transposed system: A~L*U => A'~U'*L' 
+        if ~isempty(L) && ~isempty(U)      % ilu, not ichol is already computed
+            temp = L;
+            L = U.';
+            U = temp.';
+            clear temp;               
+        end
+
+        if sym==1 && pd==1
+            A = -A;
+            b = -b;
+        end            
+
+    end
+
+
+end
+
+if newlu==1 && first==1            % new L and U required (different s0)
+
+    nolu = 0;        
+    L = [];
+    U = [];
+
+    if isempty(solver)
+        solver = Opts.solver;
+    end
+
+    % check for symmetry and definiteness
+
+    if norm(A-A','fro')/norm(A,'fro') < 1e-10
+        sym = 1;
+    else
+        sym = 0;
+    end
+
+    if ispd(-A)
+        A = -A;
+        b = -b;
+        pd = 1;
+    else
+        pd = 0;
+    end 
+end
+
+first = 0;                   % first round over
+
+solver = selectSolver(solver, failed);
+
+%     analyse = ['maxiterlse: ',num2str(Opts.maxiterlse),', tol: ',num2str(Opts.tollse)];
+%     disp(analyse);
+
+if sym && pd      % pcg
+    if nolu~=1
+        if isempty(L) && isempty(U)
+            try
+                L = ichol(A);
+                [x,flag] = pcg(A,b,Def.tollse,Opts.maxiterlse,L,L.',b);
+                method = 'pcg with ichol';
+            catch 
+                try
+                    [L,U] = ilu(A);
+                    [x,flag] = pcg(A,b,Opts.tollse,Opts.maxiterlse,L,U,b);
+                    method = 'pcg with ilu';
+                catch
+                    [x,flag] = pcg(A,b,Opts.tollse,Opts.maxiterlse,[],[],b);
+                    method = 'cg (no preconditioner)';
+                    nolu = 1;
+                end
+            end
+        elseif isempty(U)   % ichol already available
+            [x,flag] = pcg(A,b,Def.tollse,Opts.maxiterlse,L,L.',b);
+            method = 'pcg with ichol';
+        else                % ilu already available
+            [x,flag] = pcg(A,b,Opts.tollse,Opts.maxiterlse,L,U,b);
+            method = 'pcg with ilu';
+        end
+    else
+        [x,flag] = pcg(A,b,Opts.tollse,Opts.maxiterlse,[],[],b);
+        method = 'cg (no preconditioner)';
+    end
+else
+    switch solver
+        case 'cgs'
+            if nolu ~= 1                          % LU factorization not yet failed
+                if isempty(L) && isempty(U)        % LU factorization not yet computed
+                    try
+                        [L,U] = ilu(A);
+                        method = 'cgs with ilu';
+                    catch
+                        method = 'cgs (no preconditioner)';
+                        nolu = 1;   
+                    end                          
+                else
+                    method = 'cgs with ilu';                       
+                end
+            else
+                method = 'cgs (no preconditioner)';
+            end
+
+            [x,flag] = cgs(A,b,Opts.tollse,Opts.maxiterlse,L,U,b);
+
+            if flag ~= 0
+                failed{length(failed)+1} = 'cgs';
+
+                if Opts.verbose == 1              % print failure
+                    msg = ['cgs did not converge.'];
+                    warning(msg);
+                end
+            end
+
+        case 'bicgstab'
+            if nolu ~= 1                          % LU factorization not yet failed
+                if isempty(L) && isempty(U)        % LU factorization not yet computed
+                    try
+                        [L,U] = ilu(A);
+                        method = 'bicgstab with ilu';
+                    catch
+                        method = 'bicgstab (no preconditioner)';
+                        nolu = 1;   
+                    end                          
+                else
+                    method = 'bicgstab with ilu';                       
+                end
+            else
+                method = 'bicgstab (no preconditioner)';
+            end
+
+            [x,flag] = bicgstab(A,b,Opts.tollse,ceil(Opts.maxiterlse/2),L,U,b);
+
+            if flag ~= 0
+                failed{length(failed)+1} = 'bicgstab';
+                if Opts.verbose == 1              % print failure
+                    msg = ['bicgstab did not converge.'];
+                    warning(msg);
+                end                    
+            end
+
+        case 'bicg'
+            if nolu ~= 1                           % LU factorization not yet failed
+                if isempty(L) && isempty(U)        % LU factorization not yet computed
+                    try
+                        [L,U] = ilu(A);
+                        method = 'bicg with ilu';
+                    catch
+                        method = 'bicg (no preconditioner)';
+                        nolu = 1;   
+                    end                          
+                else
+                    method = 'bicg with ilu';                       
+                end
+            else
+                method = 'bicg (no preconditioner)';
+            end
+
+            [x,flag] = bicg(A,b,Opts.tollse,ceil(Opts.maxiterlse/2),L,U,b);
+
+            if flag ~= 0
+                failed{length(failed)+1} = 'bicg';
+                if Opts.verbose == 1              % print failure
+                    msg = ['bicg did not converge.'];
+                    warning(msg);
+                end                    
+
+            end
+    end
+
+    if flag ~= 0 && length(failed) < 3
+        iterSolve(A,b,newlu,hermite);
+    end
+
+end
+
+first = [];
+
+if(nargout == 2)
+    varargout{1} = flag;
+end 
+
+if(nargout == 3)
+    varargout{1} = flag;
+    varargout{2} = method;
+end
+
+if flag ~= 0 
+    msg = ['Could not achieve desired tolerance (',num2str(Opts.tollse),') within ',num2str(Opts.maxiterlse),' iterations. Results may be inaccurate!'];
+    if Opts.force == 1;
+        warning(msg);
+    else
+        error(msg);
+    end
+    solver = Opts.solver;
+end
+
+end
+
+function [solver] = selectSolver( solver, failed )
+   solvers = {'cgs','bicgstab','bicg'}; 
+   switch length(failed)
+       case 0
+       case 1
+           index = strcmp(failed, solvers);
+           solver = solvers{find(index==0,1)};
+
+       case 2
+           index1 = strcmp(failed{1}, solvers);
+           index2 = strcmp(failed{2}, solvers);
+           solver = solvers{index1==index2};
+   end
+
 end
 
 end
