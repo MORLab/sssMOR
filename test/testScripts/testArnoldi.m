@@ -30,8 +30,9 @@ classdef testArnoldi < sssTest
         function testArnoldi1(testCase)
             %s0=Inf, real, imag (without E-matrix)
             load('building.mat');
-
-            [V] = arnoldi(speye(size(A)),A,B,[Inf, 50, 100, 200, 300, 1-1i, 1+1i]);
+            Opts.lse='hess';
+            
+            [V] = arnoldi(speye(size(A)),A,B,[Inf, 50, 100, 200, 300, 1-1i, 1+1i],Opts);
             actSolution={V};
             
             temp=full(real(B));

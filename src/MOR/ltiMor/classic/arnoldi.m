@@ -245,16 +245,135 @@ if ~exist('Rt', 'var') || isempty(Rt)%   Compute block Krylov subspaces
     s0 = tangentialDirection(s0);
 end
 
-% Compute the Krylov subspaces
-if hermite
-%     [V, Sv, Rv, W, Sw, Lw] = krylovSubspace(s0, q);
-    [V, W, Sv, Rv, Sw, Lw] = solveLse(A,B,C,E,s0,Rt,Lt,IP,Opts);
-    Sw=Sw.';
-else
-    [V, Sv, Rv] = solveLse(A,B,E,s0,Rt,IP,Opts);
+% preallocate memory
+V=zeros(length(B),q);
+Rv=zeros(size(B,2),q);
+Sv=zeros(q);
+if hermite 
+    W = zeros(length(B),q); 
+    Lw = zeros(size(C,1),q);
+    Sw=zeros(q);
 end
 
-%% ------------------ AUXILIARY FUNCTIONS --------------------------
+% Compute hess
+if strcmp(Opts.lse,'hess')
+    [A,E,Q,Z] = hess(full(A),full(E)); B = Q*B; 
+    if hermite
+        C = C*Z; 
+    end
+    Opts.lse='gauss';
+end
+
+% Compute the Krylov subspaces
+for jCol=1:length(s0)
+    if hermite
+        [V, SRsylv, Rsylv, W, SLsylv, Lsylv] = solveLse(jCol, V, W, A, B, C, E, s0, Rt, Lt, IP, Opts);
+    else
+        [V, SRsylv, Rsylv] = solveLse(jCol, V, A, B, E, s0, Rt, IP, Opts);
+    end
+    Sv(:,jCol) = SRsylv;
+    Rv(:,jCol) = Rsylv*Rt(:,jCol);
+    if hermite
+        Sw(jCol,:) = SLsylv.';
+        Lw(:,jCol) = Lsylv*Lt(:,jCol);
+    end
+
+    % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
+    if Opts.real
+        if hermite
+            [V, Sv, Rv, W, Sw, Lw] = realSubspace(jCol, q, s0, V, Sv, Rv, W, Sw, Lw);
+        else
+            [V, Sv, Rv] = realSubspace(jCol, q, s0, V, Sv, Rv);
+        end
+    end
+
+    if Opts.orth
+        if hermite
+            [V, TRv, W, TLw] = gramSchmidt(jCol, V, W);
+        else
+            [V, TRv] = gramSchmidt(jCol, V);
+        end
+        Rv=Rv*TRv;
+        Sv=TRv\Sv*TRv;
+        if hermite
+            Lw=Lw*TLw;
+            Sw=TLw\Sw*TLw;
+        end
+    end
+end
+
+%orthogonalize columns from imaginary components
+if Opts.orth
+    for jCol=length(s0)+1:q
+        if hermite
+            [V, TRv, W, TLw] = gramSchmidt(jCol, V, W);
+        else
+            [V, TRv] = gramSchmidt(jCol, V);
+        end
+        Rv=Rv*TRv;
+        Sv=TRv\Sv*TRv;
+        if hermite
+            Lw=Lw*TLw;
+            Sw=TLw\Sw*TLw;
+        end
+    end
+end
+
+% transform hess back
+if exist('Z','var') && ~isempty(Z)
+    V=Z*V;
+%     Sv=Z*Sv;
+%     Rv=Z*Rv;
+    if hermite
+        W=Q'*W;
+%         Sw=Q'*Sv;
+%         Lw=Q'*Lw;
+    end
+end
+
+% reorthogonalization  
+% Even modified Gram-Schmidt is not able to yield an orthonormal basis
+% if the dimensions are high. Therefore, a reorthogonalization might be
+% needed. On can choose to run modified GS again. From a theoretical 
+% standpoint, this does not change the basis. However,
+% numerically it is necessary to keep the numerics well behaved if the 
+% reduced order is large
+% The QR algorithm is much faster, however it does change the basis
+
+switch Opts.reorth
+    case 'mgs' %reorthogonalized GS
+        Opts.orth='mgs'; %overwrite
+        for jCol = 2:q        
+            if hermite
+                [V, TRv, W, TLw] = gramSchmidt(jCol, V, W);
+            else
+                [V, TRv] = gramSchmidt(jCol, V);
+            end
+            Rv=Rv*TRv;
+            Sv=TRv\Sv*TRv;
+            if hermite
+                Lw=Lw*TLw;
+                Sw=TLw\Sw*TLw;
+            end
+        end
+    case 'qr'
+       [V,Rq] = qr(V); %A=QR -> Q=A*inv(R) with transformation matrix inv(R)
+       V=V(:,1:q);
+       Rq=Rq(1:q,1:q);
+       Rinv=Rq\eye(q);
+       Rv=Rv*Rinv;
+       Sv=Rq*Sv*Rinv;
+       if hermite
+           [W,Rq] = qr(W);
+           W=W(:,1:q);
+           Rq=Rq(1:q,1:q);
+           Lw=Lw*Rinv;
+           Sw=Rq*Sw*Rinv;
+       end  
+    case 0
+    otherwise
+        error('The orthogonalization chosen is incorrect or not implemented')
+end
 
 function [s0] = tangentialDirection(s0)
 %   Update s0 and define Rt for calculation of tangential directions
@@ -329,6 +448,111 @@ if ~isempty(k)
             Lt(:,k) = [];
             Lt = [Lt,Ltc(:,1:2:end)];
         end
+    end
+end
+end
+
+%b) SECONDARY
+function [V, TRv, W, TLw] = gramSchmidt(jCol, V, W)
+%   Gram-Schmidt orthonormalization
+%   Input:  jCol:  Column to be treated
+%           V, W:  Krylov-Subspaces
+%   Output: V, W:  orthonormal basis of Krylov-Subspaces
+%           TRv, TLw: Transformation matrices
+
+TRv=eye(size(V,2));
+TLw=eye(size(V,2));
+if jCol>1
+    switch Opts.orth
+        case 'dgks'
+            % iterates standard gram-schmidt
+            orthError=1;
+            count=0;
+            while(orthError>Opts.dgksTol)
+                h=IP(V(:,1:jCol-1),V(:,jCol));
+                V(:,jCol)=V(:,jCol)-V(:,1:jCol-1)*h;
+                TRv(:,jCol)=TRv(:,jCol)-TRv(:,1:jCol-1)*h;
+                if hermite
+                    h=IP(W(:,1:jCol-1),W(:,jCol));
+                    W(:,jCol)=W(:,jCol)-W(:,1:jCol-1)*h;
+                    TLw(:,jCol)=TLw(:,jCol)-TLw(:,1:jCol-1)*h;
+                end
+                orthError=norm(IP([V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))],...
+                    [V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))])-speye(jCol),'fro');
+                if count>50 % if dgksTol is too small, Matlab can get caught in the while-loop
+                    error('Orthogonalization of the Krylov basis failed due to the given accuracy.');
+                end
+                count=count+1;
+            end
+        case 'mgs'
+            for iCol=1:jCol-1
+              h=IP(V(:,jCol),V(:,iCol));
+              V(:,jCol)=V(:,jCol)-V(:,iCol)*h;
+              TRv(:,jCol)=TRv(:,jCol)-h*TRv(:,iCol);
+              if hermite
+                h=IP(W(:,jCol),W(:,iCol));
+                W(:,jCol)=W(:,jCol)-W(:,iCol)*h;
+                TLw(:,jCol)=TLw(:,jCol)-h*TLw(:,iCol);
+              end 
+            end
+       case '2mgs'
+            for k=0:1
+                for iCol=1:jCol-1
+                  h=IP(V(:,jCol),V(:,iCol));
+                  V(:,jCol)=V(:,jCol)-V(:,iCol)*h;
+                  TRv(:,jCol)=TRv(:,jCol)-h*TRv(:,iCol);
+                  if hermite
+                    h=IP(W(:,jCol),W(:,iCol));
+                    W(:,jCol)=W(:,jCol)-W(:,iCol)*h;
+                    TLw(:,jCol)=TLw(:,jCol)-h*TLw(:,iCol);
+                  end 
+                end
+            end
+        otherwise
+            error('Opts.orth is invalid.');
+    end  
+end
+
+% normalize new basis vector
+h = sqrt(IP(V(:,jCol),V(:,jCol)));
+V(:,jCol)=V(:,jCol)/h;
+TRv(:,jCol) = TRv(:,jCol)/h;
+if hermite
+    h = sqrt(IP(W(:,jCol),W(:,jCol)));
+    W(:,jCol)=W(:,jCol)/h;
+    TLw(:,jCol) = TLw(:,jCol)/h;
+end
+end
+
+function [V, Sv, Rv, W, Sw, Lw] = realSubspace(jCol, q, s0, V, Sv, Rv, W, Sw, Lw)
+%   Split Krylov direction into real and imaginary to create a real 
+%   Krylov subspace
+%   Input:  jCol:  Column to be treated
+%           q:     Reduction order
+%           s0:    Vector containing the expansion points
+%           V, W:  Krylov-Subspaces
+%           Sv, Rsylv, Sw, Lsylv: Sylvester matrices
+%   Output: V, W:  real basis of Krylov-Subspaces
+%           Sv, Rv, Sw, Lw: real Sylvester matrices
+nS0c=q-length(s0);
+if ~isreal(s0(jCol))
+    V(:,jCol+nS0c)=imag(V(:,jCol)); 
+    V(:,jCol)=real(V(:,jCol));
+    Rv(:,jCol+nS0c) = imag(Rv(:,jCol));
+    Rv(:,jCol) = real(Rv(:,jCol));
+    Sv(jCol, jCol+nS0c)=imag(Sv(jCol, jCol));
+    Sv(jCol+nS0c, jCol)=-imag(Sv(jCol, jCol));
+    Sv(jCol+nS0c, jCol+nS0c)=real(Sv(jCol, jCol));
+    Sv(jCol, jCol)=real(Sv(jCol,jCol));
+    if hermite, 
+        W(:,jCol+nS0c)=imag(W(:,jCol));
+        W(:,jCol)=real(W(:,jCol)); 
+        Lw(:,jCol+nS0c) = imag(Lw(:,jCol));
+        Lw(:,jCol) = real(Lw(:,jCol));
+        Sw(jCol, jCol+nS0c)=imag(Sw(jCol, jCol));
+        Sw(jCol+nS0c, jCol)=-imag(Sw(jCol, jCol));
+        Sw(jCol+nS0c, jCol+nS0c)=real(Sw(jCol, jCol));
+        Sw(jCol, jCol)=real(Sw(jCol,jCol));
     end
 end
 end
