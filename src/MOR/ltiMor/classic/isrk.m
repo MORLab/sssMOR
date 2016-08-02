@@ -166,14 +166,14 @@ end
 try
     % R = lyapchol(sys.A,sys.B,sys.E); %P = R'*R;
     if sys.isDescriptor
-        L = lyapchol(sys.A'/sys.E', sys.C'); %Q = L'*L;
+        L = lyapchol(sys.A', sys.C',sys.E'); %Q = L'*L;
     else
         L = lyapchol(sys.A', sys.C'); %Q = L'*L;
     end
 catch ex
     warning(ex.message, 'Error in lyapchol. Trying without Cholesky factorization...')
     if sys.isDescriptor
-        Q = lyap(sys.A'/sys.E',sys.C'*sys.C);
+        Q = lyap(sys.A',sys.C'*sys.C, [], sys.E');
     else
         Q = lyap(sys.A',sys.C'*sys.C);
     end
@@ -195,9 +195,9 @@ while true
     
     %b) Left projection matrix
     if exist('L','var')
-        W = L'*L*V/(V'*(L'*L)*V);
+        W = L'*L*sys.E*V;
     else
-        W = Q*V/(V'*Q*V);
+        W = Q*sys.E*V;
     end
     
     %c) ROM
