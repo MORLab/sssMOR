@@ -2,40 +2,38 @@ function [varargout] = solveLse(varargin)
 % ARNOLDI - Arnoldi algorithm for Krylov subspaces with multiple shifts
 % 
 % Syntax:
-% E,A,V,W,s0,Rt,Lt,Opts
 %       X                                = SOLVELSE(A,B)
 %       [X,Y]                            = SOLVELSE(A,B,C)
-%       X                                = SOLVELSE(A,B,E,s0)
-%       X                                = SOLVELSE(A,B,E,s0,Rt)
-%       [X,Sx,Rx]                        = SOLVELSE(A,B,E,s0)
+%       [X,Y,Sx,Rx,Sy,Ly]                = SOLVELSE(A,B,E,s0)
 %       [X,Sx,Rx]                        = SOLVELSE(A,B,E,s0,Rt)
-%       [X,Y]                            = SOLVELSE(A,B,C,E,s0)
-%       [X,Y,Sx,Rx,Sy,Ly]                = SOLVELSE(A,B,C,E,s0)
-%       [X,Y]                            = SOLVELSE(A,B,C,E,s0,Rt,Lt)
 %       [X,Y,Sx,Rx,Sy,Lx]                = SOLVELSE(A,B,C,E,s0,Rt,Lt)
-%       [X, Sxj, Rxj]                    = SOLVELSE(jCol,X,A,B,E,s0)
-%       [X, Sxj, Rxj]                    = SOLVELSE(jCol,X,A,B,E,s0,Rt,Lt)
-%       [X, Sxj, Rxj, Y, Syj, Lyj]       = SOLVELSE(jCol,X,Y,A,B,C,E,s0)
-%       [X, Sxj, Rxj, Y, Syj, Lyj]       = SOLVELSE(jCol,X,Y,A,B,C,E,s0,Rt,Lt)
-%       [X,Y,Sx,Rx,Sy,Lx]                = SOLVELSE(A,B,C,E,s0,...,IP,Opts)
+%       [X,Sxj,Rxj]                      = SOLVELSE(jCol,X,A,B,E,s0,Rt)
+%       [X,Y,Sxj,Rxj,Syj,Lyj]            = SOLVELSE(jCol,X,Y,A,B,C,E,s0,Rt,Lt)
+%       [X,Y,Sx,Rx,Sy,Lx]                = SOLVELSE(sys)
+%       [X,Y,Sx,Rx,Sy,Lx]                = SOLVELSE(sys,s0)
+%       [X,Y,Sx,Rx,Sy,Lx]                = SOLVELSE(sys,s0,Rt,Lt)
+%       [X,Y,Sx,Rx,Sy,Lx]                = SOLVELSE(A,B,C,E,s0,...,Opts)
 % 
 % Description:
 %       This function solves linear systems of equations X=(A-s0*E)\B 
 %       corresponding to shifts s0. The order of the shifts is crucial for
 %       reusing already computed factorizations, so it is recommended to 
-%       sort the shifts in advance. If the matrix E is empty or not 
-%       specified, X=A\B is computed. If s0 is Inf, then the Markov 
-%       parameter X=(A-s0*E)*B is computed. If Opts.krylov is set, a Krylov
-%       subspace [1-3] is created from the solutions.
+%       sort the shifts in advance. If the output matrix C is passed in 
+%       addition, then SOLVELSE computes the solutions X=(A-s0*E)\B and 
+%       Y=C/(A-s0*E).'.
 %
-%       In addition, if the output matrix C is passed, then SOLVELSE
-%       computes the solutions X=(A-s0*E)\B and Y=C/(A-s0*E)'. If
-%       Opts.krylov is specified, this means that input and output Krylov 
-%       subspaces corresponding to the same shifts are computed. Optionally
-%       this function computes the Sylvester matrices and orthogonalizes 
-%       the Krylov subspaces [4,5]. The orthogonalization is conducted with 
-%       respect to the inner product defined in IP. For more details, 
-%       please refer to arnoldi.
+%       If the matrix E is empty or not specified, X=A\B is computed. If s0
+%       is Inf, then the Markov parameter X=(A-s0*E)*B is computed. 
+%
+%       If a system (ss, sss or ssRed) is passed to the function, 
+%       X=(A-s0*E)\B is computed if shifts s0 are specified, and X=(A-E)\B 
+%       otherwise.
+%
+%       If Opts.krylov is set, a Krylov subspace [1-3] is created from the 
+%       solutions. If C is specified, this means that input and output  
+%       Krylov subspaces corresponding to the same shifts are computed. 
+%       Optionally this function computes the Sylvester matrices Sv, Rv, Sy
+%       and Ly. For more details, please refer to arnoldi.
 % 
 %       In case of MIMO models, matrices of tangential directions Rt 
 %       (and Lt) have to be defined. They must have the same number of 
@@ -46,12 +44,11 @@ function [varargout] = solveLse(varargin)
 % Input Arguments:
 %       *Required Input Arguments:*
 %       -A/B:  System matrices or right/left side matrices
-%
+%       -sys:  an ss/sss/ssRed-object containing the LTI system
 %       *Optional Input Arguments:*
 %       -s0:                Vector of complex conjuate expansion points
 %       -E/C:               System matrices
 %       -Rt,Lt:             Matrix of right/left tangential directions
-%       -IP:                function handle for inner product
 %       -X/Y:               Matrix containing lse solutions for jCol-1
 %       -Opts:              a structure containing following options
 %           -.lse:          use LU or hessenberg decomposition
@@ -90,8 +87,6 @@ function [varargout] = solveLse(varargin)
 %       * *[1] Grimme (1997)*, Krylov projection methods for model reduction
 %       * *[2] Antoulas (2005)*, Approximation of large-scale dynamical systems
 %       * *[3] Antoulas (2010)*, Interpolatory model reduction of large-scale...
-%       * *[4] Giraud (2005)*, The loss of orthogonality in the Gram-Schmidt... 
-%       * *[5] Daniel (1976)*, Reorthogonalization and stable algorithms...
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
@@ -113,8 +108,6 @@ function [varargout] = solveLse(varargin)
 % Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
-persistent isHess A E P Q Z
-
 Def.lse = 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess','iterative', 'gauss'}
 Def.dgksTol = 1e-12; %orthogonality tolerance: norm(V'*V-I,'fro')<tol
 Def.krylov = 0; %standard or cascaded krylov basis (only for siso) {0,'cascade'}  
@@ -131,11 +124,6 @@ if isa(varargin{end},'struct')
     varargin=varargin(1:end-1);
 end
 
-if isa(varargin{end},'function_handle')
-    IP=varargin{end};
-    varargin=varargin(1:end-1);
-end
-
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
     Opts = Def;
@@ -143,22 +131,35 @@ else
     Opts = parseOpts(Opts,Def);
 end  
 
-if length(varargin)>1
-    if isscalar(varargin{1})
-        if(length(varargin)<6)
-            error('Too few inputs.');
-        end
-        jCol=varargin{1};
-        V=varargin{2};
-        if size(varargin{3},1)==size(V,1) && size(varargin{3},2)==size(V,2)
-            W=varargin{3};
-            varargin=varargin(4:end); 
-        else
-            varargin=varargin(3:end); 
-        end
-        
+% input of sys
+if isa(varargin{1},'sss') || isa(varargin{1},'ss') || isa(varargin{1},'ssRed')
+    sys=varargin{1};
+    if isa(sys,'ssRed')
+        Opts.lse='hess';
     end
-    
+    A=sys.A;
+    B=sys.B;
+    C=sys.C;
+    E=sys.E;
+    if nargout==1 || nargout==3
+        hermite=false;
+    else
+        hermite=true;
+    end
+    if length(varargin)>1
+        s0=varargin{2};
+        if length(varargin)==3
+            Rt=varargin{3};
+            hermite=false;
+        elseif length(varargin)==4
+            Rt=varargin{3};
+            Lt=varargin{4};
+            hermite=true;
+        end
+    end
+
+elseif length(varargin)>1    
+    % input of matrices
     A=varargin{1};
     B=varargin{2};
 
@@ -166,42 +167,101 @@ if length(varargin)>1
         case 2
             hermite=false;
         case 3
-            if size(varargin{3},1)==size(A,1) && size(varargin{3},2)==size(A,2)
+            if ~isscalar(varargin{1}) && size(varargin{3},1)==size(A,1) && size(varargin{3},2)==size(A,2)
                 error('Please specify s0.');
             else
                 C=varargin{3};
                 hermite=true;
             end
         case 4
-            if size(varargin{3},1)==size(A,1) && size(varargin{3},2)==size(A,2)
+            if size(varargin{3},1)==size(A,1) && size(varargin{3},2)==size(A,2) && (nargout==1 || nargout==3)
                 E=varargin{3};
                 s0=varargin{4};
                 hermite=false;
-            else
+            elseif size(varargin{4},1)==size(A,1) && size(varargin{4},2)==size(A,2) && (nargout==2 || nargout >3)
                 C=varargin{3};
                 E=varargin{4};
                 s0=1;
                 hermite=true;
+            else
+                error('Wrong input');
             end
         case 5
-            if size(varargin{3},1)==size(A,1) && size(varargin{3},2)==size(A,2)
+            if size(varargin{3},1)==size(A,1) && size(varargin{3},2)==size(A,2) && (nargout==1 || nargout==3)
                 E=varargin{3};
                 s0=varargin{4};
                 Rt=varargin{5};
                 hermite=false;
-            else
+            elseif size(varargin{4},1)==size(A,1) && size(varargin{4},2)==size(A,2) && (nargout==2 || nargout >3)
                 C=varargin{3};
                 E=varargin{4};
                 s0=varargin{5};
                 hermite=true;
+            else
+                error('Wrong input');
+            end
+        case 6 
+            if isscalar(varargin{1}) 
+                jCol=varargin{1};
+                V=varargin{2};
+                A=varargin{3};
+                B=varargin{4};
+                E=varargin{5};
+                s0=varargin{6};
+                hermite=false;
+            else
+                error('Wrong input');
             end
         case 7
-            C=varargin{3};
-            E=varargin{4};
-            s0=varargin{5};
-            Rt=varargin{6};
-            Lt=varargin{7};
-            hermite=true;
+           if isscalar(varargin{1}) && (nargout==1  || nargout==3)
+                jCol=varargin{1};
+                V=varargin{2};
+                A=varargin{3};
+                B=varargin{4};
+                E=varargin{5};
+                s0=varargin{6};
+                Rt=varargin{7};
+                hermite=false;
+           elseif nargout==2 || nargout>3
+                C=varargin{3};
+                E=varargin{4};
+                s0=varargin{5};
+                Rt=varargin{6};
+                Lt=varargin{7};
+                hermite=true;
+           else
+                error('Wrong input.');
+           end
+        case 8 
+            if isscalar(varargin{1})
+                jCol=varargin{1};
+                V=varargin{2};
+                W=varargin{3};
+                A=varargin{4};
+                B=varargin{5};
+                C=varargin{6};
+                E=varargin{7};
+                s0=varargin{8};
+                hermite=true;
+            else
+                error('Wrong input');
+            end
+        case 10
+            if isscalar(varargin{1})
+                jCol=varargin{1};
+                V=varargin{2};
+                W=varargin{3};
+                A=varargin{4};
+                B=varargin{5};
+                C=varargin{6};
+                E=varargin{7};
+                s0=varargin{8};
+                Rt=varargin{9};
+                Lt=varargin{10};
+                hermite=true;
+            else
+                error('Wrong input');
+            end
         otherwise
             error('Wrong inputs');
     end
@@ -218,10 +278,6 @@ else
     withoutE=false;
 end
 
-if ~exist('IP', 'var') 
-   IP=@(x,y) (x'*y); %seems to be better conditioned that E norm
-end
-
 if ~exist('Rt','var')
     if size(B,2)==1 %siso
         Rt=ones(1,length(s0));
@@ -233,12 +289,6 @@ if ~exist('Rt','var')
     end
 end
 
-if (~exist('isHess','var') || isempty(isHess)...
-    || (strcmp(Opts.lse,'hess') && withoutE && isempty(P))...
-    || (strcmp(Opts.lse,'hess') && ~withoutE && (isempty(Q) || isempty(Z))))
-    isHess=false;
-end
-
 if exist('jCol','var') && ~isempty(jCol) && strcmp(Opts.lse,'hess')
     error('jCol and Opts.lse=hess are not compatible');
 end
@@ -247,18 +297,16 @@ end
 if withoutE
     if strcmp(Opts.lse,'full')
         A = full(A);
-    elseif strcmp(Opts.lse,'hess') && isHess==false;
-        [P,A] = hess(full(A)); B = P'*B; if hermite, C = C*P; end
-        isHess=true;
+    elseif strcmp(Opts.lse,'hess')
+        [P,A] = hess(full(A)); B = P.'*B; if hermite, C = C*P; end
     elseif strcmp(Opts.lse,'sparse')
         A=sparse(A);
     end
 else
     if strcmp(Opts.lse,'full')
         E = full(E); A = full(A);
-    elseif strcmp(Opts.lse,'hess') && isHess==false
+    elseif strcmp(Opts.lse,'hess')
         [A,E,Q,Z] = hess(full(A),full(E)); B = Q*B; if hermite, C = C*Z; end
-        isHess=true;
     elseif strcmp(Opts.lse,'sparse')
         E = sparse(E); A=sparse(A);
     end
@@ -287,7 +335,7 @@ if exist('jCol','var') && ~isempty(jCol)
     end
     
     if jCol==length(s0)
-        clear A E P Q Z isHess R S L U a o first sym pd flag method failed nolu solver
+        clear R S L U a o first sym pd flag method failed nolu solver
     end
 else
     % preallocate memory
@@ -318,21 +366,13 @@ else
     if strcmp(Opts.lse,'hess')
         if withoutE
             V=P*V;
-%             Sv=P*Sv;
-%             Rv=P*Rv;
             if hermite
                 W=P*W;
-%                 Sw=P*Sv;
-%                 Lw=P*Lw;
             end
         else
             V=Z*V;
-%             Sv=Z*Sv;
-%             Rv=Z*Rv;
             if hermite
-                W=Q'*W;
-%                 Sw=Q'*Sv;
-%                 Lw=Q'*Lw;
+                W=Q.'*W;
             end
         end
     end
@@ -350,7 +390,7 @@ else
         varargout{2}=Sv;
         varargout{3}=Rv;
     end
-    clear A E P Q Z isHess R S L U a o first sym pd flag method failed nolu solver
+    clear R S L U a o first sym pd flag method failed nolu solver
 end
 
 function [V, SRsylv, Rsylv, W, SLsylv, Lsylv] = nextDirection(jCol, s0, V, W)  

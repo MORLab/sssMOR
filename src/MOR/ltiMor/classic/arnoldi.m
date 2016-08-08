@@ -267,10 +267,11 @@ end
 % Compute the Krylov subspaces
 for jCol=1:length(s0)
     if hermite
-        [V, SRsylv, Rsylv, W, SLsylv, Lsylv] = solveLse(jCol, V, W, A, B, C, E, s0, Rt, Lt, IP, Opts);
+        [V, W, SRsylv, Rsylv, SLsylv, Lsylv] = solveLse(jCol, V, W, A, B, C, E, s0, Rt, Lt, Opts);
     else
-        [V, SRsylv, Rsylv] = solveLse(jCol, V, A, B, E, s0, Rt, IP, Opts);
+        [V, SRsylv, Rsylv] = solveLse(jCol, V, A, B, E, s0, Rt, Opts);
     end
+    
     Sv(:,jCol) = SRsylv;
     Rv(:,jCol) = Rsylv*Rt(:,jCol);
     if hermite
@@ -322,12 +323,8 @@ end
 % transform hess back
 if exist('Z','var') && ~isempty(Z)
     V=Z*V;
-%     Sv=Z*Sv;
-%     Rv=Z*Rv;
     if hermite
-        W=Q'*W;
-%         Sw=Q'*Sv;
-%         Lw=Q'*Lw;
+        W=Q.'*W;
     end
 end
 
