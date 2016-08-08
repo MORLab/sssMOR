@@ -177,6 +177,136 @@ classdef testTbr < sssTest
                 end
             end
         end
+        function testLyapchol(testCase)
+            Opts.lse='gauss';
+            Opts.hsvTol=1e-15;
+            Opts.type='adi';
+            Opts.warnOrError='warn';
+            q=10;
+            
+            for k=1:length(testCase.sysCell)
+                sys=testCase.sysCell{k};
+                if ~sys.isDae && sys.n>100
+                    % eqn struct: system data
+                    eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'type','N','haveE',sys.isDescriptor);
+
+                    % opts struct: mess options
+                    messOpts.adi=struct('shifts',struct('l0',20,'kp',50,'km',25,'b0',ones(sys.n,1),...
+                        'info',0),'maxiter',300,'restol',0,'rctol',1e-12,...
+                        'info',0,'norm','fro');
+
+                    % user functions: default
+                    if strcmp(Opts.lse,'gauss')
+                        oper = operatormanager('default');
+                    elseif strcmp(Opts.lse,'luChol')
+                        if sys.isSym
+                            oper = operatormanager('chol');
+                        else
+                            oper = operatormanager('lu');
+                        end
+                    end
+
+                    if exist('q','var') %size of cholesky factor [sys.n x q] -> qmax=q
+                        messOpts.adi.maxiter=q;
+                        messOpts.adi.restol=0;
+                        messOpts.adi.rctol=1e-30;
+                    end
+
+                    % get adi shifts
+                    [messOpts.adi.shifts.p, eqn]=mess_para(eqn,messOpts,oper);
+
+                    % low rank adi
+                    [R,Rout,eqn]=mess_lradi(eqn,messOpts,oper);
+
+                    if sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0
+                        L=R;
+                    else
+                        eqn.type='T';
+                        [L,Lout,eqn]=mess_lradi(eqn,messOpts,oper);
+                    end
+
+                    qmax=min([size(R,2),size(L,2)]); %make sure R and L have the same size
+                    R=R(:,1:qmax);
+                    L=L(:,1:qmax);
+
+                    if exist('q','var') % warn user if rctol is satisfied before q_user
+                        qminR=q;
+                        qminL=q;
+                        nStop=0;
+
+                        % rctol is satisfied if rc<tol for 10 times consecutively
+                        for i=1:length(Rout.rc)
+                            if Rout.rc(i)<1e-9
+                                nStop=nStop+1;
+                            else
+                                nStop=0;
+                            end
+                            if nStop==10
+                                qminR=i;
+                                break
+                            end
+                        end
+
+                        if ~(sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0) && qminR<q
+                            qminL=q;
+                            nStop=0;
+                            for i=1:length(Lout.rc)
+                                if Lout.rc(i)<1e-9
+                                    nStop=nStop+1;
+                                else
+                                    nStop=0;
+                                end
+                                if nStop==10
+                                    qminL=i;
+                                    break
+                                end
+                            end
+                        elseif sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0
+                            qminL=qminR;
+                        end
+                        q_min_in=max(qminR,qminL);
+
+                        if q_min_in>0 && q_min_in < q && strcmp(Opts.warnOrError,'warn')
+                            warning(['After q=', num2str(q_min_in,'%d'),...
+                            ' the contribution of the ADI iterates was very small. Consider reducing the desired order accordingly.']);
+                        end
+                    end
+
+                    % calculate balancing transformation and Hankel Singular Values
+                    [K,S,M]=svd(full(L'*R));
+                    expHsv = real(diag(S));
+                    expTBalInv = R*M/diag(sqrt(expHsv));
+                    expTBal = diag(sqrt(expHsv))\K'*L'/eqn.E_;
+
+                    expV = expTBalInv(:,1:q);
+                    expW = expTBal(1:q,:)';
+
+                    expSysr=sss(expW'*sys.A*expV,expW'*sys.B,sys.C*expV,sys.D,expW'*sys.E*expV);
+
+                    lyapOpts.type='adi';
+                    lyapOpts.q=10;
+                    [R,L]=lyapchol(sys,lyapOpts);
+
+
+                    % calculate balancing transformation and Hankel Singular Values
+                    [K,S,M]=svd(full(R*L'));
+                    actHsv = real(diag(S));
+                    actTBalInv = R'*K/diag(sqrt(actHsv));
+                    actTBal = diag(sqrt(actHsv))\M'*L/sys.E;
+
+                    actV = actTBalInv(:,1:q);
+                    actW = actTBal(1:q,:)';
+
+                    actSysr=sss(actW'*sys.A*actV,actW'*sys.B,sys.C*actV,sys.D, actW'*sys.E*actV);
+
+                    expSolution={expHsv, abs(expTBal), abs(expTBalInv), cplxpair(eig(full(expSysr.A)))};
+                    actSolution={actHsv, abs(actTBal), abs(actTBalInv), cplxpair(eig(full(actSysr.A)))};
+
+                    verifyEqual(testCase, expSolution, actSolution,'RelTol',0.3,...
+                         'Difference between actual and expected exceeds relative tolerance');
+                end
+            end
+        end
     end
 end
 
