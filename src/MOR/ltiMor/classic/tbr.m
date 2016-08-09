@@ -161,7 +161,7 @@ if strcmp(Opts.type,'adi')
     lyapOpts.type='adi';
     lyapOpts.lse=Opts.lse;
     lyapOpts.rctol=1e-9;
-    if exists('q','var')
+    if exist('q','var')
         lyapOpts.q=q;
     end
     [R,L]=lyapchol(sys,lyapOpts);
@@ -181,7 +181,7 @@ end
 hsv = diag(S);
 sys.HankelSingularValues = real(hsv);
 sys.TBalInv = R'*K/diag(sqrt(hsv));
-sys.TBal = diag(sqrt(hsv))\M'*L/sys.E;
+sys.TBal = diag(sqrt(hsv))\M'*solveLse(L,sys.E);
 
 % determine reduction order
 if exist('q','var') || Opts.redErr>0
@@ -311,27 +311,30 @@ switch Opts.type
             end
         end
 
-        ARed=A11-A12/A22*A21;
-        BRed=B1-A12/A22*B2; 
+        lse0=solveLse(A12,A22);
+        ARed=A11-lse0*A21;
+        BRed=B1-lse0*B2; 
 
         if sys.isDescriptor
             EBal=W'*sys.E*V;
             E11=EBal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
             E21=EBal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
-            ERed=E11-A12/A22*E21;
-            CRed=C1-C2/A22*A21+C2*A22*E21/ERed*ARed;
-            DRed=sys.D-C2/A22*B2+C2/A22*E21/ERed*BRed;
+            ERed=E11-solveLse(A12,A22)*E21;
+            lse1=solveLse(C2,A22);
+            lse2=solveLse(E21,ERed);
+            CRed=C1-lse1*A21+C2*A22*lse2*ARed;
+            DRed=sys.D-lse1*B2+lse1*lse2*BRed;
             sysr = sss(ARed, BRed, CRed, DRed, ERed);
         else % Er=I
-            CRed=C1-C2/A22*A21;
-            DRed=sys.D-C2/A22*B2;
+            CRed=C1-solveLse(C2,A22)*A21;
+            DRed=sys.D-solveLse(C2,A22)*B2;
             sysr = sss(ARed, BRed, CRed, DRed);
         end
         
         warning('on','MATLAB:nearlySingularMatrix');
     
     case 'adi'
-          sysr = sss(W'*eqn.A_*V, W'*eqn.B, eqn.C*V, sys.D, W'*eqn.E_*V);
+          sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
 end
 
 %   Rename ROM

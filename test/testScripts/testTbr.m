@@ -299,8 +299,8 @@ classdef testTbr < sssTest
 
                     actSysr=sss(actW'*sys.A*actV,actW'*sys.B,sys.C*actV,sys.D, actW'*sys.E*actV);
 
-                    expSolution={expHsv, abs(expTBal), abs(expTBalInv), cplxpair(eig(full(expSysr.A)))};
-                    actSolution={actHsv, abs(actTBal), abs(actTBalInv), cplxpair(eig(full(actSysr.A)))};
+                    expSolution={expHsv, abs(expTBal), abs(expTBalInv), cplxpair(eig(full(expSysr.A),full(expSysr.E)))};
+                    actSolution={actHsv, abs(actTBal), abs(actTBalInv), cplxpair(eig(full(actSysr.A),full(actSysr.E)))};
 
                     verifyEqual(testCase, expSolution, actSolution,'RelTol',0.3,...
                          'Difference between actual and expected exceeds relative tolerance');
