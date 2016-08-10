@@ -800,7 +800,7 @@ function pb_PaV_moveObjects_Callback(hObject, eventdata, handles)
     lb_PaV_selectedSystems_Callback(handles.lb_PaV_selectedSystems,eventdata,handles);
     
 function pb_PaV_refeshObjects_Callback(hObject, eventdata, handles)
-%Refresh the list of data-objects (frd, fir, etc.) existing in workspace
+%Refresh the list of data-objects (frd, tf, etc.) existing in workspace
 
     %Get all objects existing in workspace
     
@@ -812,12 +812,12 @@ function pb_PaV_refeshObjects_Callback(hObject, eventdata, handles)
             class = 'frd';
         case 3      %Singular Values
             class = 'frd';
-        case 4      %Pole-Zero-Map
-            class = 'pzm';
-        case 5      %Impulse
-            class = 'fir';
-        case 6      %Step
-            class = 'fir';
+        case 4      %Impulse
+            class = 'tf';
+        case 5      %Step
+            class = 'tf';
+        case 6      %Pole-Zero-Map
+            class = 'zpk';
     end
     
     l = listClassesInWorkspace(class);
@@ -1130,7 +1130,7 @@ function lb_PaV_systemsWs_Callback(hObject, eventdata, handles)
 
 function plot_type_Callback(hObject, eventdata, handles)
 
-if get(hObject,'Value')==4
+if get(hObject,'Value')==6
     % pzmap
     set(handles.rb_auto,'Value',1)
     set(handles.rb_auto,'Enable','inactive')
@@ -1149,47 +1149,30 @@ list = get(handles.lb_PaV_selectedSystems,'String');
 switch get(handles.plot_type,'Value')
     
     case 1      %Bode
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'pzm');
-        list = removeObjectsFromList(list,'freq');
-        
+        list = removeObjectsFromList(list,'tf');
+        list = removeObjectsFromList(list,'zpk');
         set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
     case 2      %Magnitude
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'pzm');
-        
+        list = removeObjectsFromList(list,'tf');
+        list = removeObjectsFromList(list,'zpk');
         set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
     case 3      %Singular Values
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'pzm');
-        
+        list = removeObjectsFromList(list,'tf');
+        list = removeObjectsFromList(list,'zpk');
         set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
     case 4      %Impulse
         list = removeObjectsFromList(list,'frd');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'pzm');
-        list = removeObjectsFromList(list,'freq');
-        
-        set(handles.panel_PaV_objectsWs,'Title','Fir-objects');
+        list = removeObjectsFromList(list,'zpk');
+        set(handles.panel_PaV_objectsWs,'Title','Tf-objects');
     case 5      %Step
-        list = removeObjectsFromList(list,'fir');
         list = removeObjectsFromList(list,'frd');
-        list = removeObjectsFromList(list,'pzm');
-        list = removeObjectsFromList(list,'freq');
-        
-        set(handles.panel_PaV_objectsWs,'Title','Fir-objects');
+        list = removeObjectsFromList(list,'zpk');
+        set(handles.panel_PaV_objectsWs,'Title','Tf-objects');
     case 6      %Pole-Zero Map
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
         list = removeObjectsFromList(list,'frd');
-        list = removeObjectsFromList(list,'freq');
+        list = removeObjectsFromList(list,'tf');
         
-        set(handles.panel_PaV_objectsWs,'Title','Pzm-objects');
+        set(handles.panel_PaV_objectsWs,'Title','Zpk-objects');
 
 end
 
@@ -1373,9 +1356,9 @@ function pb_plot_Callback(hObject, eventdata, handles)
             systemList{i,1} = sysname;
             systemList{i,2} = sys;
             
-            for j = i:length(handles.plotData)
-               if strcmp(handles.plotData{i,1}.name,sysname)
-                  systemList{i,3} = handles.plotData{i,1};
+            for j = 1:length(handles.plotData)
+               if strcmp(handles.plotData{j,1}.name,sysname)
+                  systemList{i,3} = handles.plotData{j,1};
                   break; 
                end
             end
@@ -1412,7 +1395,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 minimum=str2num(data.min);
                 maximum=str2num(data.max);
                 steps=data.steps;
-                if strcmp(data.resolution,'linear')
+                if strcmp(data.distribution,'linear')
                     frequency=linspace(minimum,maximum,steps);
                 else
                     if minimum <= 0
@@ -1816,11 +1799,98 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 set(figureHandles,'Name','Impulse Response');
                 
                 for i = 1:size(systemList,1)
-                   if get(handles.rb_auto,'Value')==0
-                       systemList{i,5} = impulse(systemList{i,2},frequency);
+                    if isa(systemList{i,2},'sss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                            systemList{i,5} = step(systemList{i,2},systemList{i,6},struct('tf',1));
+                       else
+                            systemList{i,5} = step(systemList{i,2},struct('tf',1));
+                       end
                    else
-                       systemList{i,5} = impulse(systemList{i,2});
-                   end
+                       systemList{i,5} = systemList{i,2}; 
+                    end
+                end
+                
+                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+                    
+                    switch size(systemList,1)
+                        case 1
+                            impulse(systemList{1,5},systemList{1,4});
+                        case 2
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
+                        case 3
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4});
+                        case 4
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
+                        case 5
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4});
+                        case 6
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
+                        case 7
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4});
+                        case 8
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
+                        case 9
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4});
+                        case 10
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                    end
+                    
+                else
+                    
+                    switch size(systemList,1)
+                        case 1
+                            impulse(systemList{1,5});
+                        case 2
+                            impulse(systemList{1,5},systemList{2,5});
+                        case 3
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5});
+                        case 4
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5});
+                        case 5
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5});
+                        case 6
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5});
+                        case 7
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5});
+                        case 8
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5});
+                        case 9
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5});
+                        case 10
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},...
+                                systemList{10,5});
+                    end
                 end
                 
             case 5      %Step Response
@@ -1828,25 +1898,195 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 set(figureHandles,'Name','Step Response');
                 
                 for i = 1:size(systemList,1)
-                   if get(handles.rb_auto,'Value')==0
-                       systemList{i,5} = step(systemList{i,2},frequency);
+                    if isa(systemList{i,2},'sss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                            systemList{i,5} = step(systemList{i,2},systemList{i,6},struct('tf',1));
+                       else
+                            systemList{i,5} = step(systemList{i,2},struct('tf',1));
+                       end
                    else
-                       systemList{i,5} = step(systemList{i,2});
-                   end
+                       systemList{i,5} = systemList{i,2}; 
+                    end
                 end
+                
+                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+                    
+                    switch size(systemList,1)
+                        case 1
+                            step(systemList{1,5},systemList{1,4});
+                        case 2
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
+                        case 3
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4});
+                        case 4
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
+                        case 5
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4});
+                        case 6
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
+                        case 7
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4});
+                        case 8
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
+                        case 9
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4});
+                        case 10
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                    end
+                    
+                else
+                    
+                    switch size(systemList,1)
+                        case 1
+                            step(systemList{1,5});
+                        case 2
+                            step(systemList{1,5},systemList{2,5});
+                        case 3
+                            step(systemList{1,5},systemList{2,5},systemList{3,5});
+                        case 4
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5});
+                        case 5
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5});
+                        case 6
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5});
+                        case 7
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5});
+                        case 8
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5});
+                        case 9
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5});
+                        case 10
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},...
+                                systemList{10,5});
+                    end
+                end     
                 
             case 6      %Pole-Zero-Map
                 
                 set(figureHandles,'Name','Pole-Zero Map');
                 
                 for i = 1:size(systemList,1)
-                   if get(handles.rb_auto,'Value')==0
-                       systemList{i,5} = pzmap(systemList{i,2},frequency);
+                   if isa(systemList{i,2},'sss')
+                       systemList{i,5} = zpk(systemList{i,2},struct('zpk',1));
                    else
-                       systemList{i,5} = pzmap(systemList{i,2});
+                       systemList{i,5} = systemList{i,2}; 
                    end
                 end
-                 
+                
+                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+                    
+                    switch size(systemList,1)
+                        case 1
+                            pzmap(systemList{1,5},systemList{1,4});
+                        case 2
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
+                        case 3
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4});
+                        case 4
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
+                        case 5
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4});
+                        case 6
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
+                        case 7
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4});
+                        case 8
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
+                        case 9
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4});
+                        case 10
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                    end
+                    
+                else
+                    
+                    switch size(systemList,1)
+                        case 1
+                            pzmap(systemList{1,5});
+                        case 2
+                            pzmap(systemList{1,5},systemList{2,5});
+                        case 3
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5});
+                        case 4
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5});
+                        case 5
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5});
+                        case 6
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5});
+                        case 7
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5});
+                        case 8
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5});
+                        case 9
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5});
+                        case 10
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},...
+                                systemList{10,5});
+                    end
+                end
+                    
         end
         
         %Legend
@@ -6183,16 +6423,12 @@ function [variableName] = suggestPlotDataName(handles,sysName)
             type = 'frd';
         case 3      %Singular
             type = 'frd';
-        case 4 
-            type = 'impulse';
-        case 5 
-            type = 'step';
-        case 6
-            type = 'pzm';
-        case 7
-            type = 'singular';
-        case 8
-            type = 'mag';
+        case 4      %Impulse
+            type = 'tf';
+        case 5      %Step
+            type = 'tf';
+        case 6      %Pole-Zero-Map
+            type = 'zpk';
     end
     
     variableName = strcat(sysName,'_',type);
