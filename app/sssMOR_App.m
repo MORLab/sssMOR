@@ -1798,15 +1798,24 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 
                 set(figureHandles,'Name','Impulse Response');
                 
+                Tmax = 0;       %Plot from 0 to Tmax 
+                Ttemp = 0;
+                
                 for i = 1:size(systemList,1)
                     if isa(systemList{i,2},'sss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
                             systemList{i,5} = step(systemList{i,2},systemList{i,6},struct('tf',1));
+                            Ttemp = systemList{i,6}(end);
                        else
                             systemList{i,5} = step(systemList{i,2},struct('tf',1));
+                            Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
                        end
                    else
-                       systemList{i,5} = systemList{i,2}; 
+                       systemList{i,5} = systemList{i,2};
+                       Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
+                    end
+                    if Ttemp > Tmax
+                        Tmax = Ttemp;
                     end
                 end
                 
@@ -1814,82 +1823,82 @@ function pb_plot_Callback(hObject, eventdata, handles)
                     
                     switch size(systemList,1)
                         case 1
-                            impulse(systemList{1,5},systemList{1,4});
+                            impulse(systemList{1,5},systemList{1,4},Tmax);
                         case 2
-                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},Tmax);
                         case 3
                             impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4});
+                                systemList{3,5},systemList{3,4},Tmax);
                         case 4
                             impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},Tmax);
                         case 5
                             impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
                                 systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4});
+                                systemList{5,5},systemList{5,4},Tmax);
                         case 6
                             impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
                                 systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},Tmax);
                         case 7
                             impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
                                 systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
                                 systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4});
+                                systemList{7,5},systemList{7,4},Tmax);
                         case 8
                             impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
                                 systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
                                 systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},Tmax);
                         case 9
                             impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
                                 systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
                                 systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
                                 systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4});
+                                systemList{9,5},systemList{9,4},Tmax);
                         case 10
                             impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
                                 systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
                                 systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
                                 systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4},Tmax);
                     end
                     
                 else
                     
                     switch size(systemList,1)
                         case 1
-                            impulse(systemList{1,5});
+                            impulse(systemList{1,5},Tmax);
                         case 2
-                            impulse(systemList{1,5},systemList{2,5});
+                            impulse(systemList{1,5},systemList{2,5},Tmax);
                         case 3
-                            impulse(systemList{1,5},systemList{2,5},systemList{3,5});
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},Tmax);
                         case 4
                             impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5});
+                                systemList{4,5},Tmax);
                         case 5
                             impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5});
+                                systemList{4,5},systemList{5,5},Tmax);
                         case 6
                             impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5});
+                                systemList{4,5},systemList{5,5},systemList{6,5},Tmax);
                         case 7
                             impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
                                 systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5});
+                                systemList{7,5},Tmax);
                         case 8
                             impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
                                 systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5});
+                                systemList{7,5},systemList{8,5},Tmax);
                         case 9
                             impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
                                 systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5});
+                                systemList{7,5},systemList{8,5},systemList{9,5},Tmax);
                         case 10
                             impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
                                 systemList{4,5},systemList{5,5},systemList{6,5},...
                                 systemList{7,5},systemList{8,5},systemList{9,5},...
-                                systemList{10,5});
+                                systemList{10,5},Tmax);
                     end
                 end
                 
@@ -1897,98 +1906,107 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 
                 set(figureHandles,'Name','Step Response');
                 
+                Tmax = 0;       %Plot from 0 to Tmax 
+                Ttemp = 0;
+                
                 for i = 1:size(systemList,1)
                     if isa(systemList{i,2},'sss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
                             systemList{i,5} = step(systemList{i,2},systemList{i,6},struct('tf',1));
+                            Ttemp = systemList{i,6}(end);
                        else
                             systemList{i,5} = step(systemList{i,2},struct('tf',1));
+                            Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
                        end
                    else
                        systemList{i,5} = systemList{i,2}; 
-                    end
+                       Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
+                   end
+                   if Ttemp > Tmax
+                      Tmax = Ttemp; 
+                   end
                 end
                 
                 if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
                     
                     switch size(systemList,1)
                         case 1
-                            step(systemList{1,5},systemList{1,4});
+                            step(systemList{1,5},systemList{1,4},Tmax);
                         case 2
-                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},Tmax);
                         case 3
                             step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4});
+                                systemList{3,5},systemList{3,4},Tmax);
                         case 4
                             step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},Tmax);
                         case 5
                             step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
                                 systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4});
+                                systemList{5,5},systemList{5,4},Tmax);
                         case 6
                             step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
                                 systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},Tmax);
                         case 7
                             step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
                                 systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
                                 systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4});
+                                systemList{7,5},systemList{7,4},Tmax);
                         case 8
                             step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
                                 systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
                                 systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},Tmax);
                         case 9
                             step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
                                 systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
                                 systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
                                 systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4});
+                                systemList{9,5},systemList{9,4},Tmax);
                         case 10
                             step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
                                 systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
                                 systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
                                 systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4},Tmax);
                     end
                     
                 else
                     
                     switch size(systemList,1)
                         case 1
-                            step(systemList{1,5});
+                            step(systemList{1,5},Tmax);
                         case 2
-                            step(systemList{1,5},systemList{2,5});
+                            step(systemList{1,5},systemList{2,5},Tmax);
                         case 3
-                            step(systemList{1,5},systemList{2,5},systemList{3,5});
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},Tmax);
                         case 4
                             step(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5});
+                                systemList{4,5},Tmax);
                         case 5
                             step(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5});
+                                systemList{4,5},systemList{5,5},Tmax);
                         case 6
                             step(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5});
+                                systemList{4,5},systemList{5,5},systemList{6,5},Tmax);
                         case 7
                             step(systemList{1,5},systemList{2,5},systemList{3,5},...
                                 systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5});
+                                systemList{7,5},Tmax);
                         case 8
                             step(systemList{1,5},systemList{2,5},systemList{3,5},...
                                 systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5});
+                                systemList{7,5},systemList{8,5},Tmax);
                         case 9
                             step(systemList{1,5},systemList{2,5},systemList{3,5},...
                                 systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5});
+                                systemList{7,5},systemList{8,5},systemList{9,5},Tmax);
                         case 10
                             step(systemList{1,5},systemList{2,5},systemList{3,5},...
                                 systemList{4,5},systemList{5,5},systemList{6,5},...
                                 systemList{7,5},systemList{8,5},systemList{9,5},...
-                                systemList{10,5});
+                                systemList{10,5},Tmax);
                     end
                 end     
                 
