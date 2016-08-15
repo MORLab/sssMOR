@@ -390,6 +390,79 @@ classdef ssRed < ss
                 end
             end
         end
+        
+        function tmax = decayTime(sys)
+            [res,p]=residue(sys);
+
+            % is system stable?
+            if any(real(p)>0 & real(p)<1e6) % larger than 0 but, smaller than infinity-threshold
+                % no -> tmax=NaN
+                tmax=NaN;
+                warning('sss:decayTime:UnstableSys','The system is not stable. The decay time is set to tmax=NaN.');
+                return
+            end
+
+            tmax=0; temp = cat(3,res{:}); 
+            for i=1:sys.p
+                for j=1:sys.m
+                    % how much does each pole contribute to energy flow?
+                    h2=zeros(size(p));
+                    for k=1:length(p)
+                        %we need the siso residual for all poles into on vectors
+                        resIJvec = squeeze(temp(i,j,:)).';
+                        h2(k)=res{k}(i,j)*sum(resIJvec./(-p(k)-p));
+                    end
+
+                    [h2_sorted, I] = sort(real(h2));
+                    % which pole contributes more than 1% of total energy?
+                    I_dom = I( h2_sorted > 0.01*sum(h2_sorted) );
+                    if isempty(I_dom)
+                        % no poles are dominant, use slowest
+                        I_dom = 1:length(p);
+                    end
+                    % use slowest among dominant poles
+                    [h2_dom, I2] = sort(abs(real(p(I_dom))));
+
+                    % when has slowest pole decayed to 1% of its maximum amplitude?
+                    tmax=max([tmax, log(100)/abs(real(p(I_dom(I2(1)))))]);
+                end
+            end
+        end
+        
+        function [issd, numericalAbscissa] = issd(sys)
+            %  Parse input
+            if condest(sys.e)>1e16, error('issd does not support DAEs'),end
+
+            %  Perform computations
+            % E >0?
+            isPosDef = ispd(sys.e);
+            if ~isPosDef
+                if nargout == 0, warning('System is not strictly dissipative (E~>0).'); 
+                else issd = 0; end
+                return
+            end
+
+            % A + A' <0?  
+            isNegDef = ispd(-sys.a-sys.a');
+            if isNegDef
+                if nargout == 0, fprintf('System is strictly dissipative.\n'); else issd = 1; end
+            else
+                if nargout == 0, warning('System is not strictly dissipative (E>0, A+A''~<0)'); else issd = 0; end
+            end
+
+            if nargout==2 % computation of the numerical abscissa required
+                p    = 20;		% number of Lanczos vectors
+                tol  = 1e-10;	% convergence tolerance
+                opts = struct('issym',true, 'p',p, 'tol',tol, 'v0',sum(sys.e,2));
+                try
+                    numericalAbscissa = eigs((sys.a+sys.a')/2, sys.e, 1, 'la', opts);
+                catch err
+                    warning('Computation of the numerical abscissa failed with message:%s',err.message);
+                    numericalAbscissa = NaN;
+                end
+            end
+        end
+
     end
     
     %%Private and static helper methods
