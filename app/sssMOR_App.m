@@ -4342,7 +4342,6 @@ function pb_an_sys1_dissipativity_Callback(hObject, eventdata, handles)
     
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys1);
-        sys = convertToSss(sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4367,7 +4366,11 @@ function pb_an_sys1_dissipativity_Callback(hObject, eventdata, handles)
     %Check for strict dissipativity
 
     try
-        dissipativ = issd(sys);
+        if isa(sys,'sss') || isa(sys,'ssRed')
+            dissipativ = issd(sys);
+        else
+            dissipativ = issd_ss(sys); 
+        end
     catch ex
         errordlg(ex.message)
         uiwait
@@ -4515,9 +4518,7 @@ function pb_an_sys1_decaytime_Callback(hObject, eventdata, handles)
     %Get the system from workspace
     
     try
-        [sys,sysname] = getSysFromWs(handles.pu_an_sys1);
-        originalClass = class(sys);
-        sys = convertToSss(sys);      
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys1);     
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4541,12 +4542,16 @@ function pb_an_sys1_decaytime_Callback(hObject, eventdata, handles)
 
     %Get the decay Time
     
-    if isempty(sys.decayTime)
+    if ~isfield(sys,'decayTime') || isempty(sys.decayTime)
         try
-            decTime = decayTime(sys);
-            if strcmp(originalClass,'sss')
-               sys.decayTime = decTime;
-               assignin('base',sysname,sys);
+            if isa(sys,'sss')
+                decTime = decayTime(sys);
+                sys.decayTime = decTime;
+                assignin('base',sysname,sys);
+            elseif isa(sys,'ssRed')
+                decTime = decayTime(sys);
+            else
+                decTime = decayTime_ss(sys);
             end
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
@@ -4722,7 +4727,6 @@ function pb_an_sys2_dissipativity_Callback(hObject, eventdata, handles)
     
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
-        sys = convertToSss(sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4747,7 +4751,11 @@ function pb_an_sys2_dissipativity_Callback(hObject, eventdata, handles)
     %Check for strict dissipativity
 
     try
-        dissipativ = issd(sys);
+        if isa(sys,'sss') || isa(sys,'ssRed')
+            dissipativ = issd(sys);
+        else
+            dissipativ = issd_ss(sys); 
+        end
     catch ex
         errordlg(ex.message)
         uiwait
@@ -4892,8 +4900,6 @@ function pb_an_sys2_decaytime_Callback(hObject, eventdata, handles)
     
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
-        originalClass = class(sys);
-        sys = convertToSss(sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4917,12 +4923,16 @@ function pb_an_sys2_decaytime_Callback(hObject, eventdata, handles)
 
     %Get the decay Time
     
-    if isempty(sys.decayTime)
+    if ~isfield(sys,'decayTime') || isempty(sys.decayTime)
         try
-            decTime = decayTime(sys);
-            if strcmp(originalClass,'sss')
-               sys.decayTime = decTime;
-               assignin('base',sysname,sys);
+            if isa(sys,'sss')
+                decTime = decayTime(sys);
+                sys.decayTime = decTime;
+                assignin('base',sysname,sys);
+            elseif isa(sys,'ssRed')
+                decTime = decayTime(sys);
+            else
+                decTime = decayTime_ss(sys);
             end
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
@@ -6398,6 +6408,141 @@ function [] = addRelativePaths()
     end
     
     addpath(genpath(path));
+    
+    
+%Define some functions that do not exist for ss-objects
+
+function tmax = decayTime_ss(sys)
+    [res,p]=residue_ss(sys);
+
+    % is system stable?
+    if any(real(p)>0 & real(p)<1e6) % larger than 0 but, smaller than infinity-threshold
+        % no -> tmax=NaN
+        tmax=NaN;
+        warning('sss:decayTime:UnstableSys','The system is not stable. The decay time is set to tmax=NaN.');
+        return
+    end
+
+    sys_m = size(sys.b,2);
+    sys_p = size(sys.c,1);
+    
+    tmax=0; temp = cat(3,res{:}); 
+    for i=1:sys_p
+        for j=1:sys_m
+            % how much does each pole contribute to energy flow?
+            h2=zeros(size(p));
+            for k=1:length(p)
+                %we need the siso residual for all poles into on vectors
+                resIJvec = squeeze(temp(i,j,:)).';
+                h2(k)=res{k}(i,j)*sum(resIJvec./(-p(k)-p));
+            end
+
+            [h2_sorted, I] = sort(real(h2));
+            % which pole contributes more than 1% of total energy?
+            I_dom = I( h2_sorted > 0.01*sum(h2_sorted) );
+            if isempty(I_dom)
+                % no poles are dominant, use slowest
+                I_dom = 1:length(p);
+            end
+            % use slowest among dominant poles
+            [h2_dom, I2] = sort(abs(real(p(I_dom))));
+
+            % when has slowest pole decayed to 1% of its maximum amplitude?
+            tmax=max([tmax, log(100)/abs(real(p(I_dom(I2(1)))))]);
+        end
+    end
+    
+function [r,p,d] = residue_ss(sys, Opts)       
+        Def.rType = 'res';
+        
+        n = size(sys.a,1);
+
+        if ~exist('Opts','var') || isempty(Opts)
+            Opts = Def;
+        else
+            Opts = parseOpts(Opts,Def);
+        end
+
+        %perform eigen-decomposition of system
+        try
+            [T,J] = eig_ss(sys);
+        catch err
+            error('Computation of the eigenvalues and eigenvectors failed with message:%s',err.message);
+        end
+
+        % transform system to diagonal form
+        p=diag(J).';
+        if issparse(T)
+            rcondNumber = 1/condest(T);
+        else
+            rcondNumber=rcond(T);
+        end
+        if rcondNumber<eps
+            warning(['Matrix of eigenvectors is close to singular or badly scaled. Results may be inaccurate. RCOND =',num2str(rcondNumber)]);
+        end
+        if isempty(sys.e)
+           B=T\sys.b; 
+        else
+           B=(sys.e*T)\sys.b;
+        end
+        C=sys.c*T;
+        d=sys.d;
+
+        % calculate residues
+        if strcmp(Opts.rType,'dir')
+            % return the residual directions instead of the residuals
+            r = {C, B};  
+        else
+            % return the residuals
+            r = cell(1,n);
+            for i=1:n
+                r{i} = full(C(:,i)*B(i,:));
+            end
+        end
+        
+function [V,D] = eig_ss(sys)
+    if size(sys.a,1)>5000
+        warning(['System order is very large: ',num2str(size(sys.a,1)),'. You may want to try eigs(sys) instead.'])
+    end
+
+    if logical(full(any(any(sys.e-speye(size(sys.e))))))
+        [V,D] = eig(sys.a, sys.e);
+    else
+        [V,D]  = eig(sys.a);
+    end
+    
+function [issd, numericalAbscissa] = issd_ss(sys)
+    %  Parse input
+    if condest(sys.e)>1e16, error('issd does not support DAEs'),end
+
+    %  Perform computations
+    % E >0?
+    isPosDef = ispd(sys.e);
+    if ~isPosDef
+        if nargout == 0, warning('System is not strictly dissipative (E~>0).'); 
+        else issd = 0; end
+        return
+    end
+
+    % A + A' <0?  
+    isNegDef = ispd(-sys.a-sys.a');
+    if isNegDef
+        if nargout == 0, fprintf('System is strictly dissipative.\n'); else issd = 1; end
+    else
+        if nargout == 0, warning('System is not strictly dissipative (E>0, A+A''~<0)'); else issd = 0; end
+    end
+
+    if nargout==2 % computation of the numerical abscissa required
+        p    = 20;		% number of Lanczos vectors
+        tol  = 1e-10;	% convergence tolerance
+        opts = struct('issym',true, 'p',p, 'tol',tol, 'v0',sum(sys.e,2));
+        try
+            numericalAbscissa = eigs((sys.a+sys.a')/2, sys.e, 1, 'la', opts);
+        catch err
+            warning('Computation of the numerical abscissa failed with message:%s',err.message);
+            numericalAbscissa = NaN;
+        end
+    end
 
 
 

@@ -264,7 +264,7 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     end
     
     %%  Storing additional parameters
-    %Stroring additional information about thr reduction in the object 
+    %Stroring additional information about the reduction in the object 
     %containing the reduced model:
     %   1. Define a new field for the Opts struct and write the information
     %      that should be stored to this field
