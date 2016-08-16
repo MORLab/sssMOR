@@ -104,35 +104,28 @@ if isa(varargin{1},'double') && length(varargin)==2 && length(varargin{1})==leng
         end
     end
     
-elseif isa(varargin{1},'sss') || isa(varargin{1},'ss') % from lyapunov equation
+elseif isa(varargin{1},'sss') || isa(varargin{1},'ssRed') || isa(varargin{1},'ss') % from lyapunov equation
     if isa(varargin{1},'ss')
-    	sys = sss(varargin{1});
+        sys = sss(varargin{1});
     else
         sys = varargin{1};
     end
     sOpt=zeros(sys.p,sys.m);
-    if sys.isDescriptor
-        A = sys.E\sys.A; 
-    else
-        A = sys.A;
-    end
     for i=1:sys.p
         for j=1:sys.m
-            if sys.isDescriptor
-                B = sys.E\sys.B(:,j);
-            else
-                B = sys.B(:,j);
-            end
-            C = sys.C(i,:);
-
             try
-                P=lyap(A,B*B');
-                Y=lyap(A,P);
+                if sys.isDescriptor
+                    P=lyap(sys.A,sys.B(:,j)*sys.B(:,j)',[],sys.E);
+                    Y=lyap(sys.A,P,[],sys.E);
+                else
+                    P=lyap(sys.A,sys.B(:,j)*sys.B(:,j)');
+                    Y=lyap(sys.A,P);
+                end
             catch ex
                 error(['Error during calculation of rkOp: ' ex.message]);
             end
 
-            sOpt(i,j)=sqrt((C*A*Y*A'*C')/(C*Y*C'));
+            sOpt(i,j)=sqrt((sys.C(i,:)*sys.A*Y*sys.A'*sys.C(i,:)')/(sys.C(i,:)*Y*sys.C(i,:)'));
             if nnz(sOpt(i,j)<0) || ~isreal(sOpt(i,j))
                 warning(['The optimal expansion point is negative or complex.'...
                     'It has been replaced by its absolute value.']);
