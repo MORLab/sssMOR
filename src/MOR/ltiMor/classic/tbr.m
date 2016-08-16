@@ -180,8 +180,9 @@ end
 [K,S,M]=svd(full(R*L'));
 hsv = diag(S);
 sys.HankelSingularValues = real(hsv);
-sys.TBalInv = R'*K/diag(sqrt(hsv));
-sys.TBal = diag(sqrt(hsv))\M'*solveLse(L,sys.E);
+sys.TBalInv = R'*K*diag(ones(size(hsv))./sqrt(hsv));
+sys.TBal = diag(ones(size(hsv))./sqrt(hsv))*M'*solveLse(sys.E',L',struct('lse','gauss'))';
+
 
 % determine reduction order
 if exist('q','var') || Opts.redErr>0
@@ -311,7 +312,7 @@ switch Opts.type
             end
         end
 
-        lse0=solveLse(A12,A22);
+        lse0=solveLse(A22',A12')';
         ARed=A11-lse0*A21;
         BRed=B1-lse0*B2; 
 
@@ -319,15 +320,15 @@ switch Opts.type
             EBal=W'*sys.E*V;
             E11=EBal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
             E21=EBal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
-            ERed=E11-solveLse(A12,A22)*E21;
-            lse1=solveLse(C2,A22);
-            lse2=solveLse(E21,ERed);
+            ERed=E11-lse0*E21;
+            lse1=solveLse(A22',C2')';
+            lse2=solveLse(ERed',E21')';
             CRed=C1-lse1*A21+C2*A22*lse2*ARed;
             DRed=sys.D-lse1*B2+lse1*lse2*BRed;
             sysr = sss(ARed, BRed, CRed, DRed, ERed);
         else % Er=I
-            CRed=C1-solveLse(C2,A22)*A21;
-            DRed=sys.D-solveLse(C2,A22)*B2;
+            CRed=C1-solveLse(A22',C2')'*A21;
+            DRed=sys.D-solveLse(A22',C2')'*B2;
             sysr = sss(ARed, BRed, CRed, DRed);
         end
         
