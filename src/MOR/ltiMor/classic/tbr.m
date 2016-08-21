@@ -470,7 +470,11 @@ Opts.hsv = hsv;
 
 switch Opts.type
     case 'tbr'
-        sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        if isa(sys,'ssRed')
+            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V, sys.reductionParameters);
+        else
+            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        end
     case 'matchDcGain'
         W=sys.TBalInv;
         V=sys.TBal;
@@ -503,17 +507,29 @@ switch Opts.type
             ERed=E11-A12/A22*E21;
             CRed=C1-C2/A22*A21+C2*A22*E21/ERed*ARed;
             DRed=sys.D-C2/A22*B2+C2/A22*E21/ERed*BRed;
-            sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed, ERed);
+            if isa(sys,'ssRed')
+                sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed, ERed);
+            else
+                sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed, ERed,sys.reductionParameters);
+            end
         else % Er=I
             CRed=C1-C2/A22*A21;
             DRed=sys.D-C2/A22*B2;
-            sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed);
+            if isa(sys,'ssRed')
+                sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed,sys.reductionParameters);
+            else
+                sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed); 
+            end
         end
         
         warning('on','MATLAB:nearlySingularMatrix');
     
     case 'adi'
-          sysr = ssRed('tbr',Opts,W'*eqn.A_*V, W'*eqn.B, eqn.C*V, sys.D, W'*eqn.E_*V);
+        if isa(sys,'ssRed')
+            sysr = ssRed('tbr',Opts,W'*eqn.A_*V, W'*eqn.B, eqn.C*V, sys.D, W'*eqn.E_*V,sys.reductionParameters);
+        else
+            sysr = ssRed('tbr',Opts,W'*eqn.A_*V, W'*eqn.B, eqn.C*V, sys.D, W'*eqn.E_*V);
+        end
 end
 
 %   Rename ROM

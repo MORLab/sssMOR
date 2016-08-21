@@ -3,10 +3,16 @@ classdef ssRed < ss
 %
 % Syntax:
 %       sysr = ssRed(method,params,A,B,C)
+%       sysr = ssRed(method,params,A,B,C,paramsList)
 %       sysr = ssRed(method,params,A,B,C,D)
+%       sysr = ssRed(method,params,A,B,C,D,paramsList)
 %       sysr = ssRed(method,params,A,B,C,D,E)
+%       sysr = ssRed(method,params,A,B,C,D,E,paramsList)
 %       sysr = ssRed(method,params,sys_sss)
+%       sysr = ssRed(method,params,sys_sss,paramsList)
 %       sysr = ssRed(method,params,sys_ss)
+%       sysr = ssRed(method,params,sys_ss,paramsList)
+%       sysr = ssRed(method,params,sys_ssRed)
 %
 % Description:
 %       This class is derived from the ss-class. It is used to represent
@@ -15,7 +21,7 @@ classdef ssRed < ss
 %
 % Input Arguments:
 %       -method: name of the used reduction algorithm;
-%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'cure']
+%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork']
 %       -params (tbr):          structure with the parameters for the tbr-algorithm;
 %           -.originalOrder:    Model order before reduction;
 %           -.type:             select amongst different tbr algorithms
@@ -140,6 +146,11 @@ classdef ssRed < ss
 %       -E: descriptor matrix
 %       -sys_ss:    control system toolbox state-space (ss)-object
 %       -sys_sss:   sparse state-space (sss)-object
+%       -paramsList{i}: Cell-Array of structs. Each field of the cell-array 
+%                       represents one reduction (without the current reduction).
+%           -.method:           name of the used reduction algorithm (see above)                               
+%           -.params:           structure with the parameters of the used
+%                               algorithm (see above)
 %
 % Output Arguments:
 %       -sys: reduced state-space (ssRed)-object
@@ -180,7 +191,6 @@ classdef ssRed < ss
 %------------------------------------------------------------------
     
     properties(SetAccess = private)
-        reductionMethod
         reductionParameters
     end
     properties(Dependent, Hidden)
@@ -192,17 +202,31 @@ classdef ssRed < ss
     methods
         function obj = ssRed(varargin)
             % parse and check the arguments
-            if nargin < 3 || nargin > 7 || nargin == 4
+            if nargin < 3 || nargin > 8 || nargin == 4
                 error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
-            elseif nargin == 3
+            end
+            paramsList = [];
+            nargin_new = nargin;
+            if ~isnumeric(varargin{nargin}) && ~isa(varargin{nargin},'ss') && ...
+               ~isa(varargin{nargin},'sss')         %paramsList specified
+                paramsList = varargin{nargin};
+                nargin_new = nargin_new-1;
+            end
+            if nargin_new == 3
                 sys = varargin{3};
-                if isa(sys,'ss')
+                if isa(sys,'ssRed')
+                    if ~isempty(paramsList)
+                        error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
+                    end
+                    paramsList = sys.reductionParameters;
+                end
+                if isa(sys,'ss')    %ss-objects or ssRed-objects
                    A = sys.a;
                    B = sys.b;
                    C = sys.c;
                    D = sys.d;
                    E = sys.e;
-                elseif isa(sys,'sss')
+                elseif isa(sys,'sss')   %sss-objects
                    A = full(sys.a);
                    B = full(sys.b);
                    C = full(sys.c);
@@ -216,10 +240,10 @@ classdef ssRed < ss
                 B = full(varargin{4});
                 C = full(varargin{5});
                 
-                if nargin == 6
+                if nargin_new == 6
                     D = full(varargin{6});
                     E = [];
-                elseif nargin == 7
+                elseif nargin_new == 7
                     D = full(varargin{6});
                     E = full(varargin{7});
                 else                
@@ -235,8 +259,6 @@ classdef ssRed < ss
             % call the construktor of the superclass ss
             obj@ss(A,B,C,D);
             obj.e = E;
-            obj.reductionMethod = varargin{1};
-            obj.reductionParameters = varargin{2};
             
             % check the params struct
             try
@@ -244,12 +266,38 @@ classdef ssRed < ss
             catch ex
                error(ex.message); 
             end
-                
+            
+            % check all fields of paramsList
+            if ~isempty(paramsList)
+                try
+                   for i = 1:size(paramsList,1)
+                      obj.checkParamsStruct(paramsList{i}.params,paramsList{i}.method);
+                      if length(fieldnames(paramsList{i})) ~= 2
+                          error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.');
+                      end
+                      paramsList{i}.params = obj.parseParamsStruct(paramsList{i}.params,paramsList{i}.method);
+                   end
+                catch ex
+                   error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.'); 
+                end
+            end
+            
+            % update the reductionParameters list
+            if isempty(paramsList)
+               obj.reductionParameters = cell(1,1);
+               obj.reductionParameters{1,1}.method = varargin{1};
+               obj.reductionParameters{1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1});
+            else
+               len = size(paramsList,1);
+               obj.reductionParameters = paramsList;
+               obj.reductionParameters{len+1,1}.method = varargin{1};
+               obj.reductionParameters{len+1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1});
+            end
+            
+            % remove "projectiveMor" from the reduction history
+            obj.reductionParameters = obj.removeProjectiveMor(obj.reductionParameters);
         end
         
-        function value = get.reductionMethod(obj)
-            value = obj.reductionMethod;
-        end
         
         %% Get Basic Properties
         function m = get.m(sys) % number of inputs
@@ -495,7 +543,7 @@ classdef ssRed < ss
                    error('Struct params does not contain the field "lse"!');
                elseif ~isfield(params,'hsv')
                    error('Struct params does not contain the field "hsv"!');
-               end           
+               end                    
             elseif strcmp(method,'modalMor')            %modalMor          
                if ~isfield(params,'type')
                    error('Struct params does not contain the field "type"!');
@@ -609,6 +657,84 @@ classdef ssRed < ss
                    error('Struct params does not contain the field "cure.maxiter"!');
                end           
             end
+        end
+        
+        function parsedParams = parseParamsStruct(params,method)
+        %Selects the values of the fields of the params-struct that belong 
+        %to the given reduction method and cuts of all other fields
+        
+            % paramters that are identical for all algorithms
+            parsedParams.originalOrder = params.originalOrder;
+            
+            % algorithm-specific parameters
+            if strcmp(method,'tbr')                     %tbr
+               parsedParams.type = params.type;
+               parsedParams.redErr = params.redErr;
+               parsedParams.hsvTol = params.hsvTol;
+               parsedParams.warnOrError = params.warnOrError;
+               parsedParams.lse = params.lse;
+               parsedParams.hsv = params.hsv;                  
+            elseif strcmp(method,'modalMor')            %modalMor 
+               parsedParams.type = params.type;
+               parsedParams.orth = params.orth;
+               parsedParams.real = params.real;
+               parsedParams.tol = params.tol;
+               parsedParams.dominance = params.dominance;
+            elseif strcmp(method,'irka')                %irka
+               parsedParams.maxiter = params.maxiter;
+               parsedParams.tol = params.tol;
+               parsedParams.type = params.type;
+               parsedParams.verbose = params.verbose;
+               parsedParams.stopCrit = params.stopCrit;
+               parsedParams.suppressverbose = params.suppressverbose;
+               parsedParams.orth = params.orth;
+               parsedParams.lse = params.lse;
+               parsedParams.dgksTol = params.dgksTol;
+               parsedParams.krylov = params.krylov;
+               parsedParams.s0 = params.s0;
+               parsedParams.Rt = params.Rt;
+               parsedParams.Lt = params.Lt;
+               parsedParams.kIter = params.kIter;
+               parsedParams.s0Traj = params.s0Traj;
+               parsedParams.RtTraj = params.RtTraj;
+               parsedParams.LtTraj = params.LtTraj;  
+            elseif strcmp(method,'rk')                  %rk
+               parsedParams.real = params.real;
+               parsedParams.orth = params.orth;
+               parsedParams.reorth = params.reorth;
+               parsedParams.lse = params.lse;
+               parsedParams.dgksTol = params.dgksTol;
+               parsedParams.krylov = params.krylov;
+               parsedParams.IP = params.IP;
+               parsedParams.Rt = params.Rt;
+               parsedParams.Lt = params.Lt;
+               parsedParams.s0_inp = params.s0_inp;
+               parsedParams.s0_out = params.s0_out;
+            elseif strcmp(method,'projectiveMor')       %projectiveMor
+               parsedParams.trans = params.trans;
+            elseif strcmp(method,'cure')
+               
+            end
+            
+        end
+        
+        function parsedParamsList = removeProjectiveMor(paramsList)
+        %Removes the reductionParameters for "projectiveMor" from the
+        %reduction history, because "projectiveMor" performs just the 
+        %projection, but is not a standalone reduction algorithm
+        
+            if size(paramsList,1) > 1
+                counter = 1;
+                parsedParamsList = cell(1,1);
+                for i = 1:size(paramsList,1)
+                   if ~strcmp(paramsList{i,1}.method,'projectiveMor')
+                       parsedParamsList{counter,1} = paramsList{i,1};
+                       counter = counter + 1;
+                   end
+                end
+            else
+                parsedParamsList = paramsList;
+            end           
         end
     end    
 end

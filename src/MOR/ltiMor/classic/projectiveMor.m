@@ -114,12 +114,17 @@ end
 Opts.originalOrder = sys.n;
 
 %%  Projection
-%TODO: change the object class of sysr from sss to rom as soon as this is available
 switch Opts.trans
     case 'T'
-%         sysr = dss(W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V);
-        sysr = ssRed('projectiveMor',Opts,W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V);
+        if isa(sys,'ssRed')
+            sysr = ssRed('projectiveMor',Opts,W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V,sys.reductionParameters);
+        else
+            sysr = ssRed('projectiveMor',Opts,W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V);
+        end
     case 'H'
-%         sysr = dss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
-        sysr = ssRed('projectiveMor',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        if isa(sys,'ssRed')
+            sysr = ssRed('projectiveMor',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V,sys.reductionParameters);
+        else
+            sysr = ssRed('projectiveMor',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        end
 end
