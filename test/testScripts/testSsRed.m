@@ -22,7 +22,7 @@ classdef testSsRed < sssTest
 %                     -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Niklas Kochdumper
-% Last Change:  16 Jun 2016
+% Last Change:  21 Aug 2016
 % Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------     
     
@@ -42,6 +42,9 @@ classdef testSsRed < sssTest
             zero(sysr);
             zpk(sysr);
             
+            % Try to reduce the ssRed-object again (SISO)
+            sysr = tbr(sysr,5);
+            
             % Create ssRed-object througth reduction with tbr (MIMO)          
             sys = loadSss('CDplayer.mat');
             sysr = tbr(sys,10);
@@ -55,6 +58,9 @@ classdef testSsRed < sssTest
             zero(sysr);
             zpk(sysr);
             tzero(sysr);
+            
+            % Try to reduce the ssRed-object again (MIMO)
+            sysr = tbr(sysr,5);
         end
         
         function testSsRedIrka(testCase)
@@ -75,6 +81,10 @@ classdef testSsRed < sssTest
             zero(sysr);
             zpk(sysr);
             
+            % Try to reduce the ssRed-object again (SISO)
+            s0 = [0 1];
+            sysr = irka(sysr,s0);
+            
             % Create ssRed-object througth reduction with irka (MIMO)          
             sys = loadSss('CDplayer.mat');
             s0 = [0 1+i 1-i];
@@ -90,6 +100,11 @@ classdef testSsRed < sssTest
             zero(sysr);
             zpk(sysr);
             tzero(sysr);
+            
+            % Try to reduce the ssRed-object again (MIMO)
+            s0 = [0 1];
+            L = [1 0; 0 1];
+            sysr = irka(sysr,s0,L,L);
         end
         
         function testSsRedRk(testCase)
@@ -110,6 +125,10 @@ classdef testSsRed < sssTest
             zero(sysr);
             zpk(sysr);
             
+            % Try to reduce the ssRed-object again (SISO)
+            s0 = [0 1];
+            sysr = rk(sysr,s0);
+            
             % Create ssRed-object througth reduction with rk (MIMO)          
             sys = loadSss('CDplayer.mat');
             s0 = [0 1+i 1-i];
@@ -125,6 +144,11 @@ classdef testSsRed < sssTest
             zero(sysr);
             zpk(sysr);
             tzero(sysr);
+            
+            % Try to reduce the ssRed-object again (MIMO)
+            s0 = [0 1];
+            L = [1 0; 0 1];
+            sysr = rk(sysr,s0,L,L);
         end
         
         function testSsRedModalMor(testCase)
@@ -146,6 +170,9 @@ classdef testSsRed < sssTest
             zero(sysr);
             zpk(sysr);
             
+            % Try to reduce the ssRed-object again (SISO)
+            sysr = modalMor(sysr,5,Opts);
+            
             % Create ssRed-object througth reduction with modalMor (MIMO)          
             sys = loadSss('CDplayer.mat');
             Opts.type = 'SR';
@@ -161,6 +188,9 @@ classdef testSsRed < sssTest
             zero(sysr);
             zpk(sysr);
             tzero(sysr);
+            
+            % Try to reduce the ssRed-object again (MIMO)
+            sysr = modalMor(sysr,5,Opts);
         end
         
 %         function testSsRedModalCure(testCase)
