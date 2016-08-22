@@ -198,6 +198,14 @@ classdef ssRed < ss
         isSiso, isSimo, isMiso, isMimo, isBig
         isDae, isDescriptor
     end
+    properties(Hidden)
+        HankelSingularValues
+        TBal, TBalInv
+        ConGram, ConGramChol
+        ObsGram, ObsGramChol
+        
+        isSym
+    end
     
     methods
         function obj = ssRed(varargin)
@@ -328,6 +336,24 @@ classdef ssRed < ss
         function isDescriptor = get.isDescriptor(sys)
             isDescriptor = logical(full(any(any(sys.e-speye(size(sys.e))))));
         end
+        
+        function sys = resolveDescriptor(sys)
+            sys.a = sys.e\sys.a;
+            sys.b = sys.e\sys.b;
+            sys.e = [];
+        end
+        
+        function isSym = get.isSym(sys) %A=A', E=E'
+            if isequal(sys.isSym,0) || isequal(sys.isSym,1)
+                isSym = sys.isSym;
+            else
+                if max(max(sys.a-sys.a.'))<1e-6 && max(max(sys.e-sys.e.'))<1e-6
+                    isSym = 1;
+                else
+                    isSym = 0;
+                end
+            end
+        end        
         
         %% Override operators and build-in-functions
         function varargout = eig(sys, varargin)
