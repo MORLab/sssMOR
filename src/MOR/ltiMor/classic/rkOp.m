@@ -111,21 +111,21 @@ elseif isa(varargin{1},'sss') || isa(varargin{1},'ssRed') || isa(varargin{1},'ss
         sys = varargin{1};
     end
     sOpt=zeros(sys.p,sys.m);
+    
+    if sys.isDescriptor
+        A=solveLse(sys.E,sys.A,Opts);
+    else
+        A=sys.A;
+    end
+    
     for i=1:sys.p
         for j=1:sys.m
-            try
-                if sys.isDescriptor
-                    P=lyap(sys.A,sys.B(:,j)*sys.B(:,j)',[],sys.E);
-                    Y=lyap(sys.A,P,[],sys.E);
-                else
-                    P=lyap(sys.A,sys.B(:,j)*sys.B(:,j)');
-                    Y=lyap(sys.A,P);
-                end
-            catch ex
-                error(['Error during calculation of rkOp: ' ex.message]);
-            end
 
-            sOpt(i,j)=sqrt((sys.C(i,:)*sys.A*Y*sys.A'*sys.C(i,:)')/(sys.C(i,:)*Y*sys.C(i,:)'));
+            P=lyap(sys.A,sys.B(:,j)*sys.B(:,j).', [], sys.E);
+            Y=lyap(A,P);
+
+            sOpt(i,j)=sqrt((sys.C(i,:)*A*Y*A.'*sys.C(i,:).')/(sys.C(i,:)*Y*sys.C(i,:).'));
+
             if nnz(sOpt(i,j)<0) || ~isreal(sOpt(i,j))
                 warning(['The optimal expansion point is negative or complex.'...
                     'It has been replaced by its absolute value.']);
@@ -154,8 +154,8 @@ if length(varargin)==2 && ~isa(varargin{1},'double') && isscalar(varargin{2})
     else        
         switch(Opts.rk)
             case 'twoSided'
-                sOpt=sOpt';
-                sOpt=sOpt';
+                sOpt=sOpt.';
+                sOpt=sOpt.';
                 tempLt=[];
                 Rt=[];
                 Lt=[];
@@ -172,18 +172,18 @@ if length(varargin)==2 && ~isa(varargin{1},'double') && isscalar(varargin{2})
                     Lt=[Lt,tempLt];
                 end
                 
-                [varargout{1},varargout{2},varargout{3}] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*varargin{2}],[sOpt(:)';ones(1,sys.m*sys.p)*varargin{2}],Lt,Lt);
+                [varargout{1},varargout{2},varargout{3}] = rk(sys,[sOpt(:).';ones(1,sys.m*sys.p)*varargin{2}],[sOpt(:).';ones(1,sys.m*sys.p)*varargin{2}],Lt,Lt);
             case 'input'
-                sOpt=sOpt';
+                sOpt=sOpt.';
                 Rt=[];
 
                 for j=1:sys.m
                    Rt=blkdiag(Rt,ones(1,q*sys.p));
                 end
                 
-                [varargout{1},varargout{2},varargout{3}] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*varargin{2}],Rt);
+                [varargout{1},varargout{2},varargout{3}] = rk(sys,[sOpt(:).';ones(1,sys.m*sys.p)*varargin{2}],Rt);
             case 'output'
-                sOpt=sOpt';
+                sOpt=sOpt.';
                 tempLt=[];
                 Lt=[];
                 
@@ -195,7 +195,7 @@ if length(varargin)==2 && ~isa(varargin{1},'double') && isscalar(varargin{2})
                     Lt=[Lt,tempLt];
                 end
                 
-                [varargout{1},varargout{2},varargout{3}] = rk(sys,[],[sOpt(:)';ones(1,sys.m*sys.p)*varargin{2}],[],Lt);
+                [varargout{1},varargout{2},varargout{3}] = rk(sys,[],[sOpt(:).';ones(1,sys.m*sys.p)*varargin{2}],[],Lt);
             otherwise
                 error('Wrong Opts.');
         end

@@ -115,7 +115,7 @@ for i=1:Opts.maxIter
     else
         switch(Opts.rk)
             case 'twoSided'
-                sOpt=sOpt';
+                sOpt=sOpt.';
                 tempLt=[];
                 Rt=[];
                 Lt=[];
@@ -132,18 +132,18 @@ for i=1:Opts.maxIter
                     Lt=[Lt,tempLt];
                 end
                 
-                [sysr,V,W] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*q],[sOpt(:)';ones(1,sys.m*sys.p)*q],Rt,Lt);
+                [sysr,V,W] = rk(sys,[sOpt(:).';ones(1,sys.m*sys.p)*q],[sOpt(:).';ones(1,sys.m*sys.p)*q],Rt,Lt);
             case 'input'
-                sOpt=sOpt';
+                sOpt=sOpt.';
                 Rt=[];
 
                 for j=1:sys.m
                    Rt=blkdiag(Rt,ones(1,q*sys.p));
                 end
                 
-                [sysr,V,W] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*q],Rt);
+                [sysr,V,W] = rk(sys,[sOpt(:).';ones(1,sys.m*sys.p)*q],Rt);
             case 'output'
-                sOpt=sOpt';
+                sOpt=sOpt.';
                 tempLt=[];
                 Lt=[];
                 
@@ -154,18 +154,14 @@ for i=1:Opts.maxIter
                 for j=1:sys.m
                     Lt=[Lt,tempLt];
                 end
-                [sysr,V,W] = rk(sys,[],[sOpt(:)';ones(1,sys.m*sys.p)*q],[],Lt);
+                [sysr,V,W] = rk(sys,[],[sOpt(:).';ones(1,sys.m*sys.p)*q],[],Lt);
             otherwise
                 error('Wrong Opts.');
         end
     end
     
     % calculate sOpt
-    try
-        sOpt = rkOp(sysr);
-    catch ex
-        error(['rkIcop failed: ' ex.message]);
-    end
+    sOpt = rkOp(sysr);
     
     if abs(sOpt-sOptOld)/sOpt <= Opts.tol
         break
