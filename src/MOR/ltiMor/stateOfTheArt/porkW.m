@@ -3,6 +3,7 @@ function varargout = porkW(W,Sw,Lw,B)
 %
 % Syntax: 
 %       [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B)
+%       sysrPO = porkW(W,Sw,Lw,B)
 %
 % Description:
 %       This function implements the pseudo-optimal rational Krylov
@@ -72,7 +73,16 @@ Er = eye(size(Ar));
 
 %% Preparing output
 if nargout == 1
-    varargout{1} = sss(Ar,Br,Cr,zeros(size(Cr,1),size(Br,2)),Er);
+    %%  Storing additional parameters
+    %Stroring additional information about thr reduction in the object 
+    %containing the reduced model:
+    %   1. Define a new field for the Opts struct and write the information
+    %      that should be stored to this field
+    %   2. Adapt the methods "checkParamsStruct" and "parseParamsStruct" of 
+    %      class "ssRed" in such a way that the new defined field passes the 
+    %      check
+    Opts.originalOrder = size(W,1);
+    varargout{1} = ssRed('porkW',Opts,Ar,Br,Cr,zeros(size(Cr,1),size(Br,2)),Er);
 else
     varargout{1} = Ar;
     varargout{2} = Br;

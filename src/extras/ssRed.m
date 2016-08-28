@@ -21,7 +21,7 @@ classdef ssRed < ss
 %
 % Input Arguments:
 %       -method: name of the used reduction algorithm;
-%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork']
+%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork']
 %       -params (tbr):          structure with the parameters for the tbr-algorithm;
 %           -.originalOrder:    Model order before reduction;
 %           -.type:             select amongst different tbr algorithms
@@ -108,6 +108,12 @@ classdef ssRed < ss
 %           -.originalOrder:    Model order before reduction
 %           -.trans:            choose how W should be transposed
 %                               [ {T} / H ]
+%       -params (porkV):        structure with the parameters for the
+%                               porkV-algorithm
+%           -.originalOrder:    Model order before reduction
+%       -params (porkW):        structure with the parameters for the
+%                               porkW-algorithm
+%           -.originalOrder:    Model order before reduction
 %       -params (cure):         structure with the parameters for the
 %                               cure-algorithm
 %           -.originalOrder:    Model order before reduction
@@ -260,7 +266,7 @@ classdef ssRed < ss
                 end             
             end
             
-            if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr','modalMor','rk','irka','projectiveMor','cure'}) == 0
+            if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr','modalMor','rk','irka','projectiveMor','porkV','porkW','cure'}) == 0
                 error('The first argument has a wrong format. Type "help ssRed" for more information.');
             end
             
@@ -646,6 +652,8 @@ classdef ssRed < ss
                if ~isfield(params,'trans')
                    error('Struct params does not contain the field "trans"!');
                end
+            elseif strcmp(method,'porkV')               %porkV
+            elseif strcmp(method,'porkW')               %porkW
             elseif strcmp(method,'cure')
                if ~isfield(params,'cure')
                    error('Struct params does not contain the field "cure"!');
@@ -738,6 +746,8 @@ classdef ssRed < ss
                parsedParams.s0_out = params.s0_out;
             elseif strcmp(method,'projectiveMor')       %projectiveMor
                parsedParams.trans = params.trans;
+            elseif strcmp(method,'porkV')               %porkV
+            elseif strcmp(method,'porkW')               %porkW
             elseif strcmp(method,'cure')
                
             end
