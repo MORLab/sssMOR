@@ -82,9 +82,9 @@ if nargout == 1
     %containing the reduced model:
     %   1. Define a new field for the Opts struct and write the information
     %      that should be stored to this field
-    %   2. Adapt the methods "checkParamsStruct" and "parseParamsStruct" of 
-    %      class "ssRed" in such a way that the new defined field passes the 
-    %      check
+    %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
+    %      way that the new defined field passes the check
+    
     Opts.originalOrder = size(V,1);
     varargout{1} = ssRed('porkV',Opts,Ar,Br,Cr,zeros(size(Cr,1),size(Br,2)),Er);
 else
