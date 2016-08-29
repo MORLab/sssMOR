@@ -201,14 +201,14 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                     sysrTemp = porkV(V,Sv,Rv,C_); 
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                 case 'irka'
-                    [sysrTemp,V,W,~,~,~,~,~,Rv] = irka(sys,s0);
+                    [sysrTemp,V,W,~,~,~,~,~,Rv] = irka(sys,s0');
                                       
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                     
                 case 'rk+pork'
-                    [~, V, ~, ~, Sv, Rv] = rk(sys,s0);
-                    sysrTemp = porkV(V,Sv,Rv,C_);
-                    [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
+                    [sysrTemp, V, ~, ~, Sv, Rv] = rk(sys,s0');
+
+                    [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,C_);
                     
                     %   Adapt Cr for SE DAEs
                     Cr = Cr - DrImp*Rv;
@@ -231,15 +231,14 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                     sysrTemp = porkW(W,Sw,Lw,B_);
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                 case 'irka'
-                    [sysrTemp,V,W,~,~,~,~,~,~,~,~,Lw] = irka(sys,s0);
+                    [sysrTemp,V,W,~,~,~,~,~,~,~,~,Lw] = irka(sys,s0');
                     
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                     
                 case 'rk+pork'
-                    [~, ~, W, ~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0);
+                    [sysrTemp, ~, W, ~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0');
                     
-                    sysrTemp = porkW(W,Sw,Lw,B_); 
-                    [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
+                    [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B_); 
                     
                     %   Adapt Br for SE-DAEs
                     Br = Br - Lw.'*DrImp;
