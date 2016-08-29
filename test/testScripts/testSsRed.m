@@ -193,32 +193,77 @@ classdef testSsRed < sssTest
             sysr = modalMor(sysr,5,Opts);
         end
         
-%         function testSsRedModalCure(testCase)
-%             
-%             warning('off','all')
-%             
-%             % Create ssRed-object througth reduction with modalMor (SISO)          
-%             sys = loadSss('build.mat');
-%             Opts.cure = struct('nk',4, 'redfun', 'irka', 'verbose', 1, 'stopval',12);
-%             sysr = cure(sys,Opts);
-%             
-%             % Test some functions of the Control System Toolbox on the
-%             % ssRed-object (SISO)
-%             tf(sysr);
-%             bode(sysr);
-%             impulse(sysr);
-%             
-%             % Create ssRed-object througth reduction with modalMor (MIMO)          
-%             sys = loadSss('CDplayer.mat');
-%             Opts.cure = struct('nk',4, 'redfun', 'irka', 'verbose', 1, 'stopval',12);
-%             sysr = cure(sys,Opts);
-%             
-%             % Test some functions of the Control System Toolbox on the
-%             % ssRed-object (MIMO)
-%             tf(sysr);
-%             bode(sysr);
-%             impulse(sysr);                        
-%         end
+        function testSsRedCure(testCase)
+            
+            warning('off','all')
+            
+            % Create ssRed-object througth reduction with cure_spark (SISO)          
+            sys = loadSss('build.mat');
+            Opts.cure = struct('nk',4, 'redfun', 'spark', 'verbose', 1, 'stopval',12);
+            sysr = cure(sys,Opts);
+            
+            % Test some functions of the Control System Toolbox on the
+            % ssRed-object (SISO)
+            tf(sysr);
+            bode(sysr);
+            impulse(sysr);
+            pole(sysr);
+            zero(sysr);
+            zpk(sysr);
+            tzero(sysr);
+            
+            % Try to reduce the ssRed-object again (SISO)
+            sysr = cure(sysr,Opts);
+            
+            % Create ssRed-object througth reduction with cure_irka (SISO)          
+            Opts.cure = struct('nk',4, 'redfun', 'irka', 'verbose', 1, 'stopval',12);
+            sysr = cure(sys,Opts);
+            
+            % Test some functions of the Control System Toolbox on the
+            % ssRed-object (SISO)
+            tf(sysr);
+            bode(sysr);
+            impulse(sysr);
+            pole(sysr);
+            zero(sysr);
+            zpk(sysr);
+            tzero(sysr);
+            
+            % Try to reduce the ssRed-object again (SISO)
+            sysr = cure(sysr,Opts);
+            
+            % Create ssRed-object througth reduction with cure_rk+pork (SISO)          
+            Opts.cure = struct('nk',4, 'redfun', 'rk+pork', 'verbose', 1, 'stopval',12);
+            sysr = cure(sys,Opts);
+            
+            % Test some functions of the Control System Toolbox on the
+            % ssRed-object (SISO)
+            tf(sysr);
+            bode(sysr);
+            impulse(sysr);
+            pole(sysr);
+            zero(sysr);
+            zpk(sysr);
+            tzero(sysr);
+            
+            % Try to reduce the ssRed-object again (SISO)
+            sysr = cure(sysr,Opts);
+            
+            % Create ssRed-object througth reduction with cure_rk+pork (MIMO)          
+            sys = loadSss('CDplayer.mat');
+            Opts.cure = struct('nk',4, 'redfun', 'rk+pork', 'verbose', 1, 'stopval',12);
+            sysr = cure(sys,Opts);
+            
+            % Test some functions of the Control System Toolbox on the
+            % ssRed-object (MIMO)
+            tf(sysr);
+            bode(sysr);
+            impulse(sysr);
+            pole(sysr);
+            zero(sysr);
+            zpk(sysr);
+            tzero(sysr);
+        end
         
     end
     
