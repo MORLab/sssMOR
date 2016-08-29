@@ -186,7 +186,7 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     iCure = iCure + 1;
     if Opts.cure.verbose, fprintf('\tCURE iteration %03i\n',iCure');end
     %   Redefine the G_ system at each iteration
-    sys = sss(sys.a,B_,C_,0,sys.e);
+    sys = sss(sys.a,B_,C_,[],sys.e);
     
     %   Initializations
     [s0,Opts] = initializeShifts(sys,Opts,iCure);        
