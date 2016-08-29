@@ -109,8 +109,9 @@ end
 %containing the reduced model:
 %   1. Define a new field for the Opts struct and write the information
 %      that should be stored to this field
-%   2. Adapt the method "checkParamsStruct" of the class "ssRed" in such a
-%      way that the new defined field passes the check
+%   2. Adapt the methods "checkParamsStruct" and "parseParamsStruct" of 
+%      class "ssRed" in such a way that the new defined field passes the 
+%      check
 Opts.originalOrder = sys.n;
 
 %%  Projection

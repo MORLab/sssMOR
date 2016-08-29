@@ -114,13 +114,9 @@ classdef ssRed < ss
 %       -params (porkW):        structure with the parameters for the
 %                               porkW-algorithm
 %           -.originalOrder:    Model order before reduction
-%       -params (cure):         structure with the parameters for the
-%                               cure-algorithm
+%       -params (cure_spark):   structure with the parameters for the
+%                               cure-algorithm (reduction algorithm spark)
 %           -.originalOrder:    Model order before reduction
-%           -.cure.redfun:      reduction algorithm
-%                               [{'spark'} / 'irka' / 'rk+pork']
-%           -.cure.nk:          reduced order at each iteration 
-%                               [{'2'} / positive integer]
 %           -.cure.fact:        factorization mode 
 %                               [{'V'} / 'W']
 %           -.cure.init:        shift initialization mode 
@@ -129,22 +125,118 @@ classdef ssRed < ss
 %                               [{'nmax'} / 'h2Error']
 %           -.cure.stopval:     value according to which the stopping criterion is evaluated
 %                               [{'round(sqrt(sys.n))'} / positive integer]
-%           -.cure.verbose:     display text during cure 
-%                               [{'0'} / '1']
 %           -.cure.SE_DAE:      reduction of index 1 semiexplicit DAE 
-%                               [{'0'} / '1']
-%           -.cure.test:        execute analysis code 
-%                               [{'0'} / '1']
-%           -.cure.gif:         produce a .gif file of the CURE iteration
 %                               [{'0'} / '1']
 %           -.cure.maxIter:     maximum number of CURE iterations
 %                               [{'20'} / positive integer]
-%           -.warn:             show warnings
+%           -.spark.type:       chooses between standard SPARK, where the original 
+%                               model is reduced directly, or MESPARK, where a 
+%                               model function is created and updated after convergence.
+%                               [{'model'} / 'standard']
+%           -.spark.test:       specifies weather the user desires to get insight 
+%                               in what is happening. This is realized by  
+%                               plotting intermediate results during optimization.
 %                               [{'0'} / '1']
-%           -.w:                frequencies for analysis plots
-%                               [{''} / '{wmin,wmax}' / vector of frequencies]
-%           -.zeroThers:        value that can be used to replace 0 
-%                               [{'1e-4'} / postivie float]
+%           -.spark.verbose:    text output during the optimization
+%                               [{'0'} / '1']
+%           -.spark.mfe:        maximum functions evaluations
+%                               [{'5e3'} / positive integer]
+%           -.spark.mi:         maximum iterations in solver
+%                               [{'150'} / positive integer]
+%           -.spark.xTol:       step tolerance in solver
+%                               [{'1e-10'} / positive float]
+%           -.spark.fTol:       function value tolerance
+%                               [{'1e-10'} / positive float]
+%           -.spark.modelTol:   convergence tolerance for model funciton
+%                               [{'1e-5'} / positive float]
+%           -.mespark.ritz:     use eigenvalues of model function to initialize
+%                               the shifts 
+%                               [{'1'} / '0']
+%           -.mespark.pertIter: number of iterations after which a
+%                               pertubation of the shifts starts to avoid
+%                               stagnation of the model function
+%                               [{'5'} / positive integer]
+%           -.mespark.maxIter:  maximum number of model function updates
+%                               [{'20'} / positive integer]
+%       -params (cure_irka):    structure with the parameters for the
+%                               cure-algorithm (reduction algorithm irka)
+%           -.originalOrder:    Model order before reduction
+%           -.cure.fact:        factorization mode 
+%                               [{'V'} / 'W']
+%           -.cure.init:        shift initialization mode 
+%                               [{'sm'} / 'zero' / 'lm' / 'slm']
+%           -.cure.stop:        stopping criterion
+%                               [{'nmax'} / 'h2Error']
+%           -.cure.stopval:     value according to which the stopping criterion is evaluated
+%                               [{'round(sqrt(sys.n))'} / positive integer]
+%           -.cure.SE_DAE:      reduction of index 1 semiexplicit DAE 
+%                               [{'0'} / '1']
+%           -.cure.maxIter:     maximum number of CURE iterations
+%                               [{'20'} / positive integer]
+%           -.maxiter:          maximum number of iterations;
+%                               [50 / positive integer]
+%           -.tol:              convergence tolerance;
+%                               [1e-3 / positive float]
+%           -.type:             choose between different irka modifications;
+%                               ['' / 'stab']
+%           -.verbose:          show text output during iterations;
+%                               [0 / 1]
+%           -.stopCrit:	        stopping criterion;
+%                               ['combAny' / 's0' / 'sysr' / 'combAll']
+%           -.suppressverbose:  suppress any type of verbose for speedup;
+%                               [0 / 1]
+%           -.orth:             orthogonalization of new projection direction
+%                               ['2mgs' / 0 / 'dgks' / 'mgs']
+%           -.reorth:           reorthogonalization
+%                               ['gs' / 0 / 'qr']
+%           -.lse:              use LU or hessenberg decomposition
+%                               ['sparse' / 'full' / 'hess']
+%           -.dgksTol:          tolerance for dgks orthogonalization
+%                               [1e-12 / positive float]
+%           -.krylov:           standard or cascaded krylov basis
+%                               [0 / 'cascade]
+%           -.kIter:            number of iterations
+%           -.s0:               final choice of shifts
+%           -.Rt:               final choice of right tangential directions
+%                               for MIMO
+%           -.Lt:               final choice of left tangential directions
+%                               for MIMO
+%           -.s0Traj:           trajectory of all shift
+%           -.RtTraj:           trajectory of right tangential directions
+%           -.LtTraj:           trajectory of left tangential directions
+%       -params (cure_rk+pork): structure with the parameters for the
+%                               cure-algorithm (reduction algorithm rk+pork)
+%           -.originalOrder:    Model order before reduction
+%           -.cure.fact:        factorization mode 
+%                               [{'V'} / 'W']
+%           -.cure.init:        shift initialization mode 
+%                               [{'sm'} / 'zero' / 'lm' / 'slm']
+%           -.cure.stop:        stopping criterion
+%                               [{'nmax'} / 'h2Error']
+%           -.cure.stopval:     value according to which the stopping criterion is evaluated
+%                               [{'round(sqrt(sys.n))'} / positive integer]
+%           -.cure.SE_DAE:      reduction of index 1 semiexplicit DAE 
+%                               [{'0'} / '1']
+%           -.cure.maxIter:     maximum number of CURE iterations
+%                               [{'20'} / positive integer]
+%           -.real:             keep the projection matrices real
+%                               [true / false]
+%           -.orth:             orthogonalization of new projection direction
+%                               ['2mgs' / 0 / 'dgks' / 'mgs']
+%           -.reorth:           reorthogonalization
+%                               ['gs' / 0 / 'qr']
+%           -.lse:              use LU or hessenberg decomposition
+%                               ['sparse' / 'full' / 'hess']
+%           -.dgksTol:          tolerance for dgks orthogonalization
+%                               [1e-12 / positive float]
+%           -.krylov:           standard or cascaded krylov basis
+%                               [0 / 'cascade]
+%           -.IP:               inner product
+%           -.s0_inp:           expansion points for input Krylov subspaces
+%           -.s0_out:           expansion points for output Krylov
+%                               subspaces
+%           -.Rt:               right tangential directions for MIMO
+%           -.Lt:               left tangential directions for MIMO
 %       -A: system matrix
 %       -B: input matrix
 %       -C: output matrix
@@ -266,7 +358,9 @@ classdef ssRed < ss
                 end             
             end
             
-            if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr','modalMor','rk','irka','projectiveMor','porkV','porkW','cure'}) == 0
+            if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr', ...
+                    'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
+                    'cure_spark','cure_irka','cure_rk+pork'}) == 0
                 error('The first argument has a wrong format. Type "help ssRed" for more information.');
             end
             
@@ -274,18 +368,10 @@ classdef ssRed < ss
             obj@ss(A,B,C,D);
             obj.e = E;
             
-            % check the params struct
-            try
-               obj.checkParamsStruct(varargin{2},varargin{1});
-            catch ex
-               error(ex.message); 
-            end
-            
             % check all fields of paramsList
             if ~isempty(paramsList)
                 try
                    for i = 1:size(paramsList,1)
-                      obj.checkParamsStruct(paramsList{i}.params,paramsList{i}.method);
                       if length(fieldnames(paramsList{i})) ~= 2
                           error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.');
                       end
@@ -548,211 +634,79 @@ classdef ssRed < ss
     %%Private and static helper methods
     methods(Hidden, Access = private, Static)
         
-        function correct = checkParamsStruct(params,method)
-        % Checks if the struct with the parameters has the correct
-        % structure
-            correct = 1;
-            
-            % check original Order
-            if ~isfield(params,'originalOrder')
-                  error('Struct params does not contain the field "originalOrder"!')
-            end           
-            if mod(params.originalOrder,1)~=0
-                  error('params.originalOrder: Wrong value. Integer value required!'); 
-            end
+        function parsedStruct = parseParamsStruct(params,method)
+        % Checks if the struct with the parameters  "params" has the correct
+        % structure for the specified reduction method "method". If this is
+        % the case, then the values of the required fields of the struct 
+        % "params" are copied to the struct "parsedStruct". If ths struct
+        % "params" contains additional fields, these fields are not copied
+        % to the struct "parsedStruct".
             
             % check algorithm-specific parameters
             if strcmp(method,'tbr')                     %tbr
-               if ~isfield(params,'type')
-                   error('Struct params does not contain the field "type"!');
-               elseif ~isfield(params,'redErr')
-                   error('Struct params does not contain the field "redErr"!');
-               elseif ~isfield(params,'hsvTol')
-                   error('Struct params does not contain the field "hsvTol"!');
-               elseif ~isfield(params,'warnOrError')
-                   error('Struct params does not contain the field "warnOrError"!');
-               elseif ~isfield(params,'lse')
-                   error('Struct params does not contain the field "lse"!');
-               elseif ~isfield(params,'hsv')
-                   error('Struct params does not contain the field "hsv"!');
-               end                    
-            elseif strcmp(method,'modalMor')            %modalMor          
-               if ~isfield(params,'type')
-                   error('Struct params does not contain the field "type"!');
-               elseif ~isfield(params,'orth')
-                   error('Struct params does not contain the field "orth"!');
-               elseif ~isfield(params,'real')
-                   error('Struct params does not contain the field "real"!');
-               elseif ~isfield(params,'tol')
-                   error('Struct params does not contain the field "tol"!');
-               elseif ~isfield(params,'dominance')
-                   error('Struct params does not contain the field "dominance"!');
-               end
+               list = {'originalOrder','type','redErr','hsvTol','warnOrError','lse','hsv'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');                 
+            elseif strcmp(method,'modalMor')            %modalMor  
+               list = {'originalOrder','type','orth','real','tol','dominance'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params'); 
             elseif strcmp(method,'irka')                %irka
-               if ~isfield(params,'maxiter')
-                   error('Struct params does not contain the field "maxiter"!');
-               elseif ~isfield(params,'tol')
-                   error('Struct params does not contain the field "tol"!');
-               elseif ~isfield(params,'type')
-                   error('Struct params does not contain the field "type"!');
-               elseif ~isfield(params,'verbose')
-                   error('Struct params does not contain the field "verbose"!');
-               elseif ~isfield(params,'stopCrit')
-                   error('Struct params does not contain the field "stopCrit"!');
-               elseif ~isfield(params,'suppressverbose')
-                   error('Struct params does not contain the field "suppressverbose"!');
-               elseif ~isfield(params,'orth')
-                   error('Struct params does not contain the field "orth"!');
-               elseif ~isfield(params,'lse')
-                   error('Struct params does not contain the field "lse"!');
-               elseif ~isfield(params,'dgksTol')
-                   error('Struct params does not contain the field "dgksTol"!');
-               elseif ~isfield(params,'krylov')
-                   error('Struct params does not contain the field "krylov"!');
-               elseif ~isfield(params,'s0')
-                   error('Struct params does not contain the field "s0"!');
-               elseif ~isfield(params,'Rt')
-                   error('Struct params does not contain the field "Rt"!');
-               elseif ~isfield(params,'Lt')
-                   error('Struct params does not contain the field "Lt"!');
-               elseif ~isfield(params,'kIter')
-                   error('Struct params does not contain the field "kIter"!');
-               elseif ~isfield(params,'s0Traj')
-                   error('Struct params does not contain the field "s0Traj"!');
-               elseif ~isfield(params,'RtTraj')
-                   error('Struct params does not contain the field "RtTraj"!');
-               elseif ~isfield(params,'LtTraj')
-                   error('Struct params does not contain the field "LtTraj"!');
-               end    
+               list = {'originalOrder','maxiter','tol','type','verbose','stopCrit', ...
+                       'suppressverbose','orth','lse','dgksTol','krylov', ...
+                       's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');   
             elseif strcmp(method,'rk')                  %rk
-               if ~isfield(params,'real')
-                   error('Struct params does not contain the field "real"!');
-               elseif ~isfield(params,'orth')
-                   error('Struct params does not contain the field "orth"!');
-               elseif ~isfield(params,'reorth')
-                   error('Struct params does not contain the field "reorth"!');
-               elseif ~isfield(params,'lse')
-                   error('Struct params does not contain the field "lse"!');
-               elseif ~isfield(params,'dgksTol')
-                   error('Struct params does not contain the field "dgksTol"!');
-               elseif ~isfield(params,'krylov')
-                   error('Struct params does not contain the field "krylov"!');
-               elseif ~isfield(params,'IP')
-                   error('Struct params does not contain the field "IP"!');
-               elseif ~isfield(params,'Rt')
-                   error('Struct params does not contain the field "Rt"!');
-               elseif ~isfield(params,'Lt')
-                   error('Struct params does not contain the field "Lt"!');
-               elseif ~isfield(params,'s0_inp')
-                   error('Struct params does not contain the field "s0_inp"!');
-               elseif ~isfield(params,'s0_out')
-                   error('Struct params does not contain the field "s0_out"!');
-               end
+               list = {'originalOrder','real','orth','reorth','lse','dgksTol','krylov', ...
+                       'IP','Rt','Lt','s0_inp','s0_out'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'projectiveMor')       %projectiveMor
-               if ~isfield(params,'trans')
-                   error('Struct params does not contain the field "trans"!');
-               end
+               list = {'originalOrder','trans'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'porkV')               %porkV
+               list = {'originalOrder'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'porkW')               %porkW
-            elseif strcmp(method,'cure')
-               if ~isfield(params,'cure')
-                   error('Struct params does not contain the field "cure"!');
-               elseif ~isfield(params,'warn')
-                   error('Struct params does not contain the field "warn"!');
-               elseif ~isfield(params,'w')
-                   error('Struct params does not contain the field "w"!');
-               elseif ~isfield(params,'zeroThres')
-                   error('Struct params does not contain the field "zeroThres"!');
-               end
+               list = {'originalOrder'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
+            elseif strcmp(method,'cure_spark')          %cure_spark  
+               list = {'originalOrder'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params'); 
+                
+               list = {'cure','spark','mespark'};
+               ssRed.parseStructFields(params,list,'params');
                
-               paramCure = params.cure;               
+               list = {'fact','init','stop','stopval','SE_DAE','maxIter'};
+               parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
+
+               list = {'type','test','verbose','mfe','mi','xTol', ...
+                       'fTol','modelTol'};
+               parsedStruct.spark = ssRed.parseStructFields(params.spark,list,'params.spark');
                
-               if ~isfield(paramCure,'redfun')
-                   error('Struct params does not contain the field "cure.redfun"!');
-               elseif ~isfield(paramCure,'nk')
-                   error('Struct params does not contain the field "cure.nk"!');
-               elseif ~isfield(paramCure,'fact')
-                   error('Struct params does not contain the field "cure.fact"!');
-               elseif ~isfield(paramCure,'init')
-                   error('Struct params does not contain the field "cure.init"!');
-               elseif ~isfield(paramCure,'stop')
-                   error('Struct params does not contain the field "cure.stop"!');
-               elseif ~isfield(paramCure,'stopval')
-                   error('Struct params does not contain the field "cure.stopval"!');
-               elseif ~isfield(paramCure,'verbose')
-                   error('Struct params does not contain the field "cure.verbose"!');
-               elseif ~isfield(paramCure,'SE_DAE')
-                   error('Struct params does not contain the field "cure.SE_DAE"!');
-               elseif ~isfield(paramCure,'test')
-                   error('Struct params does not contain the field "cure.test"!');
-               elseif ~isfield(paramCure,'gif')
-                   error('Struct params does not contain the field "cure.gif"!');
-               elseif ~isfield(paramCure,'maxIter')
-                   error('Struct params does not contain the field "cure.maxiter"!');
-               end           
+               list = {'ritz','pertIter','maxIter'};
+               parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
+            elseif strcmp(method,'cure_irka')           %cure_irka
+               list = {'originalOrder,''maxiter','tol','type','verbose','stopCrit', ...
+                       'suppressverbose','orth','lse','dgksTol','krylov', ...
+                       's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
+               
+               list = {'cure'};
+               ssRed.parseStructFields(params,list,'params');
+               
+               list = {'fact','init','stop','stopval','SE_DAE','maxIter'};
+               parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');               
+            elseif strcmp(method,'cure_rk+pork')        %cure_rk+pork
+               list = {'originalOrder','real','orth','reorth','lse','dgksTol','krylov', ...
+                       'IP','Rt','Lt','s0_inp','s0_out'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
+               
+               list = {'cure'};
+               ssRed.parseStructFields(params,list,'params');
+               
+               list = {'fact','init','stop','stopval','SE_DAE','maxIter'};
+               parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
             end
         end
         
-        function parsedParams = parseParamsStruct(params,method)
-        %Selects the values of the fields of the params-struct that belong 
-        %to the given reduction method and cuts of all other fields
-        
-            % paramters that are identical for all algorithms
-            parsedParams.originalOrder = params.originalOrder;
-            
-            % algorithm-specific parameters
-            if strcmp(method,'tbr')                     %tbr
-               parsedParams.type = params.type;
-               parsedParams.redErr = params.redErr;
-               parsedParams.hsvTol = params.hsvTol;
-               parsedParams.warnOrError = params.warnOrError;
-               parsedParams.lse = params.lse;
-               parsedParams.hsv = params.hsv;                  
-            elseif strcmp(method,'modalMor')            %modalMor 
-               parsedParams.type = params.type;
-               parsedParams.orth = params.orth;
-               parsedParams.real = params.real;
-               parsedParams.tol = params.tol;
-               parsedParams.dominance = params.dominance;
-            elseif strcmp(method,'irka')                %irka
-               parsedParams.maxiter = params.maxiter;
-               parsedParams.tol = params.tol;
-               parsedParams.type = params.type;
-               parsedParams.verbose = params.verbose;
-               parsedParams.stopCrit = params.stopCrit;
-               parsedParams.suppressverbose = params.suppressverbose;
-               parsedParams.orth = params.orth;
-               parsedParams.lse = params.lse;
-               parsedParams.dgksTol = params.dgksTol;
-               parsedParams.krylov = params.krylov;
-               parsedParams.s0 = params.s0;
-               parsedParams.Rt = params.Rt;
-               parsedParams.Lt = params.Lt;
-               parsedParams.kIter = params.kIter;
-               parsedParams.s0Traj = params.s0Traj;
-               parsedParams.RtTraj = params.RtTraj;
-               parsedParams.LtTraj = params.LtTraj;  
-            elseif strcmp(method,'rk')                  %rk
-               parsedParams.real = params.real;
-               parsedParams.orth = params.orth;
-               parsedParams.reorth = params.reorth;
-               parsedParams.lse = params.lse;
-               parsedParams.dgksTol = params.dgksTol;
-               parsedParams.krylov = params.krylov;
-               parsedParams.IP = params.IP;
-               parsedParams.Rt = params.Rt;
-               parsedParams.Lt = params.Lt;
-               parsedParams.s0_inp = params.s0_inp;
-               parsedParams.s0_out = params.s0_out;
-            elseif strcmp(method,'projectiveMor')       %projectiveMor
-               parsedParams.trans = params.trans;
-            elseif strcmp(method,'porkV')               %porkV
-            elseif strcmp(method,'porkW')               %porkW
-            elseif strcmp(method,'cure')
-               
-            end
-            
-        end
         
         function parsedParamsList = removeProjectiveMor(paramsList)
         %Removes the reductionParameters for "projectiveMor" from the
@@ -772,6 +726,25 @@ classdef ssRed < ss
                 parsedParamsList = paramsList;
             end           
         end
+        
+        function outputStruct = parseStructFields(structure,fields,structName)
+        %This function checks if the the struct "structure" contains all fields
+        %specified in the cell-array "fields". If the case, all the values 
+        %of the fields of the struct "structure" are copied to the struct 
+        %"outputStruct". The variable "structName" is used in the error
+        %message to inform the user which field caused the error.
+             
+            for i = 1:length(fields)
+               if ~isfield(structure,fields{i})
+                  error(strcat('Struct "',structName, ...
+                      '" does not contain the field "',fields{i},'"!'));
+               else
+                  outputStruct.(fields{i}) = structure.(fields{i});
+               end
+            end            
+            t = 1;        
+        end
+        
     end    
 end
 

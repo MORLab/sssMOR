@@ -196,9 +196,10 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
             % V-based decomposition, if A*V - E*V*S - B*Rv = 0
             switch Opts.cure.redfun
                 case 'spark'               
-                    [V,Sv,Rv] = spark(sys,s0,Opts); 
+                    [V,Sv,Rv,~,usedOpts] = spark(sys,s0,Opts); 
                     
-                    [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,C_);                   
+                    sysrTemp = porkV(V,Sv,Rv,C_); 
+                    [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                 case 'irka'
                     [sysrTemp,V,W,~,~,~,~,~,Rv] = irka(sys,s0);
                                       
@@ -206,7 +207,8 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                     
                 case 'rk+pork'
                     [~, V, ~, ~, Sv, Rv] = rk(sys,s0);
-                    [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,C_);
+                    sysrTemp = porkV(V,Sv,Rv,C_);
+                    [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                     
                     %   Adapt Cr for SE DAEs
                     Cr = Cr - DrImp*Rv;
@@ -223,10 +225,11 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
         % W-based decomposition, if A.'*W - E.'*W*Sw.' - C.'*Lw = 0
             switch Opts.cure.redfun
                 case 'spark'               
-                    [W,Sw,Lw] = spark(sys.',s0,Opts);
+                    [W,Sw,Lw,~,usedOpts] = spark(sys.',s0,Opts);
                     Sw = Sw.'; %make Sw from Sw^T
                     
-                    [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B_);
+                    sysrTemp = porkW(W,Sw,Lw,B_);
+                    [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                 case 'irka'
                     [sysrTemp,V,W,~,~,~,~,~,~,~,~,Lw] = irka(sys,s0);
                     
@@ -235,7 +238,8 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                 case 'rk+pork'
                     [~, ~, W, ~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0);
                     
-                    [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B_);  
+                    sysrTemp = porkW(W,Sw,Lw,B_); 
+                    [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                     
                     %   Adapt Br for SE-DAEs
                     Br = Br - Lw.'*DrImp;
@@ -270,9 +274,19 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     %      that should be stored to this field
     %   2. Adapt the method "checkParamsStruct" of the class "ssRed" in such a
     %      way that the new defined field passes the check
-    Opts.originalOrder = sys.n;
-
-    sysr    = ssRed('cure',Opts,Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot);
+      
+    if strcmp(Opts.cure.redfun,'irka') || strcmp(Opts.cure.redfun,'rk+pork')
+        usedOpts = sysrTemp.reductionParameters{end,1}.params;
+        usedOpts.cure = Opts.cure;
+    end
+    usedOpts.originalOrder = sysr.n;
+    if isa(sysr,'ssRed')
+        sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
+                     Br_tot, Cr_tot, zeros(p,m), Er_tot,sysr.reductionParameters);
+    else
+        sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
+                     Br_tot, Cr_tot, zeros(p,m), Er_tot);
+    end
     
     % display
     if Opts.cure.test
