@@ -1,9 +1,9 @@
-function [V,S,R,k] = spark(sys,s0,Opts)
+function [V,S,R,k,usedOpts] = spark(sys,s0,Opts)
 % SPARK - Stability Preserving Adaptive Rational Krylov
 % 
 % Syntax:
-%       [V,Sv,Rv,k] = SPARK(sys,s0)
-%       [V,Sv,Rv,k] = SPARK(sys,s0,Opts)
+%       [V,Sv,Rv,k,usedOpts] = SPARK(sys,s0)
+%       [V,Sv,Rv,k,usedOpts] = SPARK(sys,s0,Opts)
 %
 % Description:
 %       This function reduces a state-space, LTI model specified 
@@ -55,6 +55,8 @@ function [V,S,R,k] = spark(sys,s0,Opts)
 %       -V,S,R:     Krylov subspace [V or W], Sylvester matrices [Sv,Rv] or
 %                   [Sw^T,Lw]
 %       -k:         Number of iterations of MESPARK
+%       -usedOpts:  Computation options that came to use during the spark
+%                   algorithm
 %
 % 
 % See Also: 
@@ -151,10 +153,11 @@ warning('off','MATLAB:nearlySingularMatrix')
     v2 = Q2*(U2\(L2\(P2*(sys.E*v1))));
     V   = full(real([v1/2 + (v12/2+p_opt(1)*v2), v2*sqrt(p_opt(2))]));
     S = [2*p_opt(1), sqrt(p_opt(2)); -sqrt(p_opt(2)), 0]; R = [1 0];
+    usedOpts = Opts;
     if Opts.spark.verbose
     disp(['spark required ca. ' num2str(2*(k+1)) ' LUs ', ...
         ' and converged in ' num2str(toc(t),'%.1f') 'sec.'])
-    end
+    end   
   
     warning('on','MATLAB:nearlySingularMatrix')
     
