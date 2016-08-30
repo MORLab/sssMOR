@@ -953,6 +953,10 @@ function et_PaV_saveData_Callback(hObject, eventdata, handles)
 
     savePlotData(handles);
 
+function cb_PaV_SaveTimeseries_Callback(hObject, eventdata, handles)
+
+function et_PaV_saveTimeseries_Callback(hObject, eventdata, handles)
+    
 function pu_in_Callback(hObject, eventdata, handles)
 
     handles = savePlotData(handles);
@@ -1312,6 +1316,8 @@ function pb_PaV_infoSaveData_Callback(hObject, eventdata, handles)
 
     infoBox({'InfoSaveData.png'});
     uiwait;
+
+function pb_PaV_infoSaveTimeseries_Callback(hObject, eventdata, handles)
 
     
 function pb_plot_Callback(hObject, eventdata, handles)
@@ -6278,9 +6284,9 @@ function x = systemsInWorkspace()
     % preallocate memory
     x=cell(length(s),1);
     for i=1:length(s)
-        if strcmp(s(i).class,'ss') || strcmp(s(i).class,'sss') && ...
-            ~strcmp(s(i).name,'load_var_dont_destroy') && ...
-            ~strcmp(s(i).name,'GUI_dont_destroy')
+        if strcmp(s(i).class,'sss') && ...
+           ~strcmp(s(i).name,'load_var_dont_destroy') && ...
+           ~strcmp(s(i).name,'GUI_dont_destroy')
             % save name
             x{i}=s(i).name;
         end
@@ -6617,6 +6623,5 @@ function [] = addRelativePaths()
     end
     
     addpath(genpath(path));
-
 
 
