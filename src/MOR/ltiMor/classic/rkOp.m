@@ -5,7 +5,7 @@ function varargout = rkOp(varargin)
 %       sOpt = RKOP(sys)
 %       sOpt = RKOP(h,t)
 %       [sysr, V, W, sOpt] = RKOP(sys,q)
-%       [sysr, V, W, sOpt] = RKOP(sys,q,Opts)
+%       [sysr, V, W, sOpt] = RKOP(sys,...,Opts)
 %
 % Description:
 %       This function deteremines an optimal expansion point for 
@@ -28,6 +28,8 @@ function varargout = rkOp(varargin)
 %       -Opts:			structure with execution parameters
 %			-.rk:       reduction type
 %						[{'twoSided'} / 'input' / 'output']
+%           -.lse:      solve linear system of equations
+%                       [{'sparse'} / 'full' / 'gauss' / 'hess' / 'iterative' ]
 %
 % Output Arguments:      
 %       -sOpt:          optimal expansion point
@@ -46,8 +48,13 @@ function varargout = rkOp(varargin)
 %       rk, rkIcop, irka, arnoldi
 %
 % References:
-%       * *[1] R. Eid: Time domain Model Reduction by Moment Matching, 
-%               Ph.D thesis, Institute of Automatic Control, Technische 
+%       * *[1] R. Eid, H. Panzer and B. Lohmann: How to choose a single 
+%               expansion point in Krylov-based model reduction? Technical 
+%               reports on Automatic Control, vol. TRAC-4(2), Institute of 
+%               Automatic Control, Technische Universitaet Muenchen, Nov. 
+%               2009.
+%       * *[2] R. Eid: Time domain Model Reduction by Moment Matching, Ph.D
+%               thesis, Institute of Automatic Control, Technische 
 %               Universitaet Muenchen, 2009.
 %
 %------------------------------------------------------------------
@@ -69,14 +76,15 @@ function varargout = rkOp(varargin)
 % Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
-if length(varargin)==3 && isa(varargin{3},'struct')
-    Opts=varargin{3};
-    varargin=varargin(1:2);
+if length(varargin)>1 && isa(varargin{end},'struct')
+    Opts=varargin{end};
+    varargin=varargin(1:end-1);
 end
 
 %% Parse the inputs
 %   Default execution parameters
 Def.rk = 'twoSided'; % 'twoSided','input','output'
+Def.lse = 'sparse'; % 'sparse', 'full', 'hess', 'gauss', 'iterative'
 
 % create the options structure
 if ~exist('Opts','var') || isempty(fieldnames(Opts))
@@ -113,18 +121,29 @@ elseif isa(varargin{1},'sss') || isa(varargin{1},'ssRed') || isa(varargin{1},'ss
     sOpt=zeros(sys.p,sys.m);
     
     if sys.isDescriptor
-        A=solveLse(sys.E,sys.A,Opts);
+        c=solveLse(sys.E.',sys.C.',Opts).';
     else
-        A=sys.A;
+        c=sys.C;
     end
     
     for i=1:sys.p
         for j=1:sys.m
 
             P=lyap(sys.A,sys.B(:,j)*sys.B(:,j).', [], sys.E);
-            Y=lyap(A,P);
+            Psym=0.5*(sys.E*P*sys.E.'+sys.E*P.'*sys.E.');
+            
+            count = 1;
+            % Psysm is theoretically symmetric, but numerically not
+            while(~issymmetric(Psym))
+                Psym=0.5*(Psym+Psym.');
+                if count > 5
+                    error('Psym not symmetric.');
+                end
+            end
+            
+            Y=lyap(sys.A,Psym, [], sys.E);
 
-            sOpt(i,j)=sqrt((sys.C(i,:)*A*Y*A.'*sys.C(i,:).')/(sys.C(i,:)*Y*sys.C(i,:).'));
+            sOpt(i,j)=sqrt(c(i,:)*sys.A*Y*sys.A.'*c(i,:).'/(sys.C(i,:)*Y*sys.C(i,:).'));
 
             if nnz(sOpt(i,j)<0) || ~isreal(sOpt(i,j))
                 warning(['The optimal expansion point is negative or complex.'...

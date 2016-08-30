@@ -24,6 +24,8 @@ function [sysr, V, W, sOpt] = rkIcop(sys, s0, q, varargin)
 %						[{20} / positive integer]
 %			-.tol:		convergence tolerance;
 %						[{1e-2} / positive float]
+%           -.lse:      solve linear system of equations
+%                       [{'sparse'} / 'full' / 'gauss' / 'hess' / 'iterative' ]
 %
 % Output Arguments:
 %       -sysr:          reduced system
@@ -80,6 +82,7 @@ end
 Def.rk = 'twoSided'; % 'twoSided','input','output'
 Def.tol = 1e-2; % stopping tolerance
 Def.maxIter = 100; % maximum number of iterations
+Def.lse = 'sparse'; % 'sparse', 'full', 'hess', 'gauss', 'iterative'
 
 % create the options structure
 if ~exist('Opts','var') || isempty(fieldnames(Opts))
@@ -161,7 +164,7 @@ for i=1:Opts.maxIter
     end
     
     % calculate sOpt
-    sOpt = rkOp(sysr);
+    sOpt = rkOp(sysr, Opts);
     
     if abs(sOpt-sOptOld)/sOpt <= Opts.tol
         break
