@@ -49,6 +49,10 @@ function sysr = cure(sys,Opts)
 %                           [{'0'} / '1']
 %           -.cure.maxIter: maximum number of CURE iterations
 %                           [{'20'} / positive integer]
+%           -.cure.checkEVB:check if [EV,B_] has full column rank (or dual)
+%                           [{true},false]
+%           -.cure.sEVBTol: rank tolerance for [EV,B_] matrix (or dual)
+%                           [{1e-16}/ positive float]
 %           -.warn:         show warnings
 %                           [{'0'} / '1']
 %           -.w:            frequencies for analysis plots
@@ -117,6 +121,8 @@ function sysr = cure(sys,Opts)
         Def.cure.test = 0; %execute analysis code?
         Def.cure.gif = 0; %produce a .gif of the CURE iteration
         Def.cure.maxIter = 20; %maximum number of iterations
+        Def.cure.checkEVB = true; %check if [EV,B_] or dual have full rank
+        Def.cure.sEVBTol = 1e-16; %rank tolerance for [EV,B_] matrix (or dual)
         
     % create the options structure
     if ~exist('Opts','var') || isempty(Opts)
@@ -198,6 +204,14 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                 case 'spark'               
                     [V,Sv,Rv] = spark(sys,s0,Opts); 
                     
+                    if Opts.cure.checkEVB
+                        sEVB = svd(full([sys.E*V,B_]));
+                        if min(sEVB)<Opts.cure.sEVBTol
+                            warning('The matrix [EV,B_] lost rank. CURE is not valid anymore. Abort.');
+                            break
+                        end
+                    end
+                    
                     [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,C_);                   
                 case 'irka'
                     [sysrTemp,V,W,~,~,~,~,~,Rv] = irka(sys,s0);
@@ -225,6 +239,14 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                 case 'spark'               
                     [W,Sw,Lw] = spark(sys.',s0,Opts);
                     Sw = Sw.'; %make Sw from Sw^T
+                    
+                    if Opts.cure.checkEVB
+                        sEVB = svd(full([sys.E.'*W,C_.']));
+                        if min(sEVB)<Opts.cure.sEVBTol
+                            warning('The matrix [E.''W,C_] lost rank. CURE is not valid anymore. Abort.');
+                            break
+                        end
+                    end
                     
                     [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B_);
                 case 'irka'
