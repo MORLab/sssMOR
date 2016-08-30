@@ -176,7 +176,7 @@ warning('off','MATLAB:nearlySingularMatrix')
             figure(fh);
             plot(p_opt(1),p_opt(2),'p','LineWidth',2,'MarkerSize',10,...
                 'MarkerFaceColor',TUM_Gruen,'MarkerEdgeColor','k');
-            pause, close(fh);
+            pause(2),close(fh);
         end
 
         % convert parameter to shifts and perform LU decompositions
