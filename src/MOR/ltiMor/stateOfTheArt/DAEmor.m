@@ -121,20 +121,20 @@ switch Opts.cure.fact
     case 'V'
         sysSP.C = SpecProjFinC(sysSP.C);
         
-        Bim = B-SpecProjFinB(B);
-        Cim = C - sysSP.C;
+        Bim = sys.B-SpecProjFinB(sys.B);
+        Cim = sys.C - sysSP.C;
     case 'W'
         sysSP.B = SpecProjFinB(sysSP.B);
         
-        Bim = B- sysSP.B;
-        Cim = C - SpecProjFinC(sysSP.C);
+        Bim = sys.B- sysSP.B;
+        Cim = sys.C - SpecProjFinC(sys.C);
 end
 
 %%  Cured Spark
-Opts.cure.test = true;
+Opts.cure.test = false;
 Opts.cure.verbose = true;
 Opts.spark.type = 'standard';
-Opts.spark.test = true;
+Opts.spark.test = false;
 Opts.spark.verbose = true;
 
 sysSPr = cure(sysSP,Opts);
@@ -142,8 +142,7 @@ sysSPr = cure(sysSP,Opts);
 %% Minimal realization of improper part
 
 sysIMr = tbrDAEimproper(sys,nu,Bim,Cim);
-hold on; bode(ss(sysIMr),'r--');
+% hold on; bode(ss(sysIMr),'r--');
 
 %% Obtain the reduced model from summing the subsystems
-
 sysr = sysSPr + sysIMr;
