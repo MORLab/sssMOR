@@ -38,25 +38,27 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
     Def.plotCostOverDr = 0;
     Def.irka        = struct('stopCrit','s0','tol',1e-5,'type','stab');
     Def.corrType    = 'normOptCycle';
-    Def.solver      = 'fmincon'; %optimization solver
-    Def.DrInit      = '0'; %0, '0', Ge0, matchGe0, maxGe
-    Def.plot        = 0; % generate analysis plot
+    Def.solver      = 'fmincon';    %optimization solver
+    Def.DrInit      = '0';          %0, '0', Ge0, matchGe0, maxGe
+    Def.plot        = false;            % generate analysis plot
     Def.sampling    = 'random'; %sampling for sweepDr
     Def.sweepPoints = 5e3;
     
-    Def.surrogateError = true; %create a surrogate of the error, not of sys
-    Def.surrogate   = 'vf';   %original, 'model', 'vf', 'loewner'
-    Def.whatData    = 'new';        %'all','new'
-    Def.deflate     = 1;
-    Def.tol         = 1e-1; %ismemberf/getModelData
-    Def.rankTol     = eps; %rank tolerance Loewner
-    Def.surrTol     = 1e-4;
+    Def.surrogateError  = true;     %create a surrogate of the error, not of sys
+    Def.surrogate       = 'vf';     %original, 'model', 'vf', 'loewner'
+    Def.whatData        = 'new';    %'all','new'
+    Def.deflate         = 1;
+    Def.tol             = 1e-1;     %ismemberf/getModelData
+    Def.rankTol         = eps;      %rank tolerance Loewner
+    Def.surrTol         = 1e-4;
     
-    Def.vf.poles   = 'eigs'; %vectfit,eigs, serkan
-    Def.vf.maxiter = 20;
-    Def.vf.tol     = 1e-20;
+    Def.vf.poles        = 'eigs'; %vectfit,eigs, serkan
+    Def.vf.maxiter      = 20;
+    Def.vf.tol          = 1e-20;
     
-    Def.debug       = false;
+    Def.wLim            = [1e-1,1e4];
+    
+    Def.debug           = false;
     
     % create the options structure
     if ~exist('Opts','var') || isempty(Opts)
@@ -83,10 +85,10 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
 %         s0 = linspace(Opts.wLims(1),Opts.wLims(2),n/2); s0 = [1i*s0,-1i*s0];
 %         Rt = ones(sys.m,n/2); Rt = [1i*Rt,-1i*Rt];
 %         Lt = ones(sys.p,n/2); Lt = [1i*Lt,-1i*Lt];
-
-        s0 = logspace(log10(Opts.wLims(1)),log10(Opts.wLims(2)),n);
-        Rt = ones(sys.m,n);
-        Lt = ones(sys.p,n); 
+% 
+%         s0 = logspace(log10(Opts.wLims(1)),log10(Opts.wLims(2)),n);
+%         Rt = ones(sys.m,n);
+%         Lt = ones(sys.p,n); 
         
 %         Rt = rand(sys.m,n); Lt = rand(sys.p,n);
 %         s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n)

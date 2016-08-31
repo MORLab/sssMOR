@@ -1,4 +1,56 @@
 function [sysr, polesvf3]  = vectorFitting(sys,n,s0,Opts)
+% vectorFitting - rational approximation of frequency response
+%
+% Syntax:
+%       sysr                            = VECTORFITTING(sys, n, s0)
+%       [sysr,polesvf3]                 = VECTORFITTING(sys, n, s0)
+%       [sysr,polesvf3]                 = VECTORFITTING(sys, n, s0,Opts)
+%
+% Description:
+%       
+%
+% Input Arguments:  
+%       *Required Input Arguments:*
+%       -sys:			full oder model (sss)
+%       -s0:			vector of initial shifts
+%
+%       *Optional Input Arguments:*
+%       -Opts:			structure with execution parameters
+%			-.tol:		convergence tolerance;
+%						[{1e-3} / positive float]
+%
+% Output Arguments:      
+%       -sysr:              reduced order model (sss)
+%     
+% Examples:
+%
+% See Also: 
+%       arnoldi, rk, isH2opt
+%
+% References:
+%       * *[1] Gustavsen and Semlyen (1999)*, Rational approximation of frequency domain responses by vector fitting
+%
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
+% Authors:      Alessandro Castagnotto
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  31 Aug 2016
+% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
+
+
+%%  Initialize by plotting the frequencies for which the data is available
 
 if Opts.plot
     figure('Name','Sampling frequencies for VF');
@@ -6,7 +58,7 @@ if Opts.plot
 end
 
 % take only one complex conjugate partner
-% s0 = cplxpair(s0); idx = find(imag(s0)); s0(idx(1:2:end)) = [];
+s0 = cplxpair(s0); idx = find(imag(s0)); s0(idx(1:2:end)) = [];
 
 m = size(sys.b,2); p = size(sys.c,1);
 %                 if m>1, n = round(n/m);end %avoid blowing-up for MIMO
@@ -24,41 +76,52 @@ for iW = 1:nSample;
 end
 %     keyboard
 
-f = reshape(f,m*p,nSample);
-
 polesvf3 = initializePoles(sys,Opts.vf.poles,n,Opts.wLims);
 if Opts.plot
     hold on; plot(complex(polesvf3),'rx');
 end
 
+method = 1
 
-if 0 %old code by Alessandro
-    %MIMO systems have to be fitted columnwise
-    AA = []; BB = []; CC = []; DD = [];
-    rho=ones(1,nSample);
-    for iCol = 1:m
-        fm = f((iCol-1)*p+1 : iCol*p,:);
-        for iter = 1:Opts.vf.maxiter
-            [SER,polesvf3,rmserr] =vectfit3(fm,s0,polesvf3,rho);
-            fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
-%             if rmserr <= Opts.vf.tol, break, end
+switch method
+    case 1 %old code by Alessandro
+        %MIMO systems have to be fitted columnwise
+        f = reshape(f,m*p,nSample);
+        AA = []; BB = []; CC = []; DD = [];
+        rho=ones(1,nSample);
+        for iCol = 1:m
+            fm = f((iCol-1)*p+1 : iCol*p,:);
+            for iter = 1:Opts.vf.maxiter
+                [SER,polesvf3,rmserr] =vectfit3(fm,s0,polesvf3,rho);
+                fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
+                if rmserr <= Opts.vf.tol, break, end
+            end
+            AA = blkdiag(AA,SER.A);
+            BB = blkdiag(BB,SER.B);
+            CC = [CC, SER.C];
+            DD = [DD, SER.D];
         end
-        AA = blkdiag(AA,SER.A);
-        BB = blkdiag(BB,SER.B);
-        CC = [CC, SER.C];
-        DD = [DD, SER.D];
-    end
-    sysr = ss(full(AA),BB,CC,DD);
-else %using code from Serkan
-    rho=ones(1,nSample);
-    for iter = 1 : Opts.vf.maxiter  % number of vecfit3 steps
-        [SS_vectfit3,polesvf3,rmserr,fit,opts]=vectfit3(f,s0,polesvf3,rho);
-        fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
-        if rmserr <= Opts.vf.tol, break, end
-    end
-    sysr = vecfit3_to_ss(SS_vectfit3,polesvf3,n,m,p);
+        sysr = ss(full(AA),BB,CC,DD);
+    case 2 %using code from Serkan
+        f = reshape(f,m*p,nSample);
+        rho=ones(1,nSample);
+        for iter = 1 : Opts.vf.maxiter  % number of vecfit3 steps
+            [SS_vectfit3,polesvf3,rmserr,fit,opts]=vectfit3(f,s0,polesvf3,rho);
+            fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
+            if rmserr <= Opts.vf.tol, break, end
+        end
+        sysr = vecfit3_to_ss(SS_vectfit3,polesvf3,n,m,p);    
+    case 3 %using Matrix Fitting Toolbox
+        
+        for iter = 1 : Opts.vf.maxiter  % number of vecfit3 steps
+            [SER,rmserr,bigHfit,opts] = VFdriver(f,s0,polesvf3,opts)
+            fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
+            if rmserr <= Opts.vf.tol, break, end
+        end
+        
+        sysr = ss(SER.A,SER.B,SER.C,SER.D);
 end
-    if Opts.plot, plot(complex(polesvf3),'xg');end
+    if Opts.plot, plot(complex(polesvf3),'xg'); legend('s0 data','init poles','final poles'), end
 end
 
 function poles = initializePoles(sys,type,nm,wLim,wReLim)
