@@ -121,16 +121,28 @@ OmegaIMC = zeros(sys.n,sys.m*nu);
 OmegaIMO = zeros(sys.n,sys.p*nu);
 
 
-[L,U,a,o,S]=lu(sys.A,'vector');
+% [L,U,a,o,S]=lu(sys.A,'vector');
+% 
+% OmegaIMC(o,1:sys.m) = U\(L\(S(:,a)\Bim));
+% CimT = Cim.';
+% OmegaIMO(:,1:sys.p) = (S(:,a)).'\(L.'\(U.'\(CimT(o,:))));
+% 
+% 
+% for idx = 1:nu+4
+%     OmegaIMC(o,idx*sys.m+1:(idx+1)*sys.m) = U\(L\(S(:,a)\(sys.E* OmegaIMC(o,(idx-1)*sys.m+1:idx*sys.m))));
+%     OmegaIMO(:,idx*sys.p+1:(idx+1)*sys.p) = (S(:,a)).'\(L.'\(U.'\(OmegaIMO(o,(idx-1)*sys.p+1:idx*sys.p))));
+% end
 
-OmegaIMC(o,1:sys.m) = U\(L\(S(:,a)\Bim));
-CimT = Cim.';
-OmegaIMO(:,1:sys.p) = (S(:,a)).'\(L.'\(U.'\(CimT(o,:))));
+
+OmegaIMC(:,1:sys.m) = sys.A\Bim;
+OmegaIMO(:,1:sys.p) = (Cim/sys.A).';
+
 
 for idx = 1:nu-1
-    OmegaIMC(o,idx*sys.m+1:(idx+1)*sys.m) = U\(L\(S(:,a)\(sys.E* OmegaIMC(o,(idx-1)*sys.m+1:idx*sys.m))));
-    OmegaIMO(:,idx*sys.p+1:(idx+1)*sys.p) = (S(:,a)).'\(L.'\(U.'\(OmegaIMO(o,(idx-1)*sys.p+1:idx*sys.p))));
+    OmegaIMC(:,idx*sys.m+1:(idx+1)*sys.m) = sys.A\(sys.E* OmegaIMC(:,(idx-1)*sys.m+1:idx*sys.m));
+    OmegaIMO(:,idx*sys.p+1:(idx+1)*sys.p) = (((OmegaIMO(:,(idx-1)*sys.p+1:idx*sys.p)).'*sys.E)/sys.A).';
 end
+
 
 %% SVD
 [Zl,Lambda,Zr] = svd(OmegaIMO.'*sys.A*OmegaIMC);
