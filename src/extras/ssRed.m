@@ -111,6 +111,8 @@ classdef ssRed < ss
 %       -params (cure_spark):   structure with the parameters for the
 %                               cure-algorithm (reduction algorithm spark)
 %           -.originalOrder:    Model order before reduction
+%           -.currentReducedOrder: Model order at the current iteration
+%                                  step of the cure algorithm
 %           -.cure.fact:        factorization mode 
 %                               [{'V'} / 'W']
 %           -.cure.init:        shift initialization mode 
@@ -151,6 +153,8 @@ classdef ssRed < ss
 %       -params (cure_irka):    structure with the parameters for the
 %                               cure-algorithm (reduction algorithm irka)
 %           -.originalOrder:    Model order before reduction
+%           -.currentReducedOrder: Model order at the current iteration
+%                                  step of the cure algorithm
 %           -.cure.fact:        factorization mode 
 %                               [{'V'} / 'W']
 %           -.cure.init:        shift initialization mode 
@@ -197,6 +201,8 @@ classdef ssRed < ss
 %       -params (cure_rk+pork): structure with the parameters for the
 %                               cure-algorithm (reduction algorithm rk+pork)
 %           -.originalOrder:    Model order before reduction
+%           -.currentReducedOrder: Model order at the current iteration
+%                                  step of the cure algorithm
 %           -.cure.fact:        factorization mode 
 %                               [{'V'} / 'W']
 %           -.cure.init:        shift initialization mode 
@@ -658,7 +664,7 @@ classdef ssRed < ss
                list = {'originalOrder'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'cure_spark')          %cure_spark  
-               list = {'originalOrder'};
+               list = {'originalOrder','currentReducedOrder'};
                parsedStruct = ssRed.parseStructFields(params,list,'params'); 
                 
                list = {'cure','spark','mespark'};
@@ -674,8 +680,8 @@ classdef ssRed < ss
                list = {'ritz','pertIter','maxIter'};
                parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
             elseif strcmp(method,'cure_irka')           %cure_irka
-               list = {'originalOrder','maxiter','tol','type','stopCrit', ...
-                       'orth','lse','dgksTol','krylov', ...
+               list = {'originalOrder','currentReducedOrder','maxiter','tol', ...
+                       'type','stopCrit','orth','lse','dgksTol','krylov', ...
                        's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
                
@@ -685,7 +691,8 @@ classdef ssRed < ss
                list = {'fact','init','stop','stopval','maxIter'};
                parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');               
             elseif strcmp(method,'cure_rk+pork')        %cure_rk+pork
-               list = {'originalOrder','real','orth','reorth','lse','dgksTol','krylov', ...
+               list = {'originalOrder','currentReducedOrder','real', ...
+                       'orth','reorth','lse','dgksTol','krylov', ...
                        'IP','Rt','Lt','s0_inp','s0_out'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
                
