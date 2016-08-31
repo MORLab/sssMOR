@@ -81,9 +81,7 @@ if Opts.plot
     hold on; plot(complex(polesvf3),'rx');
 end
 
-method = 1
-
-switch method
+switch Opts.vf.method
     case 1 %old code by Alessandro
         %MIMO systems have to be fitted columnwise
         f = reshape(f,m*p,nSample);
@@ -114,14 +112,14 @@ switch method
     case 3 %using Matrix Fitting Toolbox
         
         for iter = 1 : Opts.vf.maxiter  % number of vecfit3 steps
-            [SER,rmserr,bigHfit,opts] = VFdriver(f,s0,polesvf3,opts)
+            [SER,rmserr] = VFdriver(f,s0,polesvf3);
             fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
             if rmserr <= Opts.vf.tol, break, end
         end
         
         sysr = ss(SER.A,SER.B,SER.C,SER.D);
 end
-    if Opts.plot, plot(complex(polesvf3),'xg'); legend('s0 data','init poles','final poles'), end
+    if Opts.plot, plot(complex(polesvf3),'+g'); legend('s0 data','init poles','final poles'), end
 end
 
 function poles = initializePoles(sys,type,nm,wLim,wReLim)
