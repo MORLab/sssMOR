@@ -141,7 +141,7 @@ sysSPr = cure(sysSP,Opts);
 
 %% Minimal realization of improper part
 
-sysIMr = tbrDAEimproper(sys,nu,Bim,Cim);
+sysIMr = tbrDAEimproper(sys,nu,Bim,Cim,Opts);
 % hold on; bode(ss(sysIMr),'r--');
 
 %% Obtain the reduced model from summing the subsystems

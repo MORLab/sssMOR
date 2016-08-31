@@ -1,4 +1,4 @@
-function sysIMr = tbrDAEimproper(sys,nu,Bim,Cim)
+function sysIMr = tbrDAEimproper(sys,nu,Bim,Cim,Opts)
 % CURE - CUmulative REduction framework
 %
 % Syntax:
@@ -136,11 +136,33 @@ end
 [Zl,Lambda,Zr] = svd(OmegaIMO.'*sys.A*OmegaIMC);
 
 %%  Truncate zero sv
-idx = find(diag(Lambda)<Opts.svalTol);
+%determine first zero improper HSV
+imHSV=diag(Lambda);
+firstzero_imHSV=0;
+for idx = 1:length(imHSV)
+    if imHSV(idx)<Opts.svalTol
+        firstzero_imHSV=idx;
+        break
+    end
+end
+%idx = find(diag(Lambda)<Opts.svalTol,1);
 
-Zl(:,idx:end) = [];
-Lambda(idx:end,idx:end) = [];
-Zr(:,idx:end) = [];
+%check, if there are any zero improper hankel singular values
+if firstzero_imHSV>0
+    %check, if all improper hankel singular values are zero
+    if(firstzero_imHSV==1)
+        %there is no improper subsystem -> return empty system object
+        sysIMr = sss([],[],[],[],[]);
+        return
+    else
+        %otherwise truncate 
+        Zl=Zl(:,1:firstzero_imHSV-1);
+        Lambda=Lambda(1:firstzero_imHSV-1,1:firstzero_imHSV-1);
+        Zr=Zr(:,1:firstzero_imHSV-1);
+    end
+else
+    %don't truncate anything
+end
 
 LambdaInvSqrt = Lambda^(-0.5);
 Wim = OmegaIMO*Zl*LambdaInvSqrt;
