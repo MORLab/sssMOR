@@ -30,8 +30,6 @@ classdef ssRed < ss
 %                               ['0' / positive float]
 %           -.hsvTol:           tolerance for Hankel-Singular values
 %                               ['1e-15' / positive float]
-%           -.warnOrError:      display warnings or errors
-%                               ['warn' / 'error' / '0']
 %           -.lse:              solve linear system of equations (only for adi)
 %                               ['gauss' / 'luChol']
 %           -.hsv:              Hankel singular values
@@ -57,12 +55,8 @@ classdef ssRed < ss
 %                               [1e-3 / positive float]
 %           -.type:             choose between different irka modifications;
 %                               ['' / 'stab']
-%           -.verbose:          show text output during iterations;
-%                               [0 / 1]
-%           -.stopCrit:	stopping criterion;
+%           -.stopCrit:	        stopping criterion;
 %                               ['combAny' / 's0' / 'sysr' / 'combAll']
-%           -.suppressverbose: suppress any type of verbose for speedup;
-%                               [0 / 1]
 %           -.orth:             orthogonalization of new projection direction
 %                               ['2mgs' / 0 / 'dgks' / 'mgs']
 %           -.reorth:           reorthogonalization
@@ -125,8 +119,6 @@ classdef ssRed < ss
 %                               [{'nmax'} / 'h2Error']
 %           -.cure.stopval:     value according to which the stopping criterion is evaluated
 %                               [{'round(sqrt(sys.n))'} / positive integer]
-%           -.cure.SE_DAE:      reduction of index 1 semiexplicit DAE 
-%                               [{'0'} / '1']
 %           -.cure.maxIter:     maximum number of CURE iterations
 %                               [{'20'} / positive integer]
 %           -.spark.type:       chooses between standard SPARK, where the original 
@@ -136,8 +128,6 @@ classdef ssRed < ss
 %           -.spark.test:       specifies weather the user desires to get insight 
 %                               in what is happening. This is realized by  
 %                               plotting intermediate results during optimization.
-%                               [{'0'} / '1']
-%           -.spark.verbose:    text output during the optimization
 %                               [{'0'} / '1']
 %           -.spark.mfe:        maximum functions evaluations
 %                               [{'5e3'} / positive integer]
@@ -644,14 +634,14 @@ classdef ssRed < ss
             
             % check algorithm-specific parameters
             if strcmp(method,'tbr')                     %tbr
-               list = {'originalOrder','type','redErr','hsvTol','warnOrError','lse','hsv'};
+               list = {'originalOrder','type','redErr','hsvTol','lse','hsv'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');                 
             elseif strcmp(method,'modalMor')            %modalMor  
                list = {'originalOrder','type','orth','real','tol','dominance'};
                parsedStruct = ssRed.parseStructFields(params,list,'params'); 
             elseif strcmp(method,'irka')                %irka
-               list = {'originalOrder','maxiter','tol','type','verbose','stopCrit', ...
-                       'suppressverbose','orth','lse','dgksTol','krylov', ...
+               list = {'originalOrder','maxiter','tol','type','stopCrit', ...
+                       'orth','lse','dgksTol','krylov', ...
                        's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');   
             elseif strcmp(method,'rk')                  %rk
@@ -674,25 +664,25 @@ classdef ssRed < ss
                list = {'cure','spark','mespark'};
                ssRed.parseStructFields(params,list,'params');
                
-               list = {'fact','init','stop','stopval','SE_DAE','maxIter'};
+               list = {'fact','init','stop','stopval','maxIter'};
                parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
 
-               list = {'type','test','verbose','mfe','mi','xTol', ...
+               list = {'type','test','mfe','mi','xTol', ...
                        'fTol','modelTol'};
                parsedStruct.spark = ssRed.parseStructFields(params.spark,list,'params.spark');
                
                list = {'ritz','pertIter','maxIter'};
                parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
             elseif strcmp(method,'cure_irka')           %cure_irka
-               list = {'originalOrder','maxiter','tol','type','verbose','stopCrit', ...
-                       'suppressverbose','orth','lse','dgksTol','krylov', ...
+               list = {'originalOrder','maxiter','tol','type','stopCrit', ...
+                       'orth','lse','dgksTol','krylov', ...
                        's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
                
                list = {'cure'};
                ssRed.parseStructFields(params,list,'params');
                
-               list = {'fact','init','stop','stopval','SE_DAE','maxIter'};
+               list = {'fact','init','stop','stopval','maxIter'};
                parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');               
             elseif strcmp(method,'cure_rk+pork')        %cure_rk+pork
                list = {'originalOrder','real','orth','reorth','lse','dgksTol','krylov', ...
@@ -702,7 +692,7 @@ classdef ssRed < ss
                list = {'cure'};
                ssRed.parseStructFields(params,list,'params');
                
-               list = {'fact','init','stop','stopval','SE_DAE','maxIter'};
+               list = {'fact','init','stop','stopval','maxIter'};
                parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
             end
         end
