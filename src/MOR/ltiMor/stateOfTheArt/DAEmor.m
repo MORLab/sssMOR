@@ -1,4 +1,4 @@
-function sysr = DAEmor(sys,SpecProjFinC,SpecProjFinB,nu,Opts)
+function [sysr,sysSPr,sysIMr] = DAEmor(sys,SpecProjFinC,SpecProjFinB,nu,Opts)
 % CURE - CUmulative REduction framework
 %
 % Syntax:
