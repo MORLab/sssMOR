@@ -1,0 +1,2 @@
+ismemberf.m (available at: http://www.mathworks.com/matlabcentral/fileexchange/23294-ismemberf/content/ismemberf.m)
+vectfit3.m (available at: https://www.sintef.no/projectweb/vectfit/downloads/vfut3/)
