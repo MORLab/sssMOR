@@ -51,35 +51,36 @@ function [sysr, polesvf3]  = vectorFitting(sys,n,s0,Opts)
 
 
 %%  Initialize by plotting the frequencies for which the data is available
-
 if Opts.plot
     figure('Name','Sampling frequencies for VF');
     plot(complex(s0),'o');xlabel('real');ylabel('imag')
 end
 
-% take only one complex conjugate partner
+%% Preprocessing
+
+% take only one complex conjugate partner (the one with imag(s0)>0)
 s0 = cplxpair(s0); idx = find(imag(s0)); s0(idx(1:2:end)) = [];
 
+% adapt the ID size to the imput size
 m = size(sys.b,2); p = size(sys.c,1);
-%                 if m>1, n = round(n/m);end %avoid blowing-up for MIMO
+if m>1, n = round(n/m);end %avoid blowing-up for MIMO
 % if mod(n,2) ~= 0, n = n-1; end   %make even
-
 nSample = length(s0);
 
-% f = freqresp(sss(sys),s0); 
-
+%%  Collect frequency data
 [A,B,C,D,E] = dssdata(sys);
-
 f = zeros(m,p,nSample);
 for iW = 1:nSample;
     f(:,:,iW) = C*((s0(iW)*E-A)\B)+D;
 end
-%     keyboard
 
+%%  Initialize poles
 polesvf3 = initializePoles(sys,Opts.vf.poles,n,Opts.wLims);
 if Opts.plot
     hold on; plot(complex(polesvf3),'rx');
 end
+
+%%  Run VF
 
 switch Opts.vf.method
     case 1 %old code by Alessandro
@@ -110,7 +111,9 @@ switch Opts.vf.method
         end
         sysr = vecfit3_to_ss(SS_vectfit3,polesvf3,n,m,p);    
     case 3 %using Matrix Fitting Toolbox
-        
+        %%%
+        % WARNING! It assumes symmetry of G(s): Gij(s)=Gji(s)
+        %%%
         for iter = 1 : Opts.vf.maxiter  % number of vecfit3 steps
             [SER,rmserr] = VFdriver(f,s0,polesvf3);
             fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
@@ -118,10 +121,30 @@ switch Opts.vf.method
         end
         
         sysr = ss(SER.A,SER.B,SER.C,SER.D);
+     case 4 %new code by Alessandro
+        %MIMO systems have to be fitted columnwise
+
+        AA = []; BB = []; CC = []; DD = [];
+        rho=ones(1,nSample);
+        for iCol = 1:m
+            fm = f(:,iCol,:);
+            fm = reshape(fm,m,nSample);
+            for iter = 1:Opts.vf.maxiter
+                [SER,polesvf3,rmserr] =vectfit3(fm,s0,polesvf3,rho);
+                fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
+                if rmserr <= Opts.vf.tol, break, end
+            end
+            AA = blkdiag(AA,SER.A);
+            BB = blkdiag(BB,SER.B);
+            CC = [CC, SER.C];
+            DD = [DD, SER.D];
+        end
+        sysr = ss(full(AA),BB,CC,DD);
 end
-    if Opts.plot, plot(complex(polesvf3),'+g'); legend('s0 data','init poles','final poles'), end
+if Opts.plot, plot(complex(polesvf3),'+g'); legend('s0 data','init poles','final poles'), end
 end
 
+%%  Auxiliary
 function poles = initializePoles(sys,type,nm,wLim,wReLim)
 switch type
     case 'eigs'
@@ -176,6 +199,8 @@ switch type
     case 'gershgorin'
 end
 end
+
+%%  Unused
 function sysrvf3 = vecfit3_to_ss(SS_vectfit3,polesvf3,r,m,p)
 
 % INPUTS
