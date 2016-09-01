@@ -79,6 +79,49 @@ polesvf3 = initializePoles(sys,Opts.vf.poles,n,Opts.wLims);
 if Opts.plot
     hold on; plot(complex(polesvf3),'rx');
 end
+    %%  Adpatively choose reduced order
+
+    %   VF solves iteratively a problem of the form Ax=b
+    %   An indicator for a correct choice of input space dimension for x is
+    %   given by the rank of A. 
+    %   We compute the A matrix only for the first column of G(s) and assume
+    %   similar information content for the other columns
+    %
+    %   The A matrix is built up of
+    %      | A1          Atilde1 |
+    %   A =|     A2      Atilde2 |
+    %      |         Ap  Atilde3 |
+    %
+    %%%
+    %  WARNING: since A depends on the a priori choice of n and not just on
+    %  the data in f, this method might not be very well suited for
+    %  determining a good approximation order
+    %%%
+
+    if Opts.vf.adaptiveOrder
+        A = zeros(p*nSample,n*(p+1));
+        Ak      = zeros(nSample,n,p);
+        Atildek = zeros(nSample,n,p);
+
+        for kOut = 1:p
+            for iRow = 1:nSample
+                for jCol = 1:n
+                    Ak(iRow,jCol,kOut) = 1/(s0(iRow)-polesvf3(jCol));
+                    Atildek(iRow,jCol,kOut) = - f(kOut,1,iRow)/(s0(iRow)-polesvf3(jCol));
+                end
+            end
+        %     A = blkdiag(A,Ak(:,:,kOut));
+            cIdxX = (kOut-1)*nSample+1 : kOut*nSample;
+            cIdxY = (kOut-1)*n+1 : kOut*n;
+            A(cIdxX,cIdxY)       = Ak(:,:,kOut);
+            A(cIdxX,n*p+1:end)   = Atildek(:,:,kOut);  
+        end
+
+        s = svd(A);
+        figure; semilogy(s/s(1),'o-');
+        title('Normalized singular values of vector fitting matrix');
+        ylabel('$\sigma/\sigma(1)$','interpreter','latex');
+        hold on; plot([1,length(s)],Opts.vf.svdTol*[1,1],'r--')
 
 %%  Run VF
 switch Opts.vf.method
