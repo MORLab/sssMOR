@@ -580,8 +580,8 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
         end
         sysrDelta1 = sysr0; sysrDelta1.B = Lt.'*DrMIMO; %sysrDelta1.D = Dr;
         sysrDelta2 = sysr0; sysrDelta2.C = DrMIMO*Rt; sysrDelta2.B = sysr0.B+Lt.'*DrMIMO;
-        sysrDelta3 = sysr0; sysrDelta3.C = sysr0.C+DrMIMO*Rt; sysrDelta3.B = Lt.';
-        sysrDelta4 = sysr0; sysrDelta4.C = -DrMIMO*Rt; sysrDelta4.B = Lt.'; sysrDelta4.D = eye(sys.p);
+        sysrDelta3 = dss(sysr0.a,Lt.',sysr0.C+DrMIMO*Rt,[],sysr0.E);
+        sysrDelta4 = dss(sysr0.a,Lt.',-DrMIMO*Rt, eye(sys.p), sysr0.E);
 
         sysrDelta = sysrDelta1 + sysrDelta2 + sysrDelta3*inv(sysrDelta4)*sysrDelta2 + Dr;    end
     function [minDr, minVal] = plotOverDrRange(varargin)
