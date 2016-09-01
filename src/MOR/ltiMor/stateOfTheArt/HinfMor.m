@@ -102,6 +102,7 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
 
         %run IRKA
         [sysr0, Virka, Wirka, s0opt, rt, lt, ~, Sv, Rt, ~, Sw, Lt,~, s0Traj,RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
+
         if Opts.plot; 
             figure; plot(complex(reshape(s0Traj,1,numel(s0Traj))),'x');
             plotName = sprintf('%s_%s_n%i_IRKAshifts',sys.Name,Opts.surrogate,n);
@@ -717,16 +718,18 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
     end
     function [c,ceq]=stabilityConstraint(x)
         % define a nonlinear constraint to impose stability
-        ceq = 1-isstable(sysrfun(x));
-        c = [];
+        %ceq = 1-isstable(sysrfun(x));
+        ceq = [];
+        c = max(real(eig(sysrfun(x))));
     end
     function [c,ceq]=stabilityConstraintGA(x)
         % define a nonlinear constraint to impose stability
         [c,ceq]=stabilityConstraint(reshape(x,size(Dr0,1),size(Dr0,2)));
     end
     function [c,ceq]= stabilityConstraintCycle(Dr,iOut,jIn,DrOpt)
-        ceq = 1-isstable(sysrfun(Dr,iOut,jIn,DrOpt));
-        c = [];
+%         ceq = 1-isstable(sysrfun(Dr,iOut,jIn,DrOpt));
+        ceq = [];
+        c = max(real(eig(sysrfun(Dr,iOut,jIn,DrOpt))));
     end
     function [lb,ub] = searchSpaceLimits(syse)
         %syse: error system
