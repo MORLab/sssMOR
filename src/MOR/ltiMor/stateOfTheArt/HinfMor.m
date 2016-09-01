@@ -1,4 +1,4 @@
-function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = HinfMor(sys, n, varargin) 
+function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = HinfMor(sys, n, varargin) 
     % HINFMOR - H-infinity reduction by tangential interpolation
     % ------------------------------------------------------------------
     % TODO
@@ -135,10 +135,12 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, syse0m, Virka, Rt] = Hin
         syse0m = createSurrogate(syse0, Opts.surrogate);
         fprintf('Size of the surrogate model: %i \n',size(syse0m.a,1))
         fprintf('Stability of surrogate model: %i \n',isstable(syse0m))
+        surrogate = syse0m;
     else
         sysm = createSurrogate(sys, Opts.surrogate);
         fprintf('Size of the surrogate model: %i \n',size(sysm.a,1))
         fprintf('Stability of surrogate model: %i \n',isstable(sysm))
+        surrogate = sysm;
     end
 %     keyboard
     %%  Make Hinf correction
