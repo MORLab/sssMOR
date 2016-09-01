@@ -40,6 +40,7 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
     Def.corrType    = 'normOptCycle';
     Def.solver      = 'fmincon';    %optimization solver
     Def.algorithm   = 'sqp'; %'interior-point'
+    Def.display     = 'off';
     Def.DrInit      = '0';          %0, '0', Ge0, matchGe0, maxGe
     Def.plot        = false;            % generate analysis plot
     Def.sampling    = 'random'; %sampling for sweepDr
@@ -491,10 +492,9 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
                 tic, [DrOpt, Hinf] = fminunc(cost,Dr0,optOpts); tOpt = toc;               
                 case 'fmincon'
                 optOpts = optimoptions('fmincon','UseParallel',1,...
-                                        'algorithm','sqp',...
-                                        'MaxFunEvals',5e2);
                                         'algorithm',Opts.algorithm,...
                                         'MaxFunEvals',5e2,...
+                                        'Display',Opts.display);
                 if ~exist('constr','var')
                     constr = @stabilityConstraint;
                 end
@@ -515,9 +515,9 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
                             'lb',lb,'ub',ub);
                 gs = GlobalSearch('NumStageOnePoints',20,...%start points
                                   'NumTrialPoints',400,... %set of all potential start points
-                                  'StartPointsToRun','bounds-ineqs'); %exclude certain points?
-%                                   'Display','iter',...
-%                                   'MaxTime',300); %stop after 5 min
+                                  'StartPointsToRun','bounds-ineqs',... %exclude certain points?
+                                  'Display','iter',...
+                                  'MaxTime',300); %stop after 5 min
                                  
                 tic,  [DrOpt,Hinf] = run(gs,problem); tOpt = toc;                              
                 case 'ms'
