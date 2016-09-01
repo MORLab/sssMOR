@@ -54,10 +54,11 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
     Def.rankTol         = eps;      %rank tolerance Loewner
     Def.surrTol         = 1e-4;
     
-    Def.vf.poles        = 'eigs'; %vectfit,eigs, serkan
-    Def.vf.maxiter      = 20;
-    Def.vf.tol          = 1e-20;
-    
+    Def.vf.poles        = 'vectfit3'; %vectfit,eigs, serkan
+    Def.vf.maxiter      = 10;
+    Def.vf.tol          = 1e-5;
+    Def.vf.adaptiveOrder = false; %automatically detect approx. order
+    Def.vf.method       = 4;    % 4 is the only method working well    
     Def.wLim            = [1e-1,1e4];
     
     Def.debug           = false;
@@ -819,13 +820,21 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
                 %   Build the model function
                 syse0m = dss(W.'*syse0.A*V, W.'*syse0.B, syse0.C*V,syse0.D,W.'*syse0.E*V);
             case 'vf'  
-                % Run Loewner (to determine reduced order)
-                syse0mLoew = createSurrogate(syse0,'loewner');
-                nm = size(syse0mLoew.A,1);
                 
-                [s0m] = getModelData(s0Traj,RtTraj,LtTraj,Opts.tol);
+                happy = 'n';
+                
+                % Run Loewner (to determine reduced order)
+%                 syse0mLoew = createSurrogate(syse0,'loewner');               
+%                 nm = size(syse0mLoew.A,1);
+                
+                while ~strcmp(happy,'y')
+                close all
+                
+                nm = input('Choose surrogate order: ');
+                s0m = reshape(s0Traj,1,numel(s0Traj));
+%                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj,Opts.tol);
 %                 s0m = reshape(s0Traj,1,numel(s0Traj));
-                s0m = cplxpair(s0m); idx = find(imag(s0m)); s0m(idx(1:2:end)) = [];
+%                 s0m = cplxpair(s0m); idx = find(imag(s0m)); s0m(idx(1:2:end)) = [];
                 % remove real shifts
 %                 s0m(imag(s0m)==0) = [];
                 
@@ -834,25 +843,28 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
 %                 if m>1, nm = ceil(nm/m);end 
                 %resize nm according to the data available
 %                 nm = min([nm, ceil(2*length(s0m)/m)]);
-                nm = min([nm, length(s0m)-2]);
+%                 nm = min([nm, length(s0m)-2]);
                 %                 
                 % if mod(n,2) ~= 0, n = n-1; end   %make even
                 Opts.forceReal = false;
-                [syse0m,polesVF] = vectorFitting(syse0,nm,s0m,Opts);
+                syse0m = vectorFitting(syse0,nm,s0m,Opts);
                 
                 if Opts.plot
-                    plot(complex(polesVF),'xg');
+                    plot(complex(eig(syse0m)),'xg');
                 end
                 
                 % Compare to loewner
                 if Opts.plot
                     figure('Name','Compare VF to Loewner');
-                    bodemag(syse0,'b-',syse0mLoew,'--r',syse0m,'-.g'); 
+                    bodemag(syse0,'b-',syse0m,'-.g'); 
                     legend(sprintf('original (n=%i)',size(syse0.A,1)),...
-                            sprintf('loewner (n=%i)',size(syse0mLoew.A,1)),...
-                            sprintf('vf (n=%i)',size(syse0m.A,1)))
+                           sprintf('vf (n=%i)',size(syse0m.A,1)))
+                   drawnow
                 end
-                drawnow
+                
+                
+                happy = input('Are you happy with the VF result? (y/n)  ','s');
+                end
 %                 if Opts.debug, keyboard; end
         end
         %                 isstable(sysm)
