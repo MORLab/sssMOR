@@ -68,10 +68,10 @@ if m>1, n = round(n/m);end %avoid blowing-up for MIMO
 nSample = length(s0);
 
 %%  Collect frequency data
-[A,B,C,D,E] = dssdata(sys);
+
 f = zeros(m,p,nSample);
 for iW = 1:nSample;
-    f(:,:,iW) = C*((s0(iW)*E-A)\B)+D;
+    f(:,:,iW) = sys.C*((s0(iW)*sys.E-sys.A)\sys.B)+sys.D;
 end
 
 %%  Initialize poles
@@ -81,7 +81,6 @@ if Opts.plot
 end
 
 %%  Run VF
-
 switch Opts.vf.method
     case 1 %old code by Alessandro
         %MIMO systems have to be fitted columnwise
