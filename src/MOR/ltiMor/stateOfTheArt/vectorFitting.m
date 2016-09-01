@@ -68,10 +68,12 @@ function [sysr, polesvf3]  = vectorFitting(sys,n,s0,Opts)
     nSample = length(s0);
 
     %%  Collect frequency data
+    fprintf(1,'Generating frequency data...');
     f = zeros(p,m,nSample);
     for iW = 1:nSample;
         f(:,:,iW) = sys.C*((s0(iW)*sys.E-sys.A)\sys.B)+sys.D;
     end
+    fprintf(1,'...done!\n');
 
     %%  Initialize poles
     polesvf3 = initializePoles(sys,Opts.vf.poles,n,Opts.wLims);
