@@ -68,8 +68,7 @@ function [sysr, polesvf3]  = vectorFitting(sys,n,s0,Opts)
     nSample = length(s0);
 
     %%  Collect frequency data
-
-    f = zeros(m,p,nSample);
+    f = zeros(p,m,nSample);
     for iW = 1:nSample;
         f(:,:,iW) = sys.C*((s0(iW)*sys.E-sys.A)\sys.B)+sys.D;
     end
@@ -173,7 +172,7 @@ function [sysr, polesvf3]  = vectorFitting(sys,n,s0,Opts)
             rho=ones(1,nSample);
             for iCol = 1:m
                 fm = f(:,iCol,:);
-                fm = reshape(fm,m,nSample);
+                fm = reshape(fm,p,nSample);
                 for iter = 1:Opts.vf.maxiter
                     [SER,polesvf3,rmserr] =vectfit3(fm,s0,polesvf3,rho);
                     fprintf(1,'VF iteration %i, error %e \n',iter,rmserr);
