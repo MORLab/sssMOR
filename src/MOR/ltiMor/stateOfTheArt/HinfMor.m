@@ -278,9 +278,8 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
                         cost = @(Dr) norm(sysm-sysrfun(Dr,iOut,jIn,DrOpt),Inf);
                     end
                     constr = @(Dr) stabilityConstraintCycle(Dr,iOut,jIn,DrOpt);
-                    [DrOptCurr, ~,tOptCurr] = normOpt(Dr0,cost,constr,'fmincon');
+                    [DrOpt(iOut,jIn), ~,tOptCurr] = normOpt(Dr0,cost,constr,'fmincon');
                     tOpt = tOpt+tOptCurr;
-                    DrOpt(iOut,jIn) = DrOptCurr;
                 end
             end
             
