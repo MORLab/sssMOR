@@ -39,6 +39,7 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
     Def.irka        = struct('stopCrit','s0','tol',1e-5,'type','stab');
     Def.corrType    = 'normOptCycle';
     Def.solver      = 'fmincon';    %optimization solver
+    Def.algorithm   = 'sqp'; %'interior-point'
     Def.DrInit      = '0';          %0, '0', Ge0, matchGe0, maxGe
     Def.plot        = false;            % generate analysis plot
     Def.sampling    = 'random'; %sampling for sweepDr
@@ -255,7 +256,7 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
             % multivariate optimization
             
             % 1) cycle optimization
-            Opts.solver = 'fmincon';
+%             Opts.solver = 'fmincon';
             DrOpt = DrInit(Opts.DrInit); 
 %             if Opts.surrogateError
 %                 HinfVec = norm(syse0m,Inf); 
@@ -273,7 +274,7 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
                         cost = @(Dr) norm(sysm-sysrfun(Dr,iOut,jIn,DrOpt),Inf);
                     end
                     constr = @(Dr) stabilityConstraintCycle(Dr,iOut,jIn,DrOpt);
-                    [DrOptCurr, ~,tOptCurr] = normOpt(Dr0,cost,constr);
+                    [DrOptCurr, ~,tOptCurr] = normOpt(Dr0,cost,constr,'fmincon');
                     tOpt = tOpt+tOptCurr;
                     DrOpt(iOut,jIn) = DrOptCurr;
                 end
@@ -286,7 +287,7 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
                 cost = @(Dr) norm(sysm - sysrfun(Dr),Inf);
             end
             constr = @(Dr) stabilityConstraint(Dr);
-            [DrOpt, Hinf,tOptCurr] = normOpt(DrOpt,cost,constr);
+            [DrOpt, Hinf,tOptCurr] = normOpt(DrOpt,cost,constr,Opts.solver);
             tOpt = tOpt + tOptCurr;
             
             sysr = sysrfun(DrOpt); 
@@ -481,8 +482,8 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
             title('Cost for Dr sweep'); ylabel('cost'); xlabel('index');
         end
     end
-    function [DrOpt, Hinf,tOpt] = normOpt(Dr0,cost,constr)       
-            switch Opts.solver
+    function [DrOpt, Hinf,tOpt] = normOpt(Dr0,cost,constr,solver)       
+            switch solver
                 case 'fminsearch'
                 tic, [DrOpt, Hinf] = fminsearch(cost,Dr0); tOpt = toc;               
                 case 'fminunc'
@@ -492,6 +493,8 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
                 optOpts = optimoptions('fmincon','UseParallel',1,...
                                         'algorithm','sqp',...
                                         'MaxFunEvals',5e2);
+                                        'algorithm',Opts.algorithm,...
+                                        'MaxFunEvals',5e2,...
                 if ~exist('constr','var')
                     constr = @stabilityConstraint;
                 end
@@ -504,7 +507,7 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
                 
                 % Define optimization parameters
                 optOpts = optimoptions('fmincon','UseParallel',1,...
-                                        'algorithm','sqp',...
+                                        'algorithm',Opts.algorithm,...
                                         'MaxFunEvals',2e2);
                 problem = createOptimProblem('fmincon',...
                             'objective',cost,'x0',Dr0,'options',optOpts,...
