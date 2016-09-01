@@ -371,7 +371,11 @@ classdef ssRed < ss
                       if length(fieldnames(paramsList{i})) ~= 2
                           error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.');
                       end
-                      paramsList{i}.params = obj.parseParamsStruct(paramsList{i}.params,paramsList{i}.method);
+                      if i > 1 && ismember(paramsList{i-1}.method,{'cure_spark','cure_irka','cure_rk+pork'})
+                          paramsList{i}.params = obj.parseParamsStruct(paramsList{i}.params,paramsList{i}.method,0);
+                      else
+                          paramsList{i}.params = obj.parseParamsStruct(paramsList{i}.params,paramsList{i}.method,1);
+                      end
                    end
                 catch ex
                    error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.'); 
@@ -382,16 +386,17 @@ classdef ssRed < ss
             if isempty(paramsList)
                obj.reductionParameters = cell(1,1);
                obj.reductionParameters{1,1}.method = varargin{1};
-               obj.reductionParameters{1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1});
+               obj.reductionParameters{1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
             else
                len = size(paramsList,1);
                obj.reductionParameters = paramsList;
                obj.reductionParameters{len+1,1}.method = varargin{1};
-               obj.reductionParameters{len+1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1});
+               obj.reductionParameters{len+1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
             end
             
             % remove "projectiveMor" from the reduction history
             obj.reductionParameters = obj.removeProjectiveMor(obj.reductionParameters);
+            obj.reductionParameters = obj.removeCureParameters(obj.reductionParameters); 
         end
         
         
@@ -630,13 +635,16 @@ classdef ssRed < ss
     %%Private and static helper methods
     methods(Hidden, Access = private, Static)
         
-        function parsedStruct = parseParamsStruct(params,method)
+        function parsedStruct = parseParamsStruct(params,method,cureRequired)
         % Checks if the struct with the parameters  "params" has the correct
         % structure for the specified reduction method "method". If this is
         % the case, then the values of the required fields of the struct 
         % "params" are copied to the struct "parsedStruct". If ths struct
         % "params" contains additional fields, these fields are not copied
-        % to the struct "parsedStruct".
+        % to the struct "parsedStruct". Because the field "cure" is only
+        % stored for the first cure iteration, the parameter "cureRequired"
+        % indicates whether the field "cure" is required in the struct
+        % "params" or not
             
             % check algorithm-specific parameters
             if strcmp(method,'tbr')                     %tbr
@@ -667,11 +675,16 @@ classdef ssRed < ss
                list = {'originalOrder','currentReducedOrder'};
                parsedStruct = ssRed.parseStructFields(params,list,'params'); 
                 
-               list = {'cure','spark','mespark'};
-               ssRed.parseStructFields(params,list,'params');
+               if cureRequired
+                    list = {'cure','spark','mespark'};
+                    ssRed.parseStructFields(params,list,'params');
                
-               list = {'fact','init','stop','stopval','maxIter'};
-               parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
+                    list = {'fact','init','stop','stopval','maxIter'};
+                    parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
+               else
+                    list = {'spark','mespark'};
+                    ssRed.parseStructFields(params,list,'params');
+               end
 
                list = {'type','test','mfe','mi','xTol', ...
                        'fTol','modelTol'};
@@ -685,22 +698,26 @@ classdef ssRed < ss
                        's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
                
-               list = {'cure'};
-               ssRed.parseStructFields(params,list,'params');
+               if cureRequired
+                    list = {'cure'};
+                    ssRed.parseStructFields(params,list,'params');
                
-               list = {'fact','init','stop','stopval','maxIter'};
-               parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');               
+                    list = {'fact','init','stop','stopval','maxIter'};
+                    parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');  
+               end
             elseif strcmp(method,'cure_rk+pork')        %cure_rk+pork
                list = {'originalOrder','currentReducedOrder','real', ...
                        'orth','reorth','lse','dgksTol','krylov', ...
                        'IP','Rt','Lt','s0_inp','s0_out'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
                
-               list = {'cure'};
-               ssRed.parseStructFields(params,list,'params');
+               if cureRequired
+                    list = {'cure'};
+                    ssRed.parseStructFields(params,list,'params');
                
-               list = {'fact','init','stop','stopval','maxIter'};
-               parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
+                    list = {'fact','init','stop','stopval','maxIter'};
+                    parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
+               end
             end
         end
         
@@ -722,6 +739,22 @@ classdef ssRed < ss
             else
                 parsedParamsList = paramsList;
             end           
+        end
+        
+        function parsedParamsList = removeCureParameters(paramsList)
+        %The parameters under the field "cure" stay the same for all cure
+        %iterations. Because of this, the field "cure" is only stored for
+        %the first iteration step. Therefore, this function removes all the
+        %redundant cure paramters from the reduction history
+            
+            parsedParamsList = paramsList;
+        
+            for i = 2:length(paramsList)
+                if ismember(paramsList{i-1}.method,{'cure_spark','cure_irka','cure_rk+pork'}) && ...
+                   isfield(paramsList{i}.params,'cure')
+                    parsedParamsList{i}.params = rmfield(parsedParamsList{i}.params,'cure');
+                end
+            end
         end
         
         function outputStruct = parseStructFields(structure,fields,structName)

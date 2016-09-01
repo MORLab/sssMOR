@@ -129,6 +129,13 @@ function sysr = cure(sys,Opts)
     if Opts.cure.maxIter > sys.n/Opts.cure.nk
         Opts.cure.maxIter = floor(sys.n/Opts.cure.nk);
     end
+    
+    % store the reductionParameters, if sys is of type ssRed
+    reductionParameters = [];
+    if isa(sys,'ssRed')
+        reductionParameters = sys.reductionParameters;
+    end
+    
 %%  Plot for testing
 if Opts.cure.test
     fhOriginalSystem = figure('Name','CURE - Reduction of the original model');
@@ -283,9 +290,14 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     if isa(sysr,'ssRed')
         sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
                      Br_tot, Cr_tot, zeros(p,m), Er_tot,sysr.reductionParameters);
-    else
-        sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
-                     Br_tot, Cr_tot, zeros(p,m), Er_tot);
+    else            %first Iteration
+        if ~isempty(reductionParameters)
+            sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
+                         Br_tot, Cr_tot, zeros(p,m), Er_tot, reductionParameters);
+        else
+            sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
+                         Br_tot, Cr_tot, zeros(p,m), Er_tot);
+        end
     end
     
     % display
