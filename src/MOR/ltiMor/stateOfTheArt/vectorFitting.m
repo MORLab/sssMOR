@@ -148,25 +148,19 @@ function poles = initializePoles(sys,type,nm,wLim,wReLim)
 switch type
     case 'eigs'
         onemore = nm - 2*fix(nm/2) ;
-        poles = eigs(sss(sys),nm-onemore,'sm').';
+        poles = eigs(sss(sys),nm-onemore,'lm').';
         if onemore, poles = [-abs(imag(poles(1))), poles]; end
     case 'vectfit3'
-        try
-            wMax = abs(imag(eigs(sss(sys),1,'li')));
-        catch
-            wMax = 1e3;
-        end
-        
-        %generate initial poles
+       %generate initial poles
         if nm > 1
-            bet=logspace(-2,log10(wMax),nm/2);
+            bet=logspace(-2,log10(wLim(2)),nm/2);
             poles=[];
             for k=1:length(bet)
                 alf=-bet(k)*1e-2;
                 poles=[poles (alf-1i*bet(k)) (alf+1i*bet(k)) ];
             end
         else %initialize at least one pole
-            poles = wMax;
+            poles = wLim(2);
         end
     case 'serkan'
         onemore = nm - 2*fix(nm/2) ;
