@@ -338,7 +338,7 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
         % Real error
         HinfErr = norm(ss(sys-sysr),inf);%optimized
         Hinf0 = norm(ss(sys)-sysr0,inf); %before optimization
-        HinfRatio = Hinf/Hinf0; %ratio to irka ROM
+        HinfRatio = HinfErr/Hinf0; %ratio to irka ROM
         
 %         if Opts.debug, keyboard, end
        
