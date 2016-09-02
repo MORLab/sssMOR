@@ -54,7 +54,7 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
     Def.deflate         = 1;
     Def.tol             = 1e-1;     %ismemberf/getModelData
     Def.rankTol         = eps;      %rank tolerance Loewner
-    Def.surrTol         = 1e-4;
+    Def.surrTol         = 1e-14;
     
     Def.vf.poles        = 'vectfit3'; %vectfit,eigs, serkan
     Def.vf.maxiter      = 10;
@@ -780,7 +780,7 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
 %                 rkOpts = struct();
                 
                 [~,V,W] = rk(sss(syse0),s0m,s0m,Rtm,Ltm,rkOpts);
-                                
+                
                 %   Create Loewner matrices
                 L   = - W.'*syse0.E*V; %Loewner matrix
                 sL  = - W.'*syse0.A*V; %shifted Loewner matrix
@@ -839,8 +839,25 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
                 while ~strcmp(happy,'y')
                 close all
                 
-                nm = input('Choose surrogate order: ');
                 s0m = reshape(s0Traj,1,numel(s0Traj));
+                m = size(syse0.B,2);
+                p = size(syse0.C,1);
+                [~,V,W] = rk(sss(syse0),s0m,s0m,...
+                            ones(m,length(s0m)),ones(p,length(s0m)),...
+                            struct('real',false,'orth',false));
+                L   = - W.'*syse0.E*V; %Loewner matrix
+                sL  = - W.'*syse0.A*V; %shifted Loewner matrix
+                s = svd([L, sL]); 
+                if Opts.plot, 
+                    figure; 
+                    semilogy(s/s(1),'o-'); title('Normalized singular values of [L, sL]');
+                    hold on; plot([1,length(s)],[Opts.surrTol,Opts.surrTol],'r--')
+                    plotName = sprintf('%s_%s_n%i_LoewnerDecay',sys.Name,Opts.surrogate,n);
+                    title(plotName,'Interpreter','none'); 
+                    saveas(gcf,fullfile('..','res',[plotName,'.fig']));
+                end
+                
+                nm = input('Choose surrogate order: ');
 %                 [s0m] = getModelData(s0Traj,RtTraj,LtTraj,Opts.tol);
 %                 s0m = reshape(s0Traj,1,numel(s0Traj));
 %                 s0m = cplxpair(s0m); idx = find(imag(s0m)); s0m(idx(1:2:end)) = [];
