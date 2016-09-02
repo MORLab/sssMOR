@@ -36,7 +36,8 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
     end
     
     Def.plotCostOverDr = 0;
-    Def.irka        = struct('stopCrit','s0','tol',1e-5,'type','stab');
+    Def.irka        = struct('stopCrit','s0','tol',1e-5,'type','stab',...
+                             'init','ones');
     Def.corrType    = 'normOptCycle';
     Def.solver      = 'fmincon';    %optimization solver
     Def.mfe         = 1e3; % MaxFunEvals
@@ -83,23 +84,28 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
         %   directions
         
         %   Initialize trivially
-        s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
-%         s0 = rand(1,n); Rt = rand(sys.m,n); Lt = rand(sys.p,n);
-
-%         s0 = linspace(Opts.wLims(1),Opts.wLims(2),n/2); s0 = [1i*s0,-1i*s0];
-%         Rt = ones(sys.m,n/2); Rt = [1i*Rt,-1i*Rt];
-%         Lt = ones(sys.p,n/2); Lt = [1i*Lt,-1i*Lt];
-% 
-%         s0 = logspace(log10(Opts.wLims(1)),log10(Opts.wLims(2)),n);
-%         Rt = ones(sys.m,n);
-%         Lt = ones(sys.p,n); 
-        
-%         Rt = rand(sys.m,n); Lt = rand(sys.p,n);
-%         s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n)
-%         sysr = rk(sys,s0,s0,Rt,Lt);  
-%         sysr = tbr(sys,n);
-%         [X,D,Y] = eig(sysr);
-%         Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); s0 = -diag(D).';
+        switch Opts.irka.init
+            case 'ones'
+                s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+            case 'rand'
+                s0 = rand(1,n); Rt = rand(sys.m,n); Lt = rand(sys.p,n);
+            case 'linspace'
+                s0 = linspace(Opts.wLims(1),Opts.wLims(2),n/2); s0 = [1i*s0,-1i*s0];
+                Rt = ones(sys.m,n/2); Rt = [1i*Rt,-1i*Rt];
+                Lt = ones(sys.p,n/2); Lt = [1i*Lt,-1i*Lt];
+            case 'logspace'
+                s0 = logspace(log10(Opts.wLims(1)),log10(Opts.wLims(2)),n);
+                Rt = ones(sys.m,n);
+                Lt = ones(sys.p,n); 
+            case 'eigs-ROM'
+                s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+                
+                sysr = rk(sys,s0,s0,Rt,Lt);  
+                sysr = tbr(sys,n);
+                [X,D,Y] = eig(sysr);
+                
+                s0 = -diag(D).'; Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); 
+        end
 
         %run IRKA
         [sysr0, Virka, Wirka, s0opt, rt, lt, ~, Sv, Rt, ~, Sw, Lt,~, s0Traj,RtTraj, LtTraj] = irka(sys,s0,Rt,Lt,Opts.irka);
