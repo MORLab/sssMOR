@@ -85,6 +85,8 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
         
         %   Initialize trivially
         switch Opts.irka.init
+            case 'zeros'
+                s0 = zeros(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
             case 'ones'
                 s0 = ones(1,n); Rt = ones(sys.m,n); Lt = ones(sys.p,n);
             case 'rand'
@@ -97,14 +99,35 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
                 s0 = logspace(log10(Opts.wLims(1)),log10(Opts.wLims(2)),n);
                 Rt = ones(sys.m,n);
                 Lt = ones(sys.p,n); 
+            case 'eigs'
+                s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
             case 'eigs-ROM'
                 s0 = -eigs(sys,n,'sm').'; Rt = ones(sys.m,n); Lt = ones(sys.p,n);
+                try 
+                    cplxpair(s0)
+                catch %cmplx numbers cannot be paired
+                    if n == 1
+                        s0 = real(s0);
+                    else
+%                         s0 = sort(s0);
+%                         idxCplx = imag(s0)~=0;
+%                         idxReal = imag(s0)==0;
+%                         s0Cplx = s0(idxCplx);
+%                         diff(s0Cplx)
+%                         error('not implemented yet')
+                        s0 = real(s0);
+                    end
+                end
                 
                 sysr = rk(sys,s0,s0,Rt,Lt);  
                 sysr = tbr(sys,n);
                 [X,D,Y] = eig(sysr);
                 
                 s0 = -diag(D).'; Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X); 
+            case 'custom'
+                s0 = Opts.irka.initVal.s0;
+                Rt = Opts.irka.initVal.Rt;
+                Lt = Opts.irka.initVal.Lt;
         end
 
         %run IRKA
