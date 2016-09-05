@@ -38,20 +38,20 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
     Def.plotCostOverDr = 0;
     Def.irka        = struct('stopCrit','s0','tol',1e-5,'type','stab',...
                              'init','ones');
-    Def.corrType    = 'normOptCycle';
+    Def.corrType    = 'normOptCycleCombo';
     Def.solver      = 'fmincon';    %optimization solver
     Def.mfe         = 1e3; % MaxFunEvals
     Def.algorithm   = 'sqp'; %'interior-point'
     Def.display     = 'off';
     Def.DrInit      = '0';          %0, '0', Ge0, matchGe0, maxGe
-    Def.plot        = false;            % generate analysis plot
+    Def.plot        = true;            % generate analysis plot
     Def.sampling    = 'random'; %sampling for sweepDr
     Def.sweepPoints = 5e3;
     
     Def.surrogateError  = true;     %create a surrogate of the error, not of sys
     Def.surrogate       = 'vf';     %original, 'model', 'vf', 'loewner'
     Def.whatData        = 'new';    %'all','new'
-    Def.deflate         = 1;
+    Def.deflate         = false;
     Def.tol             = 1e-1;     %ismemberf/getModelData
     Def.rankTol         = eps;      %rank tolerance Loewner
     Def.surrTol         = 1e-14;
@@ -118,8 +118,7 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
        end
     end
     
-    sysr0 = ss(sysr0);
-    
+    sysr0 = ss(sysr0);    
     %   Check Rt and Lt
 %     normest(sys.A*Virka-sys.E*Virka*Sv-sys.B*Rt)
 %     normest(sys.A.'*Wirka-sys.E.'*Wirka*Sw.'-sys.C.'*Lt)
@@ -241,7 +240,7 @@ function [sysr, HinfErr, sysr0, HinfRatio, tOpt, bound, surrogate, Virka, Rt] = 
                     Dr0 = DrOpt(iOut,jIn);
                     cost = @(Dr) norm(syse0m - sysrDelta(Dr,iOut,jIn,DrOpt),Inf);
                     constr = @(Dr) stabilityConstraintCycle(Dr,iOut,jIn,DrOpt);
-                    [DrOptCurr, Hinf,tOptCurr] = normOpt(Dr0,cost,constr);
+                    [DrOptCurr, Hinf,tOptCurr] = normOpt(Dr0,cost,constr,solver);
                     tOpt = tOpt+tOptCurr;
                     DrOpt(iOut,jIn) = DrOptCurr;
                     HinfVec = [HinfVec, Hinf];
