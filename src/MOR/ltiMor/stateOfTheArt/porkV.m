@@ -19,13 +19,13 @@ function varargout = porkV(V,Sv,Rv,C)
 %       interpolating the original according to (V,Sv,Rv) and having
 %       eigenvalues as mirror images of the shifts.
 %
-%       If only one output is specified, this function returns an sss
+%       If only one output is specified, this function returns an sssRed
 %       object. Otherwise, the reduced system matrices are returned.
 % 
 % Input Arguments:
 %       *Required Input Arguments:*
 %       -V,Sv,Rv:      solution of  A*V - E*V*Sv - B*Rv = 0
-%       -C:            output matrix of original model
+%       -C:            output matrix of original model´
 %
 % Output Arguments: 
 %       - sysrPO:         Pseudo-optimal reduced order model 

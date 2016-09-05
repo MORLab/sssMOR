@@ -203,9 +203,8 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
             % V-based decomposition, if A*V - E*V*S - B*Rv = 0
             switch Opts.cure.redfun
                 case 'spark'               
-                    [V,Sv,Rv,~,usedOpts] = spark(sys,s0,Opts); 
+                    [sysrTemp,V] = spark(sys,s0,Opts);
                     
-                    sysrTemp = porkV(V,Sv,Rv,C_); 
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                 case 'irka'
                     [sysrTemp,V,W,~,~,~,~,~,Rv] = irka(sys,s0');
@@ -232,10 +231,9 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
         % W-based decomposition, if A.'*W - E.'*W*Sw.' - C.'*Lw = 0
             switch Opts.cure.redfun
                 case 'spark'               
-                    [W,Sw,Lw,~,usedOpts] = spark(sys.',s0,Opts);
-                    Sw = Sw.'; %make Sw from Sw^T
+                    Opts.spark.pork = 'W';
+                    [sysrTemp,W,~,Lw,~] = spark(sys.',s0,Opts);
                     
-                    sysrTemp = porkW(W,Sw,Lw,B_);
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                 case 'irka'
                     [sysrTemp,V,W,~,~,~,~,~,~,~,~,Lw] = irka(sys,s0');
@@ -281,10 +279,8 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
     %      way that the new defined field passes the check
       
-    if strcmp(Opts.cure.redfun,'irka') || strcmp(Opts.cure.redfun,'rk+pork')
-        usedOpts = sysrTemp.reductionParameters{end,1}.params;
-        usedOpts.cure = Opts.cure;
-    end
+    usedOpts = sysrTemp.reductionParameters{end,1}.params;
+    usedOpts.cure = Opts.cure;
     usedOpts.currentReducedOrder = sysr.n+Opts.cure.nk;
     usedOpts.originalOrder = sys.n;
     if isa(sysr,'ssRed')

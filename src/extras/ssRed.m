@@ -21,7 +21,7 @@ classdef ssRed < ss
 %
 % Input Arguments:
 %       -method: name of the used reduction algorithm;
-%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork']
+%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork']
 %       -params (tbr):          structure with the parameters for the tbr-algorithm;
 %           -.originalOrder:    Model order before reduction;
 %           -.type:             select amongst different tbr algorithms
@@ -108,6 +108,35 @@ classdef ssRed < ss
 %       -params (porkW):        structure with the parameters for the
 %                               porkW-algorithm
 %           -.originalOrder:    Model order before reduction
+%       -params (spark):        structure with the parameters for the
+%                               spark-algorithm
+%           -.originalOrder:    Model order before reduction
+%           -.spark.type:       chooses between standard SPARK, where the original 
+%                               model is reduced directly, or MESPARK, where a 
+%                               model function is created and updated after convergence.
+%                               [{'model'} / 'standard']
+%           -.spark.mfe:        maximum functions evaluations
+%                               [{'5e3'} / positive integer]
+%           -.spark.mi:         maximum iterations in solver
+%                               [{'150'} / positive integer]
+%           -.spark.xTol:       step tolerance in solver
+%                               [{'1e-10'} / positive float]
+%           -.spark.fTol:       function value tolerance
+%                               [{'1e-10'} / positive float]
+%           -.spark.modelTol:   convergence tolerance for model funciton
+%                               [{'1e-5'} / positive float]
+%           -.spark.pork:       projection with porkV (input krylov subspace)
+%                               or porkW (output krylov subspace)
+%                               [{'V'} / 'W']
+%           -.mespark.ritz:     use eigenvalues of model function to initialize
+%                               the shifts 
+%                               [{'1'} / '0']
+%           -.mespark.pertIter: number of iterations after which a
+%                               pertubation of the shifts starts to avoid
+%                               stagnation of the model function
+%                               [{'5'} / positive integer]
+%           -.mespark.maxIter:  maximum number of model function updates
+%                               [{'20'} / positive integer]
 %       -params (cure_spark):   structure with the parameters for the
 %                               cure-algorithm (reduction algorithm spark)
 %           -.originalOrder:    Model order before reduction
@@ -127,10 +156,6 @@ classdef ssRed < ss
 %                               model is reduced directly, or MESPARK, where a 
 %                               model function is created and updated after convergence.
 %                               [{'model'} / 'standard']
-%           -.spark.test:       specifies weather the user desires to get insight 
-%                               in what is happening. This is realized by  
-%                               plotting intermediate results during optimization.
-%                               [{'0'} / '1']
 %           -.spark.mfe:        maximum functions evaluations
 %                               [{'5e3'} / positive integer]
 %           -.spark.mi:         maximum iterations in solver
@@ -356,7 +381,7 @@ classdef ssRed < ss
             
             if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr', ...
                     'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
-                    'cure_spark','cure_irka','cure_rk+pork'}) == 0
+                    'spark','cure_spark','cure_irka','cure_rk+pork'}) == 0
                 error('The first argument has a wrong format. Type "help ssRed" for more information.');
             end
             
@@ -386,12 +411,20 @@ classdef ssRed < ss
             if isempty(paramsList)
                obj.reductionParameters = cell(1,1);
                obj.reductionParameters{1,1}.method = varargin{1};
-               obj.reductionParameters{1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
+               try
+                   obj.reductionParameters{1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
+               catch ex
+                   error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
+               end
             else
                len = size(paramsList,1);
                obj.reductionParameters = paramsList;
                obj.reductionParameters{len+1,1}.method = varargin{1};
-               obj.reductionParameters{len+1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
+               try
+                   obj.reductionParameters{len+1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
+               catch ex
+                   error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
+               end
             end
             
             % remove "projectiveMor" from the reduction history
@@ -446,7 +479,27 @@ classdef ssRed < ss
                     isSym = 0;
                 end
             end
-        end        
+        end    
+        
+        function sys = changeReductionParameters(sys,params)
+        % This function overrides the last entry of the cell-array 
+        % "obj.reductionParameters" with the parameters specified in 
+        % "params". 
+        
+            l = length(sys.reductionParameters);
+        
+            try
+                if l > 1 && ismember(sys.reductionParameters{l-1}.method,{'cure_spark','cure_irka','cure_rk+pork'})
+                    sys.reductionParameters{l}.params = sys.parseParamsStruct(params.params,params.method,0);
+                    sys.reductionParameters{l}.method = params.method;
+                else
+                    sys.reductionParameters{l}.params = sys.parseParamsStruct(params.params,params.method,0);
+                    sys.reductionParameters{l}.method = params.method;
+                end
+            catch ex
+                error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
+            end 
+        end
         
         %% Override operators and build-in-functions
         function varargout = eig(sys, varargin)
@@ -671,6 +724,19 @@ classdef ssRed < ss
             elseif strcmp(method,'porkW')               %porkW
                list = {'originalOrder'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
+            elseif strcmp(method,'spark')               %spark
+               list = {'originalOrder'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
+               
+               list = {'spark','mespark'};
+               ssRed.parseStructFields(params,list,'params');
+               
+               list = {'type','mfe','mi','xTol', ...
+                       'pork','fTol','modelTol'};
+               parsedStruct.spark = ssRed.parseStructFields(params.spark,list,'params.spark');
+               
+               list = {'ritz','pertIter','maxIter'};
+               parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
             elseif strcmp(method,'cure_spark')          %cure_spark  
                list = {'originalOrder','currentReducedOrder'};
                parsedStruct = ssRed.parseStructFields(params,list,'params'); 
@@ -686,7 +752,7 @@ classdef ssRed < ss
                     ssRed.parseStructFields(params,list,'params');
                end
 
-               list = {'type','test','mfe','mi','xTol', ...
+               list = {'type','mfe','mi','xTol', ...
                        'fTol','modelTol'};
                parsedStruct.spark = ssRed.parseStructFields(params.spark,list,'params.spark');
                
