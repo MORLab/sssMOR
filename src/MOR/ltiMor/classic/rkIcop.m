@@ -24,6 +24,8 @@ function [sysr, V, W, sOpt] = rkIcop(sys, s0, q, varargin)
 %						[{20} / positive integer]
 %			-.tol:		convergence tolerance;
 %						[{1e-2} / positive float]
+%           -.lse:      solve linear system of equations
+%                       [{'sparse'} / 'full' / 'gauss' / 'hess' / 'iterative' ]
 %
 % Output Arguments:
 %       -sysr:          reduced system
@@ -80,6 +82,7 @@ end
 Def.rk = 'twoSided'; % 'twoSided','input','output'
 Def.tol = 1e-2; % stopping tolerance
 Def.maxIter = 100; % maximum number of iterations
+Def.lse = 'sparse'; % 'sparse', 'full', 'hess', 'gauss', 'iterative'
 
 % create the options structure
 if ~exist('Opts','var') || isempty(fieldnames(Opts))
@@ -115,7 +118,7 @@ for i=1:Opts.maxIter
     else
         switch(Opts.rk)
             case 'twoSided'
-                sOpt=sOpt';
+                sOpt=sOpt.';
                 tempLt=[];
                 Rt=[];
                 Lt=[];
@@ -132,18 +135,18 @@ for i=1:Opts.maxIter
                     Lt=[Lt,tempLt];
                 end
                 
-                [sysr,V,W] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*q],[sOpt(:)';ones(1,sys.m*sys.p)*q],Rt,Lt);
+                [sysr,V,W] = rk(sys,[sOpt(:).';ones(1,sys.m*sys.p)*q],[sOpt(:).';ones(1,sys.m*sys.p)*q],Rt,Lt);
             case 'input'
-                sOpt=sOpt';
+                sOpt=sOpt.';
                 Rt=[];
 
                 for j=1:sys.m
                    Rt=blkdiag(Rt,ones(1,q*sys.p));
                 end
                 
-                [sysr,V,W] = rk(sys,[sOpt(:)';ones(1,sys.m*sys.p)*q],Rt);
+                [sysr,V,W] = rk(sys,[sOpt(:).';ones(1,sys.m*sys.p)*q],Rt);
             case 'output'
-                sOpt=sOpt';
+                sOpt=sOpt.';
                 tempLt=[];
                 Lt=[];
                 
@@ -154,18 +157,14 @@ for i=1:Opts.maxIter
                 for j=1:sys.m
                     Lt=[Lt,tempLt];
                 end
-                [sysr,V,W] = rk(sys,[],[sOpt(:)';ones(1,sys.m*sys.p)*q],[],Lt);
+                [sysr,V,W] = rk(sys,[],[sOpt(:).';ones(1,sys.m*sys.p)*q],[],Lt);
             otherwise
                 error('Wrong Opts.');
         end
     end
     
     % calculate sOpt
-    try
-        sOpt = rkOp(sysr);
-    catch ex
-        error(['rkIcop failed: ' ex.message]);
-    end
+    sOpt = rkOp(sysr, Opts);
     
     if abs(sOpt-sOptOld)/sOpt <= Opts.tol
         break

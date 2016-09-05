@@ -51,6 +51,8 @@ function [sysr, V, W, s0, Rt, B_, Ssylv, Rsylv, kIter, s0Traj, RtTraj, flag] = i
 %						[{'combAny'} / 's0' / 'sysr' / 'combAll']
 %           -.suppressverbose: suppress any type of verbose for speedup;
 %                       [{0} / 1]
+%			-.lyapchol:	solve lyapunov equation
+%						[{'standard'} / 'adi' / 'builtIn']
 %           -.(refer to *arnoldi* or *rk* for other options)
 %
 % Output Arguments:      
@@ -118,6 +120,7 @@ Def.tol     = 1e-3;
 Def.verbose = 0; % text output during iteration?
 Def.stopCrit= 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
 Def.suppressverbose = 0;
+Def.lyapchol = 'standard'; % 'adi', 'builtIn'
 
 flag = 1;
 
@@ -163,22 +166,7 @@ if nargout > 9
 end
 
 %% Compute observability Gramian
-try
-    % R = lyapchol(sys.A,sys.B,sys.E); %P = R'*R;
-    if sys.isDescriptor
-        L = lyapchol(sys.A', sys.C',sys.E'); %Q = L'*L;
-    else
-        L = lyapchol(sys.A', sys.C'); %Q = L'*L;
-    end
-catch ex
-    warning(ex.message, 'Error in lyapchol. Trying without Cholesky factorization...')
-    if sys.isDescriptor
-        Q = lyap(sys.A',sys.C'*sys.C, [], sys.E');
-    else
-        Q = lyap(sys.A',sys.C'*sys.C);
-    end
-end
-
+L=lyapchol(sys.',Opts);
 
 %% ISRK iteration
 kIter=0;
@@ -194,11 +182,7 @@ while true
     end 
     
     %b) Left projection matrix
-    if exist('L','var')
-        W = L'*L*sys.E*V;
-    else
-        W = Q*sys.E*V;
-    end
+    W = L'*L*sys.E*V;
     
     %c) ROM
     sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);

@@ -166,6 +166,14 @@ if ~isempty(varargin)
     end
 end
 
+% use hess if sys is ssRed object
+if isa(sys,'ssRed')
+    if isfield(Opts,'lse') && ~isempty(Opts.lse) && ~strcmp(Opts.lse,'hess')
+        warning('Opts.lse has been changed to "hess".');
+    end
+    Opts.lse='hess';
+end
+
 %%  Check the inputs
 if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
     (~exist('s0_out', 'var') || isempty(s0_out))

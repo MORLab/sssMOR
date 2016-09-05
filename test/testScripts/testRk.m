@@ -254,9 +254,9 @@ classdef testRk < sssTest
              MeR = mmat(Me,Rt3D);
              MeH = mmat(mmat(Lt3D,Me),Rt3D);
              
-             verifyLessThanOrEqual(testCase,abs(MeL),1e-8,'MeL: Moments do not match')
-             verifyLessThanOrEqual(testCase,abs(MeR),1e-8,'MeR: Moments do not match')
-             verifyLessThanOrEqual(testCase,abs(MeH),1e-8,'MeH: Moments do not match')
+             verifyLessThanOrEqual(testCase,abs(MeL),1e-6,'MeL: Moments do not match')
+             verifyLessThanOrEqual(testCase,abs(MeR),1e-6,'MeR: Moments do not match')
+             verifyLessThanOrEqual(testCase,abs(MeH),1e-6,'MeH: Moments do not match')
          end
          function MIMOtwoSidedComplexShiftsRealModel (testCase) 
              % test if sorting shifts/tangential directions messes up

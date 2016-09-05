@@ -42,6 +42,8 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 %                       [{1e-6} / positive float]
 %           -.dominance: perform dominance analysis
 %                       [{0} / 'analyze' / '2q' / '3q' / '4q']
+%           -.lse:      solve linear system of equations
+%                       [{'sparse'} / 'full']
 %
 % Output Arguments:
 %       -sysr:          reduced system
@@ -84,7 +86,7 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  31 Jan 2016
+% Last Change:  16 Aug 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -94,6 +96,7 @@ Def.orth = 'qr'; %orthogonalization ('0','qr')
 Def.real = 'real'; %real reduced system ('0', 'real')
 Def.tol = 1e-6; % tolerance for SM/LM eigenspace
 Def.dominance = 0; %dominance analysis ('0','analyze','2q','3q',..,'9q')
+Def.lse = 'sparse'; % solveLse ('sparse', 'full')
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -187,10 +190,13 @@ function [V, W, rlambda]=exactEigenvector(q)
 end
 
 function [V, W]=eigenspaceLM(q)
-    if ~sys.isDescriptor
-        A=sys.E\sys.A;
-    else
-        A=sys.A;
+    if sys.isDescriptor
+        if strcmp(Opts.lse,'hess')
+            error('Hess not implemented for the use with modalMor.');
+        end
+        
+        solveLse(sys.E);
+        Opts.reuseLU=true;
     end
 
     %orthogonal iteration for LM
@@ -200,20 +206,35 @@ function [V, W]=eigenspaceLM(q)
     if ~sys.isSym
         W=rand(sys.n,q);
         W_old=W;
-        while norm((eye(sys.n)-V*V')*V_old)>Opts.tol || norm((eye(sys.n)-W*W')*W_old)>Opts.tol
+        while norm((speye(sys.n)-V*V')*V_old)>Opts.tol || norm((speye(sys.n)-W*W')*W_old)>Opts.tol
             V_old=V;
-            W_old=W;  
-            [V,~]=qr(A*V,0);
-            [W,~]=qr(A'*W,0);
+            W_old=W;
+            
+            if sys.isDescriptor
+                [V,W]=solveLse(sys.E,sys.A*V_old,(sys.A'*W_old)',Opts);
+            else
+                V=sys.A*V;
+                W=sys.A'*W;
+            end
+            
+            [V,~]=qr(V,0);
+            [W,~]=qr(W,0);
         end
         for j=1:q
             W(:,j)=W(:,j)/norm(W(:,j));
             V(:,j)=V(:,j)/norm(V(:,j));
         end 
     else
-        while norm((eye(sys.n)-V*V')*V_old)>Opts.tol
+        while norm((speye(sys.n)-V*V')*V_old)>Opts.tol
             V_old=V;
-            [V,~]=qr(A*V,0);
+            
+            if sys.isDescriptor
+                V=solveLse(sys.E,sys.A*V_old,Opts);
+            else
+                V=sys.A*V;
+            end
+            
+            [V,~]=qr(V,0);
         end
         for j=1:q
             V(:,j)=V(:,j)/norm(V(:,j));
@@ -223,9 +244,13 @@ function [V, W]=eigenspaceLM(q)
 end
 
 function [V, W]=eigenspaceSM(q)
-    %sparse LU decomposition
-    [L,U,a,o,S]=lu(sys.A,'vector');
-
+    if strcmp(Opts.lse,'hess')
+        error('Hess not implemented for the use with modalMor.');
+    end
+    
+    solveLse(sys.A);
+    Opts.reuseLU=true;
+    
     %inverse orthogonal iteration for SM
     V=rand(sys.n,q);
     V_old=V;
@@ -235,23 +260,23 @@ function [V, W]=eigenspaceSM(q)
         W_old=W;
         while norm((eye(sys.n)-V*V')*V_old)>Opts.tol || norm((eye(sys.n)-W*W')*W_old)>Opts.tol
             V_old=V;
-            W_old=W;
-            V=sys.E*V;
-            W=sys.E*W;
-            V(o,:) = U\(L\(S(:,a)\V));
-            W=(S(:,a)).'\(L.'\(U.'\(W(o,:))));
+            W_old=W;        
+            
+            [V,W]=solveLse(sys.A,sys.E*V_old,(sys.E'*W_old)',Opts);
+
             [V,~]=qr(V,0);
             [W,~]=qr(W,0);
         end
         for j=1:q
             W(:,j)=W(:,j)/norm(W(:,j));
             V(:,j)=V(:,j)/norm(V(:,j));
-        end        
+        end
     else
         while norm((eye(sys.n)-V*V')*V_old)>Opts.tol
             V_old=V;
-            V=sys.E*V;
-            V(o,:) = U\(L\(S(:,a)\V));
+            
+            V = solveLse(sys.A,sys.E*V_old,Opts);
+            
             [V,~]=qr(V,0);
         end
         for j=1:q

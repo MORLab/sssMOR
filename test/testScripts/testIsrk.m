@@ -41,6 +41,22 @@ classdef testIsrk < sssTest
                 end
             end
         end
+        function testAdi(testCase)
+            for i=1:length(testCase.sysCell)
+                sys=testCase.sysCell{i};
+                if ~sys.isDae && sys.isSiso && sys.n>100
+                    Opts.lyapchol='adi';
+                    s0=[0,0,100,1+5i,1-5i,14-0.2i,14+0.2i, Inf, Inf];
+                    actSysr=isrk(sys, s0, Opts);
+                    Opts.lyapchol='builtIn';
+                    expSysr=isrk(sys, s0, Opts);
+                    actSolution={cplxpair(eig(full(actSysr.A),full(expSysr.E)))};
+                    expSolution={cplxpair(eig(full(expSysr.A),full(expSysr.E)))};
+                    verifyEqual(testCase, actSolution, expSolution, 'RelTol', 1e-5,...
+                        'Difference between actual and expected solution.');
+                end
+            end
+        end
     end
 end
 

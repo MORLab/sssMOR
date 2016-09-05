@@ -71,71 +71,48 @@ function M = moments(sys, s0, n, Opts)
 %------------------------------------------------------------------
 
 %%  Parse input
-Def.refine.active   = false; %use iterative refinement for higher accuracy
-Def.refine.tol      = 1e-6;  %default refinement tolerance
-Def.refine.maxiter  = 1e2;
+Def.refine   = 0; %use iterative refinement for higher accuracy (0, 'wilkinson','cgs')
+Def.refTol      = 1e-6;  %default refinement tolerance
+Def.refMaxiter  = 1e2;
+Def.lse = 'sparse';
         
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
     Opts = Def;
 else
     Opts = parseOpts(Opts,Def);
-end       
+end  
 
-if Opts.refine.active, I = speye(size(sys.A)); end %auxiliary variable
+Opts.krylov='standardKrylov';
+index=1;
 
-%%  Defining execution parameters
-nS0 = length(s0);
-if nS0 > 1
-    if length(n) == 1
-        % moment order defined once for all shifts
-        nM = nS0 * n;
-        n = repmat(n,1,nS0); %create a vector for the subsequent loop
-    elseif length(n) == nS0
-        % moment order defined individually
-        nM = sum(n);
-    else
-        error('combination of s0 and n is incompatible');
-    end
-else %only one shift
-    nM = n;
-end
 %   Preallocate
-M=zeros(size(sys.C,1),size(sys.B,2),nM);
+M=zeros(size(sys.C,1),size(sys.B,2),length(s0)*length(n));
+
 %%  Compute the moments
-for iS0 = 1:nS0
-    currIdx = sum(n(1:iS0-1));
-    if isinf(s0(iS0))
-        M(:,:,currIdx+1) = sys.D;
-        [L,U,p,q,R]=lu(sys.E, 'vector');
-        tempR=sys.B; %temp right side
-        for iO=2:n(iS0)
-           tempS(q,:) = U\(L\(R(:,p)\tempR)); %temp solution
-           
-           % Iterative refinement
-           if Opts.refine.active
-               Opts.refine.L = R*I(p,:).'*L; Opts.refine.U = U*I(:,q).';
-               tempS = iterativeRefinement(sys.E,tempR,tempS,Opts.refine);
-           end
-           
-           % Compute moment
-            M(:,:,currIdx + iO) = sys.C*tempS - sys.D;
-            tempR=sys.A*tempS;
-        end
-    else %finite frequency
-        [L,U,p,q,R]=lu(sys.A - s0(iS0)*sys.E, 'vector');
-        tempR=sys.B;
-        for iO=1:n(iS0)
-            tempS(q,:) = U\(L\(R(:,p)\tempR));
-            
-           % Iterative refinement
-           if Opts.refine.active
-               Opts.refine.L = R*I(p,:).'*L; Opts.refine.U = U*I(:,q).';
-               tempS = iterativeRefinement(sys.A - s0(iS0)*sys.E,tempR,tempS,Opts.refine);
-           end
-            
-            M(:,:,currIdx+iO) = sys.C*tempS - sys.D;
-            tempR=sys.E*tempS;
-        end
+for iO=1:length(s0)
+    if isinf(s0(iO))
+        % first Markov parameter=sys.D
+        M(:,:,index) = sys.D;
+        index=index+1;
+        n(iO)=n(iO)-1;
     end
+    
+    Rt=[];
+    for j=1:size(sys.B,2)
+        Rt=blkdiag(Rt,ones(1,n(iO)));
+    end
+    
+    tempS = solveLse(sys.A,sys.B,sys.E,s0(iO)*ones(1,n(iO)*size(sys.B,2)),Rt,Opts);
+   
+    
+    for j=1:n(iO)
+        temp=[];
+        for i=1:size(sys.B,2)
+            temp=[temp,tempS(:,j+(i-1)*n(iO))];
+        end
+        M(:,:,index) = sys.C*temp - sys.D;
+        index=index+1;
+    end
+end
 end
