@@ -651,6 +651,8 @@ function pb_PaV_move_Callback(hObject, eventdata, handles)
 
         data.save = 1;
         data.variableName = suggestPlotDataName(handles,selectedSystem);
+        data.saveTimeseries = 0;
+        data.variableNameTimeseries = suggestPlotDataNameTimeseries(handles,selectedSystem);
         data.color = mod(handles.chosenSystems,7)+1;
         data.lineStyle = 1;
         data.markerType = 1;
@@ -780,6 +782,8 @@ function pb_PaV_moveObjects_Callback(hObject, eventdata, handles)
 
         data.save = [];
         data.variableName = [];
+        data.saveTimeseries = [];
+        data.variableNameTimeseries = [];
         data.color = mod(handles.chosenSystems,7)+1;
         data.lineStyle = 1;
         data.markerType = 1;
@@ -955,8 +959,18 @@ function et_PaV_saveData_Callback(hObject, eventdata, handles)
 
 function cb_PaV_SaveTimeseries_Callback(hObject, eventdata, handles)
 
+    if get(hObject,'Value') == 1
+       set(handles.et_PaV_saveTimeseries,'Enable','on'); 
+    else
+       set(handles.et_PaV_saveTimeseries,'Enable','off'); 
+    end
+
+    savePlotData(handles);
+
 function et_PaV_saveTimeseries_Callback(hObject, eventdata, handles)
     
+    savePlotData(handles);
+
 function pu_in_Callback(hObject, eventdata, handles)
 
     handles = savePlotData(handles);
@@ -1050,10 +1064,29 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
                 else
                    set(handles.et_PaV_saveData,'Enable','off'); 
                 end
+                
+                set(handles.cb_PaV_SaveTimeseries,'Value',data.saveTimeseries);
+                set(handles.et_PaV_saveTimeseries,'String',data.variableNameTimeseries);
             
+                if data.saveTimeseries
+                   set(handles.et_PaV_saveTimeseries,'Enable','on'); 
+                else
+                   set(handles.et_PaV_saveTimeseries,'Enable','off'); 
+                end
+                
                 set(handles.cb_PaV_SaveData,'Visible','on');
                 set(handles.et_PaV_saveData,'Visible','on');
                 set(handles.pb_PaV_infoSaveData,'Visible','on');
+                
+                if get(handles.plot_type,'Value') == 5    %Step               
+                    set(handles.cb_PaV_SaveTimeseries,'Visible','on');
+                    set(handles.et_PaV_saveTimeseries,'Visible','on');
+                    set(handles.pb_PaV_infoSaveTimeseries,'Visible','on');
+                else
+                    set(handles.cb_PaV_SaveTimeseries,'Visible','off');
+                    set(handles.et_PaV_saveTimeseries,'Visible','off');
+                    set(handles.pb_PaV_infoSaveTimeseries,'Visible','off');
+                end
                 
                 set(handles.bg_PaV_Resolution,'Visible','on');
                 set(handles.pb_PaV_showObject,'Visible','off');
@@ -1086,6 +1119,10 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
                 set(handles.et_PaV_saveData,'Visible','off');
                 set(handles.pb_PaV_infoSaveData,'Visible','off');
                 
+                set(handles.cb_PaV_SaveTimeseries,'Visible','off');
+                set(handles.et_PaV_saveTimeseries,'Visible','off');
+                set(handles.pb_PaV_infoSaveTimeseries,'Visible','off');
+                
                 set(handles.bg_PaV_Resolution,'Visible','off');
                 set(handles.panel_manual,'Visible','off');
                 
@@ -1099,6 +1136,9 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
         set(handles.panel_PaV_plotStyle,'Visible','off');
         set(handles.cb_PaV_SaveData,'Visible','off');
         set(handles.et_PaV_saveData,'Visible','off'); 
+        set(handles.cb_PaV_SaveTimeseries,'Visible','off');
+        set(handles.et_PaV_saveTimeseries,'Visible','off');
+        set(handles.pb_PaV_infoSaveTimeseries,'Visible','off');
         set(handles.bg_PaV_plotStyle,'Visible','off');
         set(handles.bg_PaV_Resolution,'Visible','off');        
         set(handles.pb_PaV_showObject,'Visible','off');
@@ -1204,6 +1244,18 @@ if ~isempty(list) && size(list,1) >= 1
 else
     set(handles.lb_PaV_selectedSystems,'Value',1);         
     set(handles.lb_PaV_selectedSystems,'String', {});
+end
+
+%Set option to save timeseries data visible if "step" is selected
+
+if get(handles.plot_type,'Value') == 5    %step
+    set(handles.cb_PaV_SaveTimeseries,'Visible','on');
+    set(handles.et_PaV_saveTimeseries,'Visible','on');
+    set(handles.pb_PaV_infoSaveTimeseries,'Visible','on');
+else
+    set(handles.cb_PaV_SaveTimeseries,'Visible','off');
+    set(handles.et_PaV_saveTimeseries,'Visible','off');
+    set(handles.pb_PaV_infoSaveTimeseries,'Visible','off');
 end
 
 
@@ -1318,7 +1370,11 @@ function pb_PaV_infoSaveData_Callback(hObject, eventdata, handles)
     uiwait;
 
 function pb_PaV_infoSaveTimeseries_Callback(hObject, eventdata, handles)
+%Show a information-box with information about the selectable options
 
+    infoBox({'InfoSaveTimeseries.png'});
+    uiwait;
+    
     
 function pb_plot_Callback(hObject, eventdata, handles)
 %Plot the graph with the choosen systems
@@ -2134,6 +2190,30 @@ function pb_plot_Callback(hObject, eventdata, handles)
             end
         end
 
+        %Save Timeseries
+        
+        if get(handles.plot_type,'Value') == 5      %Step
+           for i = 1:size(systemList,1)
+              if systemList{i,3}.saveTimeseries
+                 m = size(systemList{i,5},1);
+                 p = size(systemList{i,5},2);                 
+                 if p == 1 && m == 1   %Siso
+                    [temp.h,temp.t] = recoverStepResponseFromTF(systemList{i,5});
+                    assignin('base',systemList{i,3}.variableNameTimeseries,temp);
+                 else
+                    cellTemp = cell(m,p);
+                    for j = 1:m
+                        for k = 1:p
+                           [temp.h,temp.t] = recoverStepResponseFromTF(systemList{i,5}(j,k)); 
+                           cellTemp{j,k} = temp;
+                        end
+                    end
+                    assignin('base',systemList{i,3}.variableNameTimeseries,cellTemp);
+                 end
+              end
+           end
+        end
+        
         set(hObject,'String','Plot')
         set(hObject,'Enable','on')
         set(handles.figure1,'Pointer','arrow')
@@ -6469,7 +6549,35 @@ function [variableName] = suggestPlotDataName(handles,sysName)
     end
         
     variableName = newName;
-     
+   
+function [variableName] = suggestPlotDataNameTimeseries(handles,sysName)
+%Sets a default variable name for the plot data that should be saved to
+%workspace (for the timeseries data)
+
+    %Read out the system name if it is not given
+
+    if isempty(sysName)
+        list = get(handles.lb_PaV_selectedSystems,'String');
+        sysName = list{get(handles.lb_PaV_selectedSystems,'Value')};
+    end
+
+    %Add "stepData" to the name for easier identification
+    
+    variableName = strcat(sysName,'_stepData');
+    
+    %Check if the constructed name is a valid variable name
+    
+    newName = variableName;
+    counter = 1;
+    
+    while existInBaseWs(newName)
+        
+        newName = strcat(variableName,num2str(counter));
+        counter = counter + 1;      
+    end
+        
+    variableName = newName;
+    
 function handles = savePlotData(handles)
 %This function saves the values for the plot options of the currently
 %selected system in the list (handles.lb_PaV_selectedSystems)
@@ -6497,6 +6605,9 @@ function handles = savePlotData(handles)
        
        data.save = get(handles.cb_PaV_SaveData,'Value');
        data.variableName = get(handles.et_PaV_saveData,'String');
+       
+       data.saveTimeseries =  get(handles.cb_PaV_SaveTimeseries,'Value');
+       data.variableNameTimeseries = get(handles.et_PaV_saveTimeseries,'String');
         
        data.color = get(handles.pu_PaV_color,'Value');
        data.lineStyle = get(handles.pu_PaV_lineStyle,'Value');
@@ -6531,11 +6642,13 @@ function handles = savePlotData(handles)
           data.save = [];
           data.variableName = [];
           
+          data.saveTimeseries = [];
+          data.variableNameTimeseries = [];
+          
           data.distribution = []; 
           data.min = [];
           data.max = [];
-          data.steps = [];
-          
+          data.steps = [];   
        end
        
        %Check if there exists stored data for this system
@@ -6604,6 +6717,20 @@ function x = removeObjectsFromList(list,class)
     
     else
        x = list; 
+    end
+    
+function [ h,t ] = recoverStepResponseFromTF( tf )
+% This function recovers the two vectors h and t of the step response from
+% a tf-object
+    
+    h_ = tf.num{1,1};
+    h = zeros(size(h_));
+    t = zeros(size(h_));
+    h(1) = h_(1);
+    t(1) = 0;
+    for i = 2:length(h)
+        h(i) = h(i-1) + h_(i);
+        t(i) = t(i-1) + tf.Ts;
     end
 
 function [] = addRelativePaths()
