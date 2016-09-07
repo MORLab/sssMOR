@@ -7,9 +7,30 @@ classdef testRkIcop < sssTest
                 sys=testCase.sysCell{i};
                 if ~sys.isDae
                     sOpt1 = rkOp(sys);
-                    [~,~,~,sOpt2] = rkIcop(sys,10,30);
-                    rkIcop(ss(sys),0.5,12,Opts);
-                    verification (testCase, sOpt1, sOpt2);
+                    success=1;
+                    try
+                        [~,~,~,sOpt2] = rkIcop(sys,10,30);
+                    catch err
+                        if strcmp(err.identifier,'sssMor:rkIcopNotConverged')
+                            success=0;
+                        else
+                            error(err.message);
+                        end
+                    end
+                    if success==1
+                        try
+                            rkIcop(ss(sys),0.5,12,Opts);
+                        catch err
+                            if strcmp(err.identifier,'sssMor:rkIcopNotConverged')
+                                success=0;
+                            else
+                                error(err.message);
+                            end
+                        end
+                        if success==1
+                            verification (testCase, sOpt1, sOpt2);
+                        end
+                    end
                 end
             end
         end

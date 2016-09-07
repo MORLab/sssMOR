@@ -170,7 +170,7 @@ for i=1:Opts.maxIter
         break
     end
     if i==Opts.maxIter
-        error(['rkIcop has not converged after ' num2str(Opts.maxIter) ' steps.']);
+        error('sssMor:rkIcopNotConverged',['rkIcop has not converged after ' num2str(Opts.maxIter) ' steps.']);
     end
 end
 
