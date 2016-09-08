@@ -633,7 +633,7 @@ function pb_PaV_move_Callback(hObject, eventdata, handles)
         data.name = selectedSystem;
         data.isSystem = 1;
 
-        p = size(sys.A,2);
+        p = size(sys.B,2);
         m = size(sys.C,1);
         
         if p > 1|| m > 1
