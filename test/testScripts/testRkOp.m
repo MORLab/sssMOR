@@ -6,8 +6,8 @@ classdef testRkOp < sssTest
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
                 if ~sys.isDae
-                    [h,t]=impulse(sys);
-                    sOpt1 = rkOp(h,t);
+                    [g,t]=impulse(ss(sys),0:0.01:decayTime(sys));
+                    sOpt1 = rkOp(g,t);
                     sOpt2 = rkOp(sys);
                     rkOp(ss(sys),10,Opts);
                     verification (testCase, sOpt1, sOpt2);
@@ -18,6 +18,6 @@ classdef testRkOp < sssTest
 end
     
 function [] = verification (testCase, actSolution, expSolution)
-          verifyEqual(testCase, actSolution, expSolution, 'RelTol', 7e-2,'AbsTol',1e-6, ...
+          verifyEqual(testCase, actSolution, expSolution, 'RelTol', 85e-2,'AbsTol',1e-6, ...
                'Difference between actual and expected exceeds relative tolerance');
 end

@@ -21,7 +21,7 @@ function varargout = rkOp(varargin)
 % Input Arguments:  
 %       *Required Input Arguments:*
 %       -sys:			full oder model (ss or sss)
-%       -h:             impulse response vector of the system
+%       -g:             impulse response vector of the system
 %       -t:             time vector corresponding to h
 %       *Optional Input Arguments:*
 %       -q:             reduction order
@@ -95,17 +95,17 @@ end
 
 % compute sOpt
 if isa(varargin{1},'double') && length(varargin)==2 && length(varargin{1})==length(varargin{2}) % from impulse response
-    h = varargin{1};
-    th = varargin{2};
-    sOpt=zeros(size(h,2),size(h,3));
-    for j=1:size(h,2)
-        for k=1:size(h,3)
+    g = varargin{1};
+    tg = varargin{2};
+    sOpt=zeros(size(g,2),size(g,3));
+    for j=1:size(g,2)
+        for k=1:size(g,3)
             m1=0;
             m2=0;
-            for i=1:length(th)
-                m1=m1+th(i)*h(i,j,k)^2;
-                if i<length(th)
-                    m2=m2+th(i)*((h(i+1,j,k)-h(i,j,k))/(th(2)-th(1)))^2;
+            for i=1:length(tg)
+                m1=m1+tg(i)*g(i,j,k)^2;
+                if i<length(tg)
+                    m2=m2+tg(i)*((g(i+1,j,k)-g(i,j,k))/(tg(2)-tg(1)))^2;
                 end
             end
             sOpt(j,k) = sqrt(m2/m1);
