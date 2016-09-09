@@ -283,6 +283,8 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     usedOpts.cure = Opts.cure;
     usedOpts.currentReducedOrder = sysr.n+Opts.cure.nk;
     usedOpts.originalOrder = sys.n;
+    usedOpts.shifts = s0;
+    
     if isa(sysr,'ssRed')
         sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
                      Br_tot, Cr_tot, zeros(p,m), Er_tot,sysr.reductionParameters);

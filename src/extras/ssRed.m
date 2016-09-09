@@ -142,10 +142,10 @@ classdef ssRed < ss
 %           -.originalOrder:    Model order before reduction
 %           -.currentReducedOrder: Model order at the current iteration
 %                                  step of the cure algorithm
+%           -.shifts:           Shifts used for the current iteration step 
+%                               of the cure algorihm
 %           -.cure.fact:        factorization mode 
 %                               [{'V'} / 'W']
-%           -.cure.init:        shift initialization mode 
-%                               [{'sm'} / 'zero' / 'lm' / 'slm']
 %           -.cure.stop:        stopping criterion
 %                               [{'nmax'} / 'h2Error']
 %           -.cure.stopval:     value according to which the stopping criterion is evaluated
@@ -180,10 +180,10 @@ classdef ssRed < ss
 %           -.originalOrder:    Model order before reduction
 %           -.currentReducedOrder: Model order at the current iteration
 %                                  step of the cure algorithm
+%           -.shifts:           Shifts used for the current iteration step 
+%                               of the cure algorihm
 %           -.cure.fact:        factorization mode 
 %                               [{'V'} / 'W']
-%           -.cure.init:        shift initialization mode 
-%                               [{'sm'} / 'zero' / 'lm' / 'slm']
 %           -.cure.stop:        stopping criterion
 %                               [{'nmax'} / 'h2Error']
 %           -.cure.stopval:     value according to which the stopping criterion is evaluated
@@ -228,10 +228,10 @@ classdef ssRed < ss
 %           -.originalOrder:    Model order before reduction
 %           -.currentReducedOrder: Model order at the current iteration
 %                                  step of the cure algorithm
+%           -.shifts:           Shifts used for the current iteration step 
+%                               of the cure algorihm
 %           -.cure.fact:        factorization mode 
 %                               [{'V'} / 'W']
-%           -.cure.init:        shift initialization mode 
-%                               [{'sm'} / 'zero' / 'lm' / 'slm']
 %           -.cure.stop:        stopping criterion
 %                               [{'nmax'} / 'h2Error']
 %           -.cure.stopval:     value according to which the stopping criterion is evaluated
@@ -738,14 +738,14 @@ classdef ssRed < ss
                list = {'ritz','pertIter','maxIter'};
                parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
             elseif strcmp(method,'cure_spark')          %cure_spark  
-               list = {'originalOrder','currentReducedOrder'};
+               list = {'originalOrder','currentReducedOrder','shifts'};
                parsedStruct = ssRed.parseStructFields(params,list,'params'); 
                 
                if cureRequired
                     list = {'cure','spark','mespark'};
                     ssRed.parseStructFields(params,list,'params');
                
-                    list = {'fact','init','stop','stopval','maxIter'};
+                    list = {'fact','stop','stopval','maxIter'};
                     parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
                else
                     list = {'spark','mespark'};
@@ -759,7 +759,7 @@ classdef ssRed < ss
                list = {'ritz','pertIter','maxIter'};
                parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
             elseif strcmp(method,'cure_irka')           %cure_irka
-               list = {'originalOrder','currentReducedOrder','maxiter','tol', ...
+               list = {'originalOrder','currentReducedOrder','shifts','maxiter','tol', ...
                        'type','stopCrit','orth','lse','dgksTol','krylov', ...
                        's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
@@ -768,11 +768,11 @@ classdef ssRed < ss
                     list = {'cure'};
                     ssRed.parseStructFields(params,list,'params');
                
-                    list = {'fact','init','stop','stopval','maxIter'};
+                    list = {'fact','stop','stopval','maxIter'};
                     parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');  
                end
             elseif strcmp(method,'cure_rk+pork')        %cure_rk+pork
-               list = {'originalOrder','currentReducedOrder','real', ...
+               list = {'originalOrder','currentReducedOrder','shifts','real', ...
                        'orth','reorth','lse','dgksTol','krylov', ...
                        'IP','Rt','Lt','s0_inp','s0_out'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
@@ -781,7 +781,7 @@ classdef ssRed < ss
                     list = {'cure'};
                     ssRed.parseStructFields(params,list,'params');
                
-                    list = {'fact','init','stop','stopval','maxIter'};
+                    list = {'fact','stop','stopval','maxIter'};
                     parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
                end
             end
