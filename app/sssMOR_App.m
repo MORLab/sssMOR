@@ -1078,7 +1078,8 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
                 set(handles.et_PaV_saveData,'Visible','on');
                 set(handles.pb_PaV_infoSaveData,'Visible','on');
                 
-                if get(handles.plot_type,'Value') == 5    %Step               
+                if get(handles.plot_type,'Value') == 4 || ...
+                   get(handles.plot_type,'Value') == 5     %Step or Impulse              
                     set(handles.cb_PaV_SaveTimeseries,'Visible','on');
                     set(handles.et_PaV_saveTimeseries,'Visible','on');
                     set(handles.pb_PaV_infoSaveTimeseries,'Visible','on');
@@ -1214,8 +1215,7 @@ switch get(handles.plot_type,'Value')
         set(handles.panel_PaV_objectsWs,'Title','Tf-objects');
     case 6      %Pole-Zero Map
         list = removeObjectsFromList(list,'frd');
-        list = removeObjectsFromList(list,'tf');
-        
+        list = removeObjectsFromList(list,'tf');    
         set(handles.panel_PaV_objectsWs,'Title','Zpk-objects');
 
 end
@@ -1248,7 +1248,8 @@ end
 
 %Set option to save timeseries data visible if "step" is selected
 
-if get(handles.plot_type,'Value') == 5    %step
+if get(handles.plot_type,'Value') == 4 || ...
+   get(handles.plot_type,'Value') == 5                    %Step or Impulse
     set(handles.cb_PaV_SaveTimeseries,'Visible','on');
     set(handles.et_PaV_saveTimeseries,'Visible','on');
     set(handles.pb_PaV_infoSaveTimeseries,'Visible','on');
@@ -1263,6 +1264,8 @@ end
 
 for i = 1:length(handles.plotData)
    handles.plotData{i,1}.variableName = suggestPlotDataName(handles, ...
+       handles.plotData{i,1}.name);
+   handles.plotData{i,1}.variableNameTimeseries = suggestPlotDataNameTimeseries(handles, ...
        handles.plotData{i,1}.name);
 end
 
@@ -1866,10 +1869,12 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 for i = 1:size(systemList,1)
                     if isa(systemList{i,2},'sss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
-                            systemList{i,5} = step(systemList{i,2},systemList{i,6},struct('tf',1));
+                            [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
+                                = impulse(systemList{i,2},systemList{i,6},struct('tf',1));
                             Ttemp = systemList{i,6}(end);
                        else
-                            systemList{i,5} = step(systemList{i,2},struct('tf',1));
+                            [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
+                                = impulse(systemList{i,2},struct('tf',1));
                             Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
                        end
                    else
@@ -1974,10 +1979,12 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 for i = 1:size(systemList,1)
                     if isa(systemList{i,2},'sss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
-                            systemList{i,5} = step(systemList{i,2},systemList{i,6},struct('tf',1));
+                            [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
+                                = step(systemList{i,2},systemList{i,6},struct('tf',1));
                             Ttemp = systemList{i,6}(end);
                        else
-                            systemList{i,5} = step(systemList{i,2},struct('tf',1));
+                            [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
+                                = step(systemList{i,2},struct('tf',1));
                             Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
                        end
                    else
@@ -2192,25 +2199,14 @@ function pb_plot_Callback(hObject, eventdata, handles)
 
         %Save Timeseries
         
-        if get(handles.plot_type,'Value') == 5      %Step
+        if get(handles.plot_type,'Value') == 4 || ...
+           get(handles.plot_type,'Value') == 5           %Step or Impulse
            for i = 1:size(systemList,1)
-              if systemList{i,3}.saveTimeseries
-                 m = size(systemList{i,5},1);
-                 p = size(systemList{i,5},2);                 
-                 if p == 1 && m == 1   %Siso
-                    [temp.h,temp.t] = recoverStepResponseFromTF(systemList{i,5});
-                    assignin('base',systemList{i,3}.variableNameTimeseries,temp);
-                 else
-                    cellTemp = cell(m,p);
-                    for j = 1:m
-                        for k = 1:p
-                           [temp.h,temp.t] = recoverStepResponseFromTF(systemList{i,5}(j,k)); 
-                           cellTemp{j,k} = temp;
-                        end
-                    end
-                    assignin('base',systemList{i,3}.variableNameTimeseries,cellTemp);
-                 end
-              end
+               if systemList{i,3}.saveTimeseries
+                    assignin('base',systemList{i,3}.variableNameTimeseries, ...
+                             systemList{i,7});
+            
+               end
            end
         end
         
@@ -6561,9 +6557,13 @@ function [variableName] = suggestPlotDataNameTimeseries(handles,sysName)
         sysName = list{get(handles.lb_PaV_selectedSystems,'Value')};
     end
 
-    %Add "stepData" to the name for easier identification
+    %Add plot-type to the name for easier identification
     
-    variableName = strcat(sysName,'_stepData');
+    if get(handles.plot_type,'Value') == 4      %Impulse
+        variableName = strcat(sysName,'_impulseData');
+    else                                        %Step
+        variableName = strcat(sysName,'_stepData');
+    end
     
     %Check if the constructed name is a valid variable name
     
@@ -6717,20 +6717,6 @@ function x = removeObjectsFromList(list,class)
     
     else
        x = list; 
-    end
-    
-function [ h,t ] = recoverStepResponseFromTF( tf )
-% This function recovers the two vectors h and t of the step response from
-% a tf-object
-    
-    h_ = tf.num{1,1};
-    h = zeros(size(h_));
-    t = zeros(size(h_));
-    h(1) = h_(1);
-    t(1) = 0;
-    for i = 2:length(h)
-        h(i) = h(i-1) + h_(i);
-        t(i) = t(i-1) + tf.Ts;
     end
 
 function [] = addRelativePaths()
