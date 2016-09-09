@@ -6,8 +6,10 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       sysr			= TBR(sys,q)
 %       [sysr,V,W]		= TBR(sys,q)
 %       [sysr,V,W,hsv]	= TBR(sys,q)
+%       [sysr,V,W,hsv,R,L]	= TBR(sys,q)
 %       [sysr,...]      = TBR(sys,Opts)
 %       [sysr,...]      = TBR(sys,q,Opts)
+%       [sysr,...]      = TBR(sys,q,R,L,Opts)
 %
 % Description:
 %       Computes a reduced model of order q by balancing and truncation,
@@ -50,6 +52,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       -sys:   an sss-object containing the LTI system
 %		*Optional Input Arguments:*
 %       -q:     order of reduced system
+%       -R,L:   low rank Cholesky factors of the Gramian matrices
 %       -Opts:              a structure containing following options
 %           -.type:         select amongst different tbr algorithms
 %                           [{'tbr'} / 'adi' / 'matchDcGain' ]
@@ -66,6 +69,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       -sysr:  reduced system
 %       -V,W:   projection matrices
 %       -hsv:   Hankel singular values
+%       -R,L:   low rank Cholesky factors of the Gramian matrices
 %
 % Examples:
 %       To compute a balanced realization, use
@@ -117,6 +121,13 @@ Def.lse = 'gauss'; % usfs for adi ('gauss', 'luChol')
 if nargin>1
     if nargin==2 && ~isa(varargin{1},'double')
         Opts=varargin{1};
+    elseif nargin>=4
+        q=varargin{1};
+        R=varargin{2};
+        L=varargin{3};
+        if nargin==5
+            Opts=varargin{4};
+        end
     else
         q=varargin{1};
         if nargin==3
@@ -164,7 +175,9 @@ if strcmp(Opts.type,'adi')
     if exist('q','var')
         lyapOpts.q=q;
     end
-    [R,L]=lyapchol(sys,lyapOpts);
+    if ~exist('R','var') || ~exist('L','var')
+        [R,L]=lyapchol(sys,lyapOpts);
+    end
 
     qmax=min([size(R,2),size(L,2)]); %make sure R and L have the same size
     R=R(:,1:qmax);
@@ -173,7 +186,9 @@ if strcmp(Opts.type,'adi')
 else
     qmax=sys.n;
     lyapOpts.type='builtIn';
-    [R,L]=lyapchol(sys,lyapOpts);
+    if ~exist('R','var') || ~exist('L','var')
+        [R,L]=lyapchol(sys,lyapOpts);
+    end
 end
     
 % calculate balancing transformation and Hankel Singular Values
@@ -345,4 +360,8 @@ if nargout>1
     varargout{1} = V;
     varargout{2} = W;
     varargout{3} = real(hsv);
+    if nargout>3
+        varargout{4} = R;
+        varargout{5} = L;
+    end
 end
