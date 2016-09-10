@@ -3771,7 +3771,8 @@ function updateTBR(hObject, eventdata, handles)
 
         % set scale
 
-        if get(handles.rb_mor_tbr_log,'Value')==1
+        if get(handles.rb_mor_tbr_log,'Value')==1 || ...
+           get(hanldes.rb_mor_tbr_norm,'Value')==1
             set(handles.axes_mor_hsv,'YScale','log')
         else
             set(handles.axes_mor_hsv,'YScale','linear')                
