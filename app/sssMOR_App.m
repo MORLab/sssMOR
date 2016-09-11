@@ -3228,9 +3228,9 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
         
     case 1 %TBR
         
-        [hsvStored,hsv,TBal,TBalInv] = getHankelSingularValues(sys,sysname,handles);
+        [hsvStored,hsv,R,L] = getHankelSingularValues(sys,sysname,handles);
         
-        if ~hsvStored || isempty(hsv) || isempty(TBal) || isempty(TBalInv)
+        if ~hsvStored || isempty(hsv) || isempty(R) || isempty(L)
             set(handles.figure1,'Pointer','arrow')
             set(hObject,'Enable','on')
             errordlg('Please calculate Hankel Singular Values first.','Error Dialog','modal')
@@ -3249,14 +3249,14 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
 
                 Opts.type = 'tbr';
 
-                [sysr, V, W] = tbr(sys, q, Opts);
+                [sysr, V, W] = tbr(sys,q,R,L,Opts);
 
             else
                 % match DC gain
 
                 Opts.type  = 'matchDcGain';
 
-                [sysr, V, W] = tbr(sys, q, Opts);
+                [sysr, V, W] = tbr(sys,q,R,L,Opts);
 
             end
             
@@ -3731,7 +3731,7 @@ function updateTBR(hObject, eventdata, handles)
         % set scale
 
         if get(handles.rb_mor_tbr_log,'Value')==1 || ...
-           get(hanldes.rb_mor_tbr_norm,'Value')==1
+           get(handles.rb_mor_tbr_norm,'Value')==1
             set(handles.axes_mor_hsv,'YScale','log')
         else
             set(handles.axes_mor_hsv,'YScale','linear')                
@@ -3797,16 +3797,8 @@ end
 %Calculate the Hankel-Singular-Values
 
 try 
-    if isa(sys,'sss') && ~isempty(sys.HankelSingularValues) && ...
-            ~isempty(sys.TBal) && ~isempty(sys.TBalInv)
-        handles = saveHankelSingularValues(sys,sysname,sys.HankelSingularValues,sys.TBal,sys.TBalInv,handles);
-    else    
-        tbr(sys,1);
-        if strcmp(originalClass,'sss')
-            assignin('base', sysname, sys)
-        end
-        handles = saveHankelSingularValues(sys,sysname,sys.HankelSingularValues,sys.TBal,sys.TBalInv,handles);
-    end
+    [~,~,~,hsv,R,L] = tbr(sys,sys.n);
+    handles = saveHankelSingularValues(sys,sysname,hsv,R,L,handles);
 catch ex %***
     if strcmp(ex.identifier,'MATLAB:nomem')
         errordlg('Out of memory. System is too large to calculate Hankel Singular Values.','Error Dialog','modal')
@@ -6324,7 +6316,7 @@ function [] = suggestNamesMOR(sysName,handles)
         
     end
     
-function updatedHandles = saveHankelSingularValues(sys,sysName,hsv,Tbal,TbalInv,handles)
+function updatedHandles = saveHankelSingularValues(sys,sysName,hsv,R,L,handles)
 %Stores the HankelSingularValues hsv to the table saved in handles
 
     % check if values for this system already exist and override them if
@@ -6332,8 +6324,8 @@ function updatedHandles = saveHankelSingularValues(sys,sysName,hsv,Tbal,TbalInv,
     for i = 1:size(handles.storedHsv,1)
        if strcmp(handles.storedHsv{i,1},sysName) && handles.storedHsv{i,2} == size(sys.A,1)
            handles.storedHsv{i,3} = hsv;
-           handles.storedHsv{i,4} = Tbal;
-           handles.storedHsv{i,5} = TbalInv;
+           handles.storedHsv{i,4} = R;
+           handles.storedHsv{i,5} = L;
            guidata(handles.figure1,handles);
            updatedHandles = handles;
            return;
@@ -6346,12 +6338,12 @@ function updatedHandles = saveHankelSingularValues(sys,sysName,hsv,Tbal,TbalInv,
     handles.storedHsv{index,1} = sysName;
     handles.storedHsv{index,2} = size(sys.A,1);
     handles.storedHsv{index,3} = hsv;
-    handles.storedHsv{index,4} = Tbal;
-    handles.storedHsv{index,5} = TbalInv;
+    handles.storedHsv{index,4} = R;
+    handles.storedHsv{index,5} = L;
     updatedHandles = handles;
     guidata(handles.figure1,handles);
     
-function [success,hsv,Tbal,TbalInv] = getHankelSingularValues(sys,sysName,handles)
+function [success,hsv,R,L] = getHankelSingularValues(sys,sysName,handles)
 %Reads out the HankelSingularValues for the given system from the table
 %stored in the handles-structure
 
@@ -6359,8 +6351,8 @@ function [success,hsv,Tbal,TbalInv] = getHankelSingularValues(sys,sysName,handle
     for i = 1:size(handles.storedHsv,1)
        if strcmp(handles.storedHsv{i,1},sysName) && handles.storedHsv{i,2} == size(sys.A,1)
            hsv = handles.storedHsv{i,3};
-           Tbal = handles.storedHsv{i,4};
-           TbalInv = handles.storedHsv{i,5};
+           R = handles.storedHsv{i,4};
+           L = handles.storedHsv{i,5};
            success = 1;
            return;
        end
@@ -6369,8 +6361,8 @@ function [success,hsv,Tbal,TbalInv] = getHankelSingularValues(sys,sysName,handle
     % the HankelSingularValues for this system are not stored
     success = 0;
     hsv = [];
-    Tbal = [];
-    TbalInv = [];
+    R = [];
+    L = [];
     
         
     
