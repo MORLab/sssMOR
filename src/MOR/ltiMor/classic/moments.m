@@ -66,12 +66,12 @@ function M = moments(sys, s0, n, Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  06 April 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  11 September 2016
+% Copyright (c) 2015, 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %%  Parse input
-Def.refine   = 0; %use iterative refinement for higher accuracy (0, 'wilkinson','cgs')
+Def.refine      = 0; %use iterative refinement for higher accuracy (0, 'wilkinson','cgs')
 Def.refTol      = 1e-6;  %default refinement tolerance
 Def.refMaxiter  = 1e2;
 Def.lse = 'sparse';
@@ -86,8 +86,13 @@ end
 Opts.krylov='standardKrylov';
 index=1;
 
+% Create n array if n is a scalar
+if isscalar(n)
+    n = repmat(n,1,length(s0));
+end
+
 %   Preallocate
-M=zeros(size(sys.C,1),size(sys.B,2),length(s0)*length(n));
+M=zeros(size(sys.C,1),size(sys.B,2),sum(n));
 
 %%  Compute the moments
 for iO=1:length(s0)
