@@ -655,6 +655,8 @@ function pb_PaV_move_Callback(hObject, eventdata, handles)
 
         data.save = 1;
         data.variableName = suggestPlotDataName(handles,selectedSystem);
+        data.saveTimeseries = 0;
+        data.variableNameTimeseries = suggestPlotDataNameTimeseries(handles,selectedSystem);
         data.color = mod(handles.chosenSystems,7)+1;
         data.lineStyle = 1;
         data.markerType = 1;
@@ -784,6 +786,8 @@ function pb_PaV_moveObjects_Callback(hObject, eventdata, handles)
 
         data.save = [];
         data.variableName = [];
+        data.saveTimeseries = [];
+        data.variableNameTimeseries = [];
         data.color = mod(handles.chosenSystems,7)+1;
         data.lineStyle = 1;
         data.markerType = 1;
@@ -804,7 +808,7 @@ function pb_PaV_moveObjects_Callback(hObject, eventdata, handles)
     lb_PaV_selectedSystems_Callback(handles.lb_PaV_selectedSystems,eventdata,handles);
     
 function pb_PaV_refeshObjects_Callback(hObject, eventdata, handles)
-%Refresh the list of data-objects (frd, fir, etc.) existing in workspace
+%Refresh the list of data-objects (frd, tf, etc.) existing in workspace
 
     %Get all objects existing in workspace
     
@@ -816,12 +820,12 @@ function pb_PaV_refeshObjects_Callback(hObject, eventdata, handles)
             class = 'frd';
         case 3      %Singular Values
             class = 'frd';
-        case 4      %Pole-Zero-Map
-            class = 'pzm';
-        case 5      %Impulse
-            class = 'fir';
-        case 6      %Step
-            class = 'fir';
+        case 4      %Impulse
+            class = 'tf';
+        case 5      %Step
+            class = 'tf';
+        case 6      %Pole-Zero-Map
+            class = 'zpk';
     end
     
     l = listClassesInWorkspace(class);
@@ -957,6 +961,20 @@ function et_PaV_saveData_Callback(hObject, eventdata, handles)
 
     savePlotData(handles);
 
+function cb_PaV_SaveTimeseries_Callback(hObject, eventdata, handles)
+
+    if get(hObject,'Value') == 1
+       set(handles.et_PaV_saveTimeseries,'Enable','on'); 
+    else
+       set(handles.et_PaV_saveTimeseries,'Enable','off'); 
+    end
+
+    savePlotData(handles);
+
+function et_PaV_saveTimeseries_Callback(hObject, eventdata, handles)
+    
+    savePlotData(handles);
+
 function pu_in_Callback(hObject, eventdata, handles)
 
     handles = savePlotData(handles);
@@ -1050,10 +1068,30 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
                 else
                    set(handles.et_PaV_saveData,'Enable','off'); 
                 end
+                
+                set(handles.cb_PaV_SaveTimeseries,'Value',data.saveTimeseries);
+                set(handles.et_PaV_saveTimeseries,'String',data.variableNameTimeseries);
             
+                if data.saveTimeseries
+                   set(handles.et_PaV_saveTimeseries,'Enable','on'); 
+                else
+                   set(handles.et_PaV_saveTimeseries,'Enable','off'); 
+                end
+                
                 set(handles.cb_PaV_SaveData,'Visible','on');
                 set(handles.et_PaV_saveData,'Visible','on');
                 set(handles.pb_PaV_infoSaveData,'Visible','on');
+                
+                if get(handles.plot_type,'Value') == 4 || ...
+                   get(handles.plot_type,'Value') == 5     %Step or Impulse              
+                    set(handles.cb_PaV_SaveTimeseries,'Visible','on');
+                    set(handles.et_PaV_saveTimeseries,'Visible','on');
+                    set(handles.pb_PaV_infoSaveTimeseries,'Visible','on');
+                else
+                    set(handles.cb_PaV_SaveTimeseries,'Visible','off');
+                    set(handles.et_PaV_saveTimeseries,'Visible','off');
+                    set(handles.pb_PaV_infoSaveTimeseries,'Visible','off');
+                end
                 
                 set(handles.bg_PaV_Resolution,'Visible','on');
                 set(handles.pb_PaV_showObject,'Visible','off');
@@ -1086,6 +1124,10 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
                 set(handles.et_PaV_saveData,'Visible','off');
                 set(handles.pb_PaV_infoSaveData,'Visible','off');
                 
+                set(handles.cb_PaV_SaveTimeseries,'Visible','off');
+                set(handles.et_PaV_saveTimeseries,'Visible','off');
+                set(handles.pb_PaV_infoSaveTimeseries,'Visible','off');
+                
                 set(handles.bg_PaV_Resolution,'Visible','off');
                 set(handles.panel_manual,'Visible','off');
                 
@@ -1099,6 +1141,9 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
         set(handles.panel_PaV_plotStyle,'Visible','off');
         set(handles.cb_PaV_SaveData,'Visible','off');
         set(handles.et_PaV_saveData,'Visible','off'); 
+        set(handles.cb_PaV_SaveTimeseries,'Visible','off');
+        set(handles.et_PaV_saveTimeseries,'Visible','off');
+        set(handles.pb_PaV_infoSaveTimeseries,'Visible','off');
         set(handles.bg_PaV_plotStyle,'Visible','off');
         set(handles.bg_PaV_Resolution,'Visible','off');        
         set(handles.pb_PaV_showObject,'Visible','off');
@@ -1134,7 +1179,7 @@ function lb_PaV_systemsWs_Callback(hObject, eventdata, handles)
 
 function plot_type_Callback(hObject, eventdata, handles)
 
-if get(hObject,'Value')==4
+if get(hObject,'Value')==6
     % pzmap
     set(handles.rb_auto,'Value',1)
     set(handles.rb_auto,'Enable','inactive')
@@ -1153,47 +1198,29 @@ list = get(handles.lb_PaV_selectedSystems,'String');
 switch get(handles.plot_type,'Value')
     
     case 1      %Bode
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'pzm');
-        list = removeObjectsFromList(list,'freq');
-        
+        list = removeObjectsFromList(list,'tf');
+        list = removeObjectsFromList(list,'zpk');
         set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
     case 2      %Magnitude
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'pzm');
-        
+        list = removeObjectsFromList(list,'tf');
+        list = removeObjectsFromList(list,'zpk');
         set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
     case 3      %Singular Values
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'pzm');
-        
+        list = removeObjectsFromList(list,'tf');
+        list = removeObjectsFromList(list,'zpk');
         set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
     case 4      %Impulse
         list = removeObjectsFromList(list,'frd');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'pzm');
-        list = removeObjectsFromList(list,'freq');
-        
-        set(handles.panel_PaV_objectsWs,'Title','Fir-objects');
+        list = removeObjectsFromList(list,'zpk');
+        set(handles.panel_PaV_objectsWs,'Title','Tf-objects');
     case 5      %Step
-        list = removeObjectsFromList(list,'fir');
         list = removeObjectsFromList(list,'frd');
-        list = removeObjectsFromList(list,'pzm');
-        list = removeObjectsFromList(list,'freq');
-        
-        set(handles.panel_PaV_objectsWs,'Title','Fir-objects');
+        list = removeObjectsFromList(list,'zpk');
+        set(handles.panel_PaV_objectsWs,'Title','Tf-objects');
     case 6      %Pole-Zero Map
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
         list = removeObjectsFromList(list,'frd');
-        list = removeObjectsFromList(list,'freq');
-        
-        set(handles.panel_PaV_objectsWs,'Title','Pzm-objects');
+        list = removeObjectsFromList(list,'tf');    
+        set(handles.panel_PaV_objectsWs,'Title','Zpk-objects');
 
 end
 
@@ -1223,11 +1250,26 @@ else
     set(handles.lb_PaV_selectedSystems,'String', {});
 end
 
+%Set option to save timeseries data visible if "step" is selected
+
+if get(handles.plot_type,'Value') == 4 || ...
+   get(handles.plot_type,'Value') == 5                    %Step or Impulse
+    set(handles.cb_PaV_SaveTimeseries,'Visible','on');
+    set(handles.et_PaV_saveTimeseries,'Visible','on');
+    set(handles.pb_PaV_infoSaveTimeseries,'Visible','on');
+else
+    set(handles.cb_PaV_SaveTimeseries,'Visible','off');
+    set(handles.et_PaV_saveTimeseries,'Visible','off');
+    set(handles.pb_PaV_infoSaveTimeseries,'Visible','off');
+end
+
 
 %Change the variable name for the stored plot-data
 
 for i = 1:length(handles.plotData)
    handles.plotData{i,1}.variableName = suggestPlotDataName(handles, ...
+       handles.plotData{i,1}.name);
+   handles.plotData{i,1}.variableNameTimeseries = suggestPlotDataNameTimeseries(handles, ...
        handles.plotData{i,1}.name);
 end
 
@@ -1334,6 +1376,12 @@ function pb_PaV_infoSaveData_Callback(hObject, eventdata, handles)
     infoBox({'InfoSaveData.png'});
     uiwait;
 
+function pb_PaV_infoSaveTimeseries_Callback(hObject, eventdata, handles)
+%Show a information-box with information about the selectable options
+
+    infoBox({'InfoSaveTimeseries.png'});
+    uiwait;
+    
     
 function pb_plot_Callback(hObject, eventdata, handles)
 %Plot the graph with the choosen systems
@@ -1370,9 +1418,9 @@ function pb_plot_Callback(hObject, eventdata, handles)
             systemList{i,1} = sysname;
             systemList{i,2} = sys;
             
-            for j = i:length(handles.plotData)
-               if strcmp(handles.plotData{i,1}.name,sysname)
-                  systemList{i,3} = handles.plotData{i,1};
+            for j = 1:length(handles.plotData)
+               if strcmp(handles.plotData{j,1}.name,sysname)
+                  systemList{i,3} = handles.plotData{j,1};
                   break; 
                end
             end
@@ -1411,7 +1459,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 minimum=str2num(data.min);
                 maximum=str2num(data.max);
                 steps=data.steps;
-                if strcmp(data.resolution,'linear')
+                if strcmp(data.distribution,'linear')
                     frequency=linspace(minimum,maximum,steps);
                 else
                     if minimum <= 0
@@ -1838,38 +1886,317 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 
                 set(figureHandles,'Name','Impulse Response');
                 
+                Tmax = 0;       %Plot from 0 to Tmax 
+                Ttemp = 0;
+                
                 for i = 1:size(systemList,1)
-                   if get(handles.rb_auto,'Value')==0
-                       systemList{i,5} = impulse(systemList{i,2},frequency);
+                    if isa(systemList{i,2},'sss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                            [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
+                                = impulse(systemList{i,2},systemList{i,6},struct('tf',1));
+                            Ttemp = systemList{i,6}(end);
+                       else
+                            [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
+                                = impulse(systemList{i,2},struct('tf',1));
+                            Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
+                       end
                    else
-                       systemList{i,5} = impulse(systemList{i,2});
-                   end
+                       systemList{i,5} = systemList{i,2};
+                       Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
+                    end
+                    if Ttemp > Tmax
+                        Tmax = Ttemp;
+                    end
+                end
+                
+                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+                    
+                    switch size(systemList,1)
+                        case 1
+                            impulse(systemList{1,5},systemList{1,4},Tmax);
+                        case 2
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},Tmax);
+                        case 3
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},Tmax);
+                        case 4
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},Tmax);
+                        case 5
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},Tmax);
+                        case 6
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},Tmax);
+                        case 7
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},Tmax);
+                        case 8
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},Tmax);
+                        case 9
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},Tmax);
+                        case 10
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4},Tmax);
+                    end
+                    
+                else
+                    
+                    switch size(systemList,1)
+                        case 1
+                            impulse(systemList{1,5},Tmax);
+                        case 2
+                            impulse(systemList{1,5},systemList{2,5},Tmax);
+                        case 3
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},Tmax);
+                        case 4
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},Tmax);
+                        case 5
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},Tmax);
+                        case 6
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},Tmax);
+                        case 7
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},Tmax);
+                        case 8
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},Tmax);
+                        case 9
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},Tmax);
+                        case 10
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},...
+                                systemList{10,5},Tmax);
+                    end
                 end
                 
             case 5      %Step Response
                 
                 set(figureHandles,'Name','Step Response');
                 
+                Tmax = 0;       %Plot from 0 to Tmax 
+                Ttemp = 0;
+                
                 for i = 1:size(systemList,1)
-                   if get(handles.rb_auto,'Value')==0
-                       systemList{i,5} = step(systemList{i,2},frequency);
+                    if isa(systemList{i,2},'sss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                            [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
+                                = step(systemList{i,2},systemList{i,6},struct('tf',1));
+                            Ttemp = systemList{i,6}(end);
+                       else
+                            [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
+                                = step(systemList{i,2},struct('tf',1));
+                            Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
+                       end
                    else
-                       systemList{i,5} = step(systemList{i,2});
+                       systemList{i,5} = systemList{i,2}; 
+                       Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
+                   end
+                   if Ttemp > Tmax
+                      Tmax = Ttemp; 
                    end
                 end
+                
+                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+                    
+                    switch size(systemList,1)
+                        case 1
+                            step(systemList{1,5},systemList{1,4},Tmax);
+                        case 2
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},Tmax);
+                        case 3
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},Tmax);
+                        case 4
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},Tmax);
+                        case 5
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},Tmax);
+                        case 6
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},Tmax);
+                        case 7
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},Tmax);
+                        case 8
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},Tmax);
+                        case 9
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},Tmax);
+                        case 10
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4},Tmax);
+                    end
+                    
+                else
+                    
+                    switch size(systemList,1)
+                        case 1
+                            step(systemList{1,5},Tmax);
+                        case 2
+                            step(systemList{1,5},systemList{2,5},Tmax);
+                        case 3
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},Tmax);
+                        case 4
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},Tmax);
+                        case 5
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},Tmax);
+                        case 6
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},Tmax);
+                        case 7
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},Tmax);
+                        case 8
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},Tmax);
+                        case 9
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},Tmax);
+                        case 10
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},...
+                                systemList{10,5},Tmax);
+                    end
+                end     
                 
             case 6      %Pole-Zero-Map
                 
                 set(figureHandles,'Name','Pole-Zero Map');
                 
                 for i = 1:size(systemList,1)
-                   if get(handles.rb_auto,'Value')==0
-                       systemList{i,5} = pzmap(systemList{i,2},frequency);
+                   if isa(systemList{i,2},'sss')
+                       systemList{i,5} = zpk(systemList{i,2},struct('zpk',1));
                    else
-                       systemList{i,5} = pzmap(systemList{i,2});
+                       systemList{i,5} = systemList{i,2}; 
                    end
                 end
-                 
+                
+                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+                    
+                    switch size(systemList,1)
+                        case 1
+                            pzmap(systemList{1,5},systemList{1,4});
+                        case 2
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
+                        case 3
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4});
+                        case 4
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
+                        case 5
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4});
+                        case 6
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
+                        case 7
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4});
+                        case 8
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
+                        case 9
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4});
+                        case 10
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                    end
+                    
+                else
+                    
+                    switch size(systemList,1)
+                        case 1
+                            pzmap(systemList{1,5});
+                        case 2
+                            pzmap(systemList{1,5},systemList{2,5});
+                        case 3
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5});
+                        case 4
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5});
+                        case 5
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5});
+                        case 6
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5});
+                        case 7
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5});
+                        case 8
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5});
+                        case 9
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5});
+                        case 10
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},...
+                                systemList{10,5});
+                    end
+                end
+                    
         end
         
         %Legend
@@ -1893,6 +2220,19 @@ function pb_plot_Callback(hObject, eventdata, handles)
             end
         end
 
+        %Save Timeseries
+        
+        if get(handles.plot_type,'Value') == 4 || ...
+           get(handles.plot_type,'Value') == 5           %Step or Impulse
+           for i = 1:size(systemList,1)
+               if systemList{i,3}.saveTimeseries
+                    assignin('base',systemList{i,3}.variableNameTimeseries, ...
+                             systemList{i,7});
+            
+               end
+           end
+        end
+        
         set(hObject,'String','Plot')
         set(hObject,'Enable','on')
         set(handles.figure1,'Pointer','arrow')
@@ -2619,7 +2959,6 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     %list vectors in workspace that might be s0
     
     set(handles.pu_mor_krylov_s0,'String',listS0InWorkspace);
-
 
 function pu_mor_method_Callback(hObject, eventdata, handles)
 % selection of reduction method
@@ -3391,7 +3730,8 @@ function updateTBR(hObject, eventdata, handles)
 
         % set scale
 
-        if get(handles.rb_mor_tbr_log,'Value')==1
+        if get(handles.rb_mor_tbr_log,'Value')==1 || ...
+           get(hanldes.rb_mor_tbr_norm,'Value')==1
             set(handles.axes_mor_hsv,'YScale','log')
         else
             set(handles.axes_mor_hsv,'YScale','linear')                
@@ -6215,16 +6555,12 @@ function [variableName] = suggestPlotDataName(handles,sysName)
             type = 'frd';
         case 3      %Singular
             type = 'frd';
-        case 4 
-            type = 'impulse';
-        case 5 
-            type = 'step';
-        case 6
-            type = 'pzm';
-        case 7
-            type = 'singular';
-        case 8
-            type = 'mag';
+        case 4      %Impulse
+            type = 'tf';
+        case 5      %Step
+            type = 'tf';
+        case 6      %Pole-Zero-Map
+            type = 'zpk';
     end
     
     variableName = strcat(sysName,'_',type);
@@ -6241,7 +6577,39 @@ function [variableName] = suggestPlotDataName(handles,sysName)
     end
         
     variableName = newName;
-     
+   
+function [variableName] = suggestPlotDataNameTimeseries(handles,sysName)
+%Sets a default variable name for the plot data that should be saved to
+%workspace (for the timeseries data)
+
+    %Read out the system name if it is not given
+
+    if isempty(sysName)
+        list = get(handles.lb_PaV_selectedSystems,'String');
+        sysName = list{get(handles.lb_PaV_selectedSystems,'Value')};
+    end
+
+    %Add plot-type to the name for easier identification
+    
+    if get(handles.plot_type,'Value') == 4      %Impulse
+        variableName = strcat(sysName,'_impulseData');
+    else                                        %Step
+        variableName = strcat(sysName,'_stepData');
+    end
+    
+    %Check if the constructed name is a valid variable name
+    
+    newName = variableName;
+    counter = 1;
+    
+    while existInBaseWs(newName)
+        
+        newName = strcat(variableName,num2str(counter));
+        counter = counter + 1;      
+    end
+        
+    variableName = newName;
+    
 function handles = savePlotData(handles)
 %This function saves the values for the plot options of the currently
 %selected system in the list (handles.lb_PaV_selectedSystems)
@@ -6269,6 +6637,9 @@ function handles = savePlotData(handles)
        
        data.save = get(handles.cb_PaV_SaveData,'Value');
        data.variableName = get(handles.et_PaV_saveData,'String');
+       
+       data.saveTimeseries =  get(handles.cb_PaV_SaveTimeseries,'Value');
+       data.variableNameTimeseries = get(handles.et_PaV_saveTimeseries,'String');
         
        data.color = get(handles.pu_PaV_color,'Value');
        data.lineStyle = get(handles.pu_PaV_lineStyle,'Value');
@@ -6303,11 +6674,13 @@ function handles = savePlotData(handles)
           data.save = [];
           data.variableName = [];
           
+          data.saveTimeseries = [];
+          data.variableNameTimeseries = [];
+          
           data.distribution = []; 
           data.min = [];
           data.max = [];
-          data.steps = [];
-          
+          data.steps = [];   
        end
        
        %Check if there exists stored data for this system
@@ -6395,6 +6768,72 @@ function [] = addRelativePaths()
     end
     
     addpath(genpath(path));
+    
+    
+%Auxiliary functions for operations on imported pictures
+    
+function [out] = imresize(im, out_dims)
+% Implements the bilinear interpolation algorithm to resize an image. This
+% function is used instead of the "imresize" function from Matlab, because
+% otherwise it would be necessary to have the "Image acquisition" toolbox
+% installed to start the App
 
+    % Get some necessary variables first
+    in_rows = size(im,1);
+    in_cols = size(im,2);
+    out_rows = out_dims(1);
+    out_cols = out_dims(2);
+
+    % Let S_R = R / R'        
+    S_R = in_rows / out_rows;
+    % Let S_C = C / C'
+    S_C = in_cols / out_cols;
+
+    % Define grid of co-ordinates in our image
+    % Generate (x,y) pairs for each point in our image
+    [cf, rf] = meshgrid(1 : out_cols, 1 : out_rows);
+
+    % Let r_f = r'*S_R for r = 1,...,R'
+    % Let c_f = c'*S_C for c = 1,...,C'
+    rf = rf * S_R;
+    cf = cf * S_C;
+
+    % Let r = floor(rf) and c = floor(cf)
+    r = floor(rf);
+    c = floor(cf);
+
+    % Any values out of range, cap
+    r(r < 1) = 1;
+    c(c < 1) = 1;
+    r(r > in_rows - 1) = in_rows - 1;
+    c(c > in_cols - 1) = in_cols - 1;
+
+    % Let delta_R = rf - r and delta_C = cf - c
+    delta_R = rf - r;
+    delta_C = cf - c;
+
+    % Final line of algorithm
+    % Get column major indices for each point we wish
+    % to access
+    in1_ind = sub2ind([in_rows, in_cols], r, c);
+    in2_ind = sub2ind([in_rows, in_cols], r+1,c);
+    in3_ind = sub2ind([in_rows, in_cols], r, c+1);
+    in4_ind = sub2ind([in_rows, in_cols], r+1, c+1);       
+
+    % Now interpolate
+    % Go through each channel for the case of colour
+    % Create output image that is the same class as input
+    out = zeros(out_rows, out_cols, size(im, 3));
+    out = cast(out, class(im));
+
+    for idx = 1 : size(im, 3)
+        chan = double(im(:,:,idx)); %// Get i'th channel
+        % Interpolate the channel
+        tmp = chan(in1_ind).*(1 - delta_R).*(1 - delta_C) + ...
+                       chan(in2_ind).*(delta_R).*(1 - delta_C) + ...
+                       chan(in3_ind).*(1 - delta_R).*(delta_C) + ...
+                       chan(in4_ind).*(delta_R).*(delta_C);
+        out(:,:,idx) = cast(tmp, class(im));
+    end
 
 

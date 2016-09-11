@@ -166,6 +166,14 @@ if ~isempty(varargin)
     end
 end
 
+% use hess if sys is ssRed object
+if isa(sys,'ssRed')
+    if isfield(Opts,'lse') && ~isempty(Opts.lse) && ~strcmp(Opts.lse,'hess')
+        warning('Opts.lse has been changed to "hess".');
+    end
+    Opts.lse='hess';
+end
+
 %%  Check the inputs
 if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
     (~exist('s0_out', 'var') || isempty(s0_out))
@@ -254,7 +262,7 @@ elseif isempty(s0_inp)
     end
 
 else
-    if all(s0_inp == s0_out) %use only 1 LU decomposition for V and W
+    if all(s0_inp == s0_out) && size(sys.B,2)==size(sys.C,1)%use only 1 LU decomposition for V and W
         [V, Sv, Rv, W, Sw, Lw] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
                             s0_inp,Rt, Lt, IP, Opts);
                         
@@ -264,6 +272,11 @@ else
     else
         [V, Sv, Rv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
         [W, Sw, Lw] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
+        if size(V,2)<size(W,2)
+            V=[V,W(:,size(V,2)+1:size(W,2))];
+        elseif size(V,2)>size(W,2)
+            W=[W,V(:,size(W,2)+1:size(V,2))];
+        end
         sysr = projectiveMor(sys,V,W);
         sysr.Name = sprintf('%s_%i_rk_2sided',sys.Name,sysr.n);
     end
