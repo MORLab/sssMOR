@@ -262,7 +262,7 @@ elseif isempty(s0_inp)
     end
 
 else
-    if all(s0_inp == s0_out) && size(sys.B,2)==size(sys.C,1)%use only 1 LU decomposition for V and W
+    if all(s0_inp == s0_out) % use only 1 LU decomposition for V and W
         [V, Sv, Rv, W, Sw, Lw] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
                             s0_inp,Rt, Lt, IP, Opts);
                         

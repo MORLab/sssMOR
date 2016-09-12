@@ -4,9 +4,9 @@ classdef testIsrk < sssTest
             Opts=struct('tol',0.05,'maxiter',100,'stopCrit','combAny');
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
-                if ~sys.isDae && sys.isSiso
+                if ~sys.isDae && sys.isSiso %&& ~(strcmp(sys.Name,'heat-cont'))
                     
-                    s0=[0,0,100,1+5i,1-5i,14-0.2i,14+0.2i, Inf, Inf];
+                    s0=[0,0,100,1+5i,1-5i,14-0.2i,14+0.2i];
                     [sysr_old, V, W, s0_old, Rt, B_, Ssylv, Rsylv, kIter, s0_Traj, RtTraj, flag] = isrk(sys, s0, Opts);
                     
                     if flag==0
@@ -46,7 +46,7 @@ classdef testIsrk < sssTest
                 sys=testCase.sysCell{i};
                 if ~sys.isDae && sys.isSiso && sys.n>100
                     Opts.lyapchol='adi';
-                    s0=[0,0,100,1+5i,1-5i,14-0.2i,14+0.2i, Inf, Inf];
+                    s0=[0,0,100,1+5i,1-5i,14-0.2i,14+0.2i];
                     actSysr=isrk(sys, s0, Opts);
                     Opts.lyapchol='builtIn';
                     expSysr=isrk(sys, s0, Opts);

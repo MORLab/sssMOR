@@ -3,12 +3,11 @@ function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj,
 %
 % Syntax:
 %       sysr                            = IRKA(sys, s0)
-%       sysr                            = IRKA(sys, s0)
 %       sysr                            = IRKA(sys, s0, Rt, Lt)
 %       sysr                            = IRKA(sys, s0,..., Opts)
 %       [sysr, V, W]                    = IRKA(sys, s0,... )
 %       [sysr, V, W, s0]                = IRKA(sys, s0,... )
-%       [sysr, V, W, s0, Rt, Lt]= IRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt]        = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter,  s0Traj, RtTraj, LtTraj] = IRKA(sys, s0,... )
 %
@@ -51,6 +50,7 @@ function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj,
 %       -sysr:              reduced order model (sss)
 %       -V,W:               resulting projection matrices
 %       -s0:                final choice of shifts
+%       -Rt,Lt:             final choice of tangential directions
 %       -B_,Sv,Rv:          matrices of the input Sylvester equation
 %       -C_,Sw,Lw:          matrices of the output Sylvester equation
 %       -kIter:             number of iterations

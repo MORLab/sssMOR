@@ -52,7 +52,7 @@ function [sysr, V, W, s0, Rt, B_, Ssylv, Rsylv, kIter, s0Traj, RtTraj, flag] = i
 %           -.suppressverbose: suppress any type of verbose for speedup;
 %                       [{0} / 1]
 %			-.lyapchol:	solve lyapunov equation
-%						[{'standard'} / 'adi' / 'builtIn']
+%						[{''} / 'adi' / 'builtIn']
 %           -.(refer to *arnoldi* or *rk* for other options)
 %
 % Output Arguments:      
@@ -115,12 +115,12 @@ elseif ~sys.isSiso
 end
 
 %   Default execution parameters
-Def.maxiter = 50; 
-Def.tol     = 1e-3; 
-Def.verbose = 0; % text output during iteration?
-Def.stopCrit= 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
+Def.maxiter     = 50; 
+Def.tol         = 1e-3; 
+Def.verbose     = 0; % text output during iteration?
+Def.stopCrit    = 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
 Def.suppressverbose = 0;
-Def.lyapchol = 'standard'; % 'adi', 'builtIn'
+Def.lyapchol    = ''; % 'adi', 'builtIn'
 
 flag = 1;
 
