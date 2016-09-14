@@ -44,3 +44,12 @@
 
 - SPARK
 	- **new output (reduced model, reduction with porkV or porkW)**
+
+- ISRK
+	- **new function: iterative SVD-Rational Krylov Algorithm**
+
+- RKOP
+	- **new function: determine optimal expansion point for Laguerre series**
+
+- RKICOP
+	- **new function: Rational Krylov with an iteratively calculated optimal point**
