@@ -1890,7 +1890,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 Ttemp = 0;
                 
                 for i = 1:size(systemList,1)
-                    if isa(systemList{i,2},'sss')
+                    if isa(systemList{i,2},'sss') || isa(systemList{i,2},'ssRed')
                        if strcmp(systemList{i,3}.resolution,'manual') 
                             [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
                                 = impulse(systemList{i,2},systemList{i,6},struct('tf',1));
@@ -2000,7 +2000,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 Ttemp = 0;
                 
                 for i = 1:size(systemList,1)
-                    if isa(systemList{i,2},'sss')
+                    if isa(systemList{i,2},'sss') || isa(systemList{i,2},'ssRed')
                        if strcmp(systemList{i,3}.resolution,'manual') 
                             [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
                                 = step(systemList{i,2},systemList{i,6},struct('tf',1));
