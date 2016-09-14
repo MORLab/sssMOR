@@ -33,3 +33,14 @@
 - TBR
 	- **Alternating Direction Implicit (ADI) functionality added using the M.E.S.S. toolbox**
 	- plot decay of hsv and ask user (if q not defined)
+
+## v1.06
+### Changes
+- APP
+ 	- new functionality: plotting of impulse- and step-response
+
+- SSRED
+	- **new class for reduced state-space-models**
+
+- SPARK
+	- **new output (reduced model, reduction with porkV or porkW)**
