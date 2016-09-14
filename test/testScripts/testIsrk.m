@@ -4,9 +4,9 @@ classdef testIsrk < sssTest
             Opts=struct('tol',0.05,'maxiter',100,'stopCrit','combAny');
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
-                if ~sys.isDae && sys.isSiso %&& ~(strcmp(sys.Name,'heat-cont'))
+                if ~sys.isDae && sys.isSiso
                     
-                    s0=[0,0,100,1+5i,1-5i,14-0.2i,14+0.2i];
+                    s0=[0,0,100,1+5i,1-5i,14-0.2i,14+0.2i, Inf, Inf];
                     [sysr_old, V, W, s0_old, Rt, B_, Ssylv, Rsylv, kIter, s0_Traj, RtTraj, flag] = isrk(sys, s0, Opts);
                     
                     if flag==0
