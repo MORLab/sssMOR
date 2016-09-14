@@ -373,9 +373,9 @@ switch Opts.type
     
     case 'adi'
         if isa(sys,'ssRed')
-            sysr = ssRed(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V,sys.reductionParameters);
+            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V,sys.reductionParameters);
         else
-            sysr = ssRed(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
         end
 end
 
