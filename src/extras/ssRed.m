@@ -682,7 +682,189 @@ classdef ssRed < ss
                 end
             end
         end
+        
+        function  [tf,g,t] = impulse(sys,varargin)
+        % Override the impulse-function with three output-arguments for
+        % ssRed-objects, because this syntax does not exist for the
+        % Matlab build-in impulse function. Impulse with three output
+        % arguments is needed in the sssMOR_App. So this function makes it
+        % possible that plotting with the app works for ssRed-objects, too.
+        
+            % check if a tf-object should be given back
+            if ~isempty(varargin) && isfield(varargin{nargin-1},'tf') && ...
+                    varargin{nargin-1}.tf == 1
+               
+                % final Time
+                t = [];
+                if nargin == 3 && isfloat(varargin{1})
+                    t = varargin{1};
+                end
 
+                if ~isempty(t)
+                    Tfinal=t(end);
+                else
+                    Tfinal=0;
+                end
+
+                % get h,t by calling ss/step
+
+                sys.d = zeros(size(sys.d));
+                if ~isempty(t)
+                    [h,tg] = step(sys, t(end));
+                else
+                    [h,tg] = step(sys);
+                end
+
+                % compute impulse response [g,t]
+                if length(size(h)) == 2
+                    g{1,1}=gradient(h,tg);                        
+                    g{1,1}(isnan(h))=0;
+                else
+                    g = cell(size(h,2),size(h,3));
+                    for k=1:size(g,1)
+                        for j=1:size(g,2)
+                            g{k,j}=gradient(h(:,k,j),tg);                        
+                            g{k,j}(isnan(h(:,k,j)))=0;
+                        end
+                    end
+                end
+
+                % get Ts and Tfinal
+                Ts=Inf;
+                if isempty(t) || isscalar(t)
+                    for k=1:size(g,1)
+                         for j=1:size(g,2)
+                            Ts=min(min(diff(tg),Ts));
+                            if ~isscalar(t)
+                                Tfinal=max(max(tg),Tfinal);
+                            end
+                         end
+                    end
+                else
+                    Ts=min(diff(t));
+                    Tfinal=t(end);
+                end
+
+                t=0:Ts:Tfinal(end);
+
+                % create tf-object
+                tf = cellfun(@(x) [x(1) diff(x')],g,'UniformOutput',false);
+                tf = filt(tf,1,Ts);
+                tf.Name = sys.Name;
+                t = t';
+                
+                % provide output arguments
+                if nargout == 1
+                    varargout{1} = tf;
+                elseif nargout == 3
+                    varargout{1} = tf;
+                    varargout{2} = h;
+                    varargout{3} = t;
+                else
+                    error('Only up to three output arguments are supported, if Opts.tf==1');
+                end
+            else
+                if nargout == 0
+                    impulse@ss(sys,varargin);
+                elseif nargout == 1
+                    varargout{1} = impulse@ss(sys,varargin);
+                elseif nargout == 2
+                    [varargout{1},varargout{2}] = impulse@ss(sys,varargin);
+                elseif nargout == 3
+                    [varargout{1},varargout{2},varargout{3}] = impulse@ss(sys,varargin);
+                end
+            end
+        end
+        
+        function  varargout = step(sys,varargin)
+        % Override the step-function with three output-arguments for
+        % ssRed-objects, because this syntax does not exist for the
+        % Matlab build-in step function. Step with three output
+        % arguments is needed in the sssMOR_App. So this function makes it
+        % possible that plotting with the app works for ssRed-objects, too.
+        
+            % check if a tf-object should be given back
+            if ~isempty(varargin) && isfield(varargin{nargin-1},'tf') && ...
+                    varargin{nargin-1}.tf == 1
+                % final Time
+                t = [];
+                if nargin == 3 && isfloat(varargin{1})
+                    t = varargin{1};
+                end
+
+                if ~isempty(t)
+                    Tfinal=t(end);
+                else
+                    Tfinal=0;
+                end
+
+                % get h,t by calling ss/step
+
+                sys.d = zeros(size(sys.d));
+                if ~isempty(t)
+                    [h,tg] = step@ss(sys, t(end));
+                else
+                    [h,tg] = step@ss(sys, []);
+                end
+
+                % create cell array
+                if length(size(h)) == 2
+                    h_{1,1}=h;                        
+                else
+                    h_ = cell(size(h,2),size(h,3));
+                    for k=1:size(h_,1)
+                        for j=1:size(h_,2)
+                            h_{k,j}=h(:,k,j);                      
+                        end
+                    end
+                end
+
+                % get Ts and Tfinal
+                Ts=Inf;
+                if isempty(t) || isscalar(t)
+                    for k=1:size(h_,1)
+                         for j=1:size(h_,2)
+                            Ts=min(min(diff(tg),Ts));
+                            if ~isscalar(t)
+                                Tfinal=max(max(tg),Tfinal);
+                            end
+                         end
+                    end
+                else
+                    Ts=min(diff(t));
+                    Tfinal=t(end);
+                end
+
+                t=0:Ts:Tfinal(end);
+
+                % create tf-object
+                tf = cellfun(@(x) [x(1) diff(x')],h_,'UniformOutput',false);
+                tf = filt(tf,1,Ts);
+                tf.Name = sys.Name;
+                t = t';
+                
+                % provide output arguments
+                if nargout == 1
+                    varargout{1} = tf;
+                elseif nargout == 3
+                    varargout{1} = tf;
+                    varargout{2} = h;
+                    varargout{3} = t;
+                else
+                    error('Only up to three output arguments are supported, if Opts.tf==1');
+                end
+            else
+                if nargout == 0
+                    step@ss(sys,varargin);
+                elseif nargout == 1
+                    varargout{1} = step@ss(sys,varargin);
+                elseif nargout == 2
+                    [varargout{1},varargout{2}] = step@ss(sys,varargin);
+                elseif nargout == 3
+                    [varargout{1},varargout{2},varargout{3}] = step@ss(sys,varargin);
+                end
+            end
+        end
     end
     
     %%Private and static helper methods
