@@ -2,7 +2,9 @@
 
 ## Roadmap (changes to come)
 
-## v1.05
+## v1.00 - First Release [16 November 2015]
+
+## v1.05 [9 May 2016]
 ### Changes
 - APP
  - **New sssMOR app added**
@@ -34,7 +36,7 @@
 	- **Alternating Direction Implicit (ADI) functionality added using the M.E.S.S. toolbox**
 	- plot decay of hsv and ask user (if q not defined)
 
-## v1.06
+## v1.06 [16 September 2016]
 ### Changes
 - APP
  	- new functionality: plotting of impulse- and step-response
