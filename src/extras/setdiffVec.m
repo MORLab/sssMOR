@@ -13,7 +13,7 @@ function setdiffVec = setdiffVec(v1,v2)
 % 		and if not, compare some distance measure.
 % 		MATLAB's minus function operates elementwise. However, if the sorting 
 % 		is not known a priori, computing the right difference might be a 
-% 		challengin task.
+% 		challenging task.
 % 
 % 		This function takes the vectors v1 and v2 as set of numbers, eliminates
 % 		all entries that are equal (using the builtin setdiff function), and

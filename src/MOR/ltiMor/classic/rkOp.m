@@ -8,7 +8,7 @@ function varargout = rkOp(varargin)
 %       [sysr, V, W, sOpt] = RKOP(sys,...,Opts)
 %
 % Description:
-%       This function deteremines an optimal expansion point for 
+%       This function determines an optimal expansion point for 
 %       Krylov-based model order reduction. 
 %
 %       The computed point is the optimal Laguerre parameter that 
@@ -48,14 +48,14 @@ function varargout = rkOp(varargin)
 %       rk, rkIcop, irka, arnoldi
 %
 % References:
-%       * *[1] R. Eid, H. Panzer and B. Lohmann: How to choose a single 
-%               expansion point in Krylov-based model reduction? Technical 
-%               reports on Automatic Control, vol. TRAC-4(2), Institute of 
-%               Automatic Control, Technische Universitaet Muenchen, Nov. 
-%               2009.
-%       * *[2] R. Eid: Time domain Model Reduction by Moment Matching, Ph.D
-%               thesis, Institute of Automatic Control, Technische 
-%               Universitaet Muenchen, 2009.
+%       * *[1] Eid, Panzer and Lohmann (2009)*, How to choose a single 
+%              expansion point in Krylov-based model reduction? Technical 
+%              reports on Automatic Control, vol. TRAC-4(2), Institute of 
+%              Automatic Control, Technische Universitaet Muenchen. 
+%
+%       * *[2] Eid (2009)*, Time domain Model Reduction by Moment Matching, Ph.D
+%              thesis, Institute of Automatic Control, Technische 
+%              Universitaet Muenchen.
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 

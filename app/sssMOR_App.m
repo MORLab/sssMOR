@@ -1,5 +1,5 @@
 function varargout = sssMOR_App(varargin)
-% SSSMOR_APP - sssMOR toolbox Graphical User Interface 
+% SSSMOR_APP - sssMOR toolbox App 
 %
 % Syntax:
 %       SSSMOR_APP

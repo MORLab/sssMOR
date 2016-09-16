@@ -24,7 +24,6 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 %       In addition, the system can be reduced so that the most dominant 
 %       eigenvalues of the chosen options are preserved.
 %       
-%
 % Input Arguments:
 %		*Required Input Arguments:*
 %		-sys:			an sss-object containing the LTI system
