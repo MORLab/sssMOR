@@ -17,7 +17,8 @@ classdef ssRed < ss
 % Description:
 %       This class is derived from the ss-class. It is used to represent
 %       models which are the result of reducing the order of large models
-%       with specific algorithms. 
+%       with specific algorithms. ssRed objects have all attributes that ss
+%       objects normally possess
 %
 % Input Arguments:
 %       -method: name of the used reduction algorithm;
@@ -273,16 +274,6 @@ classdef ssRed < ss
 %
 % Output Arguments:
 %       -sys: reduced state-space (ssRed)-object
-%
-% Examples:
-%		This code creates an instance of the ssRed-class
-%
-%> A = rand(10);
-%> B = rand(10,1);
-%> C = rand(2,10);
-%> params.originalOrder = 20;
-%> params.real = true;
-%> sysr = ssRed('rk',params,A,B,C);
 %
 % See Also: 
 %        ss, dss, sss
