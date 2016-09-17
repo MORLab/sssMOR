@@ -275,6 +275,15 @@ classdef ssRed < ss
 % Output Arguments:
 %       -sys: reduced state-space (ssRed)-object
 %
+% Examples:
+%       This code creates an instance of the ssRed-class
+%
+%> A = rand(10);
+%> B = rand(10,1);
+%> C = rand(1,10);
+%> params.originalOrder = 20;
+%> sysr = ssRed('porkV',params,A,B,C);
+%
 % See Also: 
 %        ss, dss, sss
 %
