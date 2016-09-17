@@ -308,6 +308,26 @@ function sssMOR_App_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
         position(1,2) = position(1,2) - diff;
         set(handles.logo_tum,'Position',position);
         
+        %Set the header visible or not dependent on the size of the screen
+        
+        set(handles.figure1,'Units','pixels');
+        position = get(handles.figure1,'Position');
+        set(handles.figure1,'Units','characters');
+        
+        if screensize(1,4) < position(1,4)+50    %Header ausblenden
+            
+            position = get(handles.logo_tum,'Position');
+            diff = position(1,4);
+            
+            position = get(handles.pb_loading,'Position');
+            diff = diff - position(1,4);
+            
+            position = get(handles.figure1,'Position');
+            position(1,4) = position(1,4) - diff;
+            set(handles.figure1,'Position',position);
+            
+        end
+        
     end
     
 
