@@ -209,6 +209,16 @@ function sssMOR_App_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     handles.chosenSystems = 0;
     handles.storedHsv = {};
     
+    %Set factors to convert from character-units to pixel units
+    
+    set(handles.figure1,'Units','characters');
+    posChar = get(handles.figure1,'Position');
+    set(handles.figure1,'Units','pixels');
+    posPix = get(handles.figure1,'Position');
+    
+    handles.PixToCharWidth = posChar(1,3)/posPix(1,3);
+    handles.PixToCharHeight = posChar(1,4)/posPix(1,4);
+    
     %Set the default-folder for opening data-files
     
     handles.letzterpfad='*';
@@ -378,44 +388,48 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
     %Show a hand as the mouse-symbol if the mouse is over a logo with a weblink
     %behind
-    %(to convert from pixel units to chararcter units the values are
-    %multiplied with 0.198 for horizontal dimensions and with 0.0747 for
-    %vertical dimensions)
+    %(to convert from pixel units to chararcter units for Windows OS the 
+    %values are multiplied with 0.2 for horizontal dimensions and with 
+    %0.0769 for vertical dimensions)
     
     p = get(hObject,'CurrentPoint');
     
-    p(1,1) = p(1,1)/0.198;
-    p(1,2) = p(1,2)/0.0747;
+    p(1,1) = p(1,1)/0.2;
+    p(1,2) = p(1,2)/0.0769;
     
-    screensize = get( 0, 'Screensize' );
-    set(handles.figure1,'Units','pixels');
-    position = get(handles.figure1,'Position');
+    logosVisible = 1;
     set(handles.figure1,'Units','characters');
-    if screensize(1,4) < position(1,4)+100       %Footer not shown
+    position = get(handles.figure1,'Position');
+    if position(1,4) < 58       %Footer not shown
        p(1,2) = p(1,2) + 40; 
+       if position(1,4) < 51    %Header not shown
+           logosVisible = 0;
+       end
     end
-
-    if p(1,1)>925 && p(1,1)<1040 && p(1,2)>720 && p(1,2)<770
-        %TUM-Logo (Header)
-        set(gcf,'Pointer','hand'); 
-    elseif p(1,1)> 5 && p(1,1)<75 && p(1,2)>720 && p(1,2)<770 
-        %Lehrstuhl-Logo (Header)
-        set(gcf,'Pointer','hand');
-    elseif p(1,1)>5 && p(1,1)<80 && p(1,2)>0 && p(1,2)<40
-        %sssMOR-Logo (Footer)
-        set(gcf,'Pointer','hand');
-    elseif p(1,1)>990 && p(1,1)<1040 && p(1,2)>0 && p(1,2)<40
-        %TUM-Logo (Footer)
-        set(gcf,'Pointer','hand');
-    elseif p(1,1)>305 && p(1,1)<420 && p(1,2)>0 && p(1,2)<40
-        %MorLab-Logo (Footer)
-        set(gcf,'Pointer','hand');
-    elseif p(1,1)>650 && p(1,1)<765 && p(1,2)>0 && p(1,2)<40
-        %Lehrstuhl-Logo (Footer)
-        set(gcf,'Pointer','hand');
-    else
-        %Not over any logo
-        set(gcf,'Pointer','arrow');
+    
+    if logosVisible
+        if p(1,1)>925 && p(1,1)<1040 && p(1,2)>700 && p(1,2)<750
+            %TUM-Logo (Header)
+            set(gcf,'Pointer','hand'); 
+        elseif p(1,1)> 5 && p(1,1)<75 && p(1,2)>700 && p(1,2)<750 
+            %Lehrstuhl-Logo (Header)
+            set(gcf,'Pointer','hand');
+        elseif p(1,1)>5 && p(1,1)<80 && p(1,2)>0 && p(1,2)<40
+            %sssMOR-Logo (Footer)
+            set(gcf,'Pointer','hand');
+        elseif p(1,1)>990 && p(1,1)<1040 && p(1,2)>0 && p(1,2)<40
+            %TUM-Logo (Footer)
+            set(gcf,'Pointer','hand');
+        elseif p(1,1)>305 && p(1,1)<420 && p(1,2)>0 && p(1,2)<40
+            %MorLab-Logo (Footer)
+            set(gcf,'Pointer','hand');
+        elseif p(1,1)>650 && p(1,1)<765 && p(1,2)>0 && p(1,2)<40
+            %Lehrstuhl-Logo (Footer)
+            set(gcf,'Pointer','hand');
+        else
+            %Not over any logo
+            set(gcf,'Pointer','arrow');
+        end   
     end
 
 
@@ -429,25 +443,16 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
 
 function logo_tum_ButtonDownFcn(hObject, eventdata, handles)
     % link to web page
-    
-    p = get(handles.figure1,'Position');
-    widthCharX = p(1,3);
-    widthCharY = p(1,4);
-    set(handles.figure1,'Units','pixels');
-    p = get(handles.figure1,'Position');
-    widthPixX = p(1,3);
-    widthPixY = p(1,4);
-    charToPixX = widthPixX/widthCharX;
-    charToPixY = widthPixY/widthCharY;
-    set(handles.figure1,'Units','characters');
-    
+    %(to convert from pixel units to chararcter units for Windows OS the 
+    %values are multiplied with 0.2 for horizontal dimensions and with 
+    %0.0769 for vertical dimensions)
     p=get(hObject,'CurrentPoint');
-    p(1,1) = (p(1,1)/charToPixX)/0.198;
-    p(1,2) = (p(1,2)/charToPixY)/0.0744;
+    p(1,1) = p(1,1)*handles.PixToCharWidth/0.2;
+    p(1,2) = p(1,2)*handles.PixToCharHeight/0.0769;
     
-    if p(1,1)>945 && p(1,1)<1040 && p(1,2)>5 && p(1,2)<80
+    if p(1,1)>925 && p(1,1)<1040 && p(1,2)>5 && p(1,2)<80
         web www.tum.de
-    elseif p(1,1)> 5 && p(1,1)<55 && p(1,2)>5 && p(1,2)<80  
+    elseif p(1,1)> 5 && p(1,1)<75 && p(1,2)>5 && p(1,2)<80  
         web www.rt.mw.tum.de
     end
 
@@ -501,12 +506,6 @@ function pb_about_Callback(hObject, eventdata, handles)
     set(handles.panel_post,'Visible','off')
     set(handles.panel_analysis,'Visible','off')
     set(handles.panel_about,'Visible','on')  
-
-
-
-
-
-
 
 
 
@@ -5428,21 +5427,13 @@ function pb_an_compare_hinf_info_Callback(hObject, eventdata, handles)
 
 function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
     %Web-links to the diverent homepages (Open if the user klicks on a logo)
-
-    p = get(handles.figure1,'Position');
-    widthCharX = p(1,3);
-    widthCharY = p(1,4);
-    set(handles.figure1,'Units','pixels');
-    p = get(handles.figure1,'Position');
-    widthPixX = p(1,3);
-    widthPixY = p(1,4);
-    charToPixX = widthPixX/widthCharX;
-    charToPixY = widthPixY/widthCharY;
-    set(handles.figure1,'Units','characters');
+    %(to convert from pixel units to chararcter units for Windows OS the 
+    %values are multiplied with 0.2 for horizontal dimensions and with 
+    %0.0769 for vertical dimensions)
     
     p=get(hObject,'CurrentPoint');
-    p(1,1) = (p(1,1)/charToPixX)/0.198;
-    p(1,2) = (p(1,2)/charToPixY)/0.0744;
+    p(1,1) = p(1,1)*handles.PixToCharWidth/0.2;
+    p(1,2) = p(1,2)*handles.PixToCharHeight/0.0769;
 
     if p(1,1)>990 && p(1,1)<1040
         web www.tum.de
@@ -5453,8 +5444,6 @@ function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
     elseif p(1,1)>305 && p(1,1)<420
         web www.rt.mw.tum.de/forschung/forschungsgebiete/modellreduktion/
     end
-    
-    
     
     
     
