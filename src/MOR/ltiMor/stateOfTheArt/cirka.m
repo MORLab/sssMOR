@@ -1,4 +1,4 @@
-function [sysr, Virka, Wirka, s0, kIter, kIrkaTot, nSysm] = cirka(sys, s0, Opts) 
+function [sysr, Virka, Wirka, s0, kIter, kIrkaTot, sysm] = cirka(sys, s0, Opts) 
 % CIRKA - Confined Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -95,7 +95,7 @@ function [sysr, Virka, Wirka, s0, kIter, kIrkaTot, nSysm] = cirka(sys, s0, Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  11 September 2016
+% Last Change:  16 September 2016
 % Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
@@ -103,13 +103,15 @@ if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only
 
 %% Define execution options
     Def.qm0     = 2*length(s0); %default surrogate size
-    Def.s0m     = [s0;2*ones(1,length(s0))]; %default surrogate shifts
+    Def.s0m     = shiftVec([s0;2*ones(1,length(s0))]); %default surrogate shifts
     Def.maxiter = 15; Def.tol = 1e-3;
     Def.verbose = 0; Def.plot = 0;
     Def.suppressWarn = 0;
     Def.updateModel = 'new';
+    Def.modelTol = 1e-1;
     Def.clearInit = 0; %reset the model fct after initialization?
     Def.irka.suppressverbose = 1;
+    Def.irka.stopcrit = 's0';
     Def.irka.lse = 'hess';
 
     if ~exist('Opts','var') || isempty(Opts)
@@ -122,14 +124,14 @@ if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only
 %% run computations
     stop = 0;
     kIter = 0;
-    kIrkaTot = 0;
+    kIrkaTot = [];
     sysmOld = sss([],[],[]);
     
     %   Generate the model function
     s0m = Opts.s0m;    [sysm, s0mTot, V, W] = modelFct(sys,s0m);
 
     if Opts.verbose, fprintf('Starting model function MOR...\n'); end
-    if Opts.plot, fh = figure; end
+%     if Opts.plot, fh = figure; end
 
     while ~stop
         kIter = kIter + 1; if Opts.verbose, fprintf(sprintf('modelFctMor: k=%i\n',kIter));end
@@ -146,16 +148,18 @@ if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only
         % reduction of new model with new starting shifts
         [sysr, Virka, Wirka, s0new, ~,~,~,~,~,~,~,~,kIrka] = irka(sysm,s0,Opts.irka);
 
-        if Opts.plot, 
-            figure(fh); plot(real(s0),imag(s0),'bx'); hold on
-                       plot(real(s0new),imag(s0new),'or'); hold off
-                       pause
-        end
+%         if Opts.plot, 
+%             figure(fh); plot(real(s0),imag(s0),'bx'); hold on
+%                        plot(real(s0new),imag(s0new),'or'); hold off
+%                        xlabel('Re'); ylabel('Im'); title('CIRKA shifts')
+%                        legend('old','new')
+%                        pause
+%         end
         nSysm = sysm.n;
-        kIrkaTot = kIrkaTot + kIrka;
+        kIrkaTot = [kIrkaTot, kIrka];
         % computation of convergence
         if stoppingCrit
-            stop = 1;
+            stop = true;
         else
             %Overwrite parameters with new variables
             s0 = s0new;    
@@ -175,7 +179,7 @@ if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only
 
         
     function stop = stoppingCrit
-        stop = 0;
+        stop = false;
         %   Compute the change in shifts
         if any(abs(s0))<1e-3
 %             crit = norm(setdiffVec(s0new,s0)); %absolute
@@ -189,15 +193,15 @@ if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only
 %         if ~isinf(normSysmOld) %stable
 %             crit = [crit, norm(sysm-sysmOld)/norm(sysmOld)];
 %         else
-            crit = [crit, NaN];
+            crit = crit;
 %         end
 %         crit = [crit, inf]; %use only s0 for convergence
         if Opts.verbose, 
-            fprintf(1,'\tcrit: [%f, %f]\n',crit(1),crit(2));
+            fprintf(1,'\tcrit: %f\n',crit(1));
             fprintf(1,'\tModelFct size: %i \n',length(s0mTot));
         end
         
-        if any(crit <= [Opts.tol, 1e-9]), stop = 1;
+        if any(crit <= Opts.tol), stop = 1;
         % Full order achieved?
         elseif length(s0mTot)> sys.n,stop = 1; end
     end    

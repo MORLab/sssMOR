@@ -54,7 +54,8 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
 
     %%  Define default execution parameters
     Def.updateModel = 'new'; % 'all','new','lean'
-    Def.tol = 1e-2;
+    Def.modelTol    = 1e-2;
+    Def.plot        = 'false';
 
     if ~exist('Opts','var') || isempty(Opts)
         Opts = Def;
@@ -94,8 +95,22 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
             case 'all'
                 s0m = s0new;
             case 'new'
-                idx = ismemberf(s0new,s0mTot,'tol',Opts.tol); %available in the matlab central
+%                 idx = ismemberf(s0new,s0mTot,'tol',Opts.modelTol); %available in the matlab central
+                idx = ismemberf2(s0new,s0mTot,Opts.modelTol); 
                 s0m = s0new(~idx);
+                if Opts.plot
+                    figure; plot(complex(s0mTot),'xb'); hold on
+                    plot(complex(s0new),'or');
+%                     axis equal
+                    for iS = 1:length(s0mTot);
+                        [xp,yp] = circle(real(s0mTot(iS)),imag(s0mTot(iS)),Opts.modelTol*abs(s0mTot(iS)));
+                        plot(xp,yp,'g')
+                    end
+                    plot(complex(s0m),'k+');
+                    set(gca,'xscale','log');
+                    xlabel('Re');ylabel('Im'); title('New shifts for model function')
+                    pause
+                end
             otherwise
                 error('selected model function update is not valid');
         end
@@ -123,6 +138,7 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
             [V,~] = qr(V,0); [W,~] = qr(W,0);
             sysm = sss(W'*sys.A*V,W'*sys.B,sys.C*V,...
                             zeros(size(sys.C,1),size(sys.B,2)),W'*sys.E*V);
+%             sysm = projectiveMor(sys,V,W);
         end   
     end
     %%  Functions copied from "spark"
