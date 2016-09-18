@@ -427,8 +427,15 @@ classdef ssRed < ss
                end
             end
             
-            % remove "projectiveMor" from the reduction history
-            obj.reductionParameters = obj.removeProjectiveMor(obj.reductionParameters);
+            % remove unnecessary parmaters from the reduction history
+            if nargin_new == 3 && isa(sys,'ssRed')
+                if ~strcmp(varargin{1},'projectiveMor')
+                    obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'projectiveMor');
+                end
+                if strcmp(varargin{1},'irka')
+                    obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'rk'); 
+                end
+            end
             obj.reductionParameters = obj.removeCureParameters(obj.reductionParameters); 
         end
         
@@ -969,24 +976,21 @@ classdef ssRed < ss
             end
         end
         
-        
-        function parsedParamsList = removeProjectiveMor(paramsList)
-        %Removes the reductionParameters for "projectiveMor" from the
-        %reduction history, because "projectiveMor" performs just the 
-        %projection, but is not a standalone reduction algorithm
-        
+        function parsedParamsList = removeReductionMethod(paramsList,method)
+        %Removes the reductionParameters for the specified reduction method
+        %"method" from the reduction history. This is i.e. necessary for
+        %"rk", because in the algorithm projectiveMor is used. This
+        %function then deletes "projectiveMor" from the reduction history, 
+        %because "projectiveMor" performs just the projection in "rk", but 
+        %is not a standalone reduction algorithm    
+            
+            parsedParamsList = paramsList;
             if size(paramsList,1) > 1
-                counter = 1;
-                parsedParamsList = cell(1,1);
-                for i = 1:size(paramsList,1)
-                   if ~strcmp(paramsList{i,1}.method,'projectiveMor')
-                       parsedParamsList{counter,1} = paramsList{i,1};
-                       counter = counter + 1;
-                   end
+                if strcmp(paramsList{end-1}.method,method)
+                     parsedParamsList{end-1} = [];
+                     parsedParamsList = parsedParamsList(~cellfun('isempty',parsedParamsList));
                 end
-            else
-                parsedParamsList = paramsList;
-            end           
+            end 
         end
         
         function parsedParamsList = removeCureParameters(paramsList)
