@@ -4777,10 +4777,6 @@ function pb_an_sys1_h2_Callback(hObject, eventdata, handles)
         
         try
             h2 = norm(sys, 2);
-            if isa(sys,'sss')
-                sys.h2Norm = h2;
-                assignin('base', sysname, sys);
-            end
         catch ex
             if strcmp(ex.identifier,'MATLAB:nomem')
                 errordlg('Out of memory, system is too large to solve lyapunov equotation','Error Dialog','modal')
@@ -4839,10 +4835,6 @@ function pb_an_sys1_hinf_Callback(hObject, eventdata, handles)
         
         try
             hinf=norm(sys, inf);
-            if isa(sys,'sss')
-                sys.hInfNorm = hinf;
-                assignin('base', sysname, sys);
-            end
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             set(handles.figure1,'Pointer','arrow')
@@ -4891,13 +4883,7 @@ function pb_an_sys1_decaytime_Callback(hObject, eventdata, handles)
     
     if ~isfield(sys,'decayTime') || isempty(sys.decayTime)
         try
-            if isa(sys,'sss')
-                decTime = decayTime(sys);
-                sys.decayTime = decTime;
-                assignin('base',sysname,sys);
-            elseif isa(sys,'ssRed')
-                decTime = decayTime(sys);
-            end
+            decTime = decayTime(sys);
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             set(handles.figure1,'Pointer','arrow')
@@ -5153,10 +5139,6 @@ function pb_an_sys2_h2_Callback(hObject, eventdata, handles)
     else
         try
             h2 = norm(sys, 2);
-            if isa(sys,'sss')
-                sys.h2Norm = h2;
-                assignin('base', sysname, sys);
-            end
         catch ex
             if strcmp(ex.identifier,'MATLAB:nomem')
                 errordlg('Out of memory, system is too large to solve lyapunov equotation','Error Dialog','modal')
@@ -5214,10 +5196,6 @@ function pb_an_sys2_hinf_Callback(hObject, eventdata, handles)
     else
         try
             hinf=norm(sys, inf);
-            if isa(sys,'sss')
-                sys.hInfNorm = hinf;
-                assignin('base', sysname, sys);
-            end
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             uiwait
@@ -5266,13 +5244,7 @@ function pb_an_sys2_decaytime_Callback(hObject, eventdata, handles)
     
     if ~isfield(sys,'decayTime') || isempty(sys.decayTime)
         try
-            if isa(sys,'sss')
-                decTime = decayTime(sys);
-                sys.decayTime = decTime;
-                assignin('base',sysname,sys);
-            elseif isa(sys,'ssRed')
-                decTime = decayTime(sys);
-            end
+            decTime = decayTime(sys);
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             uiwait
