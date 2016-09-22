@@ -107,7 +107,7 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
                         plot(xp,yp,'g')
                     end
                     plot(complex(s0m),'k+');
-                    set(gca,'xscale','log');
+%                     set(gca,'xscale','log');
                     xlabel('Re');ylabel('Im'); title('New shifts for model function')
                     pause
                 end
