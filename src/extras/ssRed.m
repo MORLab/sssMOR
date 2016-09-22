@@ -507,24 +507,37 @@ classdef ssRed < ss
             end 
         end
         
-        %% Overload Brackets sys.([],[]) to select I/O channels
+        %% Overload subsref to cope with compatibility issues in MATLAB
         function result = subsref(sys, arg)
-            switch arg.type
+            %   Parts are taken from built-in subsref
+            %   Copyright 1986-2010 The MathWorks, Inc.
+            
+            ni = nargin;
+            if ni==1,
+               result = M;  return
+            end
+            switch arg(1).type
               case '.'
                   %COMPATIBILITY ISSUE BETWEEN 2015b and 2016a
                   % make sure system matrices have the right (lower/upper)
                   % case
-                  if any(strcmp(arg.subs,{'a','b','c','d','e','A','B','C','D','E'}))
-                        arg.subs = ltipack.matchProperty(arg.subs,...
+                  if any(strcmp(arg(1).subs,{'a','b','c','d','e','A','B','C','D','E'}))
+                        arg(1).subs = ltipack.matchProperty(arg(1).subs,...
                             ltipack.allprops(sys),class(sys));
                   end
-                 result = builtin('subsref',sys,arg);
+                 result = builtin('subsref',sys,arg(1));
               case '()'
-                 result = subparen(M,Struct(1).subs);
+                 result = subparen(sys,arg(1).subs);
               case '{}'
                  ctrlMsgUtils.error('Control:ltiobject:subsref3')
+            end
+           if length(arg)>1,
+              % SUBSREF for InputOutputModel objects can't be invoked again
+              % inside this method so jump out to make sure that downstream
+              % references to InputOutputModel properties are handled correctly,
+              result = ltipack.dotref(result,arg(2:end));
            end
-        end
+    end
         %% Override operators and build-in-functions
         function varargout = eig(sys, varargin)
             if sys.isBig
