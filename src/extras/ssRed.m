@@ -313,6 +313,7 @@ classdef ssRed < ss
         reductionParameters
     end
     properties(Dependent, Hidden)
+        a,b,c,d,e
         n,p,m
         isSiso, isSimo, isMiso, isMimo, isBig
         isDae, isDescriptor
@@ -508,6 +509,18 @@ classdef ssRed < ss
             end 
         end
         
+        %% Compatibility with small letters
+        function a = get.a(sys); a = sys.A; end
+        function b = get.b(sys); b = sys.B; end
+        function c = get.c(sys); c = sys.C; end
+        function d = get.d(sys); d = sys.D; end
+        function e = get.e(sys); e = sys.E; end
+        
+        function sys = set.a(sys, a); sys.A = a; end
+        function sys = set.b(sys, b); sys.B = b; end
+        function sys = set.c(sys, c); sys.C = c; end
+        function sys = set.d(sys, d); sys.D = d; end
+        function sys = set.e(sys, e); sys.E = e; end
         %% Override operators and build-in-functions
         function varargout = eig(sys, varargin)
             if sys.isBig
