@@ -386,8 +386,7 @@ classdef ssRed < ss
             end
             
             % call the construktor of the superclass ss
-            obj@ss(A,B,C,D);
-            obj.e = E;
+            obj@ss(A,B,C,D,'e',E);
             
             % check all fields of paramsList
             if ~isempty(paramsList)
