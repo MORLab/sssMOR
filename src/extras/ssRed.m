@@ -348,17 +348,9 @@ classdef ssRed < ss
                     paramsList = sys.reductionParameters;
                 end
                 if isa(sys,'ss')    %ss-objects or ssRed-objects
-                   A = sys.a;
-                   B = sys.b;
-                   C = sys.c;
-                   D = sys.d;
-                   E = sys.e;
+                   [A,B,C,D,E] = dssdata(sys);
                 elseif isa(sys,'sss')   %sss-objects
-                   A = full(sys.a);
-                   B = full(sys.b);
-                   C = full(sys.c);
-                   D = full(sys.d);
-                   E = full(sys.e);
+                   [A,B,C,D,E] = full(dssdata(sys));
                 else
                    error('The third argument has to be an object of type "ss" or "sss"'); 
                 end
@@ -440,13 +432,19 @@ classdef ssRed < ss
                 
         %% Get Basic Properties
         function m = get.m(sys) % number of inputs
-            m = size(sys.b,2);
+            cProp = ltipack.matchProperty('b',...
+                            ltipack.allprops(sys),class(sys));
+            m = size(sys.(cProp),2);
         end
         function n = get.n(sys) % system order
-            n = size(sys.a,1);
+            cProp = ltipack.matchProperty('a',...
+                            ltipack.allprops(sys),class(sys));
+            n = size(sys.(cProp),1);
         end
         function p = get.p(sys) % number of outputs
-            p = size(sys.c,1);
+            cProp = ltipack.matchProperty('c',...
+                            ltipack.allprops(sys),class(sys));
+            p = size(sys.(cProp),1);
         end
         
         %% Get helper functions
@@ -465,13 +463,21 @@ classdef ssRed < ss
         end
         
         function isDescriptor = get.isDescriptor(sys)
-            isDescriptor = logical(full(any(any(sys.e-speye(size(sys.e))))));
+            cProp = ltipack.matchProperty('e',...
+                            ltipack.allprops(sys),class(sys));
+            isDescriptor = logical(full(any(any(sys.(cProp)-speye(size(sys.(cProp)))))));
         end
         
         function sys = resolveDescriptor(sys)
-            sys.a = sys.e\sys.a;
-            sys.b = sys.e\sys.b;
-            sys.e = [];
+            cPropA = ltipack.matchProperty('a',...
+                            ltipack.allprops(sys),class(sys));
+            cPropB = ltipack.matchProperty('b',...
+                            ltipack.allprops(sys),class(sys));
+            cPropE = ltipack.matchProperty('e',...
+                            ltipack.allprops(sys),class(sys));
+            sys.(cPropA) = sys.(cPropE)\sys.(cPropA);
+            sys.(cPropB) = sys.(cPropE)\sys.(cPropB);
+            sys.(cPropE) = [];
         end
         
         function isSym = get.isSym(sys) %A=A', E=E'
@@ -542,65 +548,70 @@ classdef ssRed < ss
             if sys.isBig
                 warning(['System order is very large: ',num2str(sys.n),'. You may want to try eigs(sys) instead.'])
             end
-
+            
+            [A,~,~,~,E] = dssdata(sys);
             if sys.isDescriptor
                 if nargout==1||nargout==0
-                    [varargout{1}] = eig(full(sys.a), full(sys.e),varargin{:});
+                    [varargout{1}] = eig(full(A), full(E),varargin{:});
                 elseif nargout == 2
-                    [varargout{1}, varargout{2}] = eig(full(sys.a), full(sys.e),varargin{:});
+                    [varargout{1}, varargout{2}] = eig(full(A), full(E),varargin{:});
                 elseif nargout == 3
-                    [varargout{1}, varargout{2}, varargout{3}]  = eig(full(sys.a), full(sys.e),varargin{:});
+                    [varargout{1}, varargout{2}, varargout{3}]  = eig(full(A), full(E),varargin{:});
                 end
             else
                 if nargout==1||nargout==0
-                    [varargout{1}] = eig(full(sys.a),varargin{:});
+                    [varargout{1}] = eig(full(A),varargin{:});
                 elseif nargout == 2
-                    [varargout{1}, varargout{2}] = eig(full(sys.a),varargin{:});
+                    [varargout{1}, varargout{2}] = eig(full(A),varargin{:});
                 elseif nargout == 3
-                    [varargout{1}, varargout{2}, varargout{3}]  = eig(full(sys.a),varargin{:});
+                    [varargout{1}, varargout{2}, varargout{3}]  = eig(full(A),varargin{:});
                 end
             end
         end
         
-        function diff = minus(sys1, sys2)     
-            if size(sys1.a,1) == 0
+        function diff = minus(sys1, sys2) 
+            [A1,B1,C1,D1,E1] = dssdata(sys1);
+            [A2,B2,C2,D2,E2] = dssdata(sys2);
+            if size(A1,1) == 0
                 if isa(sys2,'sss')
-                    diff = sss(sys2.a, sys2.b, -sys2.c, sys2.d, sys2.e);
+                    diff = sss(A2, B2, -C2, D2, E2);
                 else
-                    diff = dss(sys2.a, sys2.b, -sys2.c, sys2.d, sys2.e);
+                    diff = dss(A2, B2, -C2, D2, E2);
                 end
                 return
             end
-            if size(sys2.a,1) == 0
-                diff = dss(sys1.a, sys1.b, sys1.c, sys1.d, sys1.e);
+            if size(A2,1) == 0
+                diff = dss(A1, B1, C1, D1, E1);
                 return
             end
 
-            if size(sys1.b,2) ~= size(sys2.b,2)
+            if size(B1,2) ~= size(B2,2)
                 error('sys1 and sys2 must have same number of inputs.')
             end
-            if size(sys1.c,1) ~= size(sys2.c,1)
+            if size(C1,1) ~= size(C2,1)
                 error('sys1 and sys2 must have same number of outputs.')
             end
-            if isa(sys1,'ss') && isempty(sys1.e)
-                sys1.e = eye(size(sys1.a,1));
+            cPropE = ltipack.matchProperty('e',...
+                            ltipack.allprops(sys1),class(sys1));
+            if isa(sys1,'ss') && isempty(E1)
+                sys1.(cPropE) = eye(size(A1,1));
             end
-            if isa(sys2,'ss') && isempty(sys2.e)
-                sys2.e = eye(size(sys2.a,1));
+            if isa(sys2,'ss') && isempty(E2)
+                sys2.(cPropE) = eye(size(A2,1));
             end
 
             if isa(sys2,'sss')           
-                diff = sss([sys1.a sparse(size(sys1.a,1),size(sys2.a,1)); sparse(size(sys2.a,1),size(sys1.a,1)) sys2.a], ...
-                    [sys1.b; sys2.b], ...
-                    [sys1.c, -sys2.c], ...
-                    sys1.d - sys2.d, ...
-                    [sys1.e sparse(size(sys1.a,1),size(sys2.a,1)); sparse(size(sys2.a,1),size(sys1.a,1)) sys2.e]);
+                diff = sss([A1 sparse(size(A1,1),size(A2,1)); sparse(size(A2,1),size(A1,1)) A2], ...
+                    [B1; B2], ...
+                    [C1, -C2], ...
+                    D1 - D2, ...
+                    [E1 sparse(size(A1,1),size(A2,1)); sparse(size(A2,1),size(A1,1)) E2]);
             else
-                diff = dss([sys1.a zeros(size(sys1.a,1),size(sys2.a,1)); zeros(size(sys2.a,1),size(sys1.a,1)) sys2.a], ...
-                    [sys1.b; sys2.b], ...
-                    [sys1.c, -sys2.c], ...
-                    sys1.d - sys2.d, ...
-                    [sys1.e zeros(size(sys1.a,1),size(sys2.a,1)); zeros(size(sys2.a,1),size(sys1.a,1)) sys2.e]);
+                diff = dss([A1 zeros(size(A1,1),size(A2,1)); zeros(size(A2,1),size(A1,1)) A2], ...
+                    [B1; B2], ...
+                    [C1, -C2], ...
+                    D1 - D2, ...
+                    [E1 zeros(size(A1,1),size(A2,1)); zeros(size(A2,1),size(A1,1)) E2]);
             end
         end
         
@@ -630,9 +641,10 @@ classdef ssRed < ss
             if rcondNumber<eps
                 warning(['Matrix of eigenvectors is close to singular or badly scaled. Results may be inaccurate. RCOND =',num2str(rcondNumber)]);
             end
-            B=(sys.e*T)\sys.b;
-            C=sys.c*T;
-            d=sys.d;
+            [~,B,C,D,E] = dssdata(sys);
+            B=(E*T)\B;
+            C=C*T;
+            d=D;
 
             % calculate residues
             if strcmp(Opts.rType,'dir')
