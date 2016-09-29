@@ -915,6 +915,22 @@ classdef ssRed < ss
                 end
             end
         end
+        
+        function  [R,L] = lyapchol(sys,Opts)
+            if sys.isDescriptor
+                R = lyapchol(sys.(sys.a_),sys.(sys.b_),sys.(sys.e_));
+            else
+                R = lyapchol(sys.(sys.a_),sys.(sys.b_));
+            end
+
+            if nargout>1
+                if sys.isDescriptor
+                    L = lyapchol(sys.(sys.a_)', sys.(sys.c_)',sys.(sys.e_)');
+                else
+                    L = lyapchol(sys.(sys.a_)',sys.(sys.c_)');
+                end
+            end
+        end
     end
     
     %%Private and static helper methods
@@ -1066,8 +1082,7 @@ classdef ssRed < ss
                else
                   outputStruct.(fields{i}) = structure.(fields{i});
                end
-            end            
-            t = 1;        
+            end                   
         end
         
     end    
