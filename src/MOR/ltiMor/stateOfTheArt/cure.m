@@ -145,6 +145,7 @@ if Opts.cure.test
     magHandle = axH(3); magLim = get(magHandle,'YLim');
     phHandle = axH(2); phLim  = get(phHandle,'YLim');
     if Opts.cure.gif, writeGif('create'); end
+    keyboard
 end
 %%   Initialize some variables
 [~,m] = size(sys.b);  p = size(sys.c,1);
@@ -172,6 +173,7 @@ if Opts.cure.SE_DAE
             magHandle = axH(3); magLim = get(magHandle,'YLim');
             phHandle = axH(2); phLim  = get(phHandle,'YLim');
             if Opts.cure.gif, writeGif('create'); end
+            keyboard
         end 
     elseif DrImp
         error(['Cumulative reduction of non strictly proper index 1 DAEs ' ...
@@ -296,6 +298,7 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
         title(sprintf('n_{red} = %i',size(sysr.a,1)));
         set(magHandle,'YLim', magLim); set(phHandle,'YLim', phLim);
         if Opts.cure.gif, writeGif('append'); end
+        keyboard
     end
 end
 
@@ -312,7 +315,6 @@ if Opts.cure.test
         sysr_bode = sysr;
         figure(fhOriginalSystem);
         bode(sysr_bode,w,'-g');
-        subplot(2,1,1)
         title(sprintf('n_{red} = %i',size(sysr.a,1)));
         
         if Opts.cure.gif, writeGif('append'), end
