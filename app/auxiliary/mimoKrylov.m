@@ -67,6 +67,26 @@ function mimoKrylov_OpeningFcn(hObject, eventdata, handles, varargin)
 
     handles.parameter = parameter;
     guidata(hObject,handles);
+    
+    %Save the Width of all Tables in pixels in the handles-structure and
+    %correctly set the width of the columns of all tables
+    %(Nescesarray because the column width has to be in 'pixels', but because
+    % the hole GUI is in 'characters' this leads to visualisation errors 
+    % on different operating systems)
+    
+    set(handles.uitable_input,'Units','pixels');
+    pIn = get(handles.uitable_input,'Position');
+    set(handles.uitable_input,'ColumnWidth',{round(pIn(1,3)/4),round(pIn(1,3)/4),round(pIn(1,3)/4),round(pIn(1,3)/4)});
+    handles.widthTableInput = pIn(1,3);
+    set(handles.uitable_input,'Units','characters');
+    
+    set(handles.uitable_output,'Units','pixels');
+    pOut = get(handles.uitable_output,'Position');
+    set(handles.uitable_output,'ColumnWidth',{round(pOut(1,3)/3),round(pOut(1,3)/3),round(pOut(1,3)/3)});
+    handles.widthTableOutput = pOut(1,3);
+    set(handles.uitable_output,'Units','characters');
+    
+    guidata(hObject,handles);
 
     %List all possible matrices that might contain tangential directions
     %(Do it here and not in a create function because the handles are needed to
@@ -104,7 +124,7 @@ function mimoKrylov_OpeningFcn(hObject, eventdata, handles, varargin)
             set(handles.uitable_input,'Visible','on');
             set(handles.uitable_output,'Visible','off');
 
-            set(handles.uitable_input,'ColumnWidth',{199,199,199,0});
+            set(handles.uitable_input,'ColumnWidth',{round(pIn/3),round(pIn/3),round(pIn/3),0});
 
         elseif strcmp(parameter.side,'output')
 
@@ -231,6 +251,8 @@ function pb_output_Callback(hObject, eventdata, handles)
 
 function cb_hermite_Callback(hObject, eventdata, handles)
 
+    wIn = handles.widthTableInput;
+
     if get(handles.cb_hermite,'Value') == 1
 
         set(handles.pb_input,'Visible','off');
@@ -238,7 +260,7 @@ function cb_hermite_Callback(hObject, eventdata, handles)
 
         if get(handles.rb_blockKrylov,'Value') ~= 1
 
-            set(handles.uitable_input,'ColumnWidth',{150 150 150 150});
+            set(handles.uitable_input,'ColumnWidth',{round(wIn/4) round(wIn/4) round(wIn/4) round(wIn/4)});
 
         end
 
@@ -255,7 +277,7 @@ function cb_hermite_Callback(hObject, eventdata, handles)
 
         if get(handles.rb_blockKrylov,'Value') ~= 1
 
-            set(handles.uitable_input,'ColumnWidth',{199 199 199 0});
+            set(handles.uitable_input,'ColumnWidth',{round(wIn/3) round(wIn/3) round(wIn/3) 0});
         end
 
         if strcmp(get(handles.uitable_input,'Visible'),'on')
@@ -281,21 +303,24 @@ function cb_hermite_Callback(hObject, eventdata, handles)
 
 function bg_blockKrylov_SelectionChangedFcn(hObject, eventdata, handles)
 
+    wIn = handles.widthTableInput;
+    wOut = handles.widthTableOutput;
+
     if get(handles.rb_blockKrylov,'Value') == 1
        
-        set(handles.uitable_input,'ColumnWidth',{300,300,0,0});
-        set(handles.uitable_output,'ColumnWidth',{300,300,0});
+        set(handles.uitable_input,'ColumnWidth',{round(wIn/2),round(wIn/2),0,0});
+        set(handles.uitable_output,'ColumnWidth',{round(wOut/2),round(wOut/2),0});
         
         set(handles.panel_importDirections,'Visible','off');
         
     else
         
         if get(handles.cb_hermite,'Value') == 1
-            set(handles.uitable_input,'ColumnWidth',{150,150,150,150});
+            set(handles.uitable_input,'ColumnWidth',{round(wIn/4),round(wIn/4),round(wIn/4),round(wIn/4)});
         else
-            set(handles.uitable_input,'ColumnWidth',{199,199,199,0});
+            set(handles.uitable_input,'ColumnWidth',{round(wIn/3),round(wIn/3),round(wIn/3),0});
         end
-        set(handles.uitable_output,'ColumnWidth',{199,199,199});
+        set(handles.uitable_output,'ColumnWidth',{round(wOut/3),round(wOut/3),round(wOut/3)});
         
         set(handles.panel_importDirections,'Visible','on');
     end

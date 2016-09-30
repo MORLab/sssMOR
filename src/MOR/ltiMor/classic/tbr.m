@@ -6,8 +6,10 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       sysr			= TBR(sys,q)
 %       [sysr,V,W]		= TBR(sys,q)
 %       [sysr,V,W,hsv]	= TBR(sys,q)
+%       [sysr,V,W,hsv,R,L]	= TBR(sys,q)
 %       [sysr,...]      = TBR(sys,Opts)
 %       [sysr,...]      = TBR(sys,q,Opts)
+%       [sysr,...]      = TBR(sys,q,R,L,Opts)
 %
 % Description:
 %       Computes a reduced model of order q by balancing and truncation,
@@ -50,6 +52,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       -sys:   an sss-object containing the LTI system
 %		*Optional Input Arguments:*
 %       -q:     order of reduced system
+%       -R,L:   low rank Cholesky factors of the Gramian matrices
 %       -Opts:              a structure containing following options
 %           -.type:         select amongst different tbr algorithms
 %                           [{'tbr'} / 'adi' / 'matchDcGain' ]
@@ -66,6 +69,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       -sysr:  reduced system
 %       -V,W:   projection matrices
 %       -hsv:   Hankel singular values
+%       -R,L:   low rank Cholesky factors of the Gramian matrices
 %
 % Examples:
 %       To compute a balanced realization, use
@@ -79,7 +83,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %> bode(sys,'-b',sysr,'--r')
 %
 % See Also:
-%       rk, modalMor, gram, balancmr
+%       rk, modalMor, gram, balancmr, lyapchol
 %
 % References:
 %       * *[1] Moore (1981)*, Principal component analysis in linear systems: controllability,
@@ -102,7 +106,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  15 Apr 2016
+% Last Change:  08 Aug 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -117,6 +121,13 @@ Def.lse = 'gauss'; % usfs for adi ('gauss', 'luChol')
 if nargin>1
     if nargin==2 && ~isa(varargin{1},'double')
         Opts=varargin{1};
+    elseif nargin>=4
+        q=varargin{1};
+        R=varargin{2};
+        L=varargin{3};
+        if nargin==5
+            Opts=varargin{4};
+        end
     else
         q=varargin{1};
         if nargin==3
@@ -158,202 +169,35 @@ if strcmp(Opts.type,'adi')
 end
 
 if strcmp(Opts.type,'adi')
-    % options/structures used for mess
-    %
-    % messOpts.adi.shifts
-    %   .method='heur': find ADI parameters with a heuristic method
-    %   .(l0,kp,km)=(20,50,25): shifts p consist of l0 or l0+1 values of kp('LM')+km('SM') Ritz values
-    %   .b0: start vector for arnoldi algorithm
-    %   .info=0; information level
-    %
-    % messOpts.adi
-    %   adi.maxiter=300: maximum number of iterations for ADI iteration (stopping criteria)
-    %   adi.restol=0: minimum residual for ADI iteration - expensive(stopping criteria)
-    %   adi.rctol=1e-12: tolerance for difference between ADI iterates - inexpensive(stopping criteria)
-    %   adi.info=0; information level
-    %   adi.norm='fro': frobenius (mess default) or 2-norm
-    %
-    % eqn
-    %   .type='N'/'T' lyapunov equation normal (with B) or transposed (with C)
-    %	.haveE=sys.isDescriptor: E-matrix identity
-
-    % eqn struct: system data
-    eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'type','N','haveE',sys.isDescriptor);
-    
-    % opts struct: mess options
-    messOpts.adi=struct('shifts',struct('l0',20,'kp',50,'km',25,'b0',ones(sys.n,1),...
-        'info',0),'maxiter',300,'restol',0,'rctol',1e-12,...
-        'info',0,'norm','fro');
-    
-    % user functions: default
-    if strcmp(Opts.lse,'gauss')
-        oper = operatormanager('default');
-    elseif strcmp(Opts.lse,'luChol')
-        if sys.isSym
-            oper = operatormanager('chol');
-        else
-            oper = operatormanager('lu');
-        end
+    lyapOpts.type='adi';
+    lyapOpts.lse=Opts.lse;
+    lyapOpts.rctol=1e-9;
+    if exist('q','var')
+        lyapOpts.q=q;
     end
-    
-    if exist('q','var') %size of cholesky factor [sys.n x q] -> qmax=q
-        messOpts.adi.maxiter=q;
-        messOpts.adi.restol=0;
-        messOpts.adi.rctol=1e-30;
-    end
-    
-    % get adi shifts
-    [messOpts.adi.shifts.p, eqn]=mess_para(eqn,messOpts,oper);
-    
-    % low rank adi
-    [R,Rout,eqn]=mess_lradi(eqn,messOpts,oper);
-    
-    if sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0
-        L=R;
-    else
-        eqn.type='T';
-        [L,Lout,eqn]=mess_lradi(eqn,messOpts,oper);
+    if ~exist('R','var') || ~exist('L','var')
+        [R,L]=lyapchol(sys,lyapOpts);
     end
 
     qmax=min([size(R,2),size(L,2)]); %make sure R and L have the same size
     R=R(:,1:qmax);
     L=L(:,1:qmax);
     qmaxAdi=qmax;
-    
-    if exist('q','var') % warn user if rctol is satisfied before q_user
-        qminR=q;
-        qminL=q;
-        nStop=0;
-        
-        % rctol is satisfied if rc<tol for 10 times consecutively
-        for i=1:length(Rout.rc)
-            if Rout.rc(i)<1e-9
-                nStop=nStop+1;
-            else
-                nStop=0;
-            end
-            if nStop==10
-                qminR=i;
-                break
-            end
-        end
-
-        if ~(sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0) && qminR<q
-            qminL=q;
-            nStop=0;
-            for i=1:length(Lout.rc)
-                if Lout.rc(i)<1e-9
-                    nStop=nStop+1;
-                else
-                    nStop=0;
-                end
-                if nStop==10
-                    qminL=i;
-                    break
-                end
-            end
-        elseif sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0
-            qminL=qminR;
-        end
-        q_min_in=max(qminR,qminL);
-        
-        if q_min_in>0 && q_min_in < q && strcmp(Opts.warnOrError,'warn')
-            warning(['After q=', num2str(q_min_in,'%d'),...
-            ' the contribution of the ADI iterates was very small. Consider reducing the desired order accordingly.']);
-        end
-    end
-    
-    % calculate balancing transformation and Hankel Singular Values
-    [K,S,M]=svd(full(L'*R));
-    hsv = diag(S);
-    sys.HankelSingularValues = real(hsv);
-    sys.TBalInv = R*M/diag(sqrt(hsv));
-    sys.TBal = diag(sqrt(hsv))\K'*L'/eqn.E_;
-    
 else
     qmax=sys.n;
-    % Is Controllability Gramian available?
-    if isempty(sys.ConGramChol)
-        if isempty(sys.ConGram)
-            % No, it is not. Solve Lyapunov equation.
-            try
-                if sys.isDescriptor
-                    sys.ConGramChol = lyapchol(sys.A,sys.B,sys.E);
-                else
-                    sys.ConGramChol = lyapchol(sys.A,sys.B);
-                end
-                R = sys.ConGramChol;
-            catch ex
-                warning(ex.message, 'Error in lyapchol. Trying without Cholesky factorization...')
-                if sys.isDescriptor
-                    try
-                        sys.ConGram = lyap(sys.A, sys.B*sys.B', [], sys.E);
-                    catch ex2
-                        warning(ex2.message, 'Error solving Lyapunov equation. Premultiplying by E^(-1)...')
-                        tmp = sys.E\sys.B;
-                        sys.ConGram = lyap(sys.E\sys.A, tmp*tmp');
-                    end
-                else
-                    sys.ConGram = lyap(full(sys.A), full(sys.B*sys.B'));
-                end
-                try
-                    R = chol(sys.ConGram);
-                catch ex2
-                    myex = MException(ex2.identifier, ['System seems to be unstable. ' ex2.message]);
-                    throw(myex)
-                end
-            end
-        else
-            R = chol(sys.ConGram);
-        end
-    else
-        R = sys.ConGramChol;
+    lyapOpts.type='builtIn';
+    if ~exist('R','var') || ~exist('L','var')
+        [R,L]=lyapchol(sys,lyapOpts);
     end
-
-    % Is Observability Gramian available?
-    if isempty(sys.ObsGramChol)
-        if isempty(sys.ObsGram)
-            % No, it is not. Solve Lyapunov equation. 
-           try
-                if sys.isDescriptor
-                    L = lyapchol(sys.A'/sys.E', sys.C');
-                else
-                    L = lyapchol(sys.A',sys.C');
-                end
-                sys.ObsGramChol = sparse(L);
-            catch ex
-                warning(ex.message, 'Error in lyapchol. Trying without Cholesky factorization...')
-                if sys.isDescriptor
-                    sys.ObsGram = lyap(sys.A'/sys.E', sys.C'*sys.C);
-                else
-                    sys.ObsGram = lyap(full(sys.A'), full(sys.C'*sys.C));
-                end
-                try
-                    L = chol(sys.ObsGram);
-                catch ex
-                    myex = MException(ex2.identifier, ['System seems to be unstable. ' ex2.message]);
-                    throw(myex)
-                end
-           end
-        else
-            L = chol(sys.ObsGram);
-        end
-    else
-        L = sys.ObsGramChol;
-    end
+end
     
-    % calculate balancing transformation and Hankel Singular Values
-    [K,S,M]=svd(full(R*L'));
-    hsv = diag(S);
-    sys.HankelSingularValues = real(hsv);
-    sys.TBalInv = R'*K/diag(sqrt(hsv));
-    sys.TBal = diag(sqrt(hsv))\M'*L/sys.E;
-end
+% calculate balancing transformation and Hankel Singular Values
+[K,S,M]=svd(full(R*L'));
+hsv = diag(S);
+sys.HankelSingularValues = real(hsv);
+sys.TBalInv = R'*K*diag(ones(size(hsv))./sqrt(hsv));
+sys.TBal = diag(ones(size(hsv))./sqrt(hsv))*M'*solveLse(sys.E',L',struct('lse','gauss'))';
 
-% store system
-if inputname(1)
-    assignin('caller', inputname(1), sys);
-end
 
 % determine reduction order
 if exist('q','var') || Opts.redErr>0
@@ -458,9 +302,23 @@ end
 V = sys.TBalInv(:,1:q);
 W = sys.TBal(1:q,:)';
 
+% Storing additional parameters
+%Stroring additional information about thr reduction in the object 
+%containing the reduced model:
+%   1. Define a new field for the Opts struct and write the information
+%      that should be stored to this field
+%   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
+%      way that the new defined field passes the check
+Opts.originalOrder = sys.n;
+Opts.hsv = hsv;
+
 switch Opts.type
     case 'tbr'
-        sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        if isa(sys,'ssRed')
+            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V, sys.reductionParameters);
+        else
+            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        end
     case 'matchDcGain'
         W=sys.TBalInv;
         V=sys.TBal;
@@ -483,27 +341,42 @@ switch Opts.type
             end
         end
 
-        ARed=A11-A12/A22*A21;
-        BRed=B1-A12/A22*B2; 
+        lse0=solveLse(A22',A12')';
+        ARed=A11-lse0*A21;
+        BRed=B1-lse0*B2; 
 
         if sys.isDescriptor
             EBal=W'*sys.E*V;
             E11=EBal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
             E21=EBal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
-            ERed=E11-A12/A22*E21;
-            CRed=C1-C2/A22*A21+C2*A22*E21/ERed*ARed;
-            DRed=sys.D-C2/A22*B2+C2/A22*E21/ERed*BRed;
-            sysr = sss(ARed, BRed, CRed, DRed, ERed);
+            ERed=E11-lse0*E21;
+            lse1=solveLse(A22',C2')';
+            lse2=solveLse(ERed',E21')';
+            CRed=C1-lse1*A21+C2*A22*lse2*ARed;
+            DRed=sys.D-lse1*B2+lse1*lse2*BRed;
+            if isa(sys,'ssRed')
+                sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed, ERed,sys.reductionParameters);
+            else
+                sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed, ERed);
+            end
         else % Er=I
-            CRed=C1-C2/A22*A21;
-            DRed=sys.D-C2/A22*B2;
-            sysr = sss(ARed, BRed, CRed, DRed);
+            CRed=C1-solveLse(A22',C2')'*A21;
+            DRed=sys.D-solveLse(A22',C2')'*B2;
+            if isa(sys,'ssRed')
+                sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed,sys.reductionParameters);
+            else
+                sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed); 
+            end
         end
         
         warning('on','MATLAB:nearlySingularMatrix');
     
     case 'adi'
-          sysr = sss(W'*eqn.A_*V, W'*eqn.B, eqn.C*V, sys.D, W'*eqn.E_*V);
+        if isa(sys,'ssRed')
+            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V,sys.reductionParameters);
+        else
+            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        end
 end
 
 %   Rename ROM
@@ -513,4 +386,8 @@ if nargout>1
     varargout{1} = V;
     varargout{2} = W;
     varargout{3} = real(hsv);
+    if nargout>3
+        varargout{4} = R;
+        varargout{5} = L;
+    end
 end

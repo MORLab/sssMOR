@@ -166,6 +166,14 @@ if ~isempty(varargin)
     end
 end
 
+% use hess if sys is ssRed object
+if isa(sys,'ssRed')
+    if isfield(Opts,'lse') && ~isempty(Opts.lse) && ~strcmp(Opts.lse,'hess')
+        warning('Opts.lse has been changed to "hess".');
+    end
+    Opts.lse='hess';
+end
+
 %%  Check the inputs
 if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
     (~exist('s0_out', 'var') || isempty(s0_out))
@@ -254,7 +262,7 @@ elseif isempty(s0_inp)
     end
 
 else
-    if all(s0_inp == s0_out) %use only 1 LU decomposition for V and W
+    if all(s0_inp == s0_out) % use only 1 LU decomposition for V and W
         [V, Sv, Rv, W, Sw, Lw] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
                             s0_inp,Rt, Lt, IP, Opts);
                         
@@ -264,6 +272,11 @@ else
     else
         [V, Sv, Rv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
         [W, Sw, Lw] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
+        if size(V,2)<size(W,2)
+            V=[V,W(:,size(V,2)+1:size(W,2))];
+        elseif size(V,2)>size(W,2)
+            W=[W,V(:,size(W,2)+1:size(V,2))];
+        end
         sysr = projectiveMor(sys,V,W);
         sysr.Name = sprintf('%s_%i_rk_2sided',sys.Name,sysr.n);
     end
@@ -274,6 +287,27 @@ else
     end
 end
 
+%%  Storing additional parameters
+%Stroring additional information about thr reduction in the object 
+%containing the reduced model:
+%   1. Define a new field for the Opts struct and write the information
+%      that should be stored to this field
+%   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
+%      way that the new defined field passes the check
+Opts.originalOrder = sys.n;
+if ~isfield(Opts,'orth') Opts.orth = '2mgs'; end
+if ~isfield(Opts,'reorth') Opts.reorth = 0; end
+if ~isfield(Opts,'lse') Opts.lse = 'sparse'; end
+if ~isfield(Opts,'dgksTol') Opts.dgksTol = 1e-12; end
+if ~isfield(Opts,'krylov') Opts.krylov = 0; end
+Opts.IP = IP;
+if ~exist('Rt','var') Opts.Rt = []; else Opts.Rt = Rt; end
+if ~exist('Lt','var') Opts.Lt = []; else Opts.Lt = Lt; end
+if ~exist('s0_inp','var') Opts.s0_inp = []; else Opts.s0_inp = s0_inp; end
+if ~exist('s0_out','var') Opts.s0_out = []; else Opts.s0_out = s0_out; end
+
+% Convert to ssRed-object
+sysr = ssRed('rk',Opts,sysr);
 
 %% ----------- AUXILIARY --------------
 function s0=s0_vect(s0)

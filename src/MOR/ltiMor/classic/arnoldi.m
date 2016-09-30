@@ -32,7 +32,7 @@ function [V, Sv, Rv, W, Sw, Lw] = arnoldi(E,A,B,varargin)
 %       In case of MIMO models, if matrices of tangential directions Rt 
 %       (and Lt) are defined, they must have the same number of columns as 
 %       the shifts, so that for each tangential direction it is clear to 
-%       which shift it belongs. If not tangential directions are specified,
+%       which shift it belongs. If no tangential directions are specified,
 %       then block Krylov subspaces are computed.
 %
 %       //Note: For MIMO models, block Krylov subpspaces 
@@ -87,11 +87,21 @@ function [V, Sv, Rv, W, Sw, Lw] = arnoldi(E,A,B,varargin)
 %           -.reorth:       reorthogonalization
 %                           [{'gs'} / 0 / 'qr']
 %           -.lse:          use LU or hessenberg decomposition
-%                           [{'sparse'} / 'full' / 'hess']
+%                           [{'sparse'} / 'full' / 'hess' /'iterative']
 %           -.dgksTol:      tolerance for dgks orthogonalization
 %                           [{1e-12} / positive float]
 %           -.krylov:       standard or cascaded krylov basis
-%                           [{0} / 'cascade]
+%                           [{'standardKrylov'} / 'cascadedKrylov']
+%           -.maxiterlse:   maximum number of iterations in iterSolve
+%                           [{1e3} / positive integer]
+%           -.tollse:       residual tolerance in iterSolve
+%                           [{1e-6} / positive float]
+%           -.solver:       preferred solver in iterSolve
+%                           [{'cgs'} / 'bicgstab' / 'bicg']
+%           -.verbose:      show warnings?
+%                           [{1} / 0]
+%           -.force:        force solve iteratively when not converging
+%                           [{0} / 1]
 %
 % Output Arguments:
 %       -V:        Orthonormal basis spanning the input Krylov subsp. 
@@ -143,7 +153,7 @@ Def.orth = '2mgs'; %orthogonalization after every direction {0,'dgks','mgs','2mg
 Def.reorth = 0; %reorthogonaliation at the end {0, 'mgs', 'qr'}
 Def.lse = 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess'}
 Def.dgksTol = 1e-12; %orthogonality tolerance: norm(V'*V-I,'fro')<tol
-Def.krylov = 0; %standard or cascaded krylov basis (only for siso) {0,'cascade'}
+Def.krylov = 'standardKrylov'; %standard or cascaded krylov basis (only for siso) {'standardKrylov','cascadedKrylov'}
         
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -224,15 +234,6 @@ if ~exist('IP', 'var')
    IP=@(x,y) (x'*y); %seems to be better conditioned that E norm
 end
 
-% If the 'full' option is selected for LU, convert E,A once to full
-if strcmp(Opts.lse,'full')
-    E = full(E); A = full(A);
-elseif strcmp(Opts.lse,'hess')
-    [A,E,Q,Z] = hess(full(A),full(E)); B = Q*B; if hermite, C = C*Z; end
-else
-    E = sparse(E); A=sparse(A);
-end
-
 %% ---------------------------- CODE -------------------------------
 % Real reduced system
 if Opts.real
@@ -244,73 +245,102 @@ if ~exist('Rt', 'var') || isempty(Rt)%   Compute block Krylov subspaces
     s0 = tangentialDirection(s0);
 end
 
-% Compute the Krylov subspaces
-if hermite
-    [V, Sv, Rv, W, Sw, Lw] = krylovSubspace(s0, q);
-    Sw=Sw.';
-else
-    [V, Sv, Rv] = krylovSubspace(s0, q);
+% preallocate memory
+V=zeros(length(B),q);
+Rv=zeros(size(B,2),q);
+Sv=zeros(q);
+if hermite 
+    W = zeros(length(B),q); 
+    Lw = zeros(size(C,1),q);
+    Sw=zeros(q);
 end
-    
 
-%% ------------------ AUXILIARY FUNCTIONS --------------------------
-% a) PRIMARY
-    function [V, Sv, Rv, W, Sw, Lw] = krylovSubspace(s0, q)
-    %   Calculate Krylov Subspace of s0
-    %   Input:  s0:  Vector containing the expansion points
-    %           q:   Original length of s0 with complex conjugated elements
-    %   Output: V, W:  Krylov-Subspace of s0
-    %           Sv, Rv, Sw, Lw: Sylvester matrices
-        
-    % preallocate memory
-    V=zeros(length(B),q);
-    Rv=zeros(size(B,2),q);
-    Sv=zeros(q);
-    if hermite 
-        W = zeros(length(B),q); 
-        Lw = zeros(size(C,1),q);
-        Sw=zeros(q);
+% Compute hess
+if strcmp(Opts.lse,'hess')
+    [A,E,Q,Z] = hess(full(A),full(E)); B = Q*B; 
+    if hermite
+        C = C*Z; 
     end
-    for jCol=1:length(s0)
+    Opts.lse='gauss';
+end
+
+% Compute the Krylov subspaces
+for jCol=1:length(s0)
+    if hermite
+        [V, W, SRsylv, Rsylv, SLsylv, Lsylv] = solveLse(jCol, V, W, A, B, C, E, s0, Rt, Lt, Opts);
+    else
+        [V, SRsylv, Rsylv] = solveLse(jCol, V, A, B, E, s0, Rt, Opts);
+    end
+    
+    Sv(:,jCol) = SRsylv;
+    Rv(:,jCol) = Rsylv*Rt(:,jCol);
+    if hermite
+        Sw(jCol,:) = SLsylv.';
+        Lw(:,jCol) = Lsylv*Lt(:,jCol);
+    end
+
+    % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
+    if Opts.real
         if hermite
-            [V, SRsylv, Rsylv, W, SLsylv, Lsylv] = krylovDirection(jCol, s0, V, W);
+            [V, Sv, Rv, W, Sw, Lw] = realSubspace(jCol, q, s0, V, Sv, Rv, W, Sw, Lw);
         else
-            [V, SRsylv, Rsylv] = krylovDirection(jCol, s0, V);
-        end
-        Sv(:,jCol) = SRsylv;
-        Rv(:,jCol) = Rsylv*Rt(:,jCol);
-        if hermite
-            Sw(jCol,:) = SLsylv.';
-            Lw(:,jCol) = Lsylv*Lt(:,jCol);
-        end
-
-        % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
-        if Opts.real
-            if hermite
-                [V, Sv, Rv, W, Sw, Lw] = realSubspace(jCol, q, s0, V, Sv, Rv, W, Sw, Lw);
-            else
-                [V, Sv, Rv] = realSubspace(jCol, q, s0, V, Sv, Rv);
-            end
-        end
-
-        if Opts.orth
-            if hermite
-                [V, TRv, W, TLw] = gramSchmidt(jCol, V, W);
-            else
-                [V, TRv] = gramSchmidt(jCol, V);
-            end
-            Rv=Rv*TRv;
-            Sv=TRv\Sv*TRv;
-            if hermite
-                Lw=Lw*TLw;
-                Sw=TLw\Sw*TLw;
-            end
+            [V, Sv, Rv] = realSubspace(jCol, q, s0, V, Sv, Rv);
         end
     end
 
-    %orthogonalize columns from imaginary components
     if Opts.orth
-        for jCol=length(s0)+1:q
+        if hermite
+            [V, TRv, W, TLw] = gramSchmidt(jCol, V, W);
+        else
+            [V, TRv] = gramSchmidt(jCol, V);
+        end
+        Rv=Rv*TRv;
+        Sv=TRv\Sv*TRv;
+        if hermite
+            Lw=Lw*TLw;
+            Sw=TLw\Sw*TLw;
+        end
+    end
+end
+
+%orthogonalize columns from imaginary components
+if Opts.orth
+    for jCol=length(s0)+1:q
+        if hermite
+            [V, TRv, W, TLw] = gramSchmidt(jCol, V, W);
+        else
+            [V, TRv] = gramSchmidt(jCol, V);
+        end
+        Rv=Rv*TRv;
+        Sv=TRv\Sv*TRv;
+        if hermite
+            Lw=Lw*TLw;
+            Sw=TLw\Sw*TLw;
+        end
+    end
+end
+
+% transform hess back
+if exist('Z','var') && ~isempty(Z)
+    V=Z*V;
+    if hermite
+        W=Q.'*W;
+    end
+end
+
+% reorthogonalization  
+% Even modified Gram-Schmidt is not able to yield an orthonormal basis
+% if the dimensions are high. Therefore, a reorthogonalization might be
+% needed. On can choose to run modified GS again. From a theoretical 
+% standpoint, this does not change the basis. However,
+% numerically it is necessary to keep the numerics well behaved if the 
+% reduced order is large
+% The QR algorithm is much faster, however it does change the basis
+
+switch Opts.reorth
+    case 'mgs' %reorthogonalized GS
+        Opts.orth='mgs'; %overwrite
+        for jCol = 2:q        
             if hermite
                 [V, TRv, W, TLw] = gramSchmidt(jCol, V, W);
             else
@@ -323,163 +353,159 @@ end
                 Sw=TLw\Sw*TLw;
             end
         end
-    end
+    case 'qr'
+       [V,Rq] = qr(V); %A=QR -> Q=A*inv(R) with transformation matrix inv(R)
+       V=V(:,1:q);
+       Rq=Rq(1:q,1:q);
+       Rinv=Rq\eye(q);
+       Rv=Rv*Rinv;
+       Sv=Rq*Sv*Rinv;
+       if hermite
+           [W,Rq] = qr(W);
+           W=W(:,1:q);
+           Rq=Rq(1:q,1:q);
+           Lw=Lw*Rinv;
+           Sw=Rq*Sw*Rinv;
+       end  
+    case 0
+    otherwise
+        error('The orthogonalization chosen is incorrect or not implemented')
+end
 
-    % reorthogonalization  
-    % Even modified Gram-Schmidt is not able to yield an orthonormal basis
-    % if the dimensions are high. Therefore, a reorthogonalization might be
-    % needed. On can choose to run modified GS again. From a theoretical 
-    % standpoint, this does not change the basis. However,
-    % numerically it is necessary to keep the numerics well behaved if the 
-    % reduced order is large
-    % The QR algorithm is much faster, however it does change the basis
-    
-    switch Opts.reorth
-        case 'mgs' %reorthogonalized GS
-            Opts.orth='mgs'; %overwrite
-            for jCol = 2:q        
-                if hermite
-                    [V, TRv, W, TLw] = gramSchmidt(jCol, V, W);
-                else
-                    [V, TRv] = gramSchmidt(jCol, V);
-                end
-                Rv=Rv*TRv;
-                Sv=TRv\Sv*TRv;
-                if hermite
-                    Lw=Lw*TLw;
-                    Sw=TLw\Sw*TLw;
-                end
+function [s0] = tangentialDirection(s0)
+%   Update s0 and define Rt for calculation of tangential directions
+%   Input:  s0: Vector containing the expansion points
+%   Output: s0: Vector containing the updated expansion points
+if size(B,2) == 1; %SISO -> tangential directions are scalars
+    Rt = ones(1,length(s0));
+    % these siso "tangential directions" are not used for the
+    % computatoin of the Krylov subspaces but just for the computation
+    % of the transformed tangential directions 
+else %MIMO -> fill up s0 and define tangential blocks
+
+    % tangential matching of higher order moments not implemented so
+    % far! Therefore, if two shifts are the same, give an error
+
+    if any(diff(sort(s0))==0)
+        s0=sort(s0);
+        s0(end+1)=NaN;
+        [us0,ia,~]=unique(s0);
+        ns0=diff(ia);
+        us0=us0(1:end-1);
+
+        Rt=[];
+        s0=[];
+        for i=1:length(us0)
+            tempRt=[];
+            for j=1:size(B,2)
+               tempRt=blkdiag(tempRt,ones(1,ns0(i)));
+               s0=[s0,us0(i)*ones(1,ns0(i))];
             end
-        case 'qr'
-           [V,R] = qr(V); %A=QR -> Q=A*inv(R) with transformation matrix inv(R)
-           V=V(:,1:q);
-           R=R(1:q,1:q);
-           Rinv=R\eye(q);
-           Rv=Rv*Rinv;
-           Sv=R*Sv*Rinv;
-           if hermite
-               [W,R] = qr(W);
-               W=W(:,1:q);
-               R=R(1:q,1:q);
-               Lw=Lw*Rinv;
-               Sw=R*Sw*Rinv;
-           end  
-        case 0
-        otherwise
-            error('The orthogonalization chosen is incorrect or not implemented')
-    end 
-    end  
-
-    function [s0] = tangentialDirection(s0)
-    %   Update s0 and define Rt for calculation of tangential directions
-    %   Input:  s0: Vector containing the expansion points
-    %   Output: s0: Vector containing the updated expansion points
-    if size(B,2) == 1; %SISO -> tangential directions are scalars
-        Rt = ones(1,length(s0));
-        % these siso "tangential directions" are not used for the
-        % computatoin of the Krylov subspaces but just for the computation
-        % of the transformed tangential directions 
-    else %MIMO -> fill up s0 and define tangential blocks
-        
-        % tangential matching of higher order moments not implemented so
-        % far! Therefore, if two shifts are the same, give an error
-        
-        if any(diff(sort(s0))==0)
-            error(['Multiplicities in the shifts detected. Tangential '...
-                'matching of higher order moments with block'...
-                'Krylov not implemented (yet)!']);
+            Rt=[Rt,tempRt];
         end
-        
+    else
         s0old = s0; nS0=length(s0); s0 = [];
         for iShift = 1:nS0
             s0 = [s0, s0old(iShift)*ones(1,size(B,2))];
         end
         Rt = repmat(speye(size(B,2)),1,nS0);
-        
     end
-    if hermite
-        if size(B,2) ~=size(C,1)
-            error('Block Krylov for m~=p is not supported in arnoldi');
-        else
-            Lt = Rt;
+end
+if hermite
+    if size(B,2) ~=size(C,1)
+        error('Block Krylov for m~=p is not supported in arnoldi');
+    else
+        Lt = Rt;
+    end
+end
+end
+
+function [s0] = updateS0(s0)
+%   Remove one element of complex expansion points
+%   Input:  s0: Vector containing the expansion points
+%   Output: s0: Sorted vector containing only real or one element of
+%               complex conjugated expansion points
+%           nS0c: Number of complex conjugated expansion points
+
+% remove one element of complex pairs (must be closed under conjugation)
+k=find(imag(s0));
+if ~isempty(k)
+    % make sure shift are sorted and come in complex conjugate pairs
+    try 
+        s0cUnsrt = s0(k);
+        s0c = cplxpair(s0cUnsrt);
+        % get permutation indices, since cplxpair does not do it for you
+        [~,cplxSorting] = ismember(s0c,s0cUnsrt); %B(idx) = A
+    catch 
+        error(['Shifts must come in complex conjugated pairs and be sorted',...
+            ' before being passed to arnoldi.'])
+    end
+
+    % take only one shift per complex conjugate pair
+    s0(k) = []; 
+    s0 = [s0 s0c(1:2:end)];
+
+    % take only one residue vector for each complex conjugate pair
+    if exist('Rt','var') && ~isempty(Rt)
+        RtcUnsrt = Rt(:,k); 
+        Rtc = RtcUnsrt(:,cplxSorting);
+        Rt(:,k) = []; 
+        Rt = [Rt,Rtc(:,1:2:end)]; 
+        if exist('Lt','var') && ~isempty(Lt)
+            LtcUnsrt = Lt(:,k);
+            Ltc = LtcUnsrt(:,cplxSorting);
+            Lt(:,k) = [];
+            Lt = [Lt,Ltc(:,1:2:end)];
         end
     end
-    end
+end
+end
 
-    function [s0] = updateS0(s0)
-    %   Remove one element of complex expansion points
-    %   Input:  s0: Vector containing the expansion points
-    %   Output: s0: Sorted vector containing only real or one element of
-    %               complex conjugated expansion points
-    %           nS0c: Number of complex conjugated expansion points
-    
-    % remove one element of complex pairs (must be closed under conjugation)
-    k=find(imag(s0));
-    if ~isempty(k)
-        % make sure shift are sorted and come in complex conjugate pairs
-        try 
-            s0cUnsrt = s0(k);
-            s0c = cplxpair(s0cUnsrt);
-            % get permutation indices, since cplxpair does not do it for you
-            [~,cplxSorting] = ismember(s0c,s0cUnsrt); %B(idx) = A
-        catch 
-            error(['Shifts must come in complex conjugated pairs and be sorted',...
-                ' before being passed to arnoldi.'])
-        end
+%b) SECONDARY
+function [V, TRv, W, TLw] = gramSchmidt(jCol, V, W)
+%   Gram-Schmidt orthonormalization
+%   Input:  jCol:  Column to be treated
+%           V, W:  Krylov-Subspaces
+%   Output: V, W:  orthonormal basis of Krylov-Subspaces
+%           TRv, TLw: Transformation matrices
 
-        % take only one shift per complex conjugate pair
-        s0(k) = []; 
-        s0 = [s0 s0c(1:2:end)];
-
-        % take only one residue vector for each complex conjugate pair
-        if exist('Rt','var') && ~isempty(Rt)
-            RtcUnsrt = Rt(:,k); 
-            Rtc = RtcUnsrt(:,cplxSorting);
-            Rt(:,k) = []; 
-            Rt = [Rt,Rtc(:,1:2:end)]; 
-            if exist('Lt','var') && ~isempty(Lt)
-                LtcUnsrt = Lt(:,k);
-                Ltc = LtcUnsrt(:,cplxSorting);
-                Lt(:,k) = [];
-                Lt = [Lt,Ltc(:,1:2:end)];
-            end
-        end
-    end
-    end
-
-% b) SECONDARY
-    function [V, TRv, W, TLw] = gramSchmidt(jCol, V, W)
-    %   Gram-Schmidt orthonormalization
-    %   Input:  jCol:  Column to be treated
-    %           V, W:  Krylov-Subspaces
-    %   Output: V, W:  orthonormal basis of Krylov-Subspaces
-    %           TRv, TLw: Transformation matrices
-    
-    TRv=eye(size(V,2));
-    TLw=eye(size(V,2));
-    if jCol>1
-        switch Opts.orth
-            case 'dgks'
-                % iterates standard gram-schmidt
-                orthError=1;
-                count=0;
-                while(orthError>Opts.dgksTol)
-                    h=IP(V(:,1:jCol-1),V(:,jCol));
-                    V(:,jCol)=V(:,jCol)-V(:,1:jCol-1)*h;
-                    TRv(:,jCol)=TRv(:,jCol)-TRv(:,1:jCol-1)*h;
-                    if hermite
-                        h=IP(W(:,1:jCol-1),W(:,jCol));
-                        W(:,jCol)=W(:,jCol)-W(:,1:jCol-1)*h;
-                        TLw(:,jCol)=TLw(:,jCol)-TLw(:,1:jCol-1)*h;
-                    end
-                    orthError=norm(IP([V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))],...
-                        [V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))])-speye(jCol),'fro');
-                    if count>50 % if dgksTol is too small, Matlab can get caught in the while-loop
-                        error('Orthogonalization of the Krylov basis failed due to the given accuracy.');
-                    end
-                    count=count+1;
+TRv=eye(size(V,2));
+TLw=eye(size(V,2));
+if jCol>1
+    switch Opts.orth
+        case 'dgks'
+            % iterates standard gram-schmidt
+            orthError=1;
+            count=0;
+            while(orthError>Opts.dgksTol)
+                h=IP(V(:,1:jCol-1),V(:,jCol));
+                V(:,jCol)=V(:,jCol)-V(:,1:jCol-1)*h;
+                TRv(:,jCol)=TRv(:,jCol)-TRv(:,1:jCol-1)*h;
+                if hermite
+                    h=IP(W(:,1:jCol-1),W(:,jCol));
+                    W(:,jCol)=W(:,jCol)-W(:,1:jCol-1)*h;
+                    TLw(:,jCol)=TLw(:,jCol)-TLw(:,1:jCol-1)*h;
                 end
-            case 'mgs'
+                orthError=norm(IP([V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))],...
+                    [V(:,1:jCol-1),V(:,jCol)/sqrt(IP(V(:,jCol),V(:,jCol)))])-speye(jCol),'fro');
+                if count>50 % if dgksTol is too small, Matlab can get caught in the while-loop
+                    error('Orthogonalization of the Krylov basis failed due to the given accuracy.');
+                end
+                count=count+1;
+            end
+        case 'mgs'
+            for iCol=1:jCol-1
+              h=IP(V(:,jCol),V(:,iCol));
+              V(:,jCol)=V(:,jCol)-V(:,iCol)*h;
+              TRv(:,jCol)=TRv(:,jCol)-h*TRv(:,iCol);
+              if hermite
+                h=IP(W(:,jCol),W(:,iCol));
+                W(:,jCol)=W(:,jCol)-W(:,iCol)*h;
+                TLw(:,jCol)=TLw(:,jCol)-h*TLw(:,iCol);
+              end 
+            end
+       case '2mgs'
+            for k=0:1
                 for iCol=1:jCol-1
                   h=IP(V(:,jCol),V(:,iCol));
                   V(:,jCol)=V(:,jCol)-V(:,iCol)*h;
@@ -490,268 +516,54 @@ end
                     TLw(:,jCol)=TLw(:,jCol)-h*TLw(:,iCol);
                   end 
                 end
-           case '2mgs'
-                for k=0:1
-                    for iCol=1:jCol-1
-                      h=IP(V(:,jCol),V(:,iCol));
-                      V(:,jCol)=V(:,jCol)-V(:,iCol)*h;
-                      TRv(:,jCol)=TRv(:,jCol)-h*TRv(:,iCol);
-                      if hermite
-                        h=IP(W(:,jCol),W(:,iCol));
-                        W(:,jCol)=W(:,jCol)-W(:,iCol)*h;
-                        TLw(:,jCol)=TLw(:,jCol)-h*TLw(:,iCol);
-                      end 
-                    end
-                end
-            otherwise
-                error('Opts.orth is invalid.');
-        end  
-    end
+            end
+        otherwise
+            error('Opts.orth is invalid.');
+    end  
+end
 
-    % normalize new basis vector
-    h = sqrt(IP(V(:,jCol),V(:,jCol)));
-    V(:,jCol)=V(:,jCol)/h;
-    TRv(:,jCol) = TRv(:,jCol)/h;
-    if hermite
-        h = sqrt(IP(W(:,jCol),W(:,jCol)));
-        W(:,jCol)=W(:,jCol)/h;
-        TLw(:,jCol) = TLw(:,jCol)/h;
-    end
-    end
+% normalize new basis vector
+h = sqrt(IP(V(:,jCol),V(:,jCol)));
+V(:,jCol)=V(:,jCol)/h;
+TRv(:,jCol) = TRv(:,jCol)/h;
+if hermite
+    h = sqrt(IP(W(:,jCol),W(:,jCol)));
+    W(:,jCol)=W(:,jCol)/h;
+    TLw(:,jCol) = TLw(:,jCol)/h;
+end
+end
 
-    function [V, Sv, Rv, W, Sw, Lw] = realSubspace(jCol, q, s0, V, Sv, Rv, W, Sw, Lw)
-    %   Split Krylov direction into real and imaginary to create a real 
-    %   Krylov subspace
-    %   Input:  jCol:  Column to be treated
-    %           q:     Reduction order
-    %           s0:    Vector containing the expansion points
-    %           V, W:  Krylov-Subspaces
-    %           Sv, Rsylv, Sw, Lsylv: Sylvester matrices
-    %   Output: V, W:  real basis of Krylov-Subspaces
-    %           Sv, Rv, Sw, Lw: real Sylvester matrices
-    nS0c=q-length(s0);
-    if ~isreal(s0(jCol))
-        V(:,jCol+nS0c)=imag(V(:,jCol)); 
-        V(:,jCol)=real(V(:,jCol));
-        Rv(:,jCol+nS0c) = imag(Rv(:,jCol));
-        Rv(:,jCol) = real(Rv(:,jCol));
-        Sv(jCol, jCol+nS0c)=imag(Sv(jCol, jCol));
-        Sv(jCol+nS0c, jCol)=-imag(Sv(jCol, jCol));
-        Sv(jCol+nS0c, jCol+nS0c)=real(Sv(jCol, jCol));
-        Sv(jCol, jCol)=real(Sv(jCol,jCol));
-        if hermite, 
-            W(:,jCol+nS0c)=imag(W(:,jCol));
-            W(:,jCol)=real(W(:,jCol)); 
-            Lw(:,jCol+nS0c) = imag(Lw(:,jCol));
-            Lw(:,jCol) = real(Lw(:,jCol));
-            Sw(jCol, jCol+nS0c)=imag(Sw(jCol, jCol));
-            Sw(jCol+nS0c, jCol)=-imag(Sw(jCol, jCol));
-            Sw(jCol+nS0c, jCol+nS0c)=real(Sw(jCol, jCol));
-            Sw(jCol, jCol)=real(Sw(jCol,jCol));
-        end
+function [V, Sv, Rv, W, Sw, Lw] = realSubspace(jCol, q, s0, V, Sv, Rv, W, Sw, Lw)
+%   Split Krylov direction into real and imaginary to create a real 
+%   Krylov subspace
+%   Input:  jCol:  Column to be treated
+%           q:     Reduction order
+%           s0:    Vector containing the expansion points
+%           V, W:  Krylov-Subspaces
+%           Sv, Rsylv, Sw, Lsylv: Sylvester matrices
+%   Output: V, W:  real basis of Krylov-Subspaces
+%           Sv, Rv, Sw, Lw: real Sylvester matrices
+nS0c=q-length(s0);
+if ~isreal(s0(jCol))
+    V(:,jCol+nS0c)=imag(V(:,jCol)); 
+    V(:,jCol)=real(V(:,jCol));
+    Rv(:,jCol+nS0c) = imag(Rv(:,jCol));
+    Rv(:,jCol) = real(Rv(:,jCol));
+    Sv(jCol, jCol+nS0c)=imag(Sv(jCol, jCol));
+    Sv(jCol+nS0c, jCol)=-imag(Sv(jCol, jCol));
+    Sv(jCol+nS0c, jCol+nS0c)=real(Sv(jCol, jCol));
+    Sv(jCol, jCol)=real(Sv(jCol,jCol));
+    if hermite, 
+        W(:,jCol+nS0c)=imag(W(:,jCol));
+        W(:,jCol)=real(W(:,jCol)); 
+        Lw(:,jCol+nS0c) = imag(Lw(:,jCol));
+        Lw(:,jCol) = real(Lw(:,jCol));
+        Sw(jCol, jCol+nS0c)=imag(Sw(jCol, jCol));
+        Sw(jCol+nS0c, jCol)=-imag(Sw(jCol, jCol));
+        Sw(jCol+nS0c, jCol+nS0c)=real(Sw(jCol, jCol));
+        Sw(jCol, jCol)=real(Sw(jCol,jCol));
     end
-    end
-    
-    function [V, SRsylv, Rsylv, W, SLsylv, Lsylv] = krylovDirection(jCol, s0, V, W)  
-    %   Get new Krylov direction
-    %   Input:  jCol:  Column to be treated
-    %           s0:    Vector containing the expansion points
-    %           V, W:  Krylov subspace
-    %   Output: V, W:  Updated Krylov subspace
-    %           SRsylv: update of column jCol of the Sylvester matrices
-    %                  Sv (e.g. SRsylv(:,jCol)=SRsylv)
-    %           Rsylv: update of column jCol of the Sylvester matrices 
-    %                  Rv (Rsylv either eye(size(B,2)) or 
-    %                  zeros(size(B,2)), e.g. Rsylv(:,jCol)=Rsylv*Rt(:,jCol)
-    %           SLsylv: update of column jCol of the Sylvester matrices
-    %                  Sw (e.g. SLsylv(:,jCol)=SLsylv)
-    %           Lsylv: update of column jCol of the Sylvester matrices 
-    %                  Lw (Lsylv either eye(size(C,1)) or 
-    %                  zeros(size(C,1)), e.g. Lsylv(:,jCol)=Lsylv*Lt(:,jCol)
-    
-    SRsylv=zeros(size(V,2),1);
-    if hermite
-        SLsylv=zeros(size(W,2),1);
-    end
-    switch Opts.krylov
-        case 0
-            % new basis vector
-            tempV=B*Rt(:,jCol); newlu=1; newtan=1;
-            SRsylv(jCol)=s0(jCol);
-            Rsylv=eye(size(B,2));
-            if hermite
-                SLsylv(jCol)=s0(jCol);
-                Lsylv=eye(size(C,1));
-                tempW = C.'*Lt(:,jCol);
-            end
-            if jCol>1
-                if s0(jCol)==s0(jCol-1)
-                    newlu=0;
-                    if Rt(:,jCol) == Rt(:,jCol-1)
-                        % Higher order moments, for the SISO and MIMO case
-                        newtan = 0;
-                        tempV = V(:,jCol-1); %overwrite
-                        SRsylv(jCol-1)=1;
-                        Rsylv=zeros(size(B,2));
-                        if hermite
-                            SLsylv(jCol-1)=1;
-                            Lsylv=zeros(size(C,1));
-                            tempW = W(:,jCol-1); 
-                        end
-                    else
-                        newtan = 1;
-                    end
-                end
-            end
-            if hermite
-                [V(:,jCol), W(:,jCol)] = lse(newlu, newtan, jCol, s0, tempV, tempW);
-            else
-                V(:,jCol) = lse(newlu, newtan, jCol, s0, tempV);
-            end
-        case 'cascade'
-            if size(B,2)==1
-                newlu=1; newtan=1;
-                SRsylv(jCol)=s0(jCol);
-                if hermite
-                    SLsylv(jCol)=s0(jCol);
-                end
-                if jCol==1
-                    tempV=B;
-                    Rsylv=1;
-                    if hermite 
-                        tempW=C.';
-                        Lsylv=1;
-                    end
-                else
-                    if s0(jCol)==s0(jCol-1)
-                        newlu=0;
-                        tempV=V(:,jCol-1);
-                        if hermite
-                            tempW=W(:,jCol-1);
-                        end
-                    else
-                        tempV=E*V(:,jCol-1);
-                        if hermite
-                            tempW=E*W(:,jCol-1);
-                        end
-                    end
-                    Rsylv=0;
-                    SRsylv(jCol-1)=1;
-                    if hermite
-                        Lsylv=0;
-                        SLsylv(jCol-1)=1;
-                    end
-                end
-                if hermite
-                    [V(:,jCol), W(:,jCol)] = lse(newlu, newtan, jCol, s0, tempV, tempW);
-                else
-                    V(:,jCol) = lse(newlu, newtan, jCol, s0, tempV);
-                end
-            else
-                error('A cascaded Krylov basis is only available for SISO systems.');
-            end
-        otherwise 
-            error('Opts.krylov is invalid.');
-    end
-    end
+end
+end
 
-    function [tempV, tempW] = lse(newlu, newtan, jCol, s0, tempV, tempW)
-    %   Solve linear system of equations to obtain the new Krylov direction
-    %   Moment matching:  newlu=0: tempV=(A-s0_old*E)^-1*(E*tempV)
-    %                     newlu=1: tempV=(A-s0*E)^-1*tempV
-    %   Markov parameter: newlu=0: tempV=E^-1*(A*tempV)
-    %                     newlu=1: tempW=E^-1*tempV
-    %   Input:  newlu: new lu decomposition required
-    %           newtan: new tangential direction required
-    %           jCol: Column to be treated
-    %           s0: Vector containing the expansion points
-    %           tempV, tempW: previous Krylov direction
-    %   Output: tempV, tempW: new Krylov direction
-    persistent R S L U a o;
-    
-    if isinf(s0(jCol)) %Realization problem (match Markov parameters)
-        if newlu==0 || strcmp(Opts.krylov,'cascade')
-            tempV=A*tempV;
-            if hermite
-                tempW=A*tempW;
-            end
-        end
-        if newlu==1
-            try
-                % compute Cholesky factors of E
-                U=[];
-                [R,~,S] = chol(E);
-%                 R = chol(sparse(E));
-            catch err
-                if (strcmp(err.identifier,'MATLAB:posdef')) || ~strcmp(Opts.lse,'sparse')
-                    % E is not pos. def -> use LU instead
-                    switch Opts.lse
-                        case 'sparse'
-                            [L,U,a,o,S]=lu(E,'vector');
-                        case 'full'
-                            [L,U]=lu(E);
-                    end
-                else
-                    rethrow(err);
-                end
-            end
-        end
-        if ~isempty(U) || strcmp(Opts.lse,'hess')
-            switch Opts.lse
-                case 'sparse'
-                    tempV(o,:) = U\(L\(S(:,a)\tempV)); %LU x(o,:) = S(:,a)\b 
-                    if hermite
-                        tempW(o,:) = U\(L\(S(:,a)\tempW));
-                    end
-                case 'full'
-                    tempV = U\(L\tempV);
-                    if hermite
-                        tempW = U\(L\tempW);
-                    end
-                case 'hess'
-                    tempV = E\tempV;
-                    if hermite
-                        tempW = E\tempW;
-                    end
-            end
-        else
-            tempV = S*(R\(R.'\(S.'*tempV)));
-            if hermite
-                tempW = S*(R\(R.'\(S.'*tempW)));
-            end
-        end
-    else %Rational Krylov
-        if newlu==0
-            if size(B,2)==1 %SISO
-                tempV=E*tempV;
-                if hermite, tempW = E.'*tempW; end
-            elseif newtan==0
-                % Tangential matching of higher order moments
-                tempV=E*tempV;
-                if hermite, tempW = E.'*tempW; end
-            end
-        end
-        if newlu==1
-            switch Opts.lse
-                case 'sparse'
-                    % vector LU for sparse matrices
-                    [L,U,a,o,S]=lu(A-s0(jCol)*E,'vector');
-                case 'full'
-                    [L,U] = lu(A-s0(jCol)*E);
-            end
-        end
-        % Solve the linear system of equations
-        switch Opts.lse
-            case 'sparse'
-                tempV(o,:) = U\(L\(S(:,a)\tempV)); %LU x(o,:) = S(:,a)\b 
-                if hermite, tempW = (S(:,a)).'\(L.'\(U.'\(tempW(o,:)))); end %U'L'S(:,a) x = c'(o,:) 
-            case 'full'
-                tempV = U\(L\tempV);
-                if hermite, tempW = (L.'\(U.'\(tempW))); end 
-            case 'hess'
-                tempV = (A-s0(jCol)*E)\tempV;
-                if hermite, tempW = (A-s0(jCol)*E).'\tempW; end 
-        end
-    end
-    end
 end

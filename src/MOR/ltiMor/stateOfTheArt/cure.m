@@ -53,7 +53,7 @@ function sysr = cure(sys,Opts)
 %                           [{'0'} / '1']
 %           -.w:            frequencies for analysis plots
 %                           [{''} / '{wmin,wmax}' / vector of frequencies]
-%           -.zeroThers:    value that can be used to replace 0 
+%           -.zeroThres:    value that can be used to replace 0 
 %                           [{'1e-4'} / postivie float]
 %
 % Output Arguments:     
@@ -129,6 +129,13 @@ function sysr = cure(sys,Opts)
     if Opts.cure.maxIter > sys.n/Opts.cure.nk
         Opts.cure.maxIter = floor(sys.n/Opts.cure.nk);
     end
+    
+    % store the reductionParameters, if sys is of type ssRed
+    reductionParameters = [];
+    if isa(sys,'ssRed')
+        reductionParameters = sys.reductionParameters;
+    end
+    
 %%  Plot for testing
 if Opts.cure.test
     fhOriginalSystem = figure('Name','CURE - Reduction of the original model');
@@ -186,7 +193,7 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     iCure = iCure + 1;
     if Opts.cure.verbose, fprintf('\tCURE iteration %03i\n',iCure');end
     %   Redefine the G_ system at each iteration
-    sys = sss(sys.a,B_,C_,0,sys.e);
+    sys = sss(sys.a,B_,C_,[],sys.e);
     
     %   Initializations
     [s0,Opts] = initializeShifts(sys,Opts,iCure);        
@@ -196,16 +203,17 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
             % V-based decomposition, if A*V - E*V*S - B*Rv = 0
             switch Opts.cure.redfun
                 case 'spark'               
-                    [V,Sv,Rv] = spark(sys,s0,Opts); 
+                    [sysrTemp,V] = spark(sys,s0,Opts);
                     
-                    [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,C_);                   
+                    [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                 case 'irka'
-                    [sysrTemp,V,W,~,~,~,~,~,~,Rv] = irka(sys,s0);
+                    [sysrTemp,V,W,~,~,~,~,~,Rv] = irka(sys,s0');
                                       
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                     
                 case 'rk+pork'
-                    [~, V, ~, ~, Sv, Rv] = rk(sys,s0);
+                    [sysrTemp, V, ~, ~, Sv, Rv] = rk(sys,s0');
+
                     [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,C_);
                     
                     %   Adapt Cr for SE DAEs
@@ -223,19 +231,19 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
         % W-based decomposition, if A.'*W - E.'*W*Sw.' - C.'*Lw = 0
             switch Opts.cure.redfun
                 case 'spark'               
-                    [W,Sw,Lw] = spark(sys.',s0,Opts);
-                    Sw = Sw.'; %make Sw from Sw^T
+                    Opts.spark.pork = 'W';
+                    [sysrTemp,W,~,Lw,~] = spark(sys.',s0,Opts);
                     
-                    [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B_);
+                    [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                 case 'irka'
-                    [sysrTemp,V,W,~,~,~,~,~,~,~,~,~,Lw] = irka(sys,s0);
+                    [sysrTemp,V,W,~,~,~,~,~,~,~,~,Lw] = irka(sys,s0');
                     
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                     
                 case 'rk+pork'
-                    [~, ~, W, ~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0);
+                    [sysrTemp, ~, W, ~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0');
                     
-                    [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B_);  
+                    [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B_); 
                     
                     %   Adapt Br for SE-DAEs
                     Br = Br - Lw.'*DrImp;
@@ -256,14 +264,39 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     if Opts.cure.fact=='V'
         B_ = B_ - sys.e*(V*(Er\Br));    % B_bot
         BrL_tot = [BrL_tot; zeros(n,p)];    BrR_tot = [BrR_tot; Br];
-        CrL_tot = [CrL_tot, zeros(p,n)];    CrR_tot = [CrR_tot, Rv];
+        CrL_tot = [CrL_tot, zeros(p,n)];    CrR_tot = [CrR_tot, Cr];
     elseif Opts.cure.fact=='W'
         C_ = C_ - Cr/Er*W.'*sys.e;		% C_bot
         BrL_tot = [BrL_tot; Lw.'];   BrR_tot = [BrR_tot; zeros(n,m)];
         CrL_tot = [CrL_tot, Cr];    CrR_tot = [CrR_tot, zeros(m,n)];
     end
-
-    sysr    = sss(Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot);
+    
+    %%  Storing additional parameters
+    %Stroring additional information about the reduction in the object 
+    %containing the reduced model:
+    %   1. Define a new field for the Opts struct and write the information
+    %      that should be stored to this field
+    %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
+    %      way that the new defined field passes the check
+      
+    usedOpts = sysrTemp.reductionParameters{end,1}.params;
+    usedOpts.cure = Opts.cure;
+    usedOpts.currentReducedOrder = sysr.n+Opts.cure.nk;
+    usedOpts.originalOrder = sys.n;
+    usedOpts.shifts = s0;
+    
+    if isa(sysr,'ssRed')
+        sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
+                     Br_tot, Cr_tot, zeros(p,m), Er_tot,sysr.reductionParameters);
+    else            %first Iteration
+        if ~isempty(reductionParameters)
+            sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
+                         Br_tot, Cr_tot, zeros(p,m), Er_tot, reductionParameters);
+        else
+            sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
+                         Br_tot, Cr_tot, zeros(p,m), Er_tot);
+        end
+    end
     
     % display
     if Opts.cure.test

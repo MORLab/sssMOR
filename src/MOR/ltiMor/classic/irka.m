@@ -1,16 +1,15 @@
-function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj, LtTraj] = irka(sys, s0, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
-%       sysr                            = IRKA(sys, s0)
 %       sysr                            = IRKA(sys, s0)
 %       sysr                            = IRKA(sys, s0, Rt, Lt)
 %       sysr                            = IRKA(sys, s0,..., Opts)
 %       [sysr, V, W]                    = IRKA(sys, s0,... )
 %       [sysr, V, W, s0]                = IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj]        = IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj, Rt, Lt]= IRKA(sys, s0,... )
-%       [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt]        = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter,  s0Traj, RtTraj, LtTraj] = IRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Iterative Rational Krylov
@@ -27,7 +26,7 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = irka(
 %
 % Input Arguments:  
 %       *Required Input Arguments:*
-%       -sys:			full oder model (sss)
+%       -sys:			full order model (sss)
 %       -s0:			vector of initial shifts
 %
 %       *Optional Input Arguments:*
@@ -51,10 +50,11 @@ function [sysr, V, W, s0, s0Traj, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = irka(
 %       -sysr:              reduced order model (sss)
 %       -V,W:               resulting projection matrices
 %       -s0:                final choice of shifts
-%       -s0Traj:            trajectory of all shifst for all iterations
+%       -Rt,Lt:             final choice of tangential directions
 %       -B_,Sv,Rv:          matrices of the input Sylvester equation
 %       -C_,Sw,Lw:          matrices of the output Sylvester equation
 %       -kIter:             number of iterations
+%		-s0Traj,RtTraj,..:  trajectory of all shifst and tangential directions for all iterations
 %
 % Examples:
 %       This code computes an H2-optimal approximation of order 8 to
@@ -129,6 +129,7 @@ if Opts.tol<=0 || ~isreal(Opts.tol)
 end
 
 s0 = s0_vect(s0);
+r = length(s0);
 
 % sort expansion points & tangential directions
 s0old = s0;
@@ -138,15 +139,21 @@ if exist('Rt','var') && ~isempty(Rt)
     Rt = Rt(:,cplxSorting);
     Lt = Lt(:,cplxSorting);
 else
-    Rt = ones(sys.m,length(s0));
-    Lt = ones(sys.p,length(s0));
+    Rt = ones(sys.m,r);
+    Lt = ones(sys.p,r);
 end
 clear s0old
 
 % Initialize variables
 sysr = sss([],[],[]);
-s0Traj = zeros(Opts.maxiter+2, length(s0));
-s0Traj(1,:) = s0;
+
+s0Traj = zeros(1,r,Opts.maxiter);
+RtTraj = zeros(sys.m,r,Opts.maxiter);
+LtTraj = zeros(sys.p,r,Opts.maxiter);
+
+s0Traj(:,:,1) = s0;
+RtTraj(:,:,1) = Rt;
+LtTraj(:,:,1) = Lt;
 
 %% IRKA iteration
 kIter=0;
@@ -178,7 +185,10 @@ while true
         % mirror shifts with negative real part
         s0 = s0.*sign(real(s0));
     end
-    s0Traj(kIter+1,:) = s0;
+
+    s0Traj(:,:,kIter+1) = s0;
+    RtTraj(:,:,kIter+1) = Rt; 
+    LtTraj(:,:,kIter+1) = Lt;
     
     [stop, stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts);
     if Opts.verbose
@@ -188,11 +198,38 @@ while true
     if stop || kIter>= Opts.maxiter
         s0 = s0_old; % function return value
         if ~sys.isSiso, Rt = Rt_old; Lt = Lt_old; end
-        s0Traj = s0Traj(1:(kIter+1),:);
+        % keep only what has been computed
+        s0Traj = s0Traj(:,:,1:kIter);
+        RtTraj = RtTraj(:,:,1:kIter); LtTraj = LtTraj(:,:,1:kIter);
         sysr.Name = sprintf('%s_%i_irka',sys.Name, sysr.n);
         break
     end      
 end
+
+%%  Storing additional parameters
+%Stroring additional information about thr reduction in the object 
+%containing the reduced model:
+%   1. Define a new field for the Opts struct and write the information
+%      that should be stored to this field
+%   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
+%      way that the new defined field passes the check
+Opts.originalOrder = sys.n;
+if ~isfield(Opts,'orth') Opts.orth = '2mgs'; end
+if ~isfield(Opts,'reorth') Opts.reorth = 0; end
+if ~isfield(Opts,'lse') Opts.lse = 'sparse'; end
+if ~isfield(Opts,'dgksTol') Opts.dgksTol = 1e-12; end
+if ~isfield(Opts,'krylov') Opts.krylov = 0; end
+Opts.Rt = Rt;
+Opts.Lt = Lt;
+Opts.kIter = kIter;
+Opts.s0Traj = s0Traj;
+Opts.RtTraj = RtTraj;
+Opts.LtTraj = LtTraj;
+Opts.s0 = s0;
+
+% Convert the reduced system to a ssRed-object
+sysr = ssRed('irka',Opts,sysr);
+
 if ~Opts.suppressverbose %display at least the last value
     fprintf('IRKA step %03u - Convergence (%s): %s \n', ...
             kIter, Opts.stopCrit, sprintf('% 3.1e', stopCrit));

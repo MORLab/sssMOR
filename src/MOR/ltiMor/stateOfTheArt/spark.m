@@ -1,9 +1,15 @@
-function [V,S,R,k] = spark(sys,s0,Opts)
+function varargout = spark(sys,s0,Opts)
 % SPARK - Stability Preserving Adaptive Rational Krylov
 % 
 % Syntax:
 %       [V,Sv,Rv,k] = SPARK(sys,s0)
 %       [V,Sv,Rv,k] = SPARK(sys,s0,Opts)
+%       sysr = SPARK(sys,s0)
+%       sysr = SPARK(sys,s0,Opts)
+%       [sysr,V] = SPARK(sys,s0)
+%       [sysr,V] = SPARK(sys,s0,Opts)
+%       [sysr,V,Sv,Rv,k] = SPARK(sys,s0);
+%       [sysr,V,Sv,Rv,K] = SPARK(sys,s0,Opts);
 %
 % Description:
 %       This function reduces a state-space, LTI model specified 
@@ -41,6 +47,9 @@ function [V,S,R,k] = spark(sys,s0,Opts)
 %                           [{'1e-10'} / positive float]
 %           -.spark.modelTol: convergence tolerance for model funciton
 %                           [{'1e-5'} / positive float]
+%           -.spark.pork:   projection with porkV (input krylov subspace)
+%                           or porkW (output krylov subspace)
+%                           [{'V'} / 'W']
 %           -.mespark.ritz: use eigenvalues of model function to initialize
 %                           the shifts 
 %                           [{'1'} / '0']
@@ -55,6 +64,8 @@ function [V,S,R,k] = spark(sys,s0,Opts)
 %       -V,S,R:     Krylov subspace [V or W], Sylvester matrices [Sv,Rv] or
 %                   [Sw^T,Lw]
 %       -k:         Number of iterations of MESPARK
+%       -usedOpts:  Computation options that came to use during the spark
+%                   algorithm
 %
 % 
 % See Also: 
@@ -93,6 +104,7 @@ Def.spark.mi = 150; %5e3
 Def.spark.xTol = 1e-10;
 Def.spark.fTol = 1e-10;
 Def.spark.modelTol = 1e-5;
+Def.spark.pork = 'V';
     Def.mespark.ritz = 1;
     Def.mespark.pertIter = 5; % # iteration at which perturbation begins
     Def.mespark.maxIter = 20; %maximum number of model function updates
@@ -151,10 +163,49 @@ warning('off','MATLAB:nearlySingularMatrix')
     v2 = Q2*(U2\(L2\(P2*(sys.E*v1))));
     V   = full(real([v1/2 + (v12/2+p_opt(1)*v2), v2*sqrt(p_opt(2))]));
     S = [2*p_opt(1), sqrt(p_opt(2)); -sqrt(p_opt(2)), 0]; R = [1 0];
+    
+    if nargout == 1 || nargout == 2 || nargout == 5
+        if Opts.spark.pork == 'V'
+           sysr = porkV(V,S,R,sys.c);  
+        else
+           sysr = porkW(V,S.',R,sys.c.');
+        end
+        
+        %%  Storing additional parameters
+        %Stroring additional information about thr reduction in the object 
+        %containing the reduced model:
+        %   1. Define a new field for the Opts struct and write the information
+        %      that should be stored to this field
+        %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
+        %      way that the new defined field passes the check
+        
+        Opts.originalOrder = sys.n;
+        
+        params.method = 'spark';
+        params.params = Opts;
+        sysr = changeReductionParameters(sysr,params);
+    end
+    if nargout == 1 
+       varargout{1} = sysr;
+    elseif nargout == 2
+       varargout{1} = sysr;
+       varargout{2} = V;
+    elseif nargout == 5
+       varargout{1} = sysr;
+       varargout{2} = V;
+       varargout{3} = S;
+       varargout{4} = R;
+       varargout{5} = k;
+    else
+       varargout{1} = V;
+       varargout{2} = S;
+       varargout{3} = R;
+       varargout{4} = k;
+    end
     if Opts.spark.verbose
     disp(['spark required ca. ' num2str(2*(k+1)) ' LUs ', ...
         ' and converged in ' num2str(toc(t),'%.1f') 'sec.'])
-    end
+    end   
   
     warning('on','MATLAB:nearlySingularMatrix')
     

@@ -1,5 +1,5 @@
 function sysr = projectiveMor(sys,V,varargin)
-% PROJECTIVEMOR - reduce dynamic model by projection
+% PROJECTIVEMOR - Reduces dynamic model by projection
 % 
 % Syntax:
 %       sysr				= PROJECTIVEMOR(sys,V)
@@ -104,13 +104,28 @@ else
     W = varargin{1};
 end
 
+%%  Storing additional parameters
+%Stroring additional information about thr reduction in the object 
+%containing the reduced model:
+%   1. Define a new field for the Opts struct and write the information
+%      that should be stored to this field
+%   2. Adapt the methods "parseParamsStruct" and "parseParamsStruct" of 
+%      class "ssRed" in such a way that the new defined field passes the 
+%      check
+Opts.originalOrder = sys.n;
+
 %%  Projection
-%TODO: change the object class of sysr from sss to rom as soon as this is available
 switch Opts.trans
     case 'T'
-%         sysr = dss(W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V);
-        sysr = sss(W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V);
+        if isa(sys,'ssRed')
+            sysr = ssRed('projectiveMor',Opts,W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V,sys.reductionParameters);
+        else
+            sysr = ssRed('projectiveMor',Opts,W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V);
+        end
     case 'H'
-%         sysr = dss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
-        sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        if isa(sys,'ssRed')
+            sysr = ssRed('projectiveMor',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V,sys.reductionParameters);
+        else
+            sysr = ssRed('projectiveMor',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
+        end
 end

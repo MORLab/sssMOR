@@ -1,11 +1,11 @@
-function varargout = sssMOR_GUI(varargin)
-% SSSMOR_GUI - sssMOR toolbox Graphical User Interface 
+function varargout = sssMOR_App(varargin)
+% SSSMOR_APP - sssMOR toolbox App 
 %
 % Syntax:
-%       SSSMOR_GUI
+%       SSSMOR_APP
 %
 % Description:
-%       The *sssMOR GUI* is a Graphical User Interface for Model Order Reduction,
+%       The *sssMOR App* is a Graphical User Interface for Model Order Reduction,
 %       which uses the functions from the *sss Toolbox* and from the *sssMOR Toolbox*.  
 %
 %       The main menu of the user interface contains the five items *About*,
@@ -69,8 +69,8 @@ function varargout = sssMOR_GUI(varargin)
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @sssMOR_GUI_OpeningFcn, ...
-                   'gui_OutputFcn',  @sssMOR_GUI_OutputFcn, ...
+                   'gui_OpeningFcn', @sssMOR_App_OpeningFcn, ...
+                   'gui_OutputFcn',  @sssMOR_App_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -88,7 +88,7 @@ end
 % end
         
         
-function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INUSL>
+function sssMOR_App_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INUSL>
 
     %Make latex code possible for all static text-fields whose tag names start
     %with "latex"  
@@ -104,7 +104,7 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
               
              % Get current text, position and tag
              t = 'nothing'; 
-             set(l,'units','pixels');
+             set(l,'units','characters');
              s = get(l,'string');
              p = get(l,'position');
              parent = get(l,'parent');
@@ -113,21 +113,22 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
              delete(l);
              
              % Replace it with an axis with an text object on it
-             handles.(t) = axes('parent',parent,'units','pixels','position',[p(1) p(2) p(3) p(4)],'visible','off');
+             handles.(t) = axes('parent',parent,'units','characters','position',[p(1) p(2) p(3) p(4)],'visible','off');
              handles.(t) = text(0,0.3,s,'interpreter','latex');            
           end
     end
     
     %Add the subfolder from the GUI-folder-structure to the search-paths
     
-    guiPath = which('sssMOR_GUI.m');
-    pathArray = strsplit(guiPath,'\');
+    guiPath = which('sssMOR_App.m');
+    seperator = filesep;
+    pathArray = strsplit(guiPath,seperator);
     path = '';
     
     for i = 1:(size(pathArray,2)-1)
        
         if i > 1
-           path = strcat(path,'\',pathArray{1,i});
+           path = strcat(path,seperator,pathArray{1,i});
         else
            path = strcat(path,pathArray{1,i}); 
         end       
@@ -137,7 +138,62 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     
     addpath(genpath(path));
     
-    %Set default-values for the variables in saved in handles
+    %Save the Width of all Tables in pixels in the handles-structure and
+    %correctly set the width of the columns of all tables
+    %(Nescesarray because the column width has to be in 'pixels', but because
+    % the hole GUI is in 'characters' this leads to visualisation errors 
+    % on different operating systems)
+    
+    p = get(handles.figure1,'Position');
+    widthChar = p(1,3);
+    set(handles.figure1,'Units','pixels');
+    p = get(handles.figure1,'Position');
+    widthPix = p(1,3);
+    charToPix = widthPix/widthChar;
+    
+    w = charToPix*74;
+    set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(w/4),round(w/4),round(w/4),round(w/4)});
+    handles.widthTableMimoKrylovInput = w;
+    
+    w = charToPix*74;
+    set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{round(w/3),round(w/3),round(w/3)});
+    handles.widthTableMimoKrylovOutput = w;
+    
+    w = charToPix*40;
+    set(handles.uitable_mor_krylov,'ColumnWidth',{round(w/2),round(w/2)});
+    
+    w = charToPix*40;
+    set(handles.uitable_mor_krylov_output,'ColumnWidth',{round(w/2),round(w/2)});
+    
+    
+    %Add the pictures for Header and footer
+    
+    A = imread('Heading.png');
+    %Scale image to the correct size
+    set(handles.logo_tum,'Units','pixels');
+    p = get(handles.logo_tum,'Position');
+    set(handles.logo_tum,'Units','characters');
+    axes(handles.logo_tum);
+    %Show image and set properties
+    h=image(imresize(A,[round(p(1,4)),round(p(1,3))]));
+    set(h,'ButtonDownFcn',@(hObject,eventdata)sssMOR_App('logo_tum_ButtonDownFcn',handles.logo_tum,eventdata,guidata(hObject)));
+    set(handles.logo_tum,'XTick',[]);
+    set(handles.logo_tum,'YTick',[]);
+    
+    A=imread('Footer.png');
+    %Scale image to the correct size
+    set(handles.logos_footer,'Units','pixels');
+    p = get(handles.logos_footer,'Position');
+    set(handles.logos_footer,'Units','characters');
+    axes(handles.logos_footer);
+    %Show image and set properties
+    h=image(imresize(A,[round(p(1,4)),round(p(1,3))]));
+    set(h,'ButtonDownFcn',@(hObject,eventdata)sssMOR_App('logos_footer_ButtonDownFcn',handles.logos_footer,eventdata,guidata(hObject)));
+    set(handles.logos_footer,'XTick',[]);
+    set(handles.logos_footer,'YTick',[]);
+
+    
+    %Set default-values for the variables saved in handles
     
     handles.splash = splash('splash.png');
     handles.output = hObject;
@@ -151,79 +207,137 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     handles.zoom=[];
     handles.plotData = [];
     handles.chosenSystems = 0;
+    handles.storedHsv = {};
+    
+    %Set factors to convert from character-units to pixel units
+    
+    set(handles.figure1,'Units','characters');
+    posChar = get(handles.figure1,'Position');
+    set(handles.figure1,'Units','pixels');
+    posPix = get(handles.figure1,'Position');
+    
+    handles.PixToCharWidth = posChar(1,3)/posPix(1,3);
+    handles.PixToCharHeight = posChar(1,4)/posPix(1,4);
     
     %Set the default-folder for opening data-files
     
     handles.letzterpfad='*';
     
     path = mfilename('fullpath');
-    pathDirectories = strsplit(path,'\');
+    pathDirectories = strsplit(path,seperator);
     newPath = '';    
     
     for i = 1:length(pathDirectories)-2
-       newPath = strcat(newPath,strcat(pathDirectories{1,i},'\'));
+       newPath = strcat(newPath,strcat(pathDirectories{1,i},seperator));
     end
     
-    newPath = strcat(newPath,'src\sss\benchmarks\');
+    newPath = strcat(newPath,'src',seperator,'sss',seperator,'benchmarks',seperator);
     
     if exist(newPath,'dir') == 7
+        %Path exists
         handles.letzterpfad = newPath;
+        
+    else
+        %Path don't exists: Try to find the path in the matlab search path.
+        %This is important if the GUI is installed as an App
+        
+        [newPath,name,ending] = fileparts(which('CDplayer.mat'));
+        newPath = strcat(newPath,seperator);
+        
+        if exist(newPath,'dir') == 7
+           handles.letzterpfad = newPath; 
+        end        
     end
     
     %Set the footer visible or not dependent on the size of the screen
+    %(to convert from pixel units to chararcter units the values are
+    %multiplied with 0.198 for horizontal dimensions and with 0.0747 for
+    %vertical dimensions)
     
     screensize = get( 0, 'Screensize' );
     
+    set(handles.figure1,'Units','pixels');
     position = get(handles.figure1,'Position');
-    position(1,1) = max(round((screensize(1,3)-1046)/2),0);
-    position(1,2) = max(round((screensize(1,4)-746)/2),0);
+    position(1,1) = max(round((screensize(1,3)-position(1,3))/2),0);
+    position(1,2) = max(round((screensize(1,4)-position(1,4))/2),0);
     set(handles.figure1,'Position',position);
+    set(handles.figure1,'Units','characters');
     
-    if screensize(1,4) < 860    %Footer ausblenden
+    if screensize(1,4) < position(1,4)+100    %Footer ausblenden
+        
+        position = get(handles.logos_footer,'Position');
+        diff = position(1,4);
+        position(1,2) = position(1,2) - diff;
+        set(handles.logos_footer,'Position',position);
         
         position = get(handles.figure1,'Position');
-        position(1,4) = 716;
+        position(1,4) = position(1,4) - diff;
         set(handles.figure1,'Position',position);
         
         position = get(handles.pb_loading,'Position');
-        position(1,2) = 630;
+        position(1,2) = position(1,2) - diff;
         set(handles.pb_loading,'Position',position);
         
         position = get(handles.pb_postprocessing,'Position');
-        position(1,2) = 630;
+        position(1,2) = position(1,2) - diff;
         set(handles.pb_postprocessing,'Position',position);
         
         position = get(handles.pb_analysis,'Position');
-        position(1,2) = 630;
+        position(1,2) = position(1,2) - diff;
         set(handles.pb_analysis,'Position',position);
         
         position = get(handles.pb_about,'Position');
-        position(1,2) = 630;
+        position(1,2) = position(1,2) - diff;
         set(handles.pb_about,'Position',position);
         
         position = get(handles.pb_mor,'Position');
-        position(1,2) = 630;
+        position(1,2) = position(1,2) - diff;
         set(handles.pb_mor,'Position',position);
         
         position = get(handles.panel_load,'Position');
-        position(1,2) = 3;
+        position(1,2) = position(1,2) - diff;
         set(handles.panel_load,'Position',position);
         
         position = get(handles.panel_post,'Position');
-        position(1,2) = 3;
+        position(1,2) = position(1,2) - diff;
         set(handles.panel_post,'Position',position);
         
         position = get(handles.panel_about,'Position');
-        position(1,2) = 3;
+        position(1,2) = position(1,2) - diff;
         set(handles.panel_about,'Position',position);
         
         position = get(handles.panel_mor,'Position');
-        position(1,2) = 3;
+        position(1,2) = position(1,2) - diff;
         set(handles.panel_mor,'Position',position);
         
         position = get(handles.panel_analysis,'Position');
-        position(1,2) = 3;
+        position(1,2) = position(1,2) - diff;
         set(handles.panel_analysis,'Position',position);
+        
+        position = get(handles.logo_tum,'Position');
+        position(1,2) = position(1,2) - diff;
+        set(handles.logo_tum,'Position',position);
+        
+        %Set the header visible or not dependent on the size of the screen
+        
+        set(handles.figure1,'Units','pixels');
+        position = get(handles.figure1,'Position');
+        set(handles.figure1,'Units','characters');
+        
+        if screensize(1,4) < position(1,4)+50    %Header ausblenden
+            
+            position = get(handles.logo_tum,'Position');
+            diff = position(1,4);
+            
+            position = get(handles.pb_loading,'Position');
+            diff = diff - position(1,4);
+            
+            position = get(handles.figure1,'Position');
+            position(1,4) = position(1,4) - diff;
+            set(handles.figure1,'Position',position);
+            
+        end
+        
     end
     
 
@@ -252,10 +366,9 @@ function sssMOR_GUI_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
 function timer_Callback(handles)
     % removes the splashscreen after given time
     splash(handles.splash,'off')
-    evalin('base','stop(timerfind),delete(timerfind)')
 
 
-function varargout = sssMOR_GUI_OutputFcn(hObject, eventdata, handles)
+function varargout = sssMOR_App_OutputFcn(hObject, eventdata, handles)
     varargout{1} = handles.output;
 
 
@@ -275,30 +388,48 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
     %Show a hand as the mouse-symbol if the mouse is over a logo with a weblink
     %behind
-
+    %(to convert from pixel units to chararcter units for Windows OS the 
+    %values are multiplied with 0.2 for horizontal dimensions and with 
+    %0.0769 for vertical dimensions)
+    
     p = get(hObject,'CurrentPoint');
-
-    if p(1,1)>945 && p(1,1)<1040 && p(1,2)>700 && p(1,2)<750
-        %TUM-Logo (Header)
-        set(gcf,'Pointer','hand'); 
-    elseif p(1,1)> 5 && p(1,1)<55 && p(1,2)>700 && p(1,2)<750 
-        %Lehrstuhl-Logo (Header)
-        set(gcf,'Pointer','hand');
-    elseif p(1,1)>5 && p(1,1)<80 && p(1,2)>0 && p(1,2)<40
-        %sssMOR-Logo (Footer)
-        set(gcf,'Pointer','hand');
-    elseif p(1,1)>990 && p(1,1)<1040 && p(1,2)>0 && p(1,2)<40
-        %TUM-Logo (Footer)
-        set(gcf,'Pointer','hand');
-    elseif p(1,1)>305 && p(1,1)<420 && p(1,2)>0 && p(1,2)<40
-        %MorLab-Logo (Footer)
-        set(gcf,'Pointer','hand');
-    elseif p(1,1)>650 && p(1,1)<765 && p(1,2)>0 && p(1,2)<40
-        %Lehrstuhl-Logo (Footer)
-        set(gcf,'Pointer','hand');
-    else
-        %Not over any logo
-        set(gcf,'Pointer','arrow');
+    
+    p(1,1) = p(1,1)/0.2;
+    p(1,2) = p(1,2)/0.0769;
+    
+    logosVisible = 1;
+    set(handles.figure1,'Units','characters');
+    position = get(handles.figure1,'Position');
+    if position(1,4) < 58       %Footer not shown
+       p(1,2) = p(1,2) + 40; 
+       if position(1,4) < 51    %Header not shown
+           logosVisible = 0;
+       end
+    end
+    
+    if logosVisible
+        if p(1,1)>925 && p(1,1)<1040 && p(1,2)>700 && p(1,2)<750
+            %TUM-Logo (Header)
+            set(gcf,'Pointer','hand'); 
+        elseif p(1,1)> 5 && p(1,1)<75 && p(1,2)>700 && p(1,2)<750 
+            %Lehrstuhl-Logo (Header)
+            set(gcf,'Pointer','hand');
+        elseif p(1,1)>5 && p(1,1)<80 && p(1,2)>0 && p(1,2)<40
+            %sssMOR-Logo (Footer)
+            set(gcf,'Pointer','hand');
+        elseif p(1,1)>990 && p(1,1)<1040 && p(1,2)>0 && p(1,2)<40
+            %TUM-Logo (Footer)
+            set(gcf,'Pointer','hand');
+        elseif p(1,1)>305 && p(1,1)<420 && p(1,2)>0 && p(1,2)<40
+            %MorLab-Logo (Footer)
+            set(gcf,'Pointer','hand');
+        elseif p(1,1)>650 && p(1,1)<765 && p(1,2)>0 && p(1,2)<40
+            %Lehrstuhl-Logo (Footer)
+            set(gcf,'Pointer','hand');
+        else
+            %Not over any logo
+            set(gcf,'Pointer','arrow');
+        end   
     end
 
 
@@ -310,34 +441,18 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
 
 %Callbacks of the panel
 
-function logo_tum_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
-    %load TUM logo
-    addRelativePaths();
-    A=imread('pictures\Heading.png');
-    h=image(A);
-    set(h,'HitTest','off')
-    set(hObject,'YDir','reverse');
-    set(hObject,'XTick',[]);
-    set(hObject,'YTick',[]);
-    set(hObject,'HitTest','on');
-    
-    %Hide footer if the screen is not large enougth
-    
-    screensize = get( 0, 'Screensize' );
-    
-    if screensize(1,4) < 860
-        
-        position = get(hObject,'Position');
-        position(1,2) = 630;
-        set(hObject,'Position',position);
-    end
-
 function logo_tum_ButtonDownFcn(hObject, eventdata, handles)
     % link to web page
+    %(to convert from pixel units to chararcter units for Windows OS the 
+    %values are multiplied with 0.2 for horizontal dimensions and with 
+    %0.0769 for vertical dimensions)
     p=get(hObject,'CurrentPoint');
-    if p(1,1)>945 && p(1,1)<1040 && p(1,2)>5 && p(1,2)<80
+    p(1,1) = p(1,1)*handles.PixToCharWidth/0.2;
+    p(1,2) = p(1,2)*handles.PixToCharHeight/0.0769;
+    
+    if p(1,1)>925 && p(1,1)<1040 && p(1,2)>5 && p(1,2)<80
         web www.tum.de
-    elseif p(1,1)> 5 && p(1,1)<55 && p(1,2)>5 && p(1,2)<80  
+    elseif p(1,1)> 5 && p(1,1)<75 && p(1,2)>5 && p(1,2)<80  
         web www.rt.mw.tum.de
     end
 
@@ -394,12 +509,6 @@ function pb_about_Callback(hObject, eventdata, handles)
 
 
 
-
-
-
-
-
-
 %--------------------------------------------------------------------------
 %                                 ABOUT
 %--------------------------------------------------------------------------
@@ -407,7 +516,7 @@ function pb_about_Callback(hObject, eventdata, handles)
 function logo_about_CreateFcn(hObject, eventdata, handles)
     % load About logo
     addRelativePaths();
-    A=imread('pictures\MOR.jpg');
+    A=imread('MOR.jpg');
     image(A);
     set(hObject,'YDir','reverse');
 
@@ -543,11 +652,14 @@ function pb_PaV_move_Callback(hObject, eventdata, handles)
         data.name = selectedSystem;
         data.isSystem = 1;
 
-        if sys.p > 1|| sys.m > 1
+        p = size(sys.B,2);
+        m = size(sys.C,1);
+        
+        if p > 1|| m > 1
            data.in = 'all';
            data.out = 'all';
-           data.sizeInputs = sys.m;
-           data.sizeOutputs = sys.p;
+           data.sizeInputs = m;
+           data.sizeOutputs = p;
            %data.legendText = suggestDefaultLegendText(handles,selectedSystem,1);
         else
            data.in = [];
@@ -562,6 +674,8 @@ function pb_PaV_move_Callback(hObject, eventdata, handles)
 
         data.save = 1;
         data.variableName = suggestPlotDataName(handles,selectedSystem);
+        data.saveTimeseries = 0;
+        data.variableNameTimeseries = suggestPlotDataNameTimeseries(handles,selectedSystem);
         data.color = mod(handles.chosenSystems,7)+1;
         data.lineStyle = 1;
         data.markerType = 1;
@@ -691,6 +805,8 @@ function pb_PaV_moveObjects_Callback(hObject, eventdata, handles)
 
         data.save = [];
         data.variableName = [];
+        data.saveTimeseries = [];
+        data.variableNameTimeseries = [];
         data.color = mod(handles.chosenSystems,7)+1;
         data.lineStyle = 1;
         data.markerType = 1;
@@ -711,7 +827,7 @@ function pb_PaV_moveObjects_Callback(hObject, eventdata, handles)
     lb_PaV_selectedSystems_Callback(handles.lb_PaV_selectedSystems,eventdata,handles);
     
 function pb_PaV_refeshObjects_Callback(hObject, eventdata, handles)
-%Refresh the list of data-objects (frd, fir, etc.) existing in workspace
+%Refresh the list of data-objects (frd, tf, etc.) existing in workspace
 
     %Get all objects existing in workspace
     
@@ -723,12 +839,12 @@ function pb_PaV_refeshObjects_Callback(hObject, eventdata, handles)
             class = 'frd';
         case 3      %Singular Values
             class = 'frd';
-        case 4      %Pole-Zero-Map
-            class = 'pzm';
-        case 5      %Impulse
-            class = 'fir';
-        case 6      %Step
-            class = 'fir';
+        case 4      %Impulse
+            class = 'tf';
+        case 5      %Step
+            class = 'tf';
+        case 6      %Pole-Zero-Map
+            class = 'zpk';
     end
     
     l = listClassesInWorkspace(class);
@@ -864,6 +980,20 @@ function et_PaV_saveData_Callback(hObject, eventdata, handles)
 
     savePlotData(handles);
 
+function cb_PaV_SaveTimeseries_Callback(hObject, eventdata, handles)
+
+    if get(hObject,'Value') == 1
+       set(handles.et_PaV_saveTimeseries,'Enable','on'); 
+    else
+       set(handles.et_PaV_saveTimeseries,'Enable','off'); 
+    end
+
+    savePlotData(handles);
+
+function et_PaV_saveTimeseries_Callback(hObject, eventdata, handles)
+    
+    savePlotData(handles);
+
 function pu_in_Callback(hObject, eventdata, handles)
 
     handles = savePlotData(handles);
@@ -957,10 +1087,30 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
                 else
                    set(handles.et_PaV_saveData,'Enable','off'); 
                 end
+                
+                set(handles.cb_PaV_SaveTimeseries,'Value',data.saveTimeseries);
+                set(handles.et_PaV_saveTimeseries,'String',data.variableNameTimeseries);
             
+                if data.saveTimeseries
+                   set(handles.et_PaV_saveTimeseries,'Enable','on'); 
+                else
+                   set(handles.et_PaV_saveTimeseries,'Enable','off'); 
+                end
+                
                 set(handles.cb_PaV_SaveData,'Visible','on');
                 set(handles.et_PaV_saveData,'Visible','on');
                 set(handles.pb_PaV_infoSaveData,'Visible','on');
+                
+                if get(handles.plot_type,'Value') == 4 || ...
+                   get(handles.plot_type,'Value') == 5     %Step or Impulse              
+                    set(handles.cb_PaV_SaveTimeseries,'Visible','on');
+                    set(handles.et_PaV_saveTimeseries,'Visible','on');
+                    set(handles.pb_PaV_infoSaveTimeseries,'Visible','on');
+                else
+                    set(handles.cb_PaV_SaveTimeseries,'Visible','off');
+                    set(handles.et_PaV_saveTimeseries,'Visible','off');
+                    set(handles.pb_PaV_infoSaveTimeseries,'Visible','off');
+                end
                 
                 set(handles.bg_PaV_Resolution,'Visible','on');
                 set(handles.pb_PaV_showObject,'Visible','off');
@@ -993,6 +1143,10 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
                 set(handles.et_PaV_saveData,'Visible','off');
                 set(handles.pb_PaV_infoSaveData,'Visible','off');
                 
+                set(handles.cb_PaV_SaveTimeseries,'Visible','off');
+                set(handles.et_PaV_saveTimeseries,'Visible','off');
+                set(handles.pb_PaV_infoSaveTimeseries,'Visible','off');
+                
                 set(handles.bg_PaV_Resolution,'Visible','off');
                 set(handles.panel_manual,'Visible','off');
                 
@@ -1006,6 +1160,9 @@ function lb_PaV_selectedSystems_Callback(hObject, eventdata, handles)
         set(handles.panel_PaV_plotStyle,'Visible','off');
         set(handles.cb_PaV_SaveData,'Visible','off');
         set(handles.et_PaV_saveData,'Visible','off'); 
+        set(handles.cb_PaV_SaveTimeseries,'Visible','off');
+        set(handles.et_PaV_saveTimeseries,'Visible','off');
+        set(handles.pb_PaV_infoSaveTimeseries,'Visible','off');
         set(handles.bg_PaV_plotStyle,'Visible','off');
         set(handles.bg_PaV_Resolution,'Visible','off');        
         set(handles.pb_PaV_showObject,'Visible','off');
@@ -1024,7 +1181,7 @@ function lb_PaV_systemsWs_Callback(hObject, eventdata, handles)
         %Load system from workspace
 
         sys = evalin('base', y);
-        if ~strcmp(class(sys), 'ss') && ~strcmp(class(sys), 'sss')
+        if ~isa(sys, 'ss') && ~isa(sys, 'sss')
             errordlg('Variable is not a valid state space model.','Error Dialog','modal')
             set(handles.sysinfo,'String','Invalid model')
             uiwait
@@ -1041,7 +1198,7 @@ function lb_PaV_systemsWs_Callback(hObject, eventdata, handles)
 
 function plot_type_Callback(hObject, eventdata, handles)
 
-if get(hObject,'Value')==4
+if get(hObject,'Value')==6
     % pzmap
     set(handles.rb_auto,'Value',1)
     set(handles.rb_auto,'Enable','inactive')
@@ -1060,47 +1217,29 @@ list = get(handles.lb_PaV_selectedSystems,'String');
 switch get(handles.plot_type,'Value')
     
     case 1      %Bode
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'pzm');
-        list = removeObjectsFromList(list,'freq');
-        
+        list = removeObjectsFromList(list,'tf');
+        list = removeObjectsFromList(list,'zpk');
         set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
     case 2      %Magnitude
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'pzm');
-        
+        list = removeObjectsFromList(list,'tf');
+        list = removeObjectsFromList(list,'zpk');
         set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
     case 3      %Singular Values
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'pzm');
-        
+        list = removeObjectsFromList(list,'tf');
+        list = removeObjectsFromList(list,'zpk');
         set(handles.panel_PaV_objectsWs,'Title','Frd-objects');
     case 4      %Impulse
         list = removeObjectsFromList(list,'frd');
-        list = removeObjectsFromList(list,'step');
-        list = removeObjectsFromList(list,'pzm');
-        list = removeObjectsFromList(list,'freq');
-        
-        set(handles.panel_PaV_objectsWs,'Title','Fir-objects');
+        list = removeObjectsFromList(list,'zpk');
+        set(handles.panel_PaV_objectsWs,'Title','Tf-objects');
     case 5      %Step
-        list = removeObjectsFromList(list,'fir');
         list = removeObjectsFromList(list,'frd');
-        list = removeObjectsFromList(list,'pzm');
-        list = removeObjectsFromList(list,'freq');
-        
-        set(handles.panel_PaV_objectsWs,'Title','Fir-objects');
+        list = removeObjectsFromList(list,'zpk');
+        set(handles.panel_PaV_objectsWs,'Title','Tf-objects');
     case 6      %Pole-Zero Map
-        list = removeObjectsFromList(list,'fir');
-        list = removeObjectsFromList(list,'step');
         list = removeObjectsFromList(list,'frd');
-        list = removeObjectsFromList(list,'freq');
-        
-        set(handles.panel_PaV_objectsWs,'Title','Pzm-objects');
+        list = removeObjectsFromList(list,'tf');    
+        set(handles.panel_PaV_objectsWs,'Title','Zpk-objects');
 
 end
 
@@ -1130,11 +1269,26 @@ else
     set(handles.lb_PaV_selectedSystems,'String', {});
 end
 
+%Set option to save timeseries data visible if "step" is selected
+
+if get(handles.plot_type,'Value') == 4 || ...
+   get(handles.plot_type,'Value') == 5                    %Step or Impulse
+    set(handles.cb_PaV_SaveTimeseries,'Visible','on');
+    set(handles.et_PaV_saveTimeseries,'Visible','on');
+    set(handles.pb_PaV_infoSaveTimeseries,'Visible','on');
+else
+    set(handles.cb_PaV_SaveTimeseries,'Visible','off');
+    set(handles.et_PaV_saveTimeseries,'Visible','off');
+    set(handles.pb_PaV_infoSaveTimeseries,'Visible','off');
+end
+
 
 %Change the variable name for the stored plot-data
 
 for i = 1:length(handles.plotData)
    handles.plotData{i,1}.variableName = suggestPlotDataName(handles, ...
+       handles.plotData{i,1}.name);
+   handles.plotData{i,1}.variableNameTimeseries = suggestPlotDataNameTimeseries(handles, ...
        handles.plotData{i,1}.name);
 end
 
@@ -1238,9 +1392,15 @@ savePlotData(handles);
 function pb_PaV_infoSaveData_Callback(hObject, eventdata, handles)
 %Show a information-box with information about the selectable options
 
-    infoBox({'pictures\InfoSaveData.png'});
+    infoBox({'InfoSaveData.png'});
     uiwait;
 
+function pb_PaV_infoSaveTimeseries_Callback(hObject, eventdata, handles)
+%Show a information-box with information about the selectable options
+
+    infoBox({'InfoSaveTimeseries.png'});
+    uiwait;
+    
     
 function pb_plot_Callback(hObject, eventdata, handles)
 %Plot the graph with the choosen systems
@@ -1267,14 +1427,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
             sysname = list{i,1};
             
             try
-            sys = evalin('base', sysname);
-
-            if isa(sys,'ss')
-                try
-                    sys = sss(sys);
-                end
-            end
-            
+                sys = evalin('base', sysname);            
             catch ex
                pb_PaV_refeshObjects_Callback(handles.pb_PaV_refeshObjects, eventdata, handles);
                pb_refreshsys_Callback(handles.pb_refreshsys, eventdata, handles)
@@ -1284,9 +1437,9 @@ function pb_plot_Callback(hObject, eventdata, handles)
             systemList{i,1} = sysname;
             systemList{i,2} = sys;
             
-            for j = i:length(handles.plotData)
-               if strcmp(handles.plotData{i,1}.name,sysname)
-                  systemList{i,3} = handles.plotData{i,1};
+            for j = 1:length(handles.plotData)
+               if strcmp(handles.plotData{j,1}.name,sysname)
+                  systemList{i,3} = handles.plotData{j,1};
                   break; 
                end
             end
@@ -1295,15 +1448,16 @@ function pb_plot_Callback(hObject, eventdata, handles)
         %Chosen input- and output- channels for MIMO-systems
         
         for i = 1:size(systemList,1);
-           if isa(systemList{i,2},'sss') && systemList{i,2}.isMimo
+           if (isa(systemList{i,2},'sss') || isa(systemList{i,2},'ss')) && ...
+               (size(systemList{i,2}.B,2) > 1 || size(systemList{i,2}.C,1) > 1) %Mimo
               in = systemList{i,3}.in;
-              out = systemList{i,3}.out;
+              out = systemList{i,3}.out; 
               if ~strcmp(in,'all') && ~strcmp(out,'all')
                  systemList{i,2} = systemList{i,2}(str2num(in),str2num(out)); 
               elseif ~strcmp(in,'all')
-                 systemList{i,2} = systemList{i,2}(1:systemList{i,2}.m,str2num(out));
+                 systemList{i,2} = systemList{i,2}(1:size(systemList{i,2}.B,2),str2num(out));
               elseif ~strcmp(out,'all')
-                 systemList{i,2} = systemList{i,2}(1:systemList{i,2}.p,str2num(out));
+                 systemList{i,2} = systemList{i,2}(1:size(systemList{i,2}.C,1),str2num(out));
               end              
            end
         end
@@ -1311,7 +1465,8 @@ function pb_plot_Callback(hObject, eventdata, handles)
         %Frequency/Time-vector
         
         for i = 1:size(systemList,1)
-            if isa(systemList{i,2},'sss') && strcmp(systemList{i,3}.resolution,'manual')
+            if (isa(systemList{i,2},'sss') || isa(systemList{i,2},'ss')) && ... 
+                    strcmp(systemList{i,3}.resolution,'manual')
 
                 data = systemList{i,3};
                 
@@ -1323,7 +1478,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 minimum=str2num(data.min);
                 maximum=str2num(data.max);
                 steps=data.steps;
-                if strcmp(data.resolution,'linear')
+                if strcmp(data.distribution,'linear')
                     frequency=linspace(minimum,maximum,steps);
                 else
                     if minimum <= 0
@@ -1435,6 +1590,14 @@ function pb_plot_Callback(hObject, eventdata, handles)
                        else
                             systemList{i,5} = freqresp(systemList{i,2},struct('frd',1));
                        end
+                   elseif isa(systemList{i,2},'ss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                           frequencyResponse = freqresp(systemList{i,2},systemList{i,6});
+                           systemList{i,5} = frd(frequencyResponse,systemList{i,6},systemList{i,2});
+                       else
+                           [frequencyResponse,omega] = freqresp(systemList{i,2});
+                           systemList{i,5} = frd(frequencyResponse,omega,systemList{i,2});
+                       end
                    else
                        systemList{i,5} = systemList{i,2}; 
                    end
@@ -1535,6 +1698,14 @@ function pb_plot_Callback(hObject, eventdata, handles)
                        else
                             systemList{i,5} = freqresp(systemList{i,2},struct('frd',1));
                        end
+                   elseif isa(systemList{i,2},'ss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                           frequencyResponse = freqresp(systemList{i,2},systemList{i,6});
+                           systemList{i,5} = frd(frequencyResponse,systemList{i,6},systemList{i,2});
+                       else
+                           [frequencyResponse,omega] = freqresp(systemList{i,2});
+                           systemList{i,5} = frd(frequencyResponse,omega,systemList{i,2});
+                       end
                    else
                        systemList{i,5} = systemList{i,2}; 
                    end
@@ -1634,7 +1805,15 @@ function pb_plot_Callback(hObject, eventdata, handles)
                        else
                             systemList{i,5} = freqresp(systemList{i,2},struct('frd',1));
                        end
-                   else
+                   elseif isa(systemList{i,2},'ss')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                           frequencyResponse = freqresp(systemList{i,2},systemList{i,6});
+                           systemList{i,5} = frd(frequencyResponse,systemList{i,6},systemList{i,2});
+                       else
+                           [frequencyResponse,omega] = freqresp(systemList{i,2});
+                           systemList{i,5} = frd(frequencyResponse,omega,systemList{i,2});
+                       end
+                   else                 %Frd-object
                        systemList{i,5} = systemList{i,2}; 
                    end
                 end
@@ -1726,38 +1905,317 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 
                 set(figureHandles,'Name','Impulse Response');
                 
+                Tmax = 0;       %Plot from 0 to Tmax 
+                Ttemp = 0;
+                
                 for i = 1:size(systemList,1)
-                   if get(handles.rb_auto,'Value')==0
-                       systemList{i,5} = impulse(systemList{i,2},frequency);
+                    if isa(systemList{i,2},'sss') || isa(systemList{i,2},'ssRed')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                            [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
+                                = impulse(systemList{i,2},systemList{i,6},struct('tf',1));
+                            Ttemp = systemList{i,6}(end);
+                       else
+                            [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
+                                = impulse(systemList{i,2},struct('tf',1));
+                            Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
+                       end
                    else
-                       systemList{i,5} = impulse(systemList{i,2});
-                   end
+                       systemList{i,5} = systemList{i,2};
+                       Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
+                    end
+                    if Ttemp > Tmax
+                        Tmax = Ttemp;
+                    end
+                end
+                
+                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+                    
+                    switch size(systemList,1)
+                        case 1
+                            impulse(systemList{1,5},systemList{1,4},Tmax);
+                        case 2
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},Tmax);
+                        case 3
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},Tmax);
+                        case 4
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},Tmax);
+                        case 5
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},Tmax);
+                        case 6
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},Tmax);
+                        case 7
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},Tmax);
+                        case 8
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},Tmax);
+                        case 9
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},Tmax);
+                        case 10
+                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4},Tmax);
+                    end
+                    
+                else
+                    
+                    switch size(systemList,1)
+                        case 1
+                            impulse(systemList{1,5},Tmax);
+                        case 2
+                            impulse(systemList{1,5},systemList{2,5},Tmax);
+                        case 3
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},Tmax);
+                        case 4
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},Tmax);
+                        case 5
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},Tmax);
+                        case 6
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},Tmax);
+                        case 7
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},Tmax);
+                        case 8
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},Tmax);
+                        case 9
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},Tmax);
+                        case 10
+                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},...
+                                systemList{10,5},Tmax);
+                    end
                 end
                 
             case 5      %Step Response
                 
                 set(figureHandles,'Name','Step Response');
                 
+                Tmax = 0;       %Plot from 0 to Tmax 
+                Ttemp = 0;
+                
                 for i = 1:size(systemList,1)
-                   if get(handles.rb_auto,'Value')==0
-                       systemList{i,5} = step(systemList{i,2},frequency);
+                    if isa(systemList{i,2},'sss') || isa(systemList{i,2},'ssRed')
+                       if strcmp(systemList{i,3}.resolution,'manual') 
+                            [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
+                                = step(systemList{i,2},systemList{i,6},struct('tf',1));
+                            Ttemp = systemList{i,6}(end);
+                       else
+                            [systemList{i,5},systemList{i,7}.h,systemList{i,7}.t] ...
+                                = step(systemList{i,2},struct('tf',1));
+                            Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
+                       end
                    else
-                       systemList{i,5} = step(systemList{i,2});
+                       systemList{i,5} = systemList{i,2}; 
+                       Ttemp = max(cellfun(@length,systemList{i,5}.num(:)))*systemList{i,5}.Ts;
+                   end
+                   if Ttemp > Tmax
+                      Tmax = Ttemp; 
                    end
                 end
+                
+                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+                    
+                    switch size(systemList,1)
+                        case 1
+                            step(systemList{1,5},systemList{1,4},Tmax);
+                        case 2
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},Tmax);
+                        case 3
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},Tmax);
+                        case 4
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},Tmax);
+                        case 5
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},Tmax);
+                        case 6
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},Tmax);
+                        case 7
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},Tmax);
+                        case 8
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},Tmax);
+                        case 9
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},Tmax);
+                        case 10
+                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4},Tmax);
+                    end
+                    
+                else
+                    
+                    switch size(systemList,1)
+                        case 1
+                            step(systemList{1,5},Tmax);
+                        case 2
+                            step(systemList{1,5},systemList{2,5},Tmax);
+                        case 3
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},Tmax);
+                        case 4
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},Tmax);
+                        case 5
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},Tmax);
+                        case 6
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},Tmax);
+                        case 7
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},Tmax);
+                        case 8
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},Tmax);
+                        case 9
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},Tmax);
+                        case 10
+                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},...
+                                systemList{10,5},Tmax);
+                    end
+                end     
                 
             case 6      %Pole-Zero-Map
                 
                 set(figureHandles,'Name','Pole-Zero Map');
                 
                 for i = 1:size(systemList,1)
-                   if get(handles.rb_auto,'Value')==0
-                       systemList{i,5} = pzmap(systemList{i,2},frequency);
+                   if isa(systemList{i,2},'sss')
+                       systemList{i,5} = zpk(systemList{i,2},struct('zpk',1));
                    else
-                       systemList{i,5} = pzmap(systemList{i,2});
+                       systemList{i,5} = systemList{i,2}; 
                    end
                 end
-                 
+                
+                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
+                    
+                    switch size(systemList,1)
+                        case 1
+                            pzmap(systemList{1,5},systemList{1,4});
+                        case 2
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
+                        case 3
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4});
+                        case 4
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
+                        case 5
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4});
+                        case 6
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
+                        case 7
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4});
+                        case 8
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
+                        case 9
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4});
+                        case 10
+                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
+                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
+                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
+                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
+                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                    end
+                    
+                else
+                    
+                    switch size(systemList,1)
+                        case 1
+                            pzmap(systemList{1,5});
+                        case 2
+                            pzmap(systemList{1,5},systemList{2,5});
+                        case 3
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5});
+                        case 4
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5});
+                        case 5
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5});
+                        case 6
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5});
+                        case 7
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5});
+                        case 8
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5});
+                        case 9
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5});
+                        case 10
+                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
+                                systemList{4,5},systemList{5,5},systemList{6,5},...
+                                systemList{7,5},systemList{8,5},systemList{9,5},...
+                                systemList{10,5});
+                    end
+                end
+                    
         end
         
         %Legend
@@ -1781,6 +2239,19 @@ function pb_plot_Callback(hObject, eventdata, handles)
             end
         end
 
+        %Save Timeseries
+        
+        if get(handles.plot_type,'Value') == 4 || ...
+           get(handles.plot_type,'Value') == 5           %Step or Impulse
+           for i = 1:size(systemList,1)
+               if systemList{i,3}.saveTimeseries
+                    assignin('base',systemList{i,3}.variableNameTimeseries, ...
+                             systemList{i,7});
+            
+               end
+           end
+        end
+        
         set(hObject,'String','Plot')
         set(hObject,'Enable','on')
         set(handles.figure1,'Pointer','arrow')
@@ -1897,6 +2368,7 @@ function pb_load_Callback(hObject, eventdata, handles)
     set(handles.lb_systems,'String',systemsInWorkspace)
     set(handles.lb_matrixes,'Value',[])
     set(handles.lb_matrixes,'String',matricesInWorkspace)
+    pb_refreshsys_Callback(hObject, eventdata, handles);
     
     if loadingSuccessfull == 1
         
@@ -1976,7 +2448,7 @@ function pb_infoLoadOptions_Callback(hObject, eventdata, handles)
 
     %Show a information-box with information about the selectable options
 
-    infoBox({'pictures\InfoLoadOptions.png'});
+    infoBox({'InfoLoadOptions.png'});
     uiwait;
 
     
@@ -2201,14 +2673,7 @@ if get(handles.ed_extract_A,'UserData')==1||...
 end
 
 sys=evalin('base',y);
-if isa(sys,'ss')
-   sys = sss(sys);
-end
-if ~strcmp(class(sys), 'sss')
-    errordlg('Variable is not a valid state space model.','Error Dialog','modal')
-    uiwait
-    return
-end
+
 z=[handles.ed_extract_A,handles.ed_extract_B,handles.ed_extract_C,handles.ed_extract_D,handles.ed_extract_E];
 w='A';
 % if a field is left empty, matrix is not loaded to workspace
@@ -2224,7 +2689,29 @@ msgbox('Extraction was successful.','Information','modal')
 uiwait
 
 
+%Callbacks for "Truncate Model"
 
+function pb_LaSuM_truncate_Callback(hObject, eventdata, handles)
+%Open the Sub-GUI for Model-Truncation
+
+    list = get(handles.pu_LaSuM_truncate,'String');
+    sysName = list{get(handles.pu_LaSuM_truncate,'Value'),1};
+
+    try
+        sys = evalin('base',sysName);
+    catch
+        errordlg('No valid system selected! Please correct this first!','Error Dialog','modal');
+        return;
+    end
+    
+    truncateModel({sys});
+    uiwait;
+    
+    % Refresh the displayes of systems in the workspace
+    
+    pb_refreshsys_Callback(hObject, eventdata, handles);
+    set(handles.lb_systems,'Value',[])
+    set(handles.lb_systems,'String',systemsInWorkspace)
 
 
 %--------------------------------------------------------------------------
@@ -2248,9 +2735,9 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
     end
 
     sys = evalin('base', y);
-    if ~strcmp(class(sys), 'sss')
+    if ~isa(sys, 'sss')
         try
-            sys = sss(sys);
+            sys = convertToSss(sys);
         catch ex %#ok<NASGU>
             set(handles.pb_mor_reduce,'Enable','off')
             set(handles.panel_mor_hsv,'Visible','off')
@@ -2322,9 +2809,13 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
             try
                sys = evalin('base', y);
 
-               if ~isempty(sys.HankelSingularValues)
+               if getHankelSingularValues(sys,y,handles)
                    updateTBR(handles.pb_mor_hsv,eventdata,handles);
-               else
+               elseif isa(sys,'sss') && ~isempty(sys.HankelSingularValues) && ...
+                      ~isempty(sys.TBal) && ~isempty(sys.TBalInv)
+                   handles = saveHankelSingularValues(sys,y,sys.HankelSingularValues,sys.TBal,sys.TBalInv,handles);
+                   updateTBR(handles.pb_mor_hsv,eventdata,handles);
+               else                  
                    set(handles.panel_mor_hsv,'Visible','off');
                end 
             catch ex
@@ -2409,6 +2900,44 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     end
     
     
+    %Loading and Setting up Models
+
+    l_alt = get(handles.pu_LaSuM_truncate,'String');
+    l_mimo = {};
+    
+    for i = 1:length(l)      %Show only MIMO-models
+        try
+            sysTemp = evalin('base',l{i,1});
+            if size(sysTemp.B,2) > 1 || size(sysTemp.C,1) > 1
+               l_mimo{end+1,1} = l{i,1}; 
+            end
+        end          
+    end
+    
+    if ~isempty(l_alt)
+
+        sOld=l_alt{get(handles.pu_LaSuM_truncate,'Value')};
+        indexOld=find(strcmp(sOld,l_mimo));
+
+        if ~isempty(indexOld)
+            set(handles.pu_LaSuM_truncate,'Value',indexOld);
+        else
+            set(handles.pu_LaSuM_truncate,'Value',1);
+        end
+
+    else
+      set(handles.pu_LaSuM_truncate,'Value',1);
+    end
+    
+    if ~isempty(l_mimo) && size(l_mimo,1) >= 1
+        set(handles.pu_LaSuM_truncate,'String',l_mimo);
+        set(handles.pb_LaSuM_truncate,'Enable','on');
+    else
+        set(handles.pu_LaSuM_truncate,'String', [{''}; l_mimo]);
+        set(handles.pb_LaSuM_truncate,'Enable','off');
+    end
+    
+    
     %If there are no systems in workspace, set the list of selectable
     %options to the empty string, else set it to the list of systems
 
@@ -2450,73 +2979,6 @@ function pb_refreshsys_Callback(hObject, eventdata, handles)
     
     set(handles.pu_mor_krylov_s0,'String',listS0InWorkspace);
 
-
-
-
-return
-
-
-% systems from list in workspace
-x = get(handles.syschoice,'String');
-try
-    % system chosen for postprocessing
-    y=x{get(handles.syschoice,'Value')};
-    if ~isempty(y)
-        sys = evalin('base', y);
-        if ~strcmp(class(sys), 'sss')
-            errordlg('Variable is not a valid state space model.')            
-        else 
-            set(handles.sysinfo, 'String', sys.disp);
-            if sys.isMimo
-                if get(handles.pu_in,'Value') > sys.m + 1
-                    set(handles.pu_in,'Value', 1)
-                end
-                if get(handles.pu_out,'Value') > sys.p + 1
-                    set(handles.pu_out,'Value', 1)
-                end
-                set(handles.panel_intoout,'Visible','on')
-                in={num2str((1:size(sys.B,2))'),'all'};
-                out={num2str((1:size(sys.C,1))'),'all'};
-                set(handles.pu_in,'String',in)
-                set(handles.pu_out,'String',out)
-            else
-                set(handles.panel_intoout,'Visible','off')
-            end
-        end
-    else
-        set(handles.sysinfo,'String','Please choose system')
-        set(handles.panel_intoout,'Visible','off')
-    end
-catch ex  %#ok<NASGU>
-    set(handles.panel_intoout,'Visible','off')
-    set(handles.sysinfo,'String','')
-end
-
-% system chosen for MOR
-try
-    sys = getSysFromWs(handles.pu_mor_systems);
-    set(handles.st_mor_sysinfo, 'String', sys.disp);
-catch ex
-    if strfind(ex.identifier, 'unassigned')
-        set(handles.st_mor_sysinfo,'String','Please choose a system.')
-        return
-    end
-    set(handles.st_mor_sysinfo,'String','Variable is not a sparse state space model.')
-end
-
-% system chosen for Analysis
-try
-    sys = getSysFromWs(handles.pu_an_sys1);
-    set(handles.tx_an_sys1_sysinfo, 'String', sys.disp);
-catch ex
-    if strfind(ex.identifier, 'unassigned')
-        set(handles.tx_an_sys1_sysinfo,'String','Please choose a system.')
-        return
-    end
-    set(handles.tx_an_sys1_sysinfo,'String','Variable is not a sparse state space model.')
-end
-pu_an_sys1_Callback(handles.pu_an_sys1, eventdata, handles)
-
 function pu_mor_method_Callback(hObject, eventdata, handles)
 % selection of reduction method
 if get(hObject,'Value')==1
@@ -2554,8 +3016,12 @@ if get(handles.pu_mor_method,'Value')==1
         try
            sys = evalin('base', y);
 
-           if ~isempty(sys.HankelSingularValues)
+           if getHankelSingularValues(sys,y,handles)
                updateTBR(handles.pb_mor_hsv,eventdata,handles);
+           elseif isa(sys,'sss') && ~isempty(sys.HankelSingularValues) && ...
+                  ~isempty(sys.TBal) && ~isempty(sys.TBalInv)
+               handles = saveHankelSingularValues(sys,y,sys.HankelSingularValues,sys.TBal,sys.TBalInv,handles);
+               updateTBR(handles.pb_mor_hsv,eventdata,handles);   
            else
                set(handles.panel_mor_hsv,'Visible','off');
            end 
@@ -2590,11 +3056,7 @@ if get(hObject,'Value')==3
     
     if ~isempty(y)
        sys = evalin('base', y);
-       
-       
-       if ~isa(sys,'sss')
-          sys = sss(sys);
-       end
+       sys = convertToSss(sys);
        
        if sys.m > 1 || sys.p > 1    %MIMO
            
@@ -2767,9 +3229,9 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
 
     % convert to sss
     
-    if ~strcmp(class(sys), 'sss')
+    if ~isa(sys, 'sss')
         try
-            sys=sss(sys);
+            convertToSss(sys);
         catch ex
             set(hObject,'String','Plot')
             set(hObject,'Enable','on') 
@@ -2784,7 +3246,10 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     switch get(handles.pu_mor_method,'Value')
         
     case 1 %TBR
-        if isempty(sys.HankelSingularValues) || isempty(sys.TBal) || isempty(sys.TBalInv)
+        
+        [hsvStored,hsv,R,L] = getHankelSingularValues(sys,sysname,handles);
+        
+        if ~hsvStored || isempty(hsv) || isempty(R) || isempty(L)
             set(handles.figure1,'Pointer','arrow')
             set(hObject,'Enable','on')
             errordlg('Please calculate Hankel Singular Values first.','Error Dialog','modal')
@@ -2803,16 +3268,14 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
 
                 Opts.type = 'tbr';
 
-                [sysr, V, W] = tbr(sys, q, Opts);
+                [sysr, V, W] = tbr(sys,q,R,L,Opts);
 
-                %TODO check what happend to that code
-                %sysr.morInfo = struct('time', clock, 'method', 'TBR', 'orgsys', sysname);
             else
                 % match DC gain
 
                 Opts.type  = 'matchDcGain';
 
-                [sysr, V, W] = tbr(sys, q, Opts);
+                [sysr, V, W] = tbr(sys,q,R,L,Opts);
 
             end
             
@@ -3131,7 +3594,7 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
     end
     
     if get(handles.cb_mor_saveHsv,'Value')==1 && get(handles.pu_mor_method,'Value')==1
-        assignin('base',get(handles.ed_mor_saveHsv,'String'),sys.HankelSingularValues); 
+        assignin('base',get(handles.ed_mor_saveHsv,'String'),hsv); 
     end
 
     %Tell the user that the reduction was successfull
@@ -3251,11 +3714,13 @@ function updateTBR(hObject, eventdata, handles)
         set(handles.sl_mor_q,'Value',1);
     end
     
-    if get(handles.pu_mor_method,'Value')==1 && ~isempty(sys.HankelSingularValues)
+    [hsvStored,hsv] = getHankelSingularValues(sys,sysname,handles);
+    
+    if get(handles.pu_mor_method,'Value')==1 && hsvStored
         %Calculate the signal-norms H_1 and H_inf
         
-        e=2*sum(sys.HankelSingularValues((q+1):end));
-        erel=e/max(sys.HankelSingularValues);
+        e=2*sum(hsv((q+1):end));
+        erel=e/max(hsv);
         set(handles.st_mor_tbr_error,'String',num2str(e, '%.3e'))
         set(handles.st_mor_tbr_relerror,'String',num2str(erel, '%.3e'))
         
@@ -3267,11 +3732,11 @@ function updateTBR(hObject, eventdata, handles)
 
         if get(handles.rb_mor_tbr_norm,'Value')==1
 
-            maxValue = max(sys.HankelSingularValues);
-            h = plot(handles.axes_mor_hsv,sys.HankelSingularValues./maxValue);
+            maxValue = max(hsv);
+            h = plot(handles.axes_mor_hsv,hsv./maxValue);
 
         else
-            h = plot(handles.axes_mor_hsv, sys.HankelSingularValues);
+            h = plot(handles.axes_mor_hsv, hsv);
         end
 
         % make callback react to click on red HSV line
@@ -3284,7 +3749,8 @@ function updateTBR(hObject, eventdata, handles)
 
         % set scale
 
-        if get(handles.rb_mor_tbr_log,'Value')==1
+        if get(handles.rb_mor_tbr_log,'Value')==1 || ...
+           get(handles.rb_mor_tbr_norm,'Value')==1
             set(handles.axes_mor_hsv,'YScale','log')
         else
             set(handles.axes_mor_hsv,'YScale','linear')                
@@ -3296,7 +3762,6 @@ function updateTBR(hObject, eventdata, handles)
             set(hr,'XData',[q,q])
             set(hr,'YData',get(handles.axes_mor_hsv,'YLim'));
         else
-            %hr=plot(handles.axes_mor_hsv, [q,q],sys.HankelSingularValues([end,1]),'r');
             hr=plot(handles.axes_mor_hsv,[q,q], get(handles.axes_mor_hsv,'YLim'),'r');
             set(handles.axes_mor_hsv,'UserData',hr)
         end
@@ -3334,6 +3799,8 @@ drawnow
 
 try
     [sys, sysname] = getSysFromWs(handles.pu_mor_systems);
+    originalClass = class(sys);
+    sys = convertToSss(sys);
 catch ex
     set(handles.figure1,'Pointer','arrow')
     set(hObject,'Enable','on')
@@ -3349,8 +3816,8 @@ end
 %Calculate the Hankel-Singular-Values
 
 try 
-    tbr(sys,1);
-    assignin('base', sysname, sys)
+    [~,~,~,hsv,R,L] = tbr(sys,sys.n);
+    handles = saveHankelSingularValues(sys,sysname,hsv,R,L,handles);
 catch ex %***
     if strcmp(ex.identifier,'MATLAB:nomem')
         errordlg('Out of memory. System is too large to calculate Hankel Singular Values.','Error Dialog','modal')
@@ -3414,7 +3881,7 @@ guidata(hObject,handles)
 
 function pb_info_tbr_Callback(hObject, eventdata, handles)
 
-    infoBox({'pictures\InfoErrorBound.png'});
+    infoBox({'InfoErrorBound.png'});
     uiwait;
 
 %Callbacks for Modal
@@ -3798,29 +4265,29 @@ set(handles.pb_mor_krylov_input,'BackgroundColor',[0.94;0.94;0.94]);
 
 function pb_mor_krylov_infoHermite_Callback(hObject, eventdata, handles)
 
-    infoBox({'pictures\InfoHermiteInterpolation.png'});
+    infoBox({'InfoHermiteInterpolation.png'});
     uiwait;
 
 function pb_mor_krylov_infoInOut_Callback(hObject, eventdata, handles)
 
-    infoBox({'pictures\InfoMomentMatching.png'});
+    infoBox({'InfoMomentMatching.png'});
     uiwait;
 
 function pb_mor_krylov_infoAlgoParams_Callback(hObject, eventdata, handles)
 
-    infoBox({'pictures\InfoStoppingCriterium.png'});
+    infoBox({'InfoStoppingCriterium.png'});
     uiwait;
     
 function pb_mor_krylov_infoExpPoints_Callback(hObject, eventdata, handles)
 
     if get(handles.pu_mor_krylov_algorithm,'Value')==1  %IRKA
        
-        infoBox({'pictures\InfoStartingPointsIRKA.png'});
+        infoBox({'InfoStartingPointsIRKA.png'});
         uiwait;
         
     else
         
-        infoBox({'pictures\InfoExpansionPointsRK.png'});
+        infoBox({'InfoExpansionPointsRK.png'});
         uiwait;
         
     end
@@ -3850,12 +4317,8 @@ y = x{get(handles.pu_mor_systems,'Value')};
     
 if ~isempty(y)
     try
-        parameter.system = evalin('base',y);
-        
-        if ~isa(parameter.system,'sss')
-           parameter.system = sss(parameter.system); 
-        end
-        
+        parameter.system = evalin('base',y);        
+        parameter.system = convertToSss(parameter.system);        
     catch ex
        errordlg('Selected system could not be found in the workspace.')
        uiwait
@@ -3890,6 +4353,9 @@ handles.MimoParam.block = 0;
 
 try
     
+    wOut = handles.widthTableMimoKrylovOutput;
+    wIn = handles.widthTableMimoKrylovInput;
+    
     if ~isempty(data.inputData)
        if size(data.inputData,2) == 2
           tableData = data.inputData;
@@ -3907,8 +4373,8 @@ try
             tableData{i,4} = vec2string((1:parameter.system.p==min(i,parameter.system.p))); 
           end
           
-          set(handles.uitable_mor_krylov_MimoExps,'Data',tableData); 
-          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{184,184,0,0});
+          set(handles.uitable_mor_krylov_MimoExps,'Data',tableData);
+          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/2),round(wIn/2),0,0});
           handles.MimoParam.block = 1;
        elseif size(data.inputData,2) == 3
           tableData = data.inputData;
@@ -3921,12 +4387,12 @@ try
           end
           
           set(handles.uitable_mor_krylov_MimoExps,'Data',tableData);
-          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{123,123,123,0});
+          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/3),round(wIn/3),round(wIn/3),0});
        else
           set(handles.uitable_mor_krylov_MimoExps,'Data',data.inputData);
           set(handles.uitable_mor_krylov_MimoExps_output,'Data',...
               [data.inputData(:,1),data.inputData(:,2),data.inputData(:,4)]);
-          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{92,92,92,92});
+          set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/4),round(wIn/4),round(wIn/4),round(wIn/4)});
        end
     end
 
@@ -3942,12 +4408,12 @@ try
           end
           
           set(handles.uitable_mor_krylov_MimoExps_output,'Data',tableData); 
-          set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{184,184,0});
+          set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{round(wOut/2),round(wOut/2),0});
           handles.MimoParam.block = 1;
        else
           tableData = data.outputData;
           set(handles.uitable_mor_krylov_MimoExps_output,'Data',tableData);
-          set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{123,123,123});
+          set(handles.uitable_mor_krylov_MimoExps_output,'ColumnWidth',{round(wIn/3),round(wIn/3),round(wIn/3)});
        end
     end
 
@@ -4070,21 +4536,21 @@ function pu_an_sys1_Callback(hObject, eventdata, handles)
     
     %Set the values which belong to all systems
     
-    if eventdata ~= -1
+    if eventdata ~= -1 
         
-        if ~isempty(sys.h2Norm)
+        if isa(sys,'sss') && ~isempty(sys.h2Norm)
             set(handles.tx_an_sys1_h2,'String', num2str(sys.h2Norm))
         else
             set(handles.tx_an_sys1_h2,'String','')
         end
 
-        if ~isempty(sys.hInfNorm)
+        if isa(sys,'sss') && ~isempty(sys.hInfNorm)
             set(handles.tx_an_sys1_hinf,'String',num2str(sys.hInfNorm))
         else
             set(handles.tx_an_sys1_hinf,'String','')
         end
 
-        if ~isempty(sys.decayTime)
+        if isa(sys,'sss') && ~isempty(sys.decayTime)
             set(handles.tx_an_sys1_decaytime,'String',num2str(sys.decayTime))
         else
             set(handles.tx_an_sys1_decaytime,'String','')
@@ -4099,10 +4565,7 @@ function pu_an_sys1_Callback(hObject, eventdata, handles)
     for i = 1:length(l)      
         try
            sysTemp = evalin('base',l{i,1}); 
-           if isa(sysTemp,'ss')
-              sysTemp = sss(sysTemp); 
-           end
-           if sysTemp.p ~= sys.p || sysTemp.m ~= sysTemp.m
+           if size(sysTemp.B,2) ~= size(sys.B,2) || size(sysTemp.C,1) ~= size(sys.C,1)
               l{i,1} = []; 
            end
         catch ex
@@ -4144,7 +4607,6 @@ function pb_an_sys1_calcall_Callback(hObject, eventdata, handles)
 
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
-        assignin('base', sysname, sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4307,11 +4769,14 @@ function pb_an_sys1_h2_Callback(hObject, eventdata, handles)
 
     %Get the h2-norm of the system
 
-    if isempty(sys.h2Norm)
+    if isa(sys,'sss') && ~isempty(sys.h2Norm)
 
+        h2 = sys.h2Norm;
+        
+    else
+        
         try
             h2 = norm(sys, 2);
-            assignin('base', sysname, sys);
         catch ex
             if strcmp(ex.identifier,'MATLAB:nomem')
                 errordlg('Out of memory, system is too large to solve lyapunov equotation','Error Dialog','modal')
@@ -4325,11 +4790,6 @@ function pb_an_sys1_h2_Callback(hObject, eventdata, handles)
             set(handles.virtgr_an_red_buttons,'Enable','on')
             return
         end
-
-    else
-
-        h2 = sys.h2Norm;
-
     end
 
     %Display the solution to the user
@@ -4369,11 +4829,12 @@ function pb_an_sys1_hinf_Callback(hObject, eventdata, handles)
     
     %Get hInf-Norm
 
-    if isempty(sys.hInfNorm)
-    
+    if isa(sys,'sss') && ~isempty(sys.hInfNorm)   
+        hinf = sys.hInfNorm;
+    else
+        
         try
             hinf=norm(sys, inf);
-            assignin('base', sysname, sys);
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             set(handles.figure1,'Pointer','arrow')
@@ -4381,9 +4842,6 @@ function pb_an_sys1_hinf_Callback(hObject, eventdata, handles)
             uiwait
             return
         end
-    
-    else
-        hinf = sys.hInfNorm;
     end
 
     %Display solution to the user
@@ -4399,8 +4857,7 @@ function pb_an_sys1_decaytime_Callback(hObject, eventdata, handles)
     %Get the system from workspace
     
     try
-        [sys,sysname] = getSysFromWs(handles.pu_an_sys1);
-        assignin('base', sysname, sys);
+        [sys,sysname] = getSysFromWs(handles.pu_an_sys1);     
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4424,7 +4881,7 @@ function pb_an_sys1_decaytime_Callback(hObject, eventdata, handles)
 
     %Get the decay Time
     
-    if isempty(sys.decayTime)
+    if ~isfield(sys,'decayTime') || isempty(sys.decayTime)
         try
             decTime = decayTime(sys);
         catch ex
@@ -4490,19 +4947,19 @@ function pu_an_sys2_Callback(hObject, eventdata, handles)
     
     if eventdata ~= -1
         
-        if ~isempty(sys.h2Norm)
+        if isa(sys,'sss') && ~isempty(sys.h2Norm)
             set(handles.tx_an_sys2_h2,'String', num2str(sys.h2Norm))
         else
             set(handles.tx_an_sys2_h2,'String','')
         end
 
-        if ~isempty(sys.hInfNorm)
+        if isa(sys,'sss') && ~isempty(sys.hInfNorm)
             set(handles.tx_an_sys2_hinf,'String',num2str(sys.hInfNorm))
         else
             set(handles.tx_an_sys2_hinf,'String','')
         end
 
-        if ~isempty(sys.decayTime)
+        if isa(sys,'sss') && ~isempty(sys.decayTime)
             set(handles.tx_an_sys2_decaytime,'String',num2str(sys.decayTime))
         else
             set(handles.tx_an_sys2_decaytime,'String','')
@@ -4515,7 +4972,6 @@ function pb_an_sys2_calcall_Callback(hObject, eventdata, handles)
     
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
-        assignin('base', sysname, sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4678,11 +5134,11 @@ function pb_an_sys2_h2_Callback(hObject, eventdata, handles)
 
     %Get the h2-norm of the system
 
-    if isempty(sys.h2Norm)
-
+    if isa(sys,'sss') && ~isempty(sys.h2Norm)
+        h2 = sys.h2Norm;
+    else
         try
             h2 = norm(sys, 2);
-            assignin('base', sysname, sys);
         catch ex
             if strcmp(ex.identifier,'MATLAB:nomem')
                 errordlg('Out of memory, system is too large to solve lyapunov equotation','Error Dialog','modal')
@@ -4696,11 +5152,6 @@ function pb_an_sys2_h2_Callback(hObject, eventdata, handles)
             set(handles.virtgr_an_red_buttons,'Enable','on')
             return
         end
-
-    else
-
-        h2 = sys.h2Norm;
-
     end
 
     %Display the solution to the user
@@ -4740,11 +5191,11 @@ function pb_an_sys2_hinf_Callback(hObject, eventdata, handles)
     
     %Get hInf-Norm
 
-    if isempty(sys.hInfNorm)
-    
+    if isa(sys,'sss') && ~isempty(sys.hInfNorm)
+        hinf = sys.hInfNorm;
+    else
         try
             hinf=norm(sys, inf);
-            assignin('base', sysname, sys);
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             uiwait
@@ -4752,9 +5203,6 @@ function pb_an_sys2_hinf_Callback(hObject, eventdata, handles)
             set(handles.virtgr_an_red_buttons,'Enable','on')
             return
         end
-    
-    else
-        hinf = sys.hInfNorm;
     end
 
     %Display solution to the user
@@ -4771,7 +5219,6 @@ function pb_an_sys2_decaytime_Callback(hObject, eventdata, handles)
     
     try
         [sys,sysname] = getSysFromWs(handles.pu_an_sys2);
-        assignin('base', sysname, sys);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4795,7 +5242,7 @@ function pb_an_sys2_decaytime_Callback(hObject, eventdata, handles)
 
     %Get the decay Time
     
-    if isempty(sys.decayTime)
+    if ~isfield(sys,'decayTime') || isempty(sys.decayTime)
         try
             decTime = decayTime(sys);
         catch ex
@@ -4836,7 +5283,9 @@ function pb_an_compare_h2_Callback(hObject, eventdata, handles)
     
     try
         sys1 = getSysFromWs(handles.pu_an_sys1);
+        sys1 = convertToSss(sys1);
         sys2 = getSysFromWs(handles.pu_an_sys2);
+        sys2 = convertToSss(sys2);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4891,7 +5340,9 @@ function pb_an_compare_hinf_Callback(hObject, eventdata, handles)
     
     try
         sys1 = getSysFromWs(handles.pu_an_sys1);
+        sys1 = convertToSss(sys1);
         sys2 = getSysFromWs(handles.pu_an_sys2);
+        sys2 = convertToSss(sys2);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4930,43 +5381,31 @@ function pb_an_compare_hinf_Callback(hObject, eventdata, handles)
 
 function pb_an_compare_h2_info_Callback(hObject, eventdata, handles)
 
-    infoBox({'pictures\InfoDifferenceSystemH2Norm.png'});
+    infoBox({'InfoDifferenceSystemH2Norm.png'});
     uiwait;
 
 function pb_an_compare_hinf_info_Callback(hObject, eventdata, handles)
 
-    infoBox({'pictures\InfoDifferenceSystemHinfNorm.png'});
+    infoBox({'InfoDifferenceSystemHinfNorm.png'});
     uiwait;
 
+    
+    
 %--------------------------------------------------------------------------
 %                               FOOTER
 %--------------------------------------------------------------------------
 
 %Callbacks of the panel
 
-function logos_footer_CreateFcn(hObject, eventdata, handles)
-    %Load the bitmap with the logos
-    
-    addRelativePaths();
-    A=imread('Pictures\Footer.png');
-    h=image(A);
-    set(h,'HitTest','off');
-    set(hObject,'XTick',[]);
-    set(hObject,'YTick',[]);
-    
-    screensize = get( 0, 'Screensize' );
-    
-    if screensize(1,4) < 860    %Footer ausblenden
-        
-        position = get(hObject,'Position');
-        position(1,2) = -40;
-        set(hObject,'Position',position);
-    end
-
 function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
     %Web-links to the diverent homepages (Open if the user klicks on a logo)
-
+    %(to convert from pixel units to chararcter units for Windows OS the 
+    %values are multiplied with 0.2 for horizontal dimensions and with 
+    %0.0769 for vertical dimensions)
+    
     p=get(hObject,'CurrentPoint');
+    p(1,1) = p(1,1)*handles.PixToCharWidth/0.2;
+    p(1,2) = p(1,2)*handles.PixToCharHeight/0.0769;
 
     if p(1,1)>990 && p(1,1)<1040
         web www.tum.de
@@ -4977,8 +5416,6 @@ function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
     elseif p(1,1)>305 && p(1,1)<420
         web www.rt.mw.tum.de/forschung/forschungsgebiete/modellreduktion/
     end
-    
-    
     
     
     
@@ -5428,11 +5865,8 @@ if get(handles.pu_mor_method,'Value')==3        %Krylov selected
     
     if ~isempty(y)
         
-        sys = evalin('base', y);
-        
-        if ~isa(sys,'sss')
-           sys = sss(sys); 
-        end
+        sys = evalin('base', y);        
+        sys = convertToSss(sys);
     
         if sys.m > 1 || sys.p > 1                       %Mimo system
 
@@ -5661,13 +6095,15 @@ function result = checkPointsSisoKrylov(cellArray)
       end     
     end
         
-        
-    
+           
     
 %Different Layouts for SISO- and MIMO-Krylov
     
 function [] = layoutMimoKrylov(handles)
 %Sets the right table with shifts and directions visible for Mimo-systems 
+
+    wOut = handles.widthTableMimoKrylovOutput;
+    wIn = handles.widthTableMimoKrylovInput;
 
     if get(handles.pu_mor_krylov_algorithm,'Value') == 1        %IRKA
         
@@ -5677,7 +6113,7 @@ function [] = layoutMimoKrylov(handles)
         set(handles.pb_mor_krylov_MimoExps_Input,'Visible','off');
         set(handles.pb_mor_krylov_MimoExps_Output,'Visible','off');
         
-        set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{92 92 92 92});
+        set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/4) round(wIn/4) round(wIn/4) round(wIn/4)});
         
     else                                                        %RK
         
@@ -5689,7 +6125,7 @@ function [] = layoutMimoKrylov(handles)
             set(handles.pb_mor_krylov_MimoExps_Input,'Visible','off');
             set(handles.pb_mor_krylov_MimoExps_Output,'Visible','off');
         
-            set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{123 123 123 0});
+            set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/3) round(wIn/3) round(wIn/3) 0});
             
         elseif get(handles.rb_mor_krylov_output,'Value') == 1
             
@@ -5709,7 +6145,7 @@ function [] = layoutMimoKrylov(handles)
                 set(handles.pb_mor_krylov_MimoExps_Input,'Visible','off');
                 set(handles.pb_mor_krylov_MimoExps_Output,'Visible','off');
         
-                set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{92 92 92 92});              
+                set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/4) round(wIn/4) round(wIn/4) round(wIn/4)});              
                 
             else
                 
@@ -5722,7 +6158,7 @@ function [] = layoutMimoKrylov(handles)
                 set(handles.pb_mor_krylov_MimoExps_Input,'BackgroundColor',[1 0.843 0]);
                 set(handles.pb_mor_krylov_MimoExps_Output,'BackgroundColor',[0.94 0.94 0.94]);
         
-                set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{123 123 123 0});
+                set(handles.uitable_mor_krylov_MimoExps,'ColumnWidth',{round(wIn/3) round(wIn/3) round(wIn/3) 0});
                 
             end          
         end   
@@ -5795,9 +6231,7 @@ function [] = displaySystemInformation(object,sys)
 %Prevents the display of the full name of the system which could include
 %full path names
 
-    if isa(sys,'ss')
-       sys = sss(sys); 
-    end
+    sys = convertToSss(sys);
 
     systemName = sys.Name;
     sys.Name = '';
@@ -5862,6 +6296,55 @@ function [] = suggestNamesMOR(sysName,handles)
         set(handles.ed_mor_saveShifts,'String','');
         
     end
+    
+function updatedHandles = saveHankelSingularValues(sys,sysName,hsv,R,L,handles)
+%Stores the HankelSingularValues hsv to the table saved in handles
+
+    % check if values for this system already exist and override them if
+    % the case
+    for i = 1:size(handles.storedHsv,1)
+       if strcmp(handles.storedHsv{i,1},sysName) && handles.storedHsv{i,2} == size(sys.A,1)
+           handles.storedHsv{i,3} = hsv;
+           handles.storedHsv{i,4} = R;
+           handles.storedHsv{i,5} = L;
+           guidata(handles.figure1,handles);
+           updatedHandles = handles;
+           return;
+       end
+    end
+    
+    % add a new row containing the system-name, the system order and the
+    % HankelSingularValues to the table
+    index = size(handles.storedHsv,1)+1;
+    handles.storedHsv{index,1} = sysName;
+    handles.storedHsv{index,2} = size(sys.A,1);
+    handles.storedHsv{index,3} = hsv;
+    handles.storedHsv{index,4} = R;
+    handles.storedHsv{index,5} = L;
+    updatedHandles = handles;
+    guidata(handles.figure1,handles);
+    
+function [success,hsv,R,L] = getHankelSingularValues(sys,sysName,handles)
+%Reads out the HankelSingularValues for the given system from the table
+%stored in the handles-structure
+
+    % check if values for this system exist and read them out if the case
+    for i = 1:size(handles.storedHsv,1)
+       if strcmp(handles.storedHsv{i,1},sysName) && handles.storedHsv{i,2} == size(sys.A,1)
+           hsv = handles.storedHsv{i,3};
+           R = handles.storedHsv{i,4};
+           L = handles.storedHsv{i,5};
+           success = 1;
+           return;
+       end
+    end   
+    
+    % the HankelSingularValues for this system are not stored
+    success = 0;
+    hsv = [];
+    R = [];
+    L = [];
+    
         
     
 %Functions which list variables from workspace    
@@ -5873,7 +6356,7 @@ function x = systemsInWorkspace()
     % preallocate memory
     x=cell(length(s),1);
     for i=1:length(s)
-        if strcmp(s(i).class,'ss') || strcmp(s(i).class,'sss') && ...
+        if strcmp(s(i).class,'sss') || strcmp(s(i).class,'ssRed') && ...
             ~strcmp(s(i).name,'load_var_dont_destroy') && ...
             ~strcmp(s(i).name,'GUI_dont_destroy')
             % save name
@@ -5917,10 +6400,19 @@ end
 
 sys = evalin('base', sysname);
 
-% convert to sss
-if ~strcmp(class(sys), 'sss')
-    sys=sss(sys);
-end
+
+function sysSss = convertToSss(sys)
+%Converts a system of class sss, ss or ssRed to a sss-object
+
+    if isa(sys,'sss')
+        sysSss = sys;
+    elseif isa(sys,'ssRed')
+        sysSss = sss(sys.A,sys.B,sys.C,sys.D,sys.E);
+    elseif isa(sys,'ss')
+        sysSss = sss(sys);
+    else
+        error('Convertion to a sss-object is not defined for sss-, ss- or ssRed-objects'); 
+    end     
 
 function x = listClassesInWorkspace(class)
 %Finds and lists all objects of the given class from workspace
@@ -6036,16 +6528,12 @@ function [variableName] = suggestPlotDataName(handles,sysName)
             type = 'frd';
         case 3      %Singular
             type = 'frd';
-        case 4 
-            type = 'impulse';
-        case 5 
-            type = 'step';
-        case 6
-            type = 'pzm';
-        case 7
-            type = 'singular';
-        case 8
-            type = 'mag';
+        case 4      %Impulse
+            type = 'tf';
+        case 5      %Step
+            type = 'tf';
+        case 6      %Pole-Zero-Map
+            type = 'zpk';
     end
     
     variableName = strcat(sysName,'_',type);
@@ -6062,7 +6550,39 @@ function [variableName] = suggestPlotDataName(handles,sysName)
     end
         
     variableName = newName;
-     
+   
+function [variableName] = suggestPlotDataNameTimeseries(handles,sysName)
+%Sets a default variable name for the plot data that should be saved to
+%workspace (for the timeseries data)
+
+    %Read out the system name if it is not given
+
+    if isempty(sysName)
+        list = get(handles.lb_PaV_selectedSystems,'String');
+        sysName = list{get(handles.lb_PaV_selectedSystems,'Value')};
+    end
+
+    %Add plot-type to the name for easier identification
+    
+    if get(handles.plot_type,'Value') == 4      %Impulse
+        variableName = strcat(sysName,'_impulseData');
+    else                                        %Step
+        variableName = strcat(sysName,'_stepData');
+    end
+    
+    %Check if the constructed name is a valid variable name
+    
+    newName = variableName;
+    counter = 1;
+    
+    while existInBaseWs(newName)
+        
+        newName = strcat(variableName,num2str(counter));
+        counter = counter + 1;      
+    end
+        
+    variableName = newName;
+    
 function handles = savePlotData(handles)
 %This function saves the values for the plot options of the currently
 %selected system in the list (handles.lb_PaV_selectedSystems)
@@ -6090,6 +6610,9 @@ function handles = savePlotData(handles)
        
        data.save = get(handles.cb_PaV_SaveData,'Value');
        data.variableName = get(handles.et_PaV_saveData,'String');
+       
+       data.saveTimeseries =  get(handles.cb_PaV_SaveTimeseries,'Value');
+       data.variableNameTimeseries = get(handles.et_PaV_saveTimeseries,'String');
         
        data.color = get(handles.pu_PaV_color,'Value');
        data.lineStyle = get(handles.pu_PaV_lineStyle,'Value');
@@ -6124,11 +6647,13 @@ function handles = savePlotData(handles)
           data.save = [];
           data.variableName = [];
           
+          data.saveTimeseries = [];
+          data.variableNameTimeseries = [];
+          
           data.distribution = []; 
           data.min = [];
           data.max = [];
-          data.steps = [];
-          
+          data.steps = [];   
        end
        
        %Check if there exists stored data for this system
@@ -6202,22 +6727,86 @@ function x = removeObjectsFromList(list,class)
 function [] = addRelativePaths()
 %Add the subfolder from the GUI-folder-structure to the search-paths
     
-    guiPath = which('sssMOR_GUI.m');
-    pathArray = strsplit(guiPath,'\');
+    guiPath = which('sssMOR_App.m');
+    pathArray = strsplit(guiPath,filesep);
     path = '';
     
     for i = 1:(size(pathArray,2)-1)
        
         if i > 1
-           path = strcat(path,'\',pathArray{1,i});
+           path = strcat(path,filesep,pathArray{1,i});
         else
            path = strcat(path,pathArray{1,i}); 
         end       
     end
     
     addpath(genpath(path));
+    
+    
+%Auxiliary functions for operations on imported pictures
+    
+function [out] = imresize(im, out_dims)
+% Implements the bilinear interpolation algorithm to resize an image. This
+% function is used instead of the "imresize" function from Matlab, because
+% otherwise it would be necessary to have the "Image acquisition" toolbox
+% installed to start the App
 
+    % Get some necessary variables first
+    in_rows = size(im,1);
+    in_cols = size(im,2);
+    out_rows = out_dims(1);
+    out_cols = out_dims(2);
 
+    % Let S_R = R / R'        
+    S_R = in_rows / out_rows;
+    % Let S_C = C / C'
+    S_C = in_cols / out_cols;
 
+    % Define grid of co-ordinates in our image
+    % Generate (x,y) pairs for each point in our image
+    [cf, rf] = meshgrid(1 : out_cols, 1 : out_rows);
+
+    % Let r_f = r'*S_R for r = 1,...,R'
+    % Let c_f = c'*S_C for c = 1,...,C'
+    rf = rf * S_R;
+    cf = cf * S_C;
+
+    % Let r = floor(rf) and c = floor(cf)
+    r = floor(rf);
+    c = floor(cf);
+
+    % Any values out of range, cap
+    r(r < 1) = 1;
+    c(c < 1) = 1;
+    r(r > in_rows - 1) = in_rows - 1;
+    c(c > in_cols - 1) = in_cols - 1;
+
+    % Let delta_R = rf - r and delta_C = cf - c
+    delta_R = rf - r;
+    delta_C = cf - c;
+
+    % Final line of algorithm
+    % Get column major indices for each point we wish
+    % to access
+    in1_ind = sub2ind([in_rows, in_cols], r, c);
+    in2_ind = sub2ind([in_rows, in_cols], r+1,c);
+    in3_ind = sub2ind([in_rows, in_cols], r, c+1);
+    in4_ind = sub2ind([in_rows, in_cols], r+1, c+1);       
+
+    % Now interpolate
+    % Go through each channel for the case of colour
+    % Create output image that is the same class as input
+    out = zeros(out_rows, out_cols, size(im, 3));
+    out = cast(out, class(im));
+
+    for idx = 1 : size(im, 3)
+        chan = double(im(:,:,idx)); %// Get i'th channel
+        % Interpolate the channel
+        tmp = chan(in1_ind).*(1 - delta_R).*(1 - delta_C) + ...
+                       chan(in2_ind).*(delta_R).*(1 - delta_C) + ...
+                       chan(in3_ind).*(1 - delta_R).*(delta_C) + ...
+                       chan(in4_ind).*(delta_R).*(delta_C);
+        out(:,:,idx) = cast(tmp, class(im));
+    end
 
 
