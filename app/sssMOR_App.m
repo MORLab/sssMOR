@@ -335,9 +335,8 @@ function sssMOR_App_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
             position = get(handles.figure1,'Position');
             position(1,4) = position(1,4) - diff;
             set(handles.figure1,'Position',position);
-            
-        end
-        
+                  
+        end       
     end
     
 
@@ -366,6 +365,20 @@ function sssMOR_App_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
 function timer_Callback(handles)
     % removes the splashscreen after given time
     splash(handles.splash,'off')
+    
+    
+    % Display an error message if footer and header are already
+    % hidden, but the app-window is still to small to fit on the 
+    % screen
+    screensize = get( 0, 'Screensize' );
+    
+    set(handles.figure1,'Units','pixels');
+    position = get(handles.figure1,'Position');
+    set(handles.figure1,'Units','characters');
+
+    if screensize(1,4) < position(1,4)+20    
+        errordlg('The screen is to small to correctly display the app. This will eventually restrict the functionality!');
+    end    
 
 
 function varargout = sssMOR_App_OutputFcn(hObject, eventdata, handles)
