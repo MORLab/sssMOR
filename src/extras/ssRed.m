@@ -850,7 +850,7 @@ classdef ssRed < ss
 
                 % get h,t by calling ss/step
 
-                sys.(sys.d) = zeros(size(sys.(sys.d_)));
+                sys.(sys.d_) = zeros(size(sys.(sys.d_)));
                 if ~isempty(t)
                     [h,tg] = step@ss(sys, t(end));
                 else
