@@ -1833,6 +1833,8 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 for i = 1:size(systemList,1)
                    if isa(systemList{i,2},'sss')
                        systemList{i,5} = zpk(systemList{i,2},struct('zpk',1));
+                   elseif isa(systemList{i,2},'ssRed')
+                       systemList{i,5} = zpk(systemList{i,2});
                    else
                        systemList{i,5} = systemList{i,2}; 
                    end
