@@ -5,6 +5,7 @@
 ## v1.07 [05 October 2016]
 ### Changes
 - minor improvements in MODALMOR, TBR, CURE, SPARK
+- SSS toolbox: using v1.02
 
 ### Bugfixes
 - SSRED
