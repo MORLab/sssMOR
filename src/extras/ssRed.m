@@ -325,6 +325,9 @@ classdef ssRed < ss
         
         isSym
     end
+    properties(Hidden,Access = private)
+        a_,b_,c_,d_,e_
+    end
     
     methods
         function obj = ssRed(varargin)
@@ -380,6 +383,21 @@ classdef ssRed < ss
             % call the construktor of the superclass ss
             obj@ss(A,B,C,D,'e',E);
             
+            % store the correct names for the properties containing the
+            % system matrices. This is a compatibility fix because the
+            % property names changed from lower to upper case in Matlab
+            % R2016a. To access the system matrices, use "obj.(obj.a_)"
+            obj.a_ = ltipack.matchProperty('a',...
+                            ltipack.allprops(obj),class(obj));
+            obj.b_ = ltipack.matchProperty('b',...
+                            ltipack.allprops(obj),class(obj));
+            obj.c_ = ltipack.matchProperty('c',...
+                            ltipack.allprops(obj),class(obj));
+            obj.d_ = ltipack.matchProperty('d',...
+                            ltipack.allprops(obj),class(obj));
+            obj.e_ = ltipack.matchProperty('e',...
+                            ltipack.allprops(obj),class(obj));
+                        
             % check all fields of paramsList
             if ~isempty(paramsList)
                 try
@@ -432,19 +450,13 @@ classdef ssRed < ss
                 
         %% Get Basic Properties
         function m = get.m(sys) % number of inputs
-            cProp = ltipack.matchProperty('b',...
-                            ltipack.allprops(sys),class(sys));
-            m = size(sys.(cProp),2);
+            m = size(sys.(sys.b_),2);
         end
         function n = get.n(sys) % system order
-            cProp = ltipack.matchProperty('a',...
-                            ltipack.allprops(sys),class(sys));
-            n = size(sys.(cProp),1);
+            n = size(sys.(sys.a_),1);
         end
         function p = get.p(sys) % number of outputs
-            cProp = ltipack.matchProperty('c',...
-                            ltipack.allprops(sys),class(sys));
-            p = size(sys.(cProp),1);
+            p = size(sys.(sys.c_),1);
         end
         
         %% Get helper functions
@@ -455,7 +467,7 @@ classdef ssRed < ss
         function isBig = get.isBig(sys); isBig=(sys.n>5000);end
         
         function isDae = get.isDae(sys)
-            if condest(sys.e)==Inf
+            if condest(sys.(sys.e_))==Inf
                 isDae = 1;
             else
                 isDae = 0;
@@ -463,28 +475,20 @@ classdef ssRed < ss
         end
         
         function isDescriptor = get.isDescriptor(sys)
-            cProp = ltipack.matchProperty('e',...
-                            ltipack.allprops(sys),class(sys));
-            isDescriptor = logical(full(any(any(sys.(cProp)-speye(size(sys.(cProp)))))));
+            isDescriptor = logical(full(any(any(sys.(sys.e_)-speye(size(sys.(sys.e_)))))));
         end
         
         function sys = resolveDescriptor(sys)
-            cPropA = ltipack.matchProperty('a',...
-                            ltipack.allprops(sys),class(sys));
-            cPropB = ltipack.matchProperty('b',...
-                            ltipack.allprops(sys),class(sys));
-            cPropE = ltipack.matchProperty('e',...
-                            ltipack.allprops(sys),class(sys));
-            sys.(cPropA) = sys.(cPropE)\sys.(cPropA);
-            sys.(cPropB) = sys.(cPropE)\sys.(cPropB);
-            sys.(cPropE) = [];
+            sys.(sys.a_) = sys.(sys.e_)\sys.(sys.a_);
+            sys.(sys.b_) = sys.(sys.e_)\sys.(sys.b_);
+            sys.(sys.e_) = [];
         end
         
         function isSym = get.isSym(sys) %A=A', E=E'
             if isequal(sys.isSym,0) || isequal(sys.isSym,1)
                 isSym = sys.isSym;
             else
-                if max(max(sys.a-sys.a.'))<1e-6 && max(max(sys.e-sys.e.'))<1e-6
+                if max(max(sys.(sys.a_)-sys.(sys.a_).'))<1e-6 && max(max(sys.(sys.e_)-sys.(sys.e_).'))<1e-6
                     isSym = 1;
                 else
                     isSym = 0;
@@ -591,13 +595,11 @@ classdef ssRed < ss
             if size(C1,1) ~= size(C2,1)
                 error('sys1 and sys2 must have same number of outputs.')
             end
-            cPropE = ltipack.matchProperty('e',...
-                            ltipack.allprops(sys1),class(sys1));
             if isa(sys1,'ss') && isempty(E1)
-                sys1.(cPropE) = eye(size(A1,1));
+                sys1.(sys1.e_) = eye(size(A1,1));
             end
             if isa(sys2,'ss') && isempty(E2)
-                sys2.(cPropE) = eye(size(A2,1));
+                sys2.(sys1.e_) = eye(size(A2,1));
             end
 
             if isa(sys2,'sss')           
@@ -699,11 +701,11 @@ classdef ssRed < ss
         
         function [issd, numericalAbscissa] = issd(sys)
             %  Parse input
-            if condest(sys.e)>1e16, error('issd does not support DAEs'),end
+            if condest(sys.(sys.e_))>1e16, error('issd does not support DAEs'),end
 
             %  Perform computations
             % E >0?
-            isPosDef = ispd(sys.e);
+            isPosDef = ispd(sys.(sys.e_));
             if ~isPosDef
                 if nargout == 0, warning('System is not strictly dissipative (E~>0).'); 
                 else issd = 0; end
@@ -711,7 +713,7 @@ classdef ssRed < ss
             end
 
             % A + A' <0?  
-            isNegDef = ispd(-sys.a-sys.a');
+            isNegDef = ispd(-sys.(sys.a_)-sys.(sys.a_)');
             if isNegDef
                 if nargout == 0, fprintf('System is strictly dissipative.\n'); else issd = 1; end
             else
@@ -721,9 +723,9 @@ classdef ssRed < ss
             if nargout==2 % computation of the numerical abscissa required
                 p    = 20;		% number of Lanczos vectors
                 tol  = 1e-10;	% convergence tolerance
-                opts = struct('issym',true, 'p',p, 'tol',tol, 'v0',sum(sys.e,2));
+                opts = struct('issym',true, 'p',p, 'tol',tol, 'v0',sum(sys.(sys.e_),2));
                 try
-                    numericalAbscissa = eigs((sys.a+sys.a')/2, sys.e, 1, 'la', opts);
+                    numericalAbscissa = eigs((sys.(sys.a_)+sys.(sys.a_)')/2, sys.(sys.e_), 1, 'la', opts);
                 catch err
                     warning('Computation of the numerical abscissa failed with message:%s',err.message);
                     numericalAbscissa = NaN;
@@ -756,7 +758,7 @@ classdef ssRed < ss
 
                 % get h,t by calling ss/step
 
-                sys.d = zeros(size(sys.d));
+                sys.(sys.d_) = zeros(size(sys.(sys.d_)));
                 if ~isempty(t)
                     [h,tg] = step(sys, t(end));
                 else
@@ -848,7 +850,7 @@ classdef ssRed < ss
 
                 % get h,t by calling ss/step
 
-                sys.d = zeros(size(sys.d));
+                sys.(sys.d) = zeros(size(sys.(sys.d_)));
                 if ~isempty(t)
                     [h,tg] = step@ss(sys, t(end));
                 else
@@ -910,6 +912,22 @@ classdef ssRed < ss
                     [varargout{1},varargout{2}] = step@ss(sys,varargin);
                 elseif nargout == 3
                     [varargout{1},varargout{2},varargout{3}] = step@ss(sys,varargin);
+                end
+            end
+        end
+        
+        function  [R,L] = lyapchol(sys,Opts)
+            if sys.isDescriptor
+                R = lyapchol(sys.(sys.a_),sys.(sys.b_),sys.(sys.e_));
+            else
+                R = lyapchol(sys.(sys.a_),sys.(sys.b_));
+            end
+
+            if nargout>1
+                if sys.isDescriptor
+                    L = lyapchol(sys.(sys.a_)', sys.(sys.c_)',sys.(sys.e_)');
+                else
+                    L = lyapchol(sys.(sys.a_)',sys.(sys.c_)');
                 end
             end
         end
@@ -1064,8 +1082,7 @@ classdef ssRed < ss
                else
                   outputStruct.(fields{i}) = structure.(fields{i});
                end
-            end            
-            t = 1;        
+            end                   
         end
         
     end    

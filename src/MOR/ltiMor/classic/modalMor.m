@@ -284,7 +284,7 @@ function [V, W]=eigenspaceSM(q)
             V(:,j)=V(:,j)/norm(V(:,j));
         end
     else
-        while norm((eye(sys.n)-V*V')*V_old)>Opts.tol
+        while norm(V_old - V*(V'*V_old))>Opts.tol
             V_old=V;
             
             V = solveLse(sys.A,sys.E*V_old,Opts);
