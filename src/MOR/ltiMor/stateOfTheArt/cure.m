@@ -145,6 +145,7 @@ if Opts.cure.test
     axH = findall(gcf,'type','axes');
     magHandle = axH(3); magLim = get(magHandle,'YLim');
     phHandle = axH(2); phLim  = get(phHandle,'YLim');
+    drawnow
     if Opts.cure.gif, writeGif('create'); end
 end
 %%   Initialize some variables
@@ -172,6 +173,7 @@ if Opts.cure.SE_DAE
             axH = findall(gcf,'type','axes');
             magHandle = axH(3); magLim = get(magHandle,'YLim');
             phHandle = axH(2); phLim  = get(phHandle,'YLim');
+            drawnow
             if Opts.cure.gif, writeGif('create'); end
         end 
     elseif DrImp
@@ -303,9 +305,8 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
         sysr_bode = sysr; 
         figure(fhSystemBeingReduced);
         bode(sysr_bode,w,'--r');
-        magHandle;
-        title(sprintf('n_{red} = %i',size(sysr.a,1)));
         set(magHandle,'YLim', magLim); set(phHandle,'YLim', phLim);
+        drawnow
         if Opts.cure.gif, writeGif('append'); end
     end
 end
@@ -323,7 +324,7 @@ if Opts.cure.test
         sysr_bode = sysr;
         figure(fhOriginalSystem);
         bode(sysr_bode,w,'-g');
-        subplot(2,1,1)
+        drawnow
         title(sprintf('n_{red} = %i',size(sysr.a,1)));
         
         if Opts.cure.gif, writeGif('append'), end

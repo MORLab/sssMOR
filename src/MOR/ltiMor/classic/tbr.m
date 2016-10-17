@@ -192,7 +192,7 @@ else
 end
     
 % calculate balancing transformation and Hankel Singular Values
-[K,S,M]=svd(full(R*L'));
+[K,S,M]=svd(full(R*L'),0);
 hsv = diag(S);
 sys.HankelSingularValues = real(hsv);
 sys.TBalInv = R'*K*diag(ones(size(hsv))./sqrt(hsv));
