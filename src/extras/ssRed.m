@@ -22,7 +22,7 @@ classdef ssRed < ss
 %
 % Input Arguments:
 %       -method: name of the used reduction algorithm;
-%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork']
+%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'userDefined']
 %       -params (tbr):          structure with the parameters for the tbr-algorithm;
 %           -.originalOrder:    Model order before reduction;
 %           -.type:             select amongst different tbr algorithms
@@ -259,6 +259,7 @@ classdef ssRed < ss
 %                               subspaces
 %           -.Rt:               right tangential directions for MIMO
 %           -.Lt:               left tangential directions for MIMO
+%       -params (userDefined):  []
 %       -A: system matrix
 %       -B: input matrix
 %       -C: output matrix
@@ -376,7 +377,7 @@ classdef ssRed < ss
             
             if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr', ...
                     'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
-                    'spark','cure_spark','cure_irka','cure_rk+pork'}) == 0
+                    'spark','cure_spark','cure_irka','cure_rk+pork','userDefined'}) == 0
                 error('The first argument has a wrong format. Type "help ssRed" for more information.');
             end
             
@@ -1032,6 +1033,8 @@ classdef ssRed < ss
                     list = {'fact','stop','stopval','maxIter'};
                     parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
                end
+            elseif strcmp(method,'userDefined')
+               parsedStruct = params;
             end
         end
         
