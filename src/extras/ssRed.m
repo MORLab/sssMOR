@@ -549,388 +549,56 @@ classdef ssRed < ss
            end
     end
         %% Override operators and build-in-functions
-        function varargout = eig(sys, varargin)
-            if sys.isBig
-                warning(['System order is very large: ',num2str(sys.n),'. You may want to try eigs(sys) instead.'])
+        function varargout = eig(varargin)
+            [varargout{1:nargout}] = sss.eig(varargin{:});
+        end
+        
+        function varargout = minus(varargin) 
+            [varargout{1:nargout}] = sss.minus(varargin{:});
+        end
+        
+        function varargout = residue(varargin)  
+            [varargout{1:nargout}] = sss.residue(varargin{:});
+        end
+        
+        function varargout = decayTime(varargin)
+            [varargout{1:nargout}] = sss.decayTime(varargin{:});
+        end
+        
+        function varargout = issd(varargin)
+            [varargout{1:nargout}] = sss.issd(varargin{:});
+        end
+        
+        function  varargout = impulse(varargin)
+            % check if Options are specified
+            if ~isempty(varargin) && isstruct(varargin{end})
+                Opts = varargin{end};
+                varargin = varargin(1:end-1);
             end
-            
-            [A,~,~,~,E] = dssdata(sys);
-            if sys.isDescriptor
-                if nargout==1||nargout==0
-                    [varargout{1}] = eig(full(A), full(E),varargin{:});
-                elseif nargout == 2
-                    [varargout{1}, varargout{2}] = eig(full(A), full(E),varargin{:});
-                elseif nargout == 3
-                    [varargout{1}, varargout{2}, varargout{3}]  = eig(full(A), full(E),varargin{:});
-                end
+            % call the correct function depending on the value of Opts.tf
+            if exist('Opts','var')
+                [varargout{1:nargout}] = sss.impulse(varargin{:},Opts);
             else
-                if nargout==1||nargout==0
-                    [varargout{1}] = eig(full(A),varargin{:});
-                elseif nargout == 2
-                    [varargout{1}, varargout{2}] = eig(full(A),varargin{:});
-                elseif nargout == 3
-                    [varargout{1}, varargout{2}, varargout{3}]  = eig(full(A),varargin{:});
-                end
+                [varargout{1:nargout}] = impulse@ss(varargin{:});
             end
         end
         
-        function diff = minus(sys1, sys2) 
-            [A1,B1,C1,D1,E1] = dssdata(sys1);
-            [A2,B2,C2,D2,E2] = dssdata(sys2);
-            if size(A1,1) == 0
-                if isa(sys2,'sss')
-                    diff = sss(A2, B2, -C2, D2, E2);
-                else
-                    diff = dss(A2, B2, -C2, D2, E2);
-                end
-                return
+        function  varargout = step(varargin)
+            % check if Options are specified
+            if ~isempty(varargin) && isstruct(varargin{end})
+                Opts = varargin{end};
+                varargin = varargin(1:end-1);
             end
-            if size(A2,1) == 0
-                diff = dss(A1, B1, C1, D1, E1);
-                return
-            end
-
-            if size(B1,2) ~= size(B2,2)
-                error('sys1 and sys2 must have same number of inputs.')
-            end
-            if size(C1,1) ~= size(C2,1)
-                error('sys1 and sys2 must have same number of outputs.')
-            end
-            if isa(sys1,'ss') && isempty(E1)
-                sys1.(sys1.e_) = eye(size(A1,1));
-            end
-            if isa(sys2,'ss') && isempty(E2)
-                sys2.(sys1.e_) = eye(size(A2,1));
-            end
-
-            if isa(sys2,'sss')           
-                diff = sss([A1 sparse(size(A1,1),size(A2,1)); sparse(size(A2,1),size(A1,1)) A2], ...
-                    [B1; B2], ...
-                    [C1, -C2], ...
-                    D1 - D2, ...
-                    [E1 sparse(size(A1,1),size(A2,1)); sparse(size(A2,1),size(A1,1)) E2]);
+            % call the correct function depending on the value of Opts.tf
+            if exist('Opts','var')
+                [varargout{1:nargout}] = sss.step(varargin{:},Opts);
             else
-                diff = dss([A1 zeros(size(A1,1),size(A2,1)); zeros(size(A2,1),size(A1,1)) A2], ...
-                    [B1; B2], ...
-                    [C1, -C2], ...
-                    D1 - D2, ...
-                    [E1 zeros(size(A1,1),size(A2,1)); zeros(size(A2,1),size(A1,1)) E2]);
+                [varargout{1:nargout}] = step@ss(varargin{:});
             end
         end
         
-        function [r,p,d] = residue(sys, Opts)       
-            Def.rType = 'res';
-
-            if ~exist('Opts','var') || isempty(Opts)
-                Opts = Def;
-            else
-                Opts = parseOpts(Opts,Def);
-            end
-
-            %perform eigen-decomposition of system
-            try
-                [T,J] = eig(sys);
-            catch err
-                error('Computation of the eigenvalues and eigenvectors failed with message:%s',err.message);
-            end
-
-            % transform system to diagonal form
-            p=diag(J).';
-            if issparse(T)
-                rcondNumber = 1/condest(T);
-            else
-                rcondNumber=rcond(T);
-            end
-            if rcondNumber<eps
-                warning(['Matrix of eigenvectors is close to singular or badly scaled. Results may be inaccurate. RCOND =',num2str(rcondNumber)]);
-            end
-            [~,B,C,D,E] = dssdata(sys);
-            B=(E*T)\B;
-            C=C*T;
-            d=D;
-
-            % calculate residues
-            if strcmp(Opts.rType,'dir')
-                % return the residual directions instead of the residuals
-                r = {C, B};  
-            else
-                % return the residuals
-                r = cell(1,sys.n);
-                for i=1:sys.n
-                    r{i} = full(C(:,i)*B(i,:));
-                end
-            end
-        end
-        
-        function tmax = decayTime(sys)
-            [res,p]=residue(sys);
-
-            % is system stable?
-            if any(real(p)>0 & real(p)<1e6) % larger than 0 but, smaller than infinity-threshold
-                % no -> tmax=NaN
-                tmax=NaN;
-                warning('sss:decayTime:UnstableSys','The system is not stable. The decay time is set to tmax=NaN.');
-                return
-            end
-
-            tmax=0; temp = cat(3,res{:}); 
-            for i=1:sys.p
-                for j=1:sys.m
-                    % how much does each pole contribute to energy flow?
-                    h2=zeros(size(p));
-                    for k=1:length(p)
-                        %we need the siso residual for all poles into on vectors
-                        resIJvec = squeeze(temp(i,j,:)).';
-                        h2(k)=res{k}(i,j)*sum(resIJvec./(-p(k)-p));
-                    end
-
-                    [h2_sorted, I] = sort(real(h2));
-                    % which pole contributes more than 1% of total energy?
-                    I_dom = I( h2_sorted > 0.01*sum(h2_sorted) );
-                    if isempty(I_dom)
-                        % no poles are dominant, use slowest
-                        I_dom = 1:length(p);
-                    end
-                    % use slowest among dominant poles
-                    [h2_dom, I2] = sort(abs(real(p(I_dom))));
-
-                    % when has slowest pole decayed to 1% of its maximum amplitude?
-                    tmax=max([tmax, log(100)/abs(real(p(I_dom(I2(1)))))]);
-                end
-            end
-        end
-        
-        function [issd, numericalAbscissa] = issd(sys)
-            %  Parse input
-            if condest(sys.(sys.e_))>1e16, error('issd does not support DAEs'),end
-
-            %  Perform computations
-            % E >0?
-            isPosDef = ispd(sys.(sys.e_));
-            if ~isPosDef
-                if nargout == 0, warning('System is not strictly dissipative (E~>0).'); 
-                else issd = 0; end
-                return
-            end
-
-            % A + A' <0?  
-            isNegDef = ispd(-sys.(sys.a_)-sys.(sys.a_)');
-            if isNegDef
-                if nargout == 0, fprintf('System is strictly dissipative.\n'); else issd = 1; end
-            else
-                if nargout == 0, warning('System is not strictly dissipative (E>0, A+A''~<0)'); else issd = 0; end
-            end
-
-            if nargout==2 % computation of the numerical abscissa required
-                p    = 20;		% number of Lanczos vectors
-                tol  = 1e-10;	% convergence tolerance
-                opts = struct('issym',true, 'p',p, 'tol',tol, 'v0',sum(sys.(sys.e_),2));
-                try
-                    numericalAbscissa = eigs((sys.(sys.a_)+sys.(sys.a_)')/2, sys.(sys.e_), 1, 'la', opts);
-                catch err
-                    warning('Computation of the numerical abscissa failed with message:%s',err.message);
-                    numericalAbscissa = NaN;
-                end
-            end
-        end
-        
-        function  [tf,g,t] = impulse(sys,varargin)
-        % Override the impulse-function with three output-arguments for
-        % ssRed-objects, because this syntax does not exist for the
-        % Matlab build-in impulse function. Impulse with three output
-        % arguments is needed in the sssMOR_App. So this function makes it
-        % possible that plotting with the app works for ssRed-objects, too.
-        
-            % check if a tf-object should be given back
-            if ~isempty(varargin) && isfield(varargin{nargin-1},'tf') && ...
-                    varargin{nargin-1}.tf == 1
-               
-                % final Time
-                t = [];
-                if nargin == 3 && isfloat(varargin{1})
-                    t = varargin{1};
-                end
-
-                if ~isempty(t)
-                    Tfinal=t(end);
-                else
-                    Tfinal=0;
-                end
-
-                % get h,t by calling ss/step
-
-                sys.(sys.d_) = zeros(size(sys.(sys.d_)));
-                if ~isempty(t)
-                    [h,tg] = step(sys, t(end));
-                else
-                    [h,tg] = step(sys);
-                end
-
-                % compute impulse response [g,t]
-                if length(size(h)) == 2
-                    g{1,1}=gradient(h,tg);                        
-                    g{1,1}(isnan(h))=0;
-                else
-                    g = cell(size(h,2),size(h,3));
-                    for k=1:size(g,1)
-                        for j=1:size(g,2)
-                            g{k,j}=gradient(h(:,k,j),tg);                        
-                            g{k,j}(isnan(h(:,k,j)))=0;
-                        end
-                    end
-                end
-
-                % get Ts and Tfinal
-                Ts=Inf;
-                if isempty(t) || isscalar(t)
-                    for k=1:size(g,1)
-                         for j=1:size(g,2)
-                            Ts=min(min(diff(tg),Ts));
-                            if ~isscalar(t)
-                                Tfinal=max(max(tg),Tfinal);
-                            end
-                         end
-                    end
-                else
-                    Ts=min(diff(t));
-                    Tfinal=t(end);
-                end
-
-                t=0:Ts:Tfinal(end);
-
-                % create tf-object
-                tf = cellfun(@(x) [x(1) diff(x')],g,'UniformOutput',false);
-                tf = filt(tf,1,Ts);
-                tf.Name = sys.Name;
-                t = t';
-                
-                % provide output arguments
-                if nargout == 1
-                    varargout{1} = tf;
-                elseif nargout == 3
-                    varargout{1} = tf;
-                    varargout{2} = h;
-                    varargout{3} = t;
-                else
-                    error('Only up to three output arguments are supported, if Opts.tf==1');
-                end
-            else
-                if nargout == 0
-                    impulse@ss(sys,varargin);
-                elseif nargout == 1
-                    varargout{1} = impulse@ss(sys,varargin);
-                elseif nargout == 2
-                    [varargout{1},varargout{2}] = impulse@ss(sys,varargin);
-                elseif nargout == 3
-                    [varargout{1},varargout{2},varargout{3}] = impulse@ss(sys,varargin);
-                end
-            end
-        end
-        
-        function  varargout = step(sys,varargin)
-        % Override the step-function with three output-arguments for
-        % ssRed-objects, because this syntax does not exist for the
-        % Matlab build-in step function. Step with three output
-        % arguments is needed in the sssMOR_App. So this function makes it
-        % possible that plotting with the app works for ssRed-objects, too.
-        
-            % check if a tf-object should be given back
-            if ~isempty(varargin) && isfield(varargin{nargin-1},'tf') && ...
-                    varargin{nargin-1}.tf == 1
-                % final Time
-                t = [];
-                if nargin == 3 && isfloat(varargin{1})
-                    t = varargin{1};
-                end
-
-                if ~isempty(t)
-                    Tfinal=t(end);
-                else
-                    Tfinal=0;
-                end
-
-                % get h,t by calling ss/step
-
-                sys.(sys.d_) = zeros(size(sys.(sys.d_)));
-                if ~isempty(t)
-                    [h,tg] = step@ss(sys, t(end));
-                else
-                    [h,tg] = step@ss(sys, []);
-                end
-
-                % create cell array
-                if length(size(h)) == 2
-                    h_{1,1}=h;                        
-                else
-                    h_ = cell(size(h,2),size(h,3));
-                    for k=1:size(h_,1)
-                        for j=1:size(h_,2)
-                            h_{k,j}=h(:,k,j);                      
-                        end
-                    end
-                end
-
-                % get Ts and Tfinal
-                Ts=Inf;
-                if isempty(t) || isscalar(t)
-                    for k=1:size(h_,1)
-                         for j=1:size(h_,2)
-                            Ts=min(min(diff(tg),Ts));
-                            if ~isscalar(t)
-                                Tfinal=max(max(tg),Tfinal);
-                            end
-                         end
-                    end
-                else
-                    Ts=min(diff(t));
-                    Tfinal=t(end);
-                end
-
-                t=0:Ts:Tfinal(end);
-
-                % create tf-object
-                tf = cellfun(@(x) [x(1) diff(x')],h_,'UniformOutput',false);
-                tf = filt(tf,1,Ts);
-                tf.Name = sys.Name;
-                t = t';
-                
-                % provide output arguments
-                if nargout == 1
-                    varargout{1} = tf;
-                elseif nargout == 3
-                    varargout{1} = tf;
-                    varargout{2} = h;
-                    varargout{3} = t;
-                else
-                    error('Only up to three output arguments are supported, if Opts.tf==1');
-                end
-            else
-                if nargout == 0
-                    step@ss(sys,varargin);
-                elseif nargout == 1
-                    varargout{1} = step@ss(sys,varargin);
-                elseif nargout == 2
-                    [varargout{1},varargout{2}] = step@ss(sys,varargin);
-                elseif nargout == 3
-                    [varargout{1},varargout{2},varargout{3}] = step@ss(sys,varargin);
-                end
-            end
-        end
-        
-        function  [R,L] = lyapchol(sys,Opts)
-            if sys.isDescriptor
-                R = lyapchol(sys.(sys.a_),sys.(sys.b_),sys.(sys.e_));
-            else
-                R = lyapchol(sys.(sys.a_),sys.(sys.b_));
-            end
-
-            if nargout>1
-                if sys.isDescriptor
-                    L = lyapchol(sys.(sys.a_)', sys.(sys.c_)',sys.(sys.e_)');
-                else
-                    L = lyapchol(sys.(sys.a_)',sys.(sys.c_)');
-                end
-            end
+        function  varargout = lyapchol(varargin)
+            [varargout{1:nargout}] = sss.lyapchol(varargin{:});
         end
     end
     
