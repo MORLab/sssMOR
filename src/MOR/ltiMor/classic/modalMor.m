@@ -1,5 +1,5 @@
 function [sysr, V, W, D] = modalMor(sys, q, Opts)
-% MODALMOR - Modal model order reduction of LTI systems
+% MODALMOR - Modal truncation order reduction of LTI systems
 %
 % Syntax:
 %       sysr			= MODALMOR(sys, q)
@@ -68,6 +68,8 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 %		* *[3] Sorensen (1992)*, Implicit Application of Polynomial Filters 
 %              in a k-Step Arnoldi Method.
 %		* *[4] Foellinger (2013)*, Regelungstechnik (pp. 305-319)
+%       * *[5] Litz and Roth (1981)*, State decomposition for singular perturbation
+%              
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
