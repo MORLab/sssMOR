@@ -71,7 +71,6 @@ classdef testTbr < sssTest
             Opts.type='tbr';
             
             [sysr, V, W] = tbr(sss(A,B,C,0),q, Opts);
-            actSolution={full(sysr.A),full(sysr.B),full(sysr.C),V,W};
             
             S=lyapchol(full(A),full(B));
             R=lyapchol(full((A)'),full(C)');
@@ -80,8 +79,8 @@ classdef testTbr < sssTest
             expV=S'*Usvd(:,1:q)*(sigma(1:q,1:q))^(-1/2);
             expW=((sigma(1:q,1:q))^(-1/2)*Vsvd(:,1:q)'*R)'; 
             
-            expSolution={expW'*full(A)*expV, expW'*full(B),full(C)*expV,  expV, expW};
-            verification(testCase, actSolution, expSolution, sysr);
+            verifyLessThan(testCase, subspace(V,expV),1e-3,'V spans wrong subspace');
+            verifyLessThan(testCase, subspace(W,expW),1e-3,'W spans wrong subspace');
             verifyLessThan(testCase, norm((W'*V)-eye(size(V,2))),1.01,...
                 'W*V not identity matrix');
         end
@@ -180,7 +179,7 @@ classdef testTbr < sssTest
         function testLyapchol(testCase)
             Opts.lse='gauss';
             Opts.hsvTol=1e-15;
-            Opts.type='adi';
+            Opts.method='adi';
             Opts.warnOrError='warn';
             q=10;
             
@@ -283,7 +282,7 @@ classdef testTbr < sssTest
 
                     expSysr=sss(expW'*sys.A*expV,expW'*sys.B,sys.C*expV,sys.D,expW'*sys.E*expV);
 
-                    lyapOpts.type='adi';
+                    lyapOpts.method='adi';
                     lyapOpts.q=10;
                     [R,L]=lyapchol(sys,lyapOpts);
 

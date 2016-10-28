@@ -111,11 +111,11 @@ function [sysr, varargout] = tbr(sys, varargin)
 %------------------------------------------------------------------
 
 % Default execution parameters
-Def.type = 'tbr'; % select tbr method (tbr, adi, matchDcGain)
-Def.redErr = 0; % reduction error (redErr>2*sum(hsv(q+1:end)))
-Def.hsvTol = 1e-15; % hsv tolerance (hsv(q)<hsvTol)
+Def.type        = 'tbr'; % select tbr method (tbr, adi, matchDcGain)
+Def.redErr      = 0; % reduction error (redErr>2*sum(hsv(q+1:end)))
+Def.hsvTol      = 1e-15; % hsv tolerance (hsv(q)<hsvTol)
 Def.warnOrError = 'warn'; % display warnings or errors (0,'warn','error')
-Def.lse = 'gauss'; % usfs for adi ('gauss', 'luChol')
+Def.lse         = 'gauss'; % usfs for adi ('gauss', 'luChol')
 
 % check input for q and Opts
 if nargin>1
@@ -369,8 +369,7 @@ switch Opts.type
             end
         end
         
-        warning('on','MATLAB:nearlySingularMatrix');
-    
+        warning('on','MATLAB:nearlySingularMatrix');    
     case 'adi'
         if isa(sys,'ssRed')
             sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V,sys.reductionParameters);
