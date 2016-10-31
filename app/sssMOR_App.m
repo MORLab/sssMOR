@@ -1926,82 +1926,64 @@ function pb_load_Callback(hObject, eventdata, handles)
     % disable to avoid double call of uigetfile
     set(handles.allbuttons,'Enable','off')
     filename=sprintf('%s.mat',handles.letzterpfad);
-    [filename,path]=uigetfile(filename);
-    set(handles.allbuttons,'Enable','on')
-    if filename==0
-         return
-    end
-    handles.letzterpfad=path;
-    guidata(hObject, handles);
-    % only mat-files can be loaded
-    if isempty(strfind(filename,'.mat'))
-        errordlg('Only .mat files allowed.','Error Dialog','modal')
-        uiwait
-        return
-    end 
     
     loadingSuccessfull = 1;
     
     %Check which option is selected
     
-    if get(handles.rb_loadOptions_matrices,'Value') == 1
+    if get(handles.rb_loadOptions_matrices,'Value') == 1  % Matrices
+        
+        %Open dialog-box
+        [filename,path]=uigetfile(filename);
+        set(handles.allbuttons,'Enable','on')
+        
+        %Check if files are correct
+        if filename==0
+            return
+        end
+        handles.letzterpfad=path;
+        guidata(hObject, handles);
+        if isempty(strfind(filename,'.mat'))  %only mat-files can be loaded
+            errordlg('Only .mat files allowed.','Error Dialog','modal')
+            uiwait
+            return
+        end 
        
         %Load matrices to workspace
         
         evalin('base',sprintf('load(''%s%s'');',path,filename));
         
-    else
+    else                                                % System
+        
+        %Open dialog-box
+        [fileList,path]=uigetfile(filename,'MultiSelect','on');
+        set(handles.allbuttons,'Enable','on')
+        
+        handles.letzterpfad=path;
+        guidata(hObject, handles);        
         
         %Create system with the function loadSss
         
-        lastwarn('');
-        
-        try
-            
-           %Create a name for the system based on the filename
-            
-           splittedString = strsplit(filename,'.');
-           name = char(strcat('sys_',splittedString(1,1)));
-           
-           count = 1;
-           sTemp = name;
-                    
-           %Check wheater the name already exists in workspace
-           
-           while existInBaseWs(sTemp)~=0
-                sTemp = strcat(name,num2str(count));
-                count = count+1;
-           end
-           
-           name = sTemp;
-           
-           %Create system using loadSss
-          
-           sys = loadSss(strcat(path,filename));         
-           assignin('base',name,sys);
-           
-           %Check whether the system is DAE and warn the user if the case
-           
-           if sys.isDae
-               msgbox('System is DAE. This User-Interface does not fully support systems in DAE-format','Warning','Warn');
-               uiwait
-           end    
-           
-           error('loadSss:WarningOccured',lastwarn);
-            
-        catch ex
-            
-            if strcmp(ex.identifier,'loadSss:WarningOccured')
-                    if ~isempty(ex.message)
-                        msgbox(ex.message,'Warning','warn');
-                        uiwait
+        if iscell(fileList)             % Multi-Select
+            loadingSuccessfull = 0;
+            for i = 1:length(fileList)
+                filename = fileList{i};
+                if isempty(strfind(filename,'.mat'))  %only mat-files can be loaded
+                    errordlg(strcat(filename,': Only .mat files allowed.'), ...
+                                    'Error Dialog','modal')
+                    uiwait
+                else
+                    success = loadSystemWithLoadSss(filename,path); 
+                    if success
+                        loadingSuccessfull = 1;
                     end
-            else
-                    msgbox({'Error while evaluating function loadSss.', ...
-                            'Try to load the matrices and then compose the model.'},'Error','error');
-                    loadingSuccessfull = 0;
-            end            
-        end      
+                end
+            end
+        else                            % single System
+            loadingSuccessfull = loadSystemWithLoadSss(fileList,path);  
+        end
+        
+        
     end
     
     %Refresh the display of the variables in workspace
@@ -6074,6 +6056,53 @@ function x = listClassesInWorkspace(class)
     
     % remove empty (non-system) entries
     x(cellfun(@isempty,x)) = []; 
+    
+function success = loadSystemWithLoadSss(filename,path)
+% create a system from the matrices in a .mat file by using the function
+% loadSss
+   try
+       lastwarn('');
+       success = 1;
+       
+       % create a name for the system based on the filename
+       splittedString = strsplit(filename,'.');
+       name = char(strcat('sys_',splittedString(1,1)));
+
+       count = 1;
+       sTemp = name;
+
+       % check wheater the name already exists in workspace
+       while existInBaseWs(sTemp)~=0
+            sTemp = strcat(name,num2str(count));
+            count = count+1;
+       end
+
+       name = sTemp;
+
+       % create system using loadSss
+       sys = loadSss(strcat(path,filename));         
+       assignin('base',name,sys);
+
+       % check whether the system is DAE and warn the user if the case
+       if sys.isDae
+           msgbox(strcat(filename,': System is DAE. This User-Interface does not fully support systems in DAE-format'),'Warning','Warn');
+           uiwait
+       end    
+
+       error('loadSss:WarningOccured',lastwarn);
+
+    catch ex
+        if strcmp(ex.identifier,'loadSss:WarningOccured')
+            if ~isempty(ex.message)
+                msgbox(strcat(filename,': ',ex.message),'Warning','warn');
+                uiwait
+            end
+        else
+            msgbox({strcat(filename,': '),'Error while evaluating function loadSss.', ...
+                    'Try to load the matrices and then compose the model.'},'Error','error');
+            success = 0;
+        end            
+    end       
 
     
 %Auxiliary-functions for plotting 
