@@ -569,6 +569,10 @@ classdef ssRed < ss
             [varargout{1:nargout}] = sss.issd(varargin{:});
         end
         
+        function syst = truncate(sys, idxOut, idxIn)
+            syst = subsref(sys,idxOut,idxIn);
+        end
+        
         function  varargout = impulse(varargin)
             % check if Options are specified
             if ~isempty(varargin) && isstruct(varargin{end})
