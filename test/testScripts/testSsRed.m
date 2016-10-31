@@ -265,7 +265,79 @@ classdef testSsRed < sssTest
             tzero(sysr);
         end
         
+        function testSssFunctionality(testCase)
+            % create a ssRed-model
+            sys1 = loadSss('building');
+            sys2 = loadSss('CDplayer');
+            sys3 = loadSss('beam');
+            sysr1 = ssRed('userDefined',[],sys1.A,sys1.B,sys1.C,sys1.D,sys1.E);
+            sysr2 = ssRed('userDefined',[],sys2.A,sys2.B,sys2.C,sys2.D,sys2.E);
+            sysr3 = ssRed('userDefined',[],sys3.A,sys3.B,sys3.C,sys3.D,sys3.E);
+            
+            % test append
+            sys_appended = append(sys1,sys2);
+            sysr_appended = append(sysr1,sysr2);
+            verification(testCase,sysr_appended,sys_appended, 1e-8, ...
+                        'Test for the append-function failed!');
+            
+            % test bode
+            [mag, phase, omega] = bode(sys1);
+            [magr, phaser] = bode(sysr1,omega);
+            verifyEqual(testCase,mag,magr,'AbsTol',1e-5, ... 
+                        'Test for the bode-function (magnitude) failed!');
+            verifyEqual(testCase,phase,phaser,'AbsTol',1e-5, ... 
+                        'Test for the bode-function (phase) failed!');
+                    
+            % test bodemag
+            bodemag(sysr1,omega);
+            
+            % test bodeplot
+            bodeplot(sysr1,omega);
+            
+            % test c2d
+            % (can not be tested against the sss-function, because the 
+            % selectable methods do not match)
+            sysrd = c2d(sysr1,0.2);
+            
+            % test clear (does not exist for ss-objects)
+            
+            % test connect
+            sysr1.u = 'w'; sysr1.y = 'u';
+            sysr3.u = 'u'; sysr3.y = 'y';
+            sys1.u = {'w'}; sys1.y = {'u'};
+            sys3.u = {'u'}; sys3.y = {'y'};
+            sys_connected = connect(sys1,sys3,{'w'},{'y'});
+            sysr_connected = connect(sysr1,sysr3,'w','y');
+            verification(testCase,sysr_connected,sys_connected, 1e-8, ...
+                        'Test for the append-function failed!');
+                    
+            % test connectSss (does not exist for ss-objects)
+            
+            % test dcgain
+            gain = dcgain(sys3);
+            gainr = dcgain(sysr3);
+            verifyEqual(testCase,gain,gainr,'AbsTol',1e-5, ... 
+                        'Test for the dcgain-function failed!');
+                    
+            % test decayTime
+            decTime = decayTime(sys1);
+            decTimer = decayTime(sysr1);
+            verifyEqual(testCase,decTime,decTimer,'AbsTol',1e-5, ... 
+                        'Test for the dcgain-function failed!');
+            
+        end
+      
+        
     end
     
+end
+
+function [] = verification (testCase, sys, sys_sss, absTol,message)
+          % test if a ssRed-model and a sss-Model are equal
+          verifyEqual(testCase,sys.A,full(sys_sss.A),'AbsTol', absTol, message);
+          verifyEqual(testCase,sys.B,full(sys_sss.B),'AbsTol', absTol, message);
+          verifyEqual(testCase,sys.C,full(sys_sss.C),'AbsTol', absTol, message);
+          verifyEqual(testCase,sys.D,full(sys_sss.D),'AbsTol', absTol, message);
+          %verifyEqual(testCase,sys.E,full(sys_sss.E),'AbsTol', 1e-8, message);
 end
 
