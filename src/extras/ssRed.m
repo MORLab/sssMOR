@@ -569,8 +569,15 @@ classdef ssRed < ss
             [varargout{1:nargout}] = sss.issd(varargin{:});
         end
         
+        function varargout = eigs(varargin)
+            [varargout{1:nargout}] = sss.eigs(varargin{:});
+        end
+        
         function syst = truncate(sys, idxOut, idxIn)
-            syst = subsref(sys,idxOut,idxIn);
+            args.type = '()';
+            args.subs{1} = idxOut;
+            args.subs{2} = idxIn;
+            syst = subsref(sys,args);
         end
         
         function  varargout = impulse(varargin)
