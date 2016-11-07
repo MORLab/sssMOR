@@ -324,6 +324,63 @@ classdef testSsRed < sssTest
             decTimer = decayTime(sysr1);
             verifyEqual(testCase,decTime,decTimer,'AbsTol',1e-5, ... 
                         'Test for the dcgain-function failed!');
+                    
+            % test diag (does not exist for ss-objects)
+            
+            % test disp (does something different for ss-objects)
+            
+            % test eig
+            [V,D,W] = eig(sys1);
+            [Vr,Dr,Wr] = eig(sysr1);
+            verifyEqual(testCase,V,Vr,'AbsTol',1e-5, ... 
+                        'Test for the eig-function failed (matrix V)!');
+            verifyEqual(testCase,D,Dr,'AbsTol',1e-5, ... 
+                        'Test for the eig-function failed (matrix D)!');
+            verifyEqual(testCase,W,Wr,'AbsTol',1e-5, ... 
+                        'Test for the eig-function failed (matrix W)!');
+                    
+            % test eigs
+            [V,D,flag] = eigs(sys1);
+            [Vr,Dr,flagr] = eigs(sysr1);
+            verifyEqual(testCase,V,Vr,'AbsTol',1, ... 
+                        'Test for the eigs-function failed (matrix V)!');
+            verifyEqual(testCase,D,Dr,'AbsTol',1, ... 
+                        'Test for the eigs-function failed (matrix D)!');
+                    
+            % test freqresp (frd-object generation does not work for ssRed)
+            [G, w] = freqresp(sys1);
+            Gr = freqresp(sysr1,w);
+            verifyEqual(testCase,G,Gr,'AbsTol',1e-5, ... 
+                        'Test for the freqresp-function failed!');
+                    
+            % test impulse
+            Opts.tf = 1;
+            [tf,h,t] = impulse(sys1,Opts);
+            [tfr,hr,tr] = impulse(sysr1,t,Opts);
+            verifyEqual(testCase,h,hr,'AbsTol',1e-5, ... 
+                        'Test for the impulse-function failed!');
+                    
+            % test issd
+            [i,nA] = issd(sys1);
+            [ir,nAr] = issd(sysr1);
+            verifyEqual(testCase,nA,nAr,'AbsTol',1e-5, ... 
+                        'Test for the issd-function failed!');
+                    
+            % test isstable
+            stab = isstable(sys1);
+            stabr = isstable(sysr1);
+            verifyEqual(testCase,+stab,+stabr,'Test for the isstable-function failed!');
+            
+            % test lsim
+            u = rand(100,1);
+            [Y,~,t] = lsim(sys1,u,0.01,'RK4',0.01);
+            [Yr,tr,~] = lsim(sysr1,u,t);
+            verifyEqual(testCase,Y,Yr','AbsTol',1e-5, ... 
+                        'Test for the lsim-function failed!');
+            
+                   
+                    
+                    
             
         end
       
