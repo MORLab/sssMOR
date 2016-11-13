@@ -557,6 +557,14 @@ classdef ssRed < ss
             [varargout{1:nargout}] = sss.minus(varargin{:});
         end
         
+        function varargout = plus(varargin) 
+            [varargout{1:nargout}] = sss.plus(varargin{:});
+        end
+        
+        function varargout = mtimes(varargin) 
+            [varargout{1:nargout}] = sss.mtimes(varargin{:});
+        end
+        
         function varargout = residue(varargin)  
             [varargout{1:nargout}] = sss.residue(varargin{:});
         end
