@@ -377,10 +377,109 @@ classdef testSsRed < sssTest
             [Yr,tr,~] = lsim(sysr1,u,t);
             verifyEqual(testCase,Y,Yr','AbsTol',1e-5, ... 
                         'Test for the lsim-function failed!');
-            
+             
+            % test lyapchol
+            [R,L] = lyapchol(sys1);
+            [Rr,Lr] = lyapchol(sysr1);
+            verifyEqual(testCase,R,Rr,'AbsTol',1e-5, ... 
+                        'Test for the lyapchol-function failed!');
+            verifyEqual(testCase,L,Lr,'AbsTol',1e-5, ... 
+                        'Test for the lyapchol-function failed!');
+                    
+            % test minus
+            sys_diff = sys1-sys3;
+            sysr_diff = sysr1-sysr3;
+            verifyEqual(testCase,sys_diff,sysr_diff, ...
+                        'Test for the minus-function failed!')
+                    
+            % test mtimes
+            sys_prod = mtimes(sys1,sys3);
+            sysr_prod = mtimes(sysr1,sysr3);
+            verifyEqual(testCase,sys_prod,sysr_prod, ...
+                        'Test for the mtimes-function failed!')
+                    
+            % test norm
+            nrm = norm(sys1, 'inf');
+            nrmr = norm(sysr1,Inf);
+            verifyEqual(testCase,nrm,nrmr,'AbsTol',1e-3, ... 
+                        'Test for the norm-function failed (inf-norm)!');                    
+            nrm = norm(sys1, 2);
+            nrmr = norm(sysr1,2);
+            verifyEqual(testCase,nrm,nrmr,'AbsTol',1e-3, ... 
+                        'Test for the norm-function failed (2-norm)!');
+                    
+            % test plus
+            sys_add = sys1+sys3;
+            sysr_add = sysr1+sysr3;
+            verifyEqual(testCase,sys_add,sysr_add, ...
+                        'Test for the plus-function failed!');
+                    
+            % test residue
+            [r,p,d] = residue(sys1);
+            [rr,pr,dr] = residue(sysr1);
+            verifyEqual(testCase,r,rr,'AbsTol',1e-8, ... 
+                        'Test for the residue-function failed (residuals)!');
+            verifyEqual(testCase,p,pr,'AbsTol',1e-8, ... 
+                        'Test for the norm-function failed (eigenvalues)!');
+            verifyEqual(testCase,full(d),dr,'AbsTol',1e-8, ... 
+                        'Test for the norm-function failed (feedthrough)!');
+                    
+            % test sigma
+            [s, omega] = sigma(sys1);
+            sr = sigma(sysr1,omega);
+            verifyEqual(testCase,s,sr,'AbsTol',1e-8, ... 
+                        'Test for the sigma-function failed!');
                    
+            % test sim (does not exist for ss-objects)
+            sys1 = loadSss('building');
+            Ts = 1e-4;
+            t = 0:Ts:10;
+            u = idinput(length(t),'rgs',[0 0.5/(1/2/Ts)])';
+            datau = iddata([],u',Ts); 
+            y = sim(sys1,datau,'RK4');
+            
+            % test size
+            p = size(sys1,1);
+            pr = size(sysr1,1);
+            m = size(sys1,2);
+            mr = size(sysr1,2);
+            verifyEqual(testCase,p,pr, ... 
+                        'Test for the size-function failed (output dimension)!');
+            verifyEqual(testCase,m,mr, ... 
+                        'Test for the size-function failed (input dimension)!'); 
                     
+            % test spy (does not exist for ss-objects)
+            
+            % test ss (does not exist for ssRed-objects)
+            
+            % test sss (does not exist for ssRed-objects)
+            
+            % test step
+            Opts.tf = 1;
+            [tf,h,t] = step(sys1,Opts);
+            [tfr,hr,tr] = step(sysr1,t,Opts);
+            verifyEqual(testCase,h,hr,'AbsTol',1e-5, ... 
+                        'Test for the step-function failed!');
                     
+            % test truncate
+            sys_sub = truncate(sys2,1,[1 2]);
+            sysr_sub = truncate(sysr2,1,[1 2]);
+            verification(testCase,sysr_sub,sys_sub, 1e-8, ...
+                        'Test for the truncate-function failed!');
+                    
+            % test zeros
+            z = zeros(sys1);
+            zr = zeros(sysr1);
+            verifyEqual(testCase,z,zr,'AbsTol',1e-5, ... 
+                        'Test for the zeros-function failed!');
+                    
+            % test zpk
+             [p,z] = zpk(sys1);
+             [pr,zr] = zpk(sysr1);
+             verifyEqual(testCase,z,zr,'AbsTol',1e-5, ... 
+                        'Test for the zpk-function failed (invariant zeros)!');
+             verifyEqual(testCase,p,pr,'AbsTol',1e-5, ... 
+                        'Test for the zpk-function failed (poles)!');
             
         end
       
