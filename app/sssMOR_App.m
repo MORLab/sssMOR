@@ -1,5 +1,5 @@
 function varargout = sssMOR_App(varargin)
-% SSSMOR_APP - sssMOR toolbox Graphical User Interface 
+% SSSMOR_APP - sssMOR toolbox App 
 %
 % Syntax:
 %       SSSMOR_APP
@@ -209,6 +209,16 @@ function sssMOR_App_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     handles.chosenSystems = 0;
     handles.storedHsv = {};
     
+    %Set factors to convert from character-units to pixel units
+    
+    set(handles.figure1,'Units','characters');
+    posChar = get(handles.figure1,'Position');
+    set(handles.figure1,'Units','pixels');
+    posPix = get(handles.figure1,'Position');
+    
+    handles.PixToCharWidth = posChar(1,3)/posPix(1,3);
+    handles.PixToCharHeight = posChar(1,4)/posPix(1,4);
+    
     %Set the default-folder for opening data-files
     
     handles.letzterpfad='*';
@@ -308,6 +318,25 @@ function sssMOR_App_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
         position(1,2) = position(1,2) - diff;
         set(handles.logo_tum,'Position',position);
         
+        %Set the header visible or not dependent on the size of the screen
+        
+        set(handles.figure1,'Units','pixels');
+        position = get(handles.figure1,'Position');
+        set(handles.figure1,'Units','characters');
+        
+        if screensize(1,4) < position(1,4)+50    %Header ausblenden
+            
+            position = get(handles.logo_tum,'Position');
+            diff = position(1,4);
+            
+            position = get(handles.pb_loading,'Position');
+            diff = diff - position(1,4);
+            
+            position = get(handles.figure1,'Position');
+            position(1,4) = position(1,4) - diff;
+            set(handles.figure1,'Position',position);
+                  
+        end       
     end
     
 
@@ -336,6 +365,20 @@ function sssMOR_App_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
 function timer_Callback(handles)
     % removes the splashscreen after given time
     splash(handles.splash,'off')
+    
+    
+    % Display an error message if footer and header are already
+    % hidden, but the app-window is still to small to fit on the 
+    % screen
+    screensize = get( 0, 'Screensize' );
+    
+    set(handles.figure1,'Units','pixels');
+    position = get(handles.figure1,'Position');
+    set(handles.figure1,'Units','characters');
+
+    if screensize(1,4) < position(1,4)+20    
+        errordlg('The screen is to small to correctly display the app. This will eventually restrict the functionality!');
+    end    
 
 
 function varargout = sssMOR_App_OutputFcn(hObject, eventdata, handles)
@@ -358,44 +401,48 @@ function figure1_CloseRequestFcn(hObject, eventdata, handles)
 function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
     %Show a hand as the mouse-symbol if the mouse is over a logo with a weblink
     %behind
-    %(to convert from pixel units to chararcter units the values are
-    %multiplied with 0.198 for horizontal dimensions and with 0.0747 for
-    %vertical dimensions)
+    %(to convert from pixel units to chararcter units for Windows OS the 
+    %values are multiplied with 0.2 for horizontal dimensions and with 
+    %0.0769 for vertical dimensions)
     
     p = get(hObject,'CurrentPoint');
     
-    p(1,1) = p(1,1)/0.198;
-    p(1,2) = p(1,2)/0.0747;
+    p(1,1) = p(1,1)/0.2;
+    p(1,2) = p(1,2)/0.0769;
     
-    screensize = get( 0, 'Screensize' );
-    set(handles.figure1,'Units','pixels');
-    position = get(handles.figure1,'Position');
+    logosVisible = 1;
     set(handles.figure1,'Units','characters');
-    if screensize(1,4) < position(1,4)+100       %Footer not shown
+    position = get(handles.figure1,'Position');
+    if position(1,4) < 58       %Footer not shown
        p(1,2) = p(1,2) + 40; 
+       if position(1,4) < 51    %Header not shown
+           logosVisible = 0;
+       end
     end
-
-    if p(1,1)>925 && p(1,1)<1040 && p(1,2)>720 && p(1,2)<770
-        %TUM-Logo (Header)
-        set(gcf,'Pointer','hand'); 
-    elseif p(1,1)> 5 && p(1,1)<75 && p(1,2)>720 && p(1,2)<770 
-        %Lehrstuhl-Logo (Header)
-        set(gcf,'Pointer','hand');
-    elseif p(1,1)>5 && p(1,1)<80 && p(1,2)>0 && p(1,2)<40
-        %sssMOR-Logo (Footer)
-        set(gcf,'Pointer','hand');
-    elseif p(1,1)>990 && p(1,1)<1040 && p(1,2)>0 && p(1,2)<40
-        %TUM-Logo (Footer)
-        set(gcf,'Pointer','hand');
-    elseif p(1,1)>305 && p(1,1)<420 && p(1,2)>0 && p(1,2)<40
-        %MorLab-Logo (Footer)
-        set(gcf,'Pointer','hand');
-    elseif p(1,1)>650 && p(1,1)<765 && p(1,2)>0 && p(1,2)<40
-        %Lehrstuhl-Logo (Footer)
-        set(gcf,'Pointer','hand');
-    else
-        %Not over any logo
-        set(gcf,'Pointer','arrow');
+    
+    if logosVisible
+        if p(1,1)>925 && p(1,1)<1040 && p(1,2)>700 && p(1,2)<750
+            %TUM-Logo (Header)
+            set(gcf,'Pointer','hand'); 
+        elseif p(1,1)> 5 && p(1,1)<75 && p(1,2)>700 && p(1,2)<750 
+            %Lehrstuhl-Logo (Header)
+            set(gcf,'Pointer','hand');
+        elseif p(1,1)>5 && p(1,1)<80 && p(1,2)>0 && p(1,2)<40
+            %sssMOR-Logo (Footer)
+            set(gcf,'Pointer','hand');
+        elseif p(1,1)>990 && p(1,1)<1040 && p(1,2)>0 && p(1,2)<40
+            %TUM-Logo (Footer)
+            set(gcf,'Pointer','hand');
+        elseif p(1,1)>305 && p(1,1)<420 && p(1,2)>0 && p(1,2)<40
+            %MorLab-Logo (Footer)
+            set(gcf,'Pointer','hand');
+        elseif p(1,1)>650 && p(1,1)<765 && p(1,2)>0 && p(1,2)<40
+            %Lehrstuhl-Logo (Footer)
+            set(gcf,'Pointer','hand');
+        else
+            %Not over any logo
+            set(gcf,'Pointer','arrow');
+        end   
     end
 
 
@@ -409,25 +456,16 @@ function figure1_WindowButtonMotionFcn(hObject, eventdata, handles)
 
 function logo_tum_ButtonDownFcn(hObject, eventdata, handles)
     % link to web page
-    
-    p = get(handles.figure1,'Position');
-    widthCharX = p(1,3);
-    widthCharY = p(1,4);
-    set(handles.figure1,'Units','pixels');
-    p = get(handles.figure1,'Position');
-    widthPixX = p(1,3);
-    widthPixY = p(1,4);
-    charToPixX = widthPixX/widthCharX;
-    charToPixY = widthPixY/widthCharY;
-    set(handles.figure1,'Units','characters');
-    
+    %(to convert from pixel units to chararcter units for Windows OS the 
+    %values are multiplied with 0.2 for horizontal dimensions and with 
+    %0.0769 for vertical dimensions)
     p=get(hObject,'CurrentPoint');
-    p(1,1) = (p(1,1)/charToPixX)/0.198;
-    p(1,2) = (p(1,2)/charToPixY)/0.0744;
+    p(1,1) = p(1,1)*handles.PixToCharWidth/0.2;
+    p(1,2) = p(1,2)*handles.PixToCharHeight/0.0769;
     
-    if p(1,1)>945 && p(1,1)<1040 && p(1,2)>5 && p(1,2)<80
+    if p(1,1)>925 && p(1,1)<1040 && p(1,2)>5 && p(1,2)<80
         web www.tum.de
-    elseif p(1,1)> 5 && p(1,1)<55 && p(1,2)>5 && p(1,2)<80  
+    elseif p(1,1)> 5 && p(1,1)<75 && p(1,2)>5 && p(1,2)<80  
         web www.rt.mw.tum.de
     end
 
@@ -481,12 +519,6 @@ function pb_about_Callback(hObject, eventdata, handles)
     set(handles.panel_post,'Visible','off')
     set(handles.panel_analysis,'Visible','off')
     set(handles.panel_about,'Visible','on')  
-
-
-
-
-
-
 
 
 
@@ -1550,7 +1582,17 @@ function pb_plot_Callback(hObject, eventdata, handles)
             else
                 systemList{i,4} = [];
             end
-        end         
+        end       
+        
+        % Plot style manual or auto
+        
+        plotStyleManual = 0;
+        for i = 1:size(systemList,1)
+            if strcmp(systemList{i,3}.plotStyle,'manual')
+                plotStyleManual = 1;
+                break;
+            end
+        end
         
         %Graph-Type
         
@@ -1564,6 +1606,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 
                 set(figureHandles,'Name','Bode Diagram');
                 
+                % convert to frd-objects
                 for i = 1:size(systemList,1)
                    if isa(systemList{i,2},'sss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
@@ -1584,94 +1627,29 @@ function pb_plot_Callback(hObject, eventdata, handles)
                    end
                 end
                 
-                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
-                    
-                    switch size(systemList,1)
-                        case 1
-                            bode(systemList{1,5},systemList{1,4});
-                        case 2
-                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
-                        case 3
-                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4});
-                        case 4
-                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
-                        case 5
-                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4});
-                        case 6
-                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
-                        case 7
-                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4});
-                        case 8
-                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
-                        case 9
-                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4});
-                        case 10
-                            bode(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                % join arguments together
+                if plotStyleManual == 1                    
+                    arguments = cell(2*size(systemList,1),1);
+                    for i = 1:size(systemList,1)
+                        arguments{2*(i-1)+1}=systemList{i,5};
+                        arguments{2*(i-1)+2}=systemList{i,4};
                     end
-                    
-                else
-                    
-                    switch size(systemList,1)
-                        case 1
-                            bode(systemList{1,5});
-                        case 2
-                            bode(systemList{1,5},systemList{2,5});
-                        case 3
-                            bode(systemList{1,5},systemList{2,5},systemList{3,5});
-                        case 4
-                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5});
-                        case 5
-                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5});
-                        case 6
-                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5});
-                        case 7
-                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5});
-                        case 8
-                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5});
-                        case 9
-                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5});
-                        case 10
-                            bode(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5},...
-                                systemList{10,5});
-                    end
-                    
+                    arguments(cellfun(@isempty,arguments)) = [];                 
+                else                    
+                    arguments = cell(size(systemList,1),1);
+                    for i = 1:size(systemList,1)
+                        arguments{i}=systemList{i,5};
+                    end                   
                 end
+                
+                % create bode-plot
+                bode(arguments{:});
             
             case 2      %Magnitude
                 
                 set(figureHandles,'Name','Bode Diagram');
                 
+                % convert to frd-objects
                 for i = 1:size(systemList,1)
                    if isa(systemList{i,2},'sss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
@@ -1692,93 +1670,29 @@ function pb_plot_Callback(hObject, eventdata, handles)
                    end
                 end
                 
-                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
-                    
-                    switch size(systemList,1)
-                        case 1
-                            bodemag(systemList{1,5},systemList{1,4});
-                        case 2
-                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
-                        case 3
-                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4});
-                        case 4
-                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
-                        case 5
-                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4});
-                        case 6
-                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
-                        case 7
-                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4});
-                        case 8
-                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
-                        case 9
-                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4});
-                        case 10
-                            bodemag(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                % join arguments together
+                if plotStyleManual == 1                    
+                    arguments = cell(2*size(systemList,1),1);
+                    for i = 1:size(systemList,1)
+                        arguments{2*(i-1)+1}=systemList{i,5};
+                        arguments{2*(i-1)+2}=systemList{i,4};
                     end
-                    
-                else
-                    
-                    switch size(systemList,1)
-                        case 1
-                            bodemag(systemList{1,5});
-                        case 2
-                            bodemag(systemList{1,5},systemList{2,5});
-                        case 3
-                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5});
-                        case 4
-                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5});
-                        case 5
-                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5});
-                        case 6
-                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5});
-                        case 7
-                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5});
-                        case 8
-                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5});
-                        case 9
-                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5});
-                        case 10
-                            bodemag(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5},...
-                                systemList{10,5});
-                    end
+                    arguments(cellfun(@isempty,arguments)) = [];                 
+                else                    
+                    arguments = cell(size(systemList,1),1);
+                    for i = 1:size(systemList,1)
+                        arguments{i}=systemList{i,5};
+                    end                   
                 end
+                
+                % create bodemag-plot
+                bodemag(arguments{:});
                 
             case 3      %Singular values
                 
                 set(figureHandles,'Name','Singular Values');
                 
+                % convert to frd-objects
                 for i = 1:size(systemList,1)
                    if isa(systemList{i,2},'sss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
@@ -1799,92 +1713,29 @@ function pb_plot_Callback(hObject, eventdata, handles)
                    end
                 end
                 
-                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
-                    
-                    switch size(systemList,1)
-                        case 1
-                            sigma(systemList{1,5},systemList{1,4});
-                        case 2
-                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
-                        case 3
-                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4});
-                        case 4
-                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
-                        case 5
-                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4});
-                        case 6
-                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
-                        case 7
-                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4});
-                        case 8
-                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
-                        case 9
-                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4});
-                        case 10
-                            sigma(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                % join arguments together
+                if plotStyleManual == 1                    
+                    arguments = cell(2*size(systemList,1),1);
+                    for i = 1:size(systemList,1)
+                        arguments{2*(i-1)+1}=systemList{i,5};
+                        arguments{2*(i-1)+2}=systemList{i,4};
                     end
-                    
-                else
-                    
-                    switch size(systemList,1)
-                        case 1
-                            sigma(systemList{1,5});
-                        case 2
-                            sigma(systemList{1,5},systemList{2,5});
-                        case 3
-                            sigma(systemList{1,5},systemList{2,5},systemList{3,5});
-                        case 4
-                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5});
-                        case 5
-                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5});
-                        case 6
-                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5});
-                        case 7
-                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5});
-                        case 8
-                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5});
-                        case 9
-                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5});
-                        case 10
-                            sigma(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5},...
-                                systemList{10,5});
-                    end
+                    arguments(cellfun(@isempty,arguments)) = [];                 
+                else                    
+                    arguments = cell(size(systemList,1),1);
+                    for i = 1:size(systemList,1)
+                        arguments{i}=systemList{i,5};
+                    end                   
                 end
                 
+                % create sigma-plot
+                sigma(arguments{:});
+                                
             case 4      %Impulse Response
                 
                 set(figureHandles,'Name','Impulse Response');
+                
+                % convert to tf-objects
                 
                 Tmax = 0;       %Plot from 0 to Tmax 
                 Ttemp = 0;
@@ -1909,92 +1760,29 @@ function pb_plot_Callback(hObject, eventdata, handles)
                     end
                 end
                 
-                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
-                    
-                    switch size(systemList,1)
-                        case 1
-                            impulse(systemList{1,5},systemList{1,4},Tmax);
-                        case 2
-                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},Tmax);
-                        case 3
-                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},Tmax);
-                        case 4
-                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},Tmax);
-                        case 5
-                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},Tmax);
-                        case 6
-                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},Tmax);
-                        case 7
-                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},Tmax);
-                        case 8
-                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},Tmax);
-                        case 9
-                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4},Tmax);
-                        case 10
-                            impulse(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4},Tmax);
+                % join arguments together
+                if plotStyleManual == 1                    
+                    arguments = cell(2*size(systemList,1),1);
+                    for i = 1:size(systemList,1)
+                        arguments{2*(i-1)+1}=systemList{i,5};
+                        arguments{2*(i-1)+2}=systemList{i,4};
                     end
-                    
-                else
-                    
-                    switch size(systemList,1)
-                        case 1
-                            impulse(systemList{1,5},Tmax);
-                        case 2
-                            impulse(systemList{1,5},systemList{2,5},Tmax);
-                        case 3
-                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},Tmax);
-                        case 4
-                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},Tmax);
-                        case 5
-                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},Tmax);
-                        case 6
-                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},Tmax);
-                        case 7
-                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},Tmax);
-                        case 8
-                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},Tmax);
-                        case 9
-                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5},Tmax);
-                        case 10
-                            impulse(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5},...
-                                systemList{10,5},Tmax);
-                    end
+                    arguments(cellfun(@isempty,arguments)) = [];                 
+                else                    
+                    arguments = cell(size(systemList,1),1);
+                    for i = 1:size(systemList,1)
+                        arguments{i}=systemList{i,5};
+                    end                   
                 end
+                
+                % create impulse-plot
+                impulse(arguments{:});
                 
             case 5      %Step Response
                 
                 set(figureHandles,'Name','Step Response');
+                
+                % convert to tf-objects
                 
                 Tmax = 0;       %Plot from 0 to Tmax 
                 Ttemp = 0;
@@ -2019,184 +1807,57 @@ function pb_plot_Callback(hObject, eventdata, handles)
                    end
                 end
                 
-                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
-                    
-                    switch size(systemList,1)
-                        case 1
-                            step(systemList{1,5},systemList{1,4},Tmax);
-                        case 2
-                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},Tmax);
-                        case 3
-                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},Tmax);
-                        case 4
-                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},Tmax);
-                        case 5
-                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},Tmax);
-                        case 6
-                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},Tmax);
-                        case 7
-                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},Tmax);
-                        case 8
-                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},Tmax);
-                        case 9
-                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4},Tmax);
-                        case 10
-                            step(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4},Tmax);
+                % join arguments together
+                if plotStyleManual == 1                    
+                    arguments = cell(2*size(systemList,1),1);
+                    for i = 1:size(systemList,1)
+                        arguments{2*(i-1)+1}=systemList{i,5};
+                        arguments{2*(i-1)+2}=systemList{i,4};
                     end
-                    
-                else
-                    
-                    switch size(systemList,1)
-                        case 1
-                            step(systemList{1,5},Tmax);
-                        case 2
-                            step(systemList{1,5},systemList{2,5},Tmax);
-                        case 3
-                            step(systemList{1,5},systemList{2,5},systemList{3,5},Tmax);
-                        case 4
-                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},Tmax);
-                        case 5
-                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},Tmax);
-                        case 6
-                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},Tmax);
-                        case 7
-                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},Tmax);
-                        case 8
-                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},Tmax);
-                        case 9
-                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5},Tmax);
-                        case 10
-                            step(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5},...
-                                systemList{10,5},Tmax);
-                    end
-                end     
+                    arguments(cellfun(@isempty,arguments)) = [];                 
+                else                    
+                    arguments = cell(size(systemList,1),1);
+                    for i = 1:size(systemList,1)
+                        arguments{i}=systemList{i,5};
+                    end                   
+                end
+                
+                % create step-plot
+                step(arguments{:});
                 
             case 6      %Pole-Zero-Map
                 
                 set(figureHandles,'Name','Pole-Zero Map');
                 
+                % convert to zpk-objects
                 for i = 1:size(systemList,1)
                    if isa(systemList{i,2},'sss')
                        systemList{i,5} = zpk(systemList{i,2},struct('zpk',1));
+                   elseif isa(systemList{i,2},'ssRed')
+                       systemList{i,5} = zpk(systemList{i,2});
                    else
                        systemList{i,5} = systemList{i,2}; 
                    end
                 end
                 
-                if get(handles.rb_PaV_plotStyle_manual,'Value') == 1
-                    
-                    switch size(systemList,1)
-                        case 1
-                            pzmap(systemList{1,5},systemList{1,4});
-                        case 2
-                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4});
-                        case 3
-                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4});
-                        case 4
-                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4});
-                        case 5
-                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4});
-                        case 6
-                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4});
-                        case 7
-                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4});
-                        case 8
-                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4});
-                        case 9
-                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4});
-                        case 10
-                            pzmap(systemList{1,5},systemList{1,4},systemList{2,5},systemList{2,4},...
-                                systemList{3,5},systemList{3,4},systemList{4,5},systemList{4,4},...
-                                systemList{5,5},systemList{5,4},systemList{6,5},systemList{6,4},...
-                                systemList{7,5},systemList{7,4},systemList{8,5},systemList{8,4},...
-                                systemList{9,5},systemList{9,4},systemList{10,5},systemList{10,4});
+                % join arguments together
+                if plotStyleManual == 1                    
+                    arguments = cell(2*size(systemList,1),1);
+                    for i = 1:size(systemList,1)
+                        arguments{2*(i-1)+1}=systemList{i,5};
+                        arguments{2*(i-1)+2}=systemList{i,4};
                     end
-                    
-                else
-                    
-                    switch size(systemList,1)
-                        case 1
-                            pzmap(systemList{1,5});
-                        case 2
-                            pzmap(systemList{1,5},systemList{2,5});
-                        case 3
-                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5});
-                        case 4
-                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5});
-                        case 5
-                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5});
-                        case 6
-                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5});
-                        case 7
-                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5});
-                        case 8
-                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5});
-                        case 9
-                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5});
-                        case 10
-                            pzmap(systemList{1,5},systemList{2,5},systemList{3,5},...
-                                systemList{4,5},systemList{5,5},systemList{6,5},...
-                                systemList{7,5},systemList{8,5},systemList{9,5},...
-                                systemList{10,5});
-                    end
+                    arguments(cellfun(@isempty,arguments)) = [];                 
+                else                    
+                    arguments = cell(size(systemList,1),1);
+                    for i = 1:size(systemList,1)
+                        arguments{i}=systemList{i,5};
+                    end                   
                 end
-                    
+                
+                % create pzmap-plot
+                pzmap(arguments{:});
+                                    
         end
         
         %Legend
@@ -2206,7 +1867,7 @@ function pb_plot_Callback(hObject, eventdata, handles)
         
         for i = 1:size(systemList,1)
            if strcmp(systemList{i,3}.plotStyle,'manual')
-               legendText{i,1} = systemList{i,3}.legendText;
+               legendText{i} = systemList{i,3}.legendText;
            end            
         end
         
@@ -2265,82 +1926,64 @@ function pb_load_Callback(hObject, eventdata, handles)
     % disable to avoid double call of uigetfile
     set(handles.allbuttons,'Enable','off')
     filename=sprintf('%s.mat',handles.letzterpfad);
-    [filename,path]=uigetfile(filename);
-    set(handles.allbuttons,'Enable','on')
-    if filename==0
-         return
-    end
-    handles.letzterpfad=path;
-    guidata(hObject, handles);
-    % only mat-files can be loaded
-    if isempty(strfind(filename,'.mat'))
-        errordlg('Only .mat files allowed.','Error Dialog','modal')
-        uiwait
-        return
-    end 
     
     loadingSuccessfull = 1;
     
     %Check which option is selected
     
-    if get(handles.rb_loadOptions_matrices,'Value') == 1
+    if get(handles.rb_loadOptions_matrices,'Value') == 1  % Matrices
+        
+        %Open dialog-box
+        [filename,path]=uigetfile(filename);
+        set(handles.allbuttons,'Enable','on')
+        
+        %Check if files are correct
+        if filename==0
+            return
+        end
+        handles.letzterpfad=path;
+        guidata(hObject, handles);
+        if isempty(strfind(filename,'.mat'))  %only mat-files can be loaded
+            errordlg('Only .mat files allowed.','Error Dialog','modal')
+            uiwait
+            return
+        end 
        
         %Load matrices to workspace
         
         evalin('base',sprintf('load(''%s%s'');',path,filename));
         
-    else
+    else                                                % System
+        
+        %Open dialog-box
+        [fileList,path]=uigetfile(filename,'MultiSelect','on');
+        set(handles.allbuttons,'Enable','on')
+        
+        handles.letzterpfad=path;
+        guidata(hObject, handles);        
         
         %Create system with the function loadSss
         
-        lastwarn('');
-        
-        try
-            
-           %Create a name for the system based on the filename
-            
-           splittedString = strsplit(filename,'.');
-           name = char(strcat('sys_',splittedString(1,1)));
-           
-           count = 1;
-           sTemp = name;
-                    
-           %Check wheater the name already exists in workspace
-           
-           while existInBaseWs(sTemp)~=0
-                sTemp = strcat(name,num2str(count));
-                count = count+1;
-           end
-           
-           name = sTemp;
-           
-           %Create system using loadSss
-          
-           sys = loadSss(strcat(path,filename));         
-           assignin('base',name,sys);
-           
-           %Check whether the system is DAE and warn the user if the case
-           
-           if sys.isDae
-               msgbox('System is DAE. This User-Interface does not fully support systems in DAE-format','Warning','Warn');
-               uiwait
-           end    
-           
-           error('loadSss:WarningOccured',lastwarn);
-            
-        catch ex
-            
-            if strcmp(ex.identifier,'loadSss:WarningOccured')
-                    if ~isempty(ex.message)
-                        msgbox(ex.message,'Warning','warn');
-                        uiwait
+        if iscell(fileList)             % Multi-Select
+            loadingSuccessfull = 0;
+            for i = 1:length(fileList)
+                filename = fileList{i};
+                if isempty(strfind(filename,'.mat'))  %only mat-files can be loaded
+                    errordlg(strcat(filename,': Only .mat files allowed.'), ...
+                                    'Error Dialog','modal')
+                    uiwait
+                else
+                    success = loadSystemWithLoadSss(filename,path); 
+                    if success
+                        loadingSuccessfull = 1;
                     end
-            else
-                    msgbox({'Error while evaluating function loadSss.', ...
-                            'Try to load the matrices and then compose the model.'},'Error','error');
-                    loadingSuccessfull = 0;
-            end            
-        end      
+                end
+            end
+        else                            % single System
+            loadingSuccessfull = loadSystemWithLoadSss(fileList,path);  
+        end
+        
+        
     end
     
     %Refresh the display of the variables in workspace
@@ -4758,10 +4401,6 @@ function pb_an_sys1_h2_Callback(hObject, eventdata, handles)
         
         try
             h2 = norm(sys, 2);
-            if isa(sys,'sss')
-                sys.h2Norm = h2;
-                assignin('base', sysname, sys);
-            end
         catch ex
             if strcmp(ex.identifier,'MATLAB:nomem')
                 errordlg('Out of memory, system is too large to solve lyapunov equotation','Error Dialog','modal')
@@ -4820,10 +4459,6 @@ function pb_an_sys1_hinf_Callback(hObject, eventdata, handles)
         
         try
             hinf=norm(sys, inf);
-            if isa(sys,'sss')
-                sys.hInfNorm = hinf;
-                assignin('base', sysname, sys);
-            end
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             set(handles.figure1,'Pointer','arrow')
@@ -4872,13 +4507,7 @@ function pb_an_sys1_decaytime_Callback(hObject, eventdata, handles)
     
     if ~isfield(sys,'decayTime') || isempty(sys.decayTime)
         try
-            if isa(sys,'sss')
-                decTime = decayTime(sys);
-                sys.decayTime = decTime;
-                assignin('base',sysname,sys);
-            elseif isa(sys,'ssRed')
-                decTime = decayTime(sys);
-            end
+            decTime = decayTime(sys);
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             set(handles.figure1,'Pointer','arrow')
@@ -5134,10 +4763,6 @@ function pb_an_sys2_h2_Callback(hObject, eventdata, handles)
     else
         try
             h2 = norm(sys, 2);
-            if isa(sys,'sss')
-                sys.h2Norm = h2;
-                assignin('base', sysname, sys);
-            end
         catch ex
             if strcmp(ex.identifier,'MATLAB:nomem')
                 errordlg('Out of memory, system is too large to solve lyapunov equotation','Error Dialog','modal')
@@ -5195,10 +4820,6 @@ function pb_an_sys2_hinf_Callback(hObject, eventdata, handles)
     else
         try
             hinf=norm(sys, inf);
-            if isa(sys,'sss')
-                sys.hInfNorm = hinf;
-                assignin('base', sysname, sys);
-            end
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             uiwait
@@ -5247,13 +4868,7 @@ function pb_an_sys2_decaytime_Callback(hObject, eventdata, handles)
     
     if ~isfield(sys,'decayTime') || isempty(sys.decayTime)
         try
-            if isa(sys,'sss')
-                decTime = decayTime(sys);
-                sys.decayTime = decTime;
-                assignin('base',sysname,sys);
-            elseif isa(sys,'ssRed')
-                decTime = decayTime(sys);
-            end
+            decTime = decayTime(sys);
         catch ex
             errordlg(ex.message,'Error Dialog','modal')
             uiwait
@@ -5408,21 +5023,13 @@ function pb_an_compare_hinf_info_Callback(hObject, eventdata, handles)
 
 function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
     %Web-links to the diverent homepages (Open if the user klicks on a logo)
-
-    p = get(handles.figure1,'Position');
-    widthCharX = p(1,3);
-    widthCharY = p(1,4);
-    set(handles.figure1,'Units','pixels');
-    p = get(handles.figure1,'Position');
-    widthPixX = p(1,3);
-    widthPixY = p(1,4);
-    charToPixX = widthPixX/widthCharX;
-    charToPixY = widthPixY/widthCharY;
-    set(handles.figure1,'Units','characters');
+    %(to convert from pixel units to chararcter units for Windows OS the 
+    %values are multiplied with 0.2 for horizontal dimensions and with 
+    %0.0769 for vertical dimensions)
     
     p=get(hObject,'CurrentPoint');
-    p(1,1) = (p(1,1)/charToPixX)/0.198;
-    p(1,2) = (p(1,2)/charToPixY)/0.0744;
+    p(1,1) = p(1,1)*handles.PixToCharWidth/0.2;
+    p(1,2) = p(1,2)*handles.PixToCharHeight/0.0769;
 
     if p(1,1)>990 && p(1,1)<1040
         web www.tum.de
@@ -5433,8 +5040,6 @@ function logos_footer_ButtonDownFcn(hObject, eventdata, handles)
     elseif p(1,1)>305 && p(1,1)<420
         web www.rt.mw.tum.de/forschung/forschungsgebiete/modellreduktion/
     end
-    
-    
     
     
     
@@ -6451,6 +6056,53 @@ function x = listClassesInWorkspace(class)
     
     % remove empty (non-system) entries
     x(cellfun(@isempty,x)) = []; 
+    
+function success = loadSystemWithLoadSss(filename,path)
+% create a system from the matrices in a .mat file by using the function
+% loadSss
+   try
+       lastwarn('');
+       success = 1;
+       
+       % create a name for the system based on the filename
+       splittedString = strsplit(filename,'.');
+       name = char(strcat('sys_',splittedString(1,1)));
+
+       count = 1;
+       sTemp = name;
+
+       % check wheater the name already exists in workspace
+       while existInBaseWs(sTemp)~=0
+            sTemp = strcat(name,num2str(count));
+            count = count+1;
+       end
+
+       name = sTemp;
+
+       % create system using loadSss
+       sys = loadSss(strcat(path,filename));         
+       assignin('base',name,sys);
+
+       % check whether the system is DAE and warn the user if the case
+       if sys.isDae
+           msgbox(strcat(filename,': System is DAE. This User-Interface does not fully support systems in DAE-format'),'Warning','Warn');
+           uiwait
+       end    
+
+       error('loadSss:WarningOccured',lastwarn);
+
+    catch ex
+        if strcmp(ex.identifier,'loadSss:WarningOccured')
+            if ~isempty(ex.message)
+                msgbox(strcat(filename,': ',ex.message),'Warning','warn');
+                uiwait
+            end
+        else
+            msgbox({strcat(filename,': '),'Error while evaluating function loadSss.', ...
+                    'Try to load the matrices and then compose the model.'},'Error','error');
+            success = 0;
+        end            
+    end       
 
     
 %Auxiliary-functions for plotting 

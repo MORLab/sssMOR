@@ -17,11 +17,12 @@ classdef ssRed < ss
 % Description:
 %       This class is derived from the ss-class. It is used to represent
 %       models which are the result of reducing the order of large models
-%       with specific algorithms. 
+%       with specific algorithms. ssRed objects have all attributes that ss
+%       objects normally possess
 %
 % Input Arguments:
 %       -method: name of the used reduction algorithm;
-%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork']
+%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'userDefined']
 %       -params (tbr):          structure with the parameters for the tbr-algorithm;
 %           -.originalOrder:    Model order before reduction;
 %           -.type:             select amongst different tbr algorithms
@@ -258,6 +259,7 @@ classdef ssRed < ss
 %                               subspaces
 %           -.Rt:               right tangential directions for MIMO
 %           -.Lt:               left tangential directions for MIMO
+%       -params (userDefined):  []
 %       -A: system matrix
 %       -B: input matrix
 %       -C: output matrix
@@ -275,14 +277,13 @@ classdef ssRed < ss
 %       -sys: reduced state-space (ssRed)-object
 %
 % Examples:
-%		This code creates an instance of the ssRed-class
+%       This code creates an instance of the ssRed-class
 %
 %> A = rand(10);
 %> B = rand(10,1);
-%> C = rand(2,10);
+%> C = rand(1,10);
 %> params.originalOrder = 20;
-%> params.real = true;
-%> sysr = ssRed('rk',params,A,B,C);
+%> sysr = ssRed('porkV',params,A,B,C);
 %
 % See Also: 
 %        ss, dss, sss
@@ -325,6 +326,9 @@ classdef ssRed < ss
         
         isSym
     end
+    properties(Hidden,Access = private)
+        a_,b_,c_,d_,e_
+    end
     
     methods
         function obj = ssRed(varargin)
@@ -348,17 +352,9 @@ classdef ssRed < ss
                     paramsList = sys.reductionParameters;
                 end
                 if isa(sys,'ss')    %ss-objects or ssRed-objects
-                   A = sys.a;
-                   B = sys.b;
-                   C = sys.c;
-                   D = sys.d;
-                   E = sys.e;
+                   [A,B,C,D,E] = dssdata(sys);
                 elseif isa(sys,'sss')   %sss-objects
-                   A = full(sys.a);
-                   B = full(sys.b);
-                   C = full(sys.c);
-                   D = full(sys.d);
-                   E = full(sys.e);
+                   [A,B,C,D,E] = full(dssdata(sys));
                 else
                    error('The third argument has to be an object of type "ss" or "sss"'); 
                 end
@@ -381,14 +377,28 @@ classdef ssRed < ss
             
             if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr', ...
                     'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
-                    'spark','cure_spark','cure_irka','cure_rk+pork'}) == 0
+                    'spark','cure_spark','cure_irka','cure_rk+pork','userDefined'}) == 0
                 error('The first argument has a wrong format. Type "help ssRed" for more information.');
             end
             
             % call the construktor of the superclass ss
-            obj@ss(A,B,C,D);
-            obj.e = E;
+            obj@ss(A,B,C,D,'e',E);
             
+            % store the correct names for the properties containing the
+            % system matrices. This is a compatibility fix because the
+            % property names changed from lower to upper case in Matlab
+            % R2016a. To access the system matrices, use "obj.(obj.a_)"
+            obj.a_ = ltipack.matchProperty('a',...
+                            ltipack.allprops(obj),class(obj));
+            obj.b_ = ltipack.matchProperty('b',...
+                            ltipack.allprops(obj),class(obj));
+            obj.c_ = ltipack.matchProperty('c',...
+                            ltipack.allprops(obj),class(obj));
+            obj.d_ = ltipack.matchProperty('d',...
+                            ltipack.allprops(obj),class(obj));
+            obj.e_ = ltipack.matchProperty('e',...
+                            ltipack.allprops(obj),class(obj));
+                        
             % check all fields of paramsList
             if ~isempty(paramsList)
                 try
@@ -427,21 +437,27 @@ classdef ssRed < ss
                end
             end
             
-            % remove "projectiveMor" from the reduction history
-            obj.reductionParameters = obj.removeProjectiveMor(obj.reductionParameters);
+            % remove unnecessary parmaters from the reduction history
+            if nargin_new == 3 && isa(sys,'ssRed')
+                if ~strcmp(varargin{1},'projectiveMor')
+                    obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'projectiveMor');
+                end
+                if strcmp(varargin{1},'irka')
+                    obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'rk'); 
+                end
+            end
             obj.reductionParameters = obj.removeCureParameters(obj.reductionParameters); 
         end
-        
-        
+                
         %% Get Basic Properties
         function m = get.m(sys) % number of inputs
-            m = size(sys.b,2);
+            m = size(sys.(sys.b_),2);
         end
         function n = get.n(sys) % system order
-            n = size(sys.a,1);
+            n = size(sys.(sys.a_),1);
         end
         function p = get.p(sys) % number of outputs
-            p = size(sys.c,1);
+            p = size(sys.(sys.c_),1);
         end
         
         %% Get helper functions
@@ -452,7 +468,7 @@ classdef ssRed < ss
         function isBig = get.isBig(sys); isBig=(sys.n>5000);end
         
         function isDae = get.isDae(sys)
-            if condest(sys.e)==Inf
+            if condest(sys.(sys.e_))==Inf
                 isDae = 1;
             else
                 isDae = 0;
@@ -460,20 +476,20 @@ classdef ssRed < ss
         end
         
         function isDescriptor = get.isDescriptor(sys)
-            isDescriptor = logical(full(any(any(sys.e-speye(size(sys.e))))));
+            isDescriptor = logical(full(any(any(sys.(sys.e_)-speye(size(sys.(sys.e_)))))));
         end
         
         function sys = resolveDescriptor(sys)
-            sys.a = sys.e\sys.a;
-            sys.b = sys.e\sys.b;
-            sys.e = [];
+            sys.(sys.a_) = sys.(sys.e_)\sys.(sys.a_);
+            sys.(sys.b_) = sys.(sys.e_)\sys.(sys.b_);
+            sys.(sys.e_) = [];
         end
         
         function isSym = get.isSym(sys) %A=A', E=E'
             if isequal(sys.isSym,0) || isequal(sys.isSym,1)
                 isSym = sys.isSym;
             else
-                if max(max(sys.a-sys.a.'))<1e-6 && max(max(sys.e-sys.e.'))<1e-6
+                if max(max(sys.(sys.a_)-sys.(sys.a_).'))<1e-6 && max(max(sys.(sys.e_)-sys.(sys.e_).'))<1e-6
                     isSym = 1;
                 else
                     isSym = 0;
@@ -501,70 +517,104 @@ classdef ssRed < ss
             end 
         end
         
+        %% Overload subsref to cope with compatibility issues in MATLAB
+        function result = subsref(sys, arg)
+            %   Parts are taken from built-in subsref
+            %   Copyright 1986-2010 The MathWorks, Inc.
+            
+            ni = nargin;
+            if ni==1,
+               result = M;  return
+            end
+            switch arg(1).type
+              case '.'
+                  %COMPATIBILITY ISSUE BETWEEN 2015b and 2016a
+                  % make sure system matrices have the right (lower/upper)
+                  % case
+                  if any(strcmp(arg(1).subs,{'a','b','c','d','e','A','B','C','D','E'}))
+                        arg(1).subs = ltipack.matchProperty(arg(1).subs,...
+                            ltipack.allprops(sys),class(sys));
+                  end
+                 result = builtin('subsref',sys,arg(1));
+              case '()'
+                 result = subparen(sys,arg(1).subs);
+              case '{}'
+                 ctrlMsgUtils.error('Control:ltiobject:subsref3')
+            end
+           if length(arg)>1,
+              % SUBSREF for InputOutputModel objects can't be invoked again
+              % inside this method so jump out to make sure that downstream
+              % references to InputOutputModel properties are handled correctly,
+              result = ltipack.dotref(result,arg(2:end));
+           end
+    end
         %% Override operators and build-in-functions
         function varargout = eig(sys, varargin)
             if sys.isBig
                 warning(['System order is very large: ',num2str(sys.n),'. You may want to try eigs(sys) instead.'])
             end
-
+            
+            [A,~,~,~,E] = dssdata(sys);
             if sys.isDescriptor
                 if nargout==1||nargout==0
-                    [varargout{1}] = eig(full(sys.a), full(sys.e),varargin{:});
+                    [varargout{1}] = eig(full(A), full(E),varargin{:});
                 elseif nargout == 2
-                    [varargout{1}, varargout{2}] = eig(full(sys.a), full(sys.e),varargin{:});
+                    [varargout{1}, varargout{2}] = eig(full(A), full(E),varargin{:});
                 elseif nargout == 3
-                    [varargout{1}, varargout{2}, varargout{3}]  = eig(full(sys.a), full(sys.e),varargin{:});
+                    [varargout{1}, varargout{2}, varargout{3}]  = eig(full(A), full(E),varargin{:});
                 end
             else
                 if nargout==1||nargout==0
-                    [varargout{1}] = eig(full(sys.a),varargin{:});
+                    [varargout{1}] = eig(full(A),varargin{:});
                 elseif nargout == 2
-                    [varargout{1}, varargout{2}] = eig(full(sys.a),varargin{:});
+                    [varargout{1}, varargout{2}] = eig(full(A),varargin{:});
                 elseif nargout == 3
-                    [varargout{1}, varargout{2}, varargout{3}]  = eig(full(sys.a),varargin{:});
+                    [varargout{1}, varargout{2}, varargout{3}]  = eig(full(A),varargin{:});
                 end
             end
         end
         
-        function diff = minus(sys1, sys2)     
-            if size(sys1.a,1) == 0
+        function diff = minus(sys1, sys2) 
+            [A1,B1,C1,D1,E1] = dssdata(sys1);
+            [A2,B2,C2,D2,E2] = dssdata(sys2);
+            if size(A1,1) == 0
                 if isa(sys2,'sss')
-                    diff = sss(sys2.a, sys2.b, -sys2.c, sys2.d, sys2.e);
+                    diff = sss(A2, B2, -C2, D2, E2);
                 else
-                    diff = dss(sys2.a, sys2.b, -sys2.c, sys2.d, sys2.e);
+                    diff = dss(A2, B2, -C2, D2, E2);
                 end
                 return
             end
-            if size(sys2.a,1) == 0
-                diff = dss(sys1.a, sys1.b, sys1.c, sys1.d, sys1.e);
+            if size(A2,1) == 0
+                diff = dss(A1, B1, C1, D1, E1);
                 return
             end
 
-            if size(sys1.b,2) ~= size(sys2.b,2)
+            if size(B1,2) ~= size(B2,2)
                 error('sys1 and sys2 must have same number of inputs.')
             end
-            if size(sys1.c,1) ~= size(sys2.c,1)
+            if size(C1,1) ~= size(C2,1)
                 error('sys1 and sys2 must have same number of outputs.')
             end
-            if isa(sys1,'ss') && isempty(sys1.e)
-                sys1.e = eye(size(sys1.a,1));
+            if isa(sys1,'ss') && isempty(E1)
+                sys1.(sys1.e_) = eye(size(A1,1));
             end
-            if isa(sys2,'ss') && isempty(sys2.e)
-                sys2.e = eye(size(sys2.a,1));
+            if isa(sys2,'ss') && isempty(E2)
+                sys2.(sys1.e_) = eye(size(A2,1));
             end
 
             if isa(sys2,'sss')           
-                diff = sss([sys1.a sparse(size(sys1.a,1),size(sys2.a,1)); sparse(size(sys2.a,1),size(sys1.a,1)) sys2.a], ...
-                    [sys1.b; sys2.b], ...
-                    [sys1.c, -sys2.c], ...
-                    sys1.d - sys2.d, ...
-                    [sys1.e sparse(size(sys1.a,1),size(sys2.a,1)); sparse(size(sys2.a,1),size(sys1.a,1)) sys2.e]);
+                diff = sss([A1 sparse(size(A1,1),size(A2,1)); sparse(size(A2,1),size(A1,1)) A2], ...
+                    [B1; B2], ...
+                    [C1, -C2], ...
+                    D1 - D2, ...
+                    [E1 sparse(size(A1,1),size(A2,1)); sparse(size(A2,1),size(A1,1)) E2]);
             else
-                diff = dss([sys1.a zeros(size(sys1.a,1),size(sys2.a,1)); zeros(size(sys2.a,1),size(sys1.a,1)) sys2.a], ...
-                    [sys1.b; sys2.b], ...
-                    [sys1.c, -sys2.c], ...
-                    sys1.d - sys2.d, ...
-                    [sys1.e zeros(size(sys1.a,1),size(sys2.a,1)); zeros(size(sys2.a,1),size(sys1.a,1)) sys2.e]);
+                diff = dss([A1 zeros(size(A1,1),size(A2,1)); zeros(size(A2,1),size(A1,1)) A2], ...
+                    [B1; B2], ...
+                    [C1, -C2], ...
+                    D1 - D2, ...
+                    [E1 zeros(size(A1,1),size(A2,1)); zeros(size(A2,1),size(A1,1)) E2]);
             end
         end
         
@@ -594,9 +644,10 @@ classdef ssRed < ss
             if rcondNumber<eps
                 warning(['Matrix of eigenvectors is close to singular or badly scaled. Results may be inaccurate. RCOND =',num2str(rcondNumber)]);
             end
-            B=(sys.e*T)\sys.b;
-            C=sys.c*T;
-            d=sys.d;
+            [~,B,C,D,E] = dssdata(sys);
+            B=(E*T)\B;
+            C=C*T;
+            d=D;
 
             % calculate residues
             if strcmp(Opts.rType,'dir')
@@ -651,11 +702,11 @@ classdef ssRed < ss
         
         function [issd, numericalAbscissa] = issd(sys)
             %  Parse input
-            if condest(sys.e)>1e16, error('issd does not support DAEs'),end
+            if condest(sys.(sys.e_))>1e16, error('issd does not support DAEs'),end
 
             %  Perform computations
             % E >0?
-            isPosDef = ispd(sys.e);
+            isPosDef = ispd(sys.(sys.e_));
             if ~isPosDef
                 if nargout == 0, warning('System is not strictly dissipative (E~>0).'); 
                 else issd = 0; end
@@ -663,7 +714,7 @@ classdef ssRed < ss
             end
 
             % A + A' <0?  
-            isNegDef = ispd(-sys.a-sys.a');
+            isNegDef = ispd(-sys.(sys.a_)-sys.(sys.a_)');
             if isNegDef
                 if nargout == 0, fprintf('System is strictly dissipative.\n'); else issd = 1; end
             else
@@ -673,9 +724,9 @@ classdef ssRed < ss
             if nargout==2 % computation of the numerical abscissa required
                 p    = 20;		% number of Lanczos vectors
                 tol  = 1e-10;	% convergence tolerance
-                opts = struct('issym',true, 'p',p, 'tol',tol, 'v0',sum(sys.e,2));
+                opts = struct('issym',true, 'p',p, 'tol',tol, 'v0',sum(sys.(sys.e_),2));
                 try
-                    numericalAbscissa = eigs((sys.a+sys.a')/2, sys.e, 1, 'la', opts);
+                    numericalAbscissa = eigs((sys.(sys.a_)+sys.(sys.a_)')/2, sys.(sys.e_), 1, 'la', opts);
                 catch err
                     warning('Computation of the numerical abscissa failed with message:%s',err.message);
                     numericalAbscissa = NaN;
@@ -708,7 +759,7 @@ classdef ssRed < ss
 
                 % get h,t by calling ss/step
 
-                sys.d = zeros(size(sys.d));
+                sys.(sys.d_) = zeros(size(sys.(sys.d_)));
                 if ~isempty(t)
                     [h,tg] = step(sys, t(end));
                 else
@@ -800,7 +851,7 @@ classdef ssRed < ss
 
                 % get h,t by calling ss/step
 
-                sys.d = zeros(size(sys.d));
+                sys.(sys.d_) = zeros(size(sys.(sys.d_)));
                 if ~isempty(t)
                     [h,tg] = step@ss(sys, t(end));
                 else
@@ -862,6 +913,22 @@ classdef ssRed < ss
                     [varargout{1},varargout{2}] = step@ss(sys,varargin);
                 elseif nargout == 3
                     [varargout{1},varargout{2},varargout{3}] = step@ss(sys,varargin);
+                end
+            end
+        end
+        
+        function  [R,L] = lyapchol(sys,Opts)
+            if sys.isDescriptor
+                R = lyapchol(sys.(sys.a_),sys.(sys.b_),sys.(sys.e_));
+            else
+                R = lyapchol(sys.(sys.a_),sys.(sys.b_));
+            end
+
+            if nargout>1
+                if sys.isDescriptor
+                    L = lyapchol(sys.(sys.a_)', sys.(sys.c_)',sys.(sys.e_)');
+                else
+                    L = lyapchol(sys.(sys.a_)',sys.(sys.c_)');
                 end
             end
         end
@@ -966,27 +1033,26 @@ classdef ssRed < ss
                     list = {'fact','stop','stopval','maxIter'};
                     parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
                end
+            elseif strcmp(method,'userDefined')
+               parsedStruct = params;
             end
         end
         
-        
-        function parsedParamsList = removeProjectiveMor(paramsList)
-        %Removes the reductionParameters for "projectiveMor" from the
-        %reduction history, because "projectiveMor" performs just the 
-        %projection, but is not a standalone reduction algorithm
-        
+        function parsedParamsList = removeReductionMethod(paramsList,method)
+        %Removes the reductionParameters for the specified reduction method
+        %"method" from the reduction history. This is i.e. necessary for
+        %"rk", because in the algorithm projectiveMor is used. This
+        %function then deletes "projectiveMor" from the reduction history, 
+        %because "projectiveMor" performs just the projection in "rk", but 
+        %is not a standalone reduction algorithm    
+            
+            parsedParamsList = paramsList;
             if size(paramsList,1) > 1
-                counter = 1;
-                parsedParamsList = cell(1,1);
-                for i = 1:size(paramsList,1)
-                   if ~strcmp(paramsList{i,1}.method,'projectiveMor')
-                       parsedParamsList{counter,1} = paramsList{i,1};
-                       counter = counter + 1;
-                   end
+                if strcmp(paramsList{end-1}.method,method)
+                     parsedParamsList{end-1} = [];
+                     parsedParamsList = parsedParamsList(~cellfun('isempty',parsedParamsList));
                 end
-            else
-                parsedParamsList = paramsList;
-            end           
+            end 
         end
         
         function parsedParamsList = removeCureParameters(paramsList)
@@ -1019,8 +1085,7 @@ classdef ssRed < ss
                else
                   outputStruct.(fields{i}) = structure.(fields{i});
                end
-            end            
-            t = 1;        
+            end                   
         end
         
     end    

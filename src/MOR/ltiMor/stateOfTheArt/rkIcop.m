@@ -5,11 +5,11 @@ function [sysr, V, W, sOpt] = rkIcop(sys, s0, q, varargin)
 %       [sysr,V,W,sOpt] = RKICOP(sys,s0,q,Opts)
 %
 % Description:
-%       This function iteratively deteremines an optimal expansion point 
+%       This function iteratively determines an optimal expansion point 
 %       for Krylov-based model order reduction. 
 %
 %       The computed point is obtained by iterating between the optimal
-%       parameter and the reduced system starting from an inital parameter.
+%       parameter and the reduced system starting from an initial parameter.
 %
 % Input Arguments:  
 %       *Required Input Arguments:*
@@ -45,14 +45,14 @@ function [sysr, V, W, sOpt] = rkIcop(sys, s0, q, varargin)
 %       rkOp, rk, irka, arnoldi
 %
 % References:
-%       * *[1] R. Eid, H. Panzer and B. Lohmann: How to choose a single 
-%               expansion point in Krylov-based model reduction? Technical 
-%               reports on Automatic Control, vol. TRAC-4(2), Institute of 
-%               Automatic Control, Technische Universitaet Muenchen, Nov. 
-%               2009.
-%       * *[2] R. Eid: Time domain Model Reduction by Moment Matching, Ph.D
-%               thesis, Institute of Automatic Control, Technische 
-%               Universitaet Muenchen, 2009.
+%       * *[1] Eid, Panzer and Lohmann (2009)*, How to choose a single 
+%              expansion point in Krylov-based model reduction? Technical 
+%              reports on Automatic Control, vol. TRAC-4(2), Institute of 
+%              Automatic Control, Technische Universitaet Muenchen. 
+%
+%       * *[2] Eid (2009)*, Time domain Model Reduction by Moment Matching, Ph.D
+%              thesis, Institute of Automatic Control, Technische 
+%              Universitaet Muenchen.
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 

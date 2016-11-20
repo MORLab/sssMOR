@@ -14,12 +14,12 @@ function varargout = porkV(V,Sv,Rv,C)
 %
 %           $A V - E V S_v - B R_v = 0$
 %
-%       this function computes the reduced order matrices corresponding to
+%       This function computes the reduced order matrices corresponding to
 %       the H2-pseudo-optimal reduced order model, i.e. a model
 %       interpolating the original according to (V,Sv,Rv) and having
 %       eigenvalues as mirror images of the shifts.
 %
-%       If only one output is specified, this function returns an sssRed
+%       If only one output is specified, this function returns an ssRed
 %       object. Otherwise, the reduced system matrices are returned.
 % 
 % Input Arguments:

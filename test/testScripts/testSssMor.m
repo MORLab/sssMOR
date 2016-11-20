@@ -71,8 +71,11 @@ suiteStateOfTheArt = [TestSuite.fromFile(fullfile(testPathSssMor,'testSylvester.
                       TestSuite.fromFile(fullfile(testPathSssMor,'testPork.m')),...
                       TestSuite.fromFile(fullfile(testPathSssMor,'testSpark.m')),...
                       TestSuite.fromFile(fullfile(testPathSssMor,'testCure.m'))];
+                  
+% ssRed class
+suiteSsRed = [TestSuite.fromFile(fullfile(testPathSssMor,'testSsRed.m'))];
 
-suiteAll=[suiteClassic, suiteStateOfTheArt];
+suiteAll=[suiteClassic, suiteStateOfTheArt, suiteSsRed];
 
 %% Run and show results
 % Choose between suiteClassic, suiteStateOfTheArt, suiteAll

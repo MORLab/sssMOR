@@ -2,7 +2,36 @@
 
 ## Roadmap (changes to come)
 
-## v1.05
+## v1.07 [05 October 2016]
+### Changes
+- minor improvements in MODALMOR, TBR, CURE, SPARK
+- SSS toolbox: using v1.02
+
+### Bugfixes
+- SSRED
+  - Adding hidden properties for system matrices to cope  with changed ss-class definition after R2016a
+
+## v1.06 [16 September 2016]
+### Changes
+- APP
+ 	- new functionality: plotting of impulse- and step-response
+
+- SSRED
+	- **new class for reduced state-space-models**
+
+- SPARK
+	- **new output (reduced model, reduction with porkV or porkW)**
+
+- ISRK
+	- **new function: iterative SVD-Rational Krylov Algorithm**
+
+- RKOP
+	- **new function: determine optimal expansion point for Laguerre series**
+
+- RKICOP
+	- **new function: Rational Krylov with an iteratively calculated optimal point**
+
+## v1.05 [9 May 2016]
 ### Changes
 - APP
  - **New sssMOR app added**
@@ -34,22 +63,4 @@
 	- **Alternating Direction Implicit (ADI) functionality added using the M.E.S.S. toolbox**
 	- plot decay of hsv and ask user (if q not defined)
 
-## v1.06
-### Changes
-- APP
- 	- new functionality: plotting of impulse- and step-response
-
-- SSRED
-	- **new class for reduced state-space-models**
-
-- SPARK
-	- **new output (reduced model, reduction with porkV or porkW)**
-
-- ISRK
-	- **new function: iterative SVD-Rational Krylov Algorithm**
-
-- RKOP
-	- **new function: determine optimal expansion point for Laguerre series**
-
-- RKICOP
-	- **new function: Rational Krylov with an iteratively calculated optimal point**
+## v1.00 - First Release [16 November 2015]

@@ -14,10 +14,13 @@ function varargout = porkW(W,Sw,Lw,B)
 %
 %       $A^T W - E^T W S_w^T - C^T L_w = 0$
 %
-%       this function computes the reduced order matrices corresponding to
+%       This function computes the reduced order matrices corresponding to
 %       the H2-pseudo-optimal reduced order model, i.e. a model
 %       interpolating the original according to (W,Sw,Lw) and having
 %       eigenvalues as mirror images of the shifts.
+%
+%       If only one output is specified, this function returns an ssRed
+%       object. Otherwise, the reduced system matrices are returned.
 %
 % Input Arguments:
 %       *Required Input  Arguments:* 
