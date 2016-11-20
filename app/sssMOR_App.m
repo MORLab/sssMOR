@@ -2358,20 +2358,17 @@ function pu_mor_systems_Callback(hObject, eventdata, handles)
         return
     end
 
-    sys = evalin('base', y);
-    if ~isa(sys, 'sss')
-        try
-            sys = convertToSss(sys);
-        catch ex %#ok<NASGU>
-            set(handles.pb_mor_reduce,'Enable','off')
-            set(handles.panel_mor_hsv,'Visible','off')
-            set(handles.ed_mor_q,'Enable','off')
-            set(handles.sl_mor_q,'Enable','off')
-            set(handles.st_mor_sysinfo,'String','Invalid model')
-            errordlg('Variable is not a valid state space model.','Error Dialog','modal')
-            uiwait
-            return
-        end
+    try
+        sys = evalin('base', y);
+    catch ex %#ok<NASGU>
+        set(handles.pb_mor_reduce,'Enable','off')
+        set(handles.panel_mor_hsv,'Visible','off')
+        set(handles.ed_mor_q,'Enable','off')
+        set(handles.sl_mor_q,'Enable','off')
+        set(handles.st_mor_sysinfo,'String','Invalid model')
+        errordlg('Variable is not a valid state space model.','Error Dialog','modal')
+        uiwait
+        return
     end
 
     % set max of slider to system order
@@ -2849,20 +2846,6 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
        uiwait
        pb_refreshsys_Callback(handles.pb_refreshsys,eventdata,handles)
        return
-    end
-
-    % convert to sss
-    
-    if ~isa(sys, 'sss')
-        try
-            convertToSss(sys);
-        catch ex
-            set(hObject,'String','Plot')
-            set(hObject,'Enable','on') 
-            errordlg(['Original system is not a valid state space model: ' ex.message],'Error Dialog','modal')
-            uiwait
-            return
-        end
     end
 
     % Reduce
@@ -3423,8 +3406,6 @@ drawnow
 
 try
     [sys, sysname] = getSysFromWs(handles.pu_mor_systems);
-    originalClass = class(sys);
-    sys = convertToSss(sys);
 catch ex
     set(handles.figure1,'Pointer','arrow')
     set(hObject,'Enable','on')
@@ -3941,8 +3922,7 @@ y = x{get(handles.pu_mor_systems,'Value')};
     
 if ~isempty(y)
     try
-        parameter.system = evalin('base',y);        
-        parameter.system = convertToSss(parameter.system);        
+        parameter.system = evalin('base',y);              
     catch ex
        errordlg('Selected system could not be found in the workspace.')
        uiwait
@@ -4907,9 +4887,7 @@ function pb_an_compare_h2_Callback(hObject, eventdata, handles)
     
     try
         sys1 = getSysFromWs(handles.pu_an_sys1);
-        sys1 = convertToSss(sys1);
         sys2 = getSysFromWs(handles.pu_an_sys2);
-        sys2 = convertToSss(sys2);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -4964,9 +4942,7 @@ function pb_an_compare_hinf_Callback(hObject, eventdata, handles)
     
     try
         sys1 = getSysFromWs(handles.pu_an_sys1);
-        sys1 = convertToSss(sys1);
         sys2 = getSysFromWs(handles.pu_an_sys2);
-        sys2 = convertToSss(sys2);
     catch ex
         set(handles.figure1,'Pointer','arrow')
         if strfind(ex.identifier, 'unassigned')
@@ -5490,7 +5466,6 @@ if get(handles.pu_mor_method,'Value')==3        %Krylov selected
     if ~isempty(y)
         
         sys = evalin('base', y);        
-        sys = convertToSss(sys);
     
         if sys.m > 1 || sys.p > 1                       %Mimo system
 
@@ -5855,8 +5830,6 @@ function [] = displaySystemInformation(object,sys)
 %Prevents the display of the full name of the system which could include
 %full path names
 
-    sys = convertToSss(sys);
-
     systemName = sys.Name;
     sys.Name = '';
     set(object, 'String', sys.disp);
@@ -6022,21 +5995,7 @@ if isempty(sysname)
 end
 
 
-sys = evalin('base', sysname);
-
-
-function sysSss = convertToSss(sys)
-%Converts a system of class sss, ss or ssRed to a sss-object
-
-    if isa(sys,'sss')
-        sysSss = sys;
-    elseif isa(sys,'ssRed')
-        sysSss = sss(sys.A,sys.B,sys.C,sys.D,sys.E);
-    elseif isa(sys,'ss')
-        sysSss = sss(sys);
-    else
-        error('Convertion to a sss-object is not defined for sss-, ss- or ssRed-objects'); 
-    end     
+sys = evalin('base', sysname); 
 
 function x = listClassesInWorkspace(class)
 %Finds and lists all objects of the given class from workspace
