@@ -575,6 +575,57 @@ classdef ssRed < ss
            end
     end
         %% Override operators and build-in-functions
+        
+        function infostr = disp(sys)
+        % Displays information about a reduced state-space model (Similar
+        % to sss/disp, but with additional information)
+            if isempty(sys)
+                fprintf(1,'  Empty reduced state-space model.\n\n');
+            else
+                mc = metaclass(sys);
+                str = [];
+                if ~isempty(mc.Name) && ~isempty(sys.Name)
+                    str = [mc.Name ' Model ' sys.Name, ' '];
+                end
+
+                if sys.isDae;            str = [str '(DAE)'];
+                elseif sys.isDescriptor; str = [str '(DssRed)'];
+                else                     str = [str '(ssRed)'];
+                end
+
+                if sys.isSiso;       str = [str '(SISO)'];
+                elseif sys.isSimo;   str = [str '(SIMO)'];
+                elseif sys.isMiso;   str = [str '(MISO)'];
+                elseif sys.isMimo;   str = [str '(MIMO)'];
+                end
+
+                str = [str  char(10), num2str(sys.n) ' states, ' num2str(sys.m) ...
+                    ' inputs, ' num2str(sys.p) ' outputs'];
+
+                if sys.Ts==0
+                    str = [str  char(10) 'Continuous-time state-space model.'];
+                else
+                    str = [str  char(10) 'Sample time: ' num2str(sys.Ts) ' seconds'];
+                    str = [str  char(10) 'Discrete-time state-space model.'];
+                end
+                
+                params = sys.reductionParameters{end,1};
+                if strcmp(params.method,'userDefined')
+                    str = [str char(10) 'Reduction Method: ' params.method char(10)];
+                else
+                    str = [str char(10) 'Reduction Method: ' params.method char(10) ...
+                            'Original order: ' num2str(params.params.originalOrder)];
+                end
+
+                if nargout>0
+                    infostr = {str};
+                else
+                    str = strrep(str, char(10), [char(10) '  ']);
+                    disp(['  ' str char(10)]);
+                end
+            end
+        end
+        
         function sys = clear(sys)
             sys = ssRed([]);
         end
