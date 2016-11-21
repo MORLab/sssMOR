@@ -25,8 +25,7 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
 %
 %   *In its current form, CIRKA supports only SISO models*
 %    An extension will be given in a later release.
-%
-%   
+% 
 %
 % See also:
 %   cirka, rk, spark
@@ -46,7 +45,7 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
 %                     -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
-% Last Change:  12 Apr 2016
+% Last Change:  20 Nov 2016
 % Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
@@ -99,17 +98,23 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
                 idx = ismemberf2(s0new,s0mTot,Opts.modelTol); 
                 s0m = s0new(~idx);
                 if Opts.plot
-                    figure; plot(complex(s0mTot),'xb'); hold on
-                    plot(complex(s0new),'or');
-%                     axis equal
+                    fh = figure; lh(1) = plot(complex(s0mTot),'xb'); hold on
+                    lh(2) = plot(complex(s0new),'or');
+                    axis equal
                     for iS = 1:length(s0mTot);
                         [xp,yp] = circle(real(s0mTot(iS)),imag(s0mTot(iS)),Opts.modelTol*abs(s0mTot(iS)));
-                        plot(xp,yp,'g')
+                        lh(3) = plot(xp,yp,'g');
                     end
-                    plot(complex(s0m),'k+');
+                    legEntries = {'old','new','tolerance'};
+                    if ~isempty(s0m)
+                        lh(4) = plot(complex(s0m),'k+');
+                        legEntries = [legEntries,'added'];
+                    end
+                    legend(lh,legEntries);
 %                     set(gca,'xscale','log');
                     xlabel('Re');ylabel('Im'); title('New shifts for model function')
                     pause
+                    close(fh)
                 end
             otherwise
                 error('selected model function update is not valid');
