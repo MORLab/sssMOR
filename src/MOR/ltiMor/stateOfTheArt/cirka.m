@@ -1,13 +1,13 @@
-function [sysr, Virka, Wirka, s0, kIter, kIrkaTot, sysm] = cirka(sys, s0, Opts) 
+function [sysr, Virka, Wirka, s0, kIrka, sysm, relH2err] = cirka(sys, s0, Opts) 
 % CIRKA - Confined Iterative Rational Krylov Algorithm
 %
 % Syntax:
-%       sysr                            = IRKA(sys, s0)
-%       sysr                            = IRKA(sys, s0)
-%       sysr                            = IRKA(sys, s0, Opts)
-%       [sysr, V, W]                    = IRKA(sys, s0,... )
-%       [sysr, V, W, s0]                = IRKA(sys, s0,... )
-%       [sysr, V, W, s0, kIter, kIrkaTot, nSysm]= IRKA(sys, s0,... )
+%       sysr                                    = CIRKA(sys, s0)
+%       sysr                                    = CIRKA(sys, s0)
+%       sysr                                    = CIRKA(sys, s0, Opts)
+%       [sysr, V, W]                            = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0]                        = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0, kIrka, sysm, relH2err] = CIRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Confined Iterative Rational Krylov
@@ -33,12 +33,14 @@ function [sysr, Virka, Wirka, s0, kIter, kIrkaTot, sysm] = cirka(sys, s0, Opts)
 %       *Optional Input Arguments:*
 %       -Opts:			structure with execution parameters
 %			 -.qm0     = initial size of model function;
-%                       [{length(s0)+2} / positive integer]
+%                       [{2*length(s0)} / positive integer]
+%            -.sm0     = initial shifts for surrogate;
+%                       [{[s0,s0]} / vector ]
 %            -.maxiter = maximum number of iterations;
 %						[{15} / positive integer]
 %            -.tol:		convergence tolerance;
 %						[{1e-3} / positive float]
-%			-.verbose:	show text output during iterations;
+%           -.verbose:	show text output during iterations;
 %						[{false} / true]
 %           -.plot:     plot results;
 %                       [{false} / true]
@@ -48,18 +50,21 @@ function [sysr, Virka, Wirka, s0, kIter, kIrkaTot, sysm] = cirka(sys, s0, Opts)
 %                       [{'new'},'all']
 %           -.clearInit: reset the model function after first iteration
 %                       [{true}, false]
-%           -irka.suppressverbose: suppress any type of verbose for speedup;
-%                       [{0} / 1]
+%           -irka.stopcrit: stopping criterion used in irka
+%                       [{'combAny'} / 's0' / 'sysr' /'combAll']
 %           -irka.lse:  choose type of lse solver
 %                       ['sparse' / {'full'} / 'hess']
+%           -irka.suppressverbose: suppress any type of verbose for speedup;
+%                       [{0} / 1]
 %           (for further irka options, please refer to help irka)
 %
 % Output Arguments:      
 %       -sysr:              reduced order model (sss)
 %       -V,W:               resulting projection matrices
 %       -s0:                final choice of shifts
-%       -kIter:             number of model function iterations
-%       -kIrkaTot:          cumulated number of irka iterations
+%       -kIrka:             vector of irka iterations
+%       -sysm:              resulting model function
+%       -relH2err:          estimate of the relative H2 error
 %
 % Examples:
 %       This code computes an H2-optimal approximation of order 8 to
@@ -95,24 +100,26 @@ function [sysr, Virka, Wirka, s0, kIter, kIrkaTot, sysm] = cirka(sys, s0, Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  16 September 2016
+% Last Change:  20 Nov 2016
 % Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
 if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only for SISO models');end
 
 %% Define execution options
-    Def.qm0     = 2*length(s0); %default surrogate size
+    Def.qm0     = 2*length(s0); %default initial surrogate size
     Def.s0m     = shiftVec([s0;2*ones(1,length(s0))]); %default surrogate shifts
-    Def.maxiter = 15; Def.tol = 1e-3;
-    Def.verbose = 0; Def.plot = 0;
-    Def.suppressWarn = 0;
-    Def.updateModel = 'new';
-    Def.modelTol = 1e-1;
+    Def.maxiter = 15;   %maximum number of CIRKA iterations
+    Def.tol     = 1e-3; %tolerance for stopping criterion
+    Def.verbose = 0; Def.plot = 0; %display text and plots
+    Def.suppressWarn = 0; %suppress warnings
+    Def.updateModel = 'new'; %shifts used for the model function update
+    Def.modelTol = 1e-1; %shift tolerance for model function
     Def.clearInit = 0; %reset the model fct after initialization?
+    
     Def.irka.suppressverbose = 1;
-    Def.irka.stopcrit = 's0';
-    Def.irka.lse = 'hess';
+    Def.irka.stopcrit        = 'combAny';
+    Def.irka.lse             = 'full';
 
     if ~exist('Opts','var') || isempty(Opts)
         Opts = Def;
@@ -124,17 +131,18 @@ if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only
 %% run computations
     stop = 0;
     kIter = 0;
-    kIrkaTot = [];
-    sysmOld = sss([],[],[]);
+    kIrka = [];
+%     sysmOld = sss([],[],[]);
     
     %   Generate the model function
     s0m = Opts.s0m;    [sysm, s0mTot, V, W] = modelFct(sys,s0m);
 
     if Opts.verbose, fprintf('Starting model function MOR...\n'); end
-%     if Opts.plot, fh = figure; end
+    if Opts.plot, sysFrd = freqresp(sys,struct('frd',true)); end
 
     while ~stop
         kIter = kIter + 1; if Opts.verbose, fprintf(sprintf('modelFctMor: k=%i\n',kIter));end
+            
         if kIter > 1
             if kIter == 2 && Opts.clearInit
                 %reset the model function after the first step
@@ -146,8 +154,14 @@ if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only
             end
         end
         % reduction of new model with new starting shifts
-        [sysr, Virka, Wirka, s0new, ~,~,~,~,~,~,~,~,kIrka] = irka(sysm,s0,Opts.irka);
+        [sysr, Virka, Wirka, s0new, ~,~,~,~,~,~,~,~,kIrkaNew] = irka(sysm,s0,Opts.irka);
 
+        if Opts.plot, 
+            fh = figure; bodemag(sysFrd,ss(sysm),sysr)
+            legend('FOM','ModelFct','ROM');   
+            title(sprintf('kIter=%i, nModel=%i',kIter,sysm.n));
+            pause
+        end
 %         if Opts.plot, 
 %             figure(fh); plot(real(s0),imag(s0),'bx'); hold on
 %                        plot(real(s0new),imag(s0new),'or'); hold off
@@ -155,11 +169,13 @@ if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only
 %                        legend('old','new')
 %                        pause
 %         end
-        nSysm = sysm.n;
-        kIrkaTot = [kIrkaTot, kIrka];
+
+        kIrka = [kIrka, kIrkaNew];
         % computation of convergence
         if stoppingCrit
             stop = true;
+            sysm = stabsep(ss(sysm));
+            relH2err = norm(ss(sysm-sysr))/norm(ss(sysm));
         else
             %Overwrite parameters with new variables
             s0 = s0new;    
@@ -168,6 +184,8 @@ if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only
         if kIter >= Opts.maxiter; 
             warning('modelFctMor did not converge within maxiter'); 
             if Opts.suppressWarn, warning('on','sssMOR:irka:maxiter');end
+            sysm = stabsep(ss(sysm));
+            relH2err = norm(ss(sysm-sysr))/norm(ss(sysm));
             return
         end
     end
@@ -176,8 +194,7 @@ if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only
     fprintf('CIRKA step %03u - Convergence: %s \n', ...
             kIter, sprintf('% 3.1e', crit(1)));
     end
-
-        
+       
     function stop = stoppingCrit
         stop = false;
         %   Compute the change in shifts
