@@ -3429,8 +3429,14 @@ catch ex %***
     elseif strcmp(ex.identifier,'Control:foundation:LyapChol4')
         errordlg('A or (A,E) must have all their eigenvalues in the left-half plane.','Error Dialog','modal')
     else
-        errordlg(ex.message,'Error Dialog','modal')
+        [found,str] = extractEntryFromErrorStack(ex.stack,'tbr');
+        if found            
+            errordlg({str;ex.message},'Error Dialog','modal');
+        else
+            errordlg(ex.message,'Error Dialog','modal');
+        end
     end
+
     uiwait
     set(handles.figure1,'Pointer','arrow')
     set(hObject,'Enable','on')
@@ -6061,7 +6067,24 @@ function success = loadSystemWithLoadSss(filename,path)
                     'Try to load the matrices and then compose the model.'},'Error','error');
             success = 0;
         end            
-    end       
+   end
+   
+function [found,str] = extractEntryFromErrorStack(stack,funcName)
+% This function extracts one paricular entry from the list of functions
+% execption.stack which represents the chain of function calls that led to
+% an error. "funcName" is the name of the function for which more detailed
+% information about the error are desired (i.e. 'tbr')
+
+    str = '';
+    found = 0;
+
+    for i = 1:length(stack)
+        if strcmp(funcName,stack(i).name)
+            str = [funcName,' (line ',num2str(stack(i).line),'):'];
+            found = 1;
+            break;
+        end
+    end   
 
     
 %Auxiliary-functions for plotting 
