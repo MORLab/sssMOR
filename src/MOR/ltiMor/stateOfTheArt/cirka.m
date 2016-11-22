@@ -1,4 +1,4 @@
-function [sysr, Virka, Wirka, s0, kIrka, sysm, relH2err] = cirka(sys, s0, Opts) 
+function [sysr, V, W, s0, kIrka, sysm, relH2err] = cirka(sys, s0, Opts) 
 % CIRKA - Confined Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -62,7 +62,7 @@ function [sysr, Virka, Wirka, s0, kIrka, sysm, relH2err] = cirka(sys, s0, Opts)
 %
 % Output Arguments:      
 %       -sysr:              reduced order model (sss)
-%       -V,W:               resulting projection matrices
+%       -V,W:               resulting projection matrices (V = Vm*Virka)
 %       -s0:                final choice of shifts
 %       -kIrka:             vector of irka iterations
 %       -sysm:              resulting model function
@@ -156,11 +156,12 @@ warning('off','Control:analysis:NormInfinite3')
     sysmOld = ss([]);
     
     %   Generate the model function
-    s0m = Opts.s0m;    [sysm, s0mTot, V, W] = modelFct(sys,s0m);
+    s0m = Opts.s0m;    [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
 
     if Opts.verbose, fprintf('Starting model function MOR...\n'); end
     if Opts.plot, sysFrd = freqresp(sys,struct('frd',true)); end
 
+    % run CIRKA iteration
     stop = false;
     while ~stop
         kIter = kIter + 1; if Opts.verbose, fprintf(sprintf('modelFctMor: k=%i\n',kIter));end
@@ -169,10 +170,10 @@ warning('off','Control:analysis:NormInfinite3')
             if kIter == 2 && Opts.clearInit
                 %reset the model function after the first step
                 s0m = [s0,s0m(1:length(s0m)-length(s0))];
-                [sysm, s0mTot, V, W] = modelFct(sys,s0m);
+                [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
             else
                 % update model
-                [sysm, s0mTot, V, W] = modelFct(sys,s0,s0mTot,V,W,Opts);
+                [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0,s0mTot,Vm,Wm,Opts);
             end
         end
         
@@ -200,6 +201,8 @@ warning('off','Control:analysis:NormInfinite3')
             sysm = stabsep(ss(sysm));
             relH2err = norm(ss(sysm-sysr))/norm(ss(sysm));
             kIrka(kIter+1:end) = []; %remove preallocation
+            V = Vm*Virka;
+            W = Wm*Wirka;
         else
             %Detect STAGNATION
             if kIter > 1 && max(abs(stopVal(kIter-1,:)-stopVal(kIter,:))) < Opts.tol
@@ -219,6 +222,8 @@ warning('off','Control:analysis:NormInfinite3')
             if Opts.suppressWarn, warning('on','sssMOR:irka:maxiter');end
             sysm     = stabsep(ss(sysm));
             relH2err = norm(ss(sysm-sysr))/norm(ss(sysm));
+            V = Vm*Virka;
+            W = Wm*Wirka;
             return
         end
     end
