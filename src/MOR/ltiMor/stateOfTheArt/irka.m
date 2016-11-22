@@ -175,7 +175,8 @@ while true
         % make sure real shifts have real directions
         idx = find(imag(s0)==0);
         if any([max(imag(Rt(:,idx))),max(imag(Lt(:,idx)))]) > 1e-15
-            warning('Tangential directions corresponding to real shifts are complex')              
+            warning('sssMOR:irka:tangDirIncompatible',...
+                'Tangential directions corresponding to real shifts are complex')              
         end
         Rt(:,idx) = real(Rt(:,idx)); Lt(:,idx) = real(Lt(:,idx));
     else
