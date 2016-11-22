@@ -9,26 +9,48 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
 %
 % Description:
 %
-%   This function generates a surrogate model, called "model function" sysm,
-%   of a high-dimensional model sys by Hermite interpolation at the complex
-%   frequencies defined in the vector s0m.
+%   This function generates a surrogate model, called "model function" |sysm|,
+%   of a high-dimensional model |sys| by Hermite interpolation at the complex
+%   frequencies defined in the vector |s0m|.
 %
-%   If additional inputs s0mTot, V, W are passed, then the model function
+%   If additional inputs |s0mTot|, |V|, |W| are passed, then the model function
 %   is updated combining the already existing information, defined by
-%   s0mTot, to s0m. V and W are updated respectively for future updates.
+%   |s0mTot|, to |s0m|. |V| and |W| are updated respectively.
 %
-%   The optionl structure Opts allows the definition of additional
+%   The optionl structure |Opts| allows the definition of additional
 %   execution parameters.
 %
 %   This function is used in the model function based MOR approach
 %   introduced in [1] and [2].
 %
-%   *In its current form, CIRKA supports only SISO models*
-%    An extension will be given in a later release.
+%   //Note: In its current form, MODELFCT supports only SISO models.
+%    An extension to MIMO will be given in a later release.
 % 
+% Input Arguments:  
+%       *Required Input Arguments:*
+%       -sys:			full oder model (sss)
+%       -s0m:			vector of shifts for model function (update)
+%
+%       *Optional Input Arguments:*
+%       -s0mTot:        vector of all shifts already used
+%       -V,W:           corresponding projection matrices V,W
+%       -Opts:			structure with execution parameters
+%		  -.updateModel:chooses which shifts of s0m are included in update;
+%                       [{'new'} / 'all' / 'lean' ]
+%            -.modelTol:tolerance for identifying new shifts;
+%                       [{1e-2} / positive float ]
+%            -.plot     : generate analysis plots;
+%						[{false} / true]
+%            -.tol:		convergence tolerance;
+%						[{1e-3} / positive float]
+%
+% Output Arguments:      
+%       -sysm:          (updated) model function;
+%       -s0mTot:        cumulated vector of approximation frequencies
+%       -V,W:           (updated) projection matrices
 %
 % See also:
-%   cirka, rk, spark
+%   cirka, modelFctMor, solveLse, rk, spark
 %
 % References:
 %       * *[1] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
@@ -45,7 +67,7 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
 %                     -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
-% Last Change:  20 Nov 2016
+% Last Change:  22 Nov 2016
 % Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
@@ -54,7 +76,7 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
     %%  Define default execution parameters
     Def.updateModel = 'new'; % 'all','new','lean'
     Def.modelTol    = 1e-2;
-    Def.plot        = 'false';
+    Def.plot        = false;
 
     if ~exist('Opts','var') || isempty(Opts)
         Opts = Def;
@@ -71,7 +93,7 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
         s0mTot = [s0mTot, s0m];
     end
     
-%%   Initialize variables in nested functions
+    %% Initialize variables in nested functions
     N = size(sys.A,1);
     L1 = sparse(N,N);U1=L1;P1=L1;Q1=L1; 
     L2 = sparse(N,N);U2=L2;P2=L2;Q2=L2; 
@@ -82,8 +104,9 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
         %   Update model function
         [sysm,V,W] = updateModelFct(s0m,V,W);
     else
-        warning(['Model function is already as big as the original model.',...
-            ' Returning the original model']);
+        warning('sssMOR:modelFct:sizeLimit',...
+            ['Model function is already as big as the original.',...
+            ' Returning the original model.']);
         sysm = sys;
     end
     
@@ -94,7 +117,6 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
             case 'all'
                 s0m = s0new;
             case 'new'
-%                 idx = ismemberf(s0new,s0mTot,'tol',Opts.modelTol); %available in the matlab central
                 idx = ismemberf2(s0new,s0mTot,Opts.modelTol); 
                 s0m = s0new(~idx);
                 if Opts.plot
@@ -141,9 +163,9 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
                 V = newColV(V);  W = newColW(W);
             end
             [V,~] = qr(V,0); [W,~] = qr(W,0);
-            sysm = sss(W'*sys.A*V,W'*sys.B,sys.C*V,...
-                            zeros(size(sys.C,1),size(sys.B,2)),W'*sys.E*V);
-%             sysm = projectiveMor(sys,V,W);
+%             sysm = sss(W'*sys.A*V,W'*sys.B,sys.C*V,...
+%                             zeros(size(sys.C,1),size(sys.B,2)),W'*sys.E*V);
+            sysm = projectiveMor(sys,V,W);
         end   
     end
     %%  Functions copied from "spark"
@@ -189,27 +211,6 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
 %             W = GramSchmidt([W,w1',w2'],[],[],[iCol,iCol+1]);
 %             [W,~] = qr([W,w1',w2'],0);
             W = [W, w1', w2'];
-        end
-    end
-    function [X,Y,Z] = GramSchmidt(X,Y,Z,cols)
-        % Gram-Schmidt orthonormalization
-        %   Input:  X,[Y,[Z]]:  matrices in Sylvester eq.: V,S_V,Crt or W.',S_W.',Brt.'
-        %           cols:       2-dim. vector: number of first and last column to be treated
-        %   Output: X,[Y,[Z]]:  solution of Sylvester eq. with X.'*X = I
-        % $\MatlabCopyright$
-
-        if nargin<4, cols=[1 size(X,2)]; end
-        
-        for kNewCols=cols(1):cols(2)
-            for jCols=1:(kNewCols-1)                       % orthogonalization
-                T = eye(size(X,2)); T(jCols,kNewCols)=-X(:,kNewCols)'*X(:,jCols);
-                X = X*T;
-                if nargout>=2, Y=T\Y*T; end
-                if nargout>=3, Z=Z*T; end
-            end
-            h = norm(X(:,kNewCols));  X(:,kNewCols)=X(:,kNewCols)/h; % normalization
-            if nargout>=2, Y(:,kNewCols) = Y(:,kNewCols)/h; Y(kNewCols,:) = Y(kNewCols,:)*h; end
-            if nargout==3, Z(:,kNewCols) = Z(:,kNewCols)/h; end
         end
     end
 end
