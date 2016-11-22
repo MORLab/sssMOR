@@ -52,11 +52,11 @@ classdef testCirka < sssTest
                     sys=testCase.sysCell{i};  
                     sys= sys(1,1);
 
-                    [sysr, ~, ~, s0, kIrka, ~, ~] = cirka(sys, s0);
+                    [sysr, ~, ~, s0opt, kIrka, ~, ~] = cirka(sys, s0,Opts);
                     if length(kIrka)< Opts.maxiter
                         if strcmp(crit{j},'s0')
-                            verifyEqual(testCase,-s0',eig(sysr),'RelTol',Opts.tol)
-                            verifyTrue(testCase,isH2opt(sys,sysr,s0,struct('tol',Opts.tol)))
+                            verifyEqual(testCase,-s0opt',eig(sysr),'RelTol',Opts.tol)
+                            verifyTrue(testCase,isH2opt(sys,sysr,s0opt,struct('tol',Opts.tol)))
                         end
                     end
                 end

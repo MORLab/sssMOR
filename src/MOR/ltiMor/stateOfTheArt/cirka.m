@@ -57,7 +57,9 @@ function [sysr, V, W, s0, kIrka, sysm, relH2err] = cirka(sys, s0, Opts)
 %           -.irka.lse:  choose type of lse solver;
 %                       ['sparse' / {'full'} / 'hess']
 %           -.irka.suppressverbose: suppress any type of verbose for speedup;
-%                       [{0} / 1]
+%                       [{true} / false]
+%           -.irka.tol: convergence tolerance for irka
+%                       [{1e-6} / positive float ] 
 %           (for further irka options, please refer to help irka)
 %
 % Output Arguments:      
@@ -136,7 +138,7 @@ warning('off','Control:analysis:NormInfinite3')
     Def.modelTol = 1e-2; %shift tolerance for model function
     Def.clearInit = 0; %reset the model fct after initialization?
     
-    Def.irka.suppressverbose = 1;
+    Def.irka.suppressverbose = true;
     Def.irka.stopcrit        = 'combAny';
     Def.irka.lse             = 'full';
     Def.irka.tol             = 1e-6;
@@ -151,7 +153,12 @@ warning('off','Control:analysis:NormInfinite3')
 %% run computations
     kIter   = 0;
     kIrka   = zeros(1,Opts.maxiter);
-    stopVal = zeros(Opts.maxiter,3);
+    if any(strcmp(Opts.stopcrit,{'combAny','combAll'})),
+        nStopVal = 3;
+    else
+        nStopVal = 1;
+    end
+    stopVal = zeros(Opts.maxiter,nStopVal);
     sysrOld = ss([]);
     sysmOld = ss([]);
     
