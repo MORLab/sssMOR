@@ -43,7 +43,7 @@ classdef testIsH2opt < sssTest
                 'RelTol',0.1,'AbsTol',0.000001,'moments not matching');
             end
 
-            expSolution={1};
+            expSolution={true};
             verification(testCase, actSolution, expSolution);
         end
         function testIsH2opt2(testCase)
@@ -60,7 +60,7 @@ classdef testIsH2opt < sssTest
             opt = isH2opt(sys,sysr,s0,opts);
             actSolution={opt};
             
-            expSolution={0};
+            expSolution={false};
             verification(testCase, actSolution, expSolution);
         end
     end
