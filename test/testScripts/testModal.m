@@ -54,22 +54,27 @@ classdef testModal < sssTest
                  
             verification(testCase, actSolution, expSolution, sysr);
         end
-        function testModal3(testCase) 
-            %with E-matrix
-            load('LF10.mat');
-            E=blkdiag(speye(size(M)), M);
-            A=[zeros(size(M)),speye(size(M)); -K, -D];
-            B=[zeros(size(M,1),1); B];
-            C=[C, zeros(1,size(M,1))];
+        function descriptorSymmetric(testCase) 
+            %with E-matrix, symmetric
+            sys = loadSss('rail_1357');
             
+            q = 10;
             Opts.type='SM';
-            [sysr] = modalMor(sss(A,B,C,0,E), 9, Opts);
-            actSolution=full(sort(eig(sysr)));
-%             actSolution={real(actEig), abs(imag(actEig))};
+            [sysr] = modalMor(sys, q, Opts);
+            actSolution=full(sort(eig(sysr)));            
+            expSolution=full(sort(eigs(sys,q,Opts.type)));
+                 
+            verification(testCase, actSolution, expSolution, sysr);
+        end
+        function descriptor(testCase) 
+            %with E-matrix, not symmetric
+            warning('off'), sys = loadSss('LF10'); warning('on');
             
-            [expsysr,~]=modreal(ss(full(E\A),full(E\B),full(C),0),9);
-            expSolution=full(sort(eig(expsysr)));
-%             expSolution={real(expEig), abs(imag(expEig))};
+            q = 10;
+            Opts.type='SM';
+            [sysr] = modalMor(sys, q, Opts);
+            actSolution=full(sort(eig(sysr)));            
+            expSolution=full(sort(eigs(sys,q,Opts.type)));
                  
             verification(testCase, actSolution, expSolution, sysr);
         end
