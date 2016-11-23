@@ -92,12 +92,13 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 %------------------------------------------------------------------
 
 % Default execution parameters
-Def.type = 'SM'; 
-Def.orth = 'qr'; %orthogonalization ('0','qr')
-Def.real = 'real'; %real reduced system ('0', 'real')
-Def.tol = 1e-6; % tolerance for SM/LM eigenspace
+Def.type    = 'SM'; 
+Def.orth    = 'qr'; %orthogonalization ('0','qr')
+Def.real    = 'real'; %real reduced system ('0', 'real')
+Def.tol     = 1e-6; % tolerance for SM/LM eigenspace
 Def.dominance = 0; %dominance analysis ('0','analyze','2q','3q',..,'9q')
 Def.lse = 'sparse'; % solveLse ('sparse', 'full')
+Def.maxiter = 5e2; %maximum number of subspace iterations
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -113,6 +114,7 @@ if nnz(Opts.dominance) && ~strcmp(Opts.dominance,'analyze')
     end
 end
 
+%% Invariant subspace computation
 %compute right and left eigenvectors
 if q>=size(sys.A,1)-1 %eigs: q<n-1
     if ~sys.isSym
@@ -134,6 +136,8 @@ else
     end
 end
 
+
+%% Post processing
 %dominance analysis
 if Opts.dominance
     [V, W, D] = dominanceAnalysis(q, V, W);
@@ -259,7 +263,8 @@ end
 
 function [V, W]=eigenspaceSM(q)
     if strcmp(Opts.lse,'hess')
-        error('Hess not implemented for the use with modalMor.');
+        error('sssMOR:modalMor:lseHessNotImplemented',...
+            'Hess not implemented for the use with modalMor.');
     end
     
     solveLse(sys.A);
@@ -272,7 +277,11 @@ function [V, W]=eigenspaceSM(q)
     if ~sys.isSym
         W=rand(sys.n,q);
         W_old=W;
-        while norm((eye(sys.n)-V*V')*V_old)>Opts.tol || norm((eye(sys.n)-W*W')*W_old)>Opts.tol
+        kIter = 0; stop = false;
+        rV = zeros(1,Opts.maxiter);
+        rW = zeros(1,Opts.maxiter); 
+        while ~stop
+            kIter = kIter+1;
             V_old=V;
             W_old=W;        
             
@@ -280,7 +289,25 @@ function [V, W]=eigenspaceSM(q)
 
             [V,~]=qr(V,0);
             [W,~]=qr(W,0);
+            
+            rV(kIter) = norm(V_old-V*(V'*V_old));
+            rW(kIter) = norm(W_old-W*(W'*W_old));
+            stop = any([rV(kIter),rW(kIter)] < Opts.tol);
+            
+            if kIter > Opts.maxiter, 
+                warning('sssMOR:modalMor:maxiter',...
+                    'Invariant subspaces did not converge within maxiter.')
+                break
+            end
         end
+        figure; subplot(2,1,1);semilogy(rV); hold on
+                               semilogy([1,kIter],Opts.tol*[1,1],'--r')
+                ylabel('rV')
+                subplot(2,1,2);semilogy(rW); hold on
+                               semilogy([1,kIter],Opts.tol*[1,1],'--r')
+                ylabel('rW')
+                xlabel('kIter')
+                
         for j=1:q
             W(:,j)=W(:,j)/norm(W(:,j));
             V(:,j)=V(:,j)/norm(V(:,j));
