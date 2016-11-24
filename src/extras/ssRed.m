@@ -592,6 +592,31 @@ classdef ssRed < ss
             syst = subsref(sys,args);
         end
         
+        function varargout = freqresp(varargin)
+            % check if Options are specified
+            if ~isempty(varargin) && isstruct(varargin{end})
+                Opts = varargin{end};
+                varargin = varargin(1:end-1);
+            end
+            % call the correct build in functions
+            if exist('Opts','var')
+                if isfield(Opts,'maxPoints')
+                    warning('Value for option "maxPoints" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'lse')
+                    warning('Value for option "lse" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'frd') && Opts.frd == 1 && nargout == 1
+                    [G,w] = freqresp(varargin{:});
+                    varargout{1} = frd(G,w);
+                else
+                    [varargout{1:nargout}] = sss.freqresp(varargin{:});
+                end
+            else
+                [varargout{1:nargout}] = sss.freqresp(varargin{:});
+            end
+        end
+        
         function  varargout = impulse(varargin)
             % check if Options are specified
             if ~isempty(varargin) && isstruct(varargin{end})
