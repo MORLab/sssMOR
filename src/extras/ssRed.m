@@ -607,13 +607,13 @@ classdef ssRed < ss
                     warning('Value for option "lse" remains ineffective for ssRed-objects'); 
                 end
                 if isfield(Opts,'frd') && Opts.frd == 1 && nargout == 1
-                    [G,w] = freqresp(varargin{:});
+                    [G,w] = freqresp@ss(varargin{:});
                     varargout{1} = frd(G,w);
                 else
-                    [varargout{1:nargout}] = sss.freqresp(varargin{:});
+                    [varargout{1:nargout}] = freqresp@ss(varargin{:});
                 end
             else
-                [varargout{1:nargout}] = sss.freqresp(varargin{:});
+                [varargout{1:nargout}] = freqresp@ss(varargin{:});
             end
         end
         
