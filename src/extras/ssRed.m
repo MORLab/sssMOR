@@ -593,6 +593,10 @@ classdef ssRed < ss
             [varargout{1:nargout}] = sss.residue(varargin{:});
         end
         
+        function varargout = spy(varargin)  
+            [varargout{1:nargout}] = sss.spy(varargin{:});
+        end
+        
         function varargout = decayTime(varargin)
             [varargout{1:nargout}] = sss.decayTime(varargin{:});
         end
