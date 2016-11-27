@@ -565,6 +565,10 @@ classdef ssRed < ss
             [varargout{1:nargout}] = sss.mtimes(varargin{:});
         end
         
+        function varargout = poles(varargin) 
+            [varargout{1:nargout}] = sss.poles(varargin{:});
+        end
+        
         function varargout = residue(varargin)  
             [varargout{1:nargout}] = sss.residue(varargin{:});
         end
@@ -583,6 +587,10 @@ classdef ssRed < ss
         
         function varargout = zeros(varargin)
             [varargout{1:nargout}] = sss.zeros(varargin{:});
+        end
+        
+        function varargout = zpk(varargin)
+            [varargout{1:nargout}] = sss.zpk(varargin{:});
         end
         
         function syst = truncate(sys, idxOut, idxIn)
