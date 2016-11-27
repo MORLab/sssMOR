@@ -326,7 +326,7 @@ classdef ssRed < ss
         TBal, TBalInv
         ConGram, ConGramChol
         ObsGram, ObsGramChol
-        
+        residues
         isSym
     end
     properties(Hidden,Access = private)
@@ -336,122 +336,128 @@ classdef ssRed < ss
     methods
         function obj = ssRed(varargin)
             % parse and check the arguments
-            if nargin < 3 || nargin > 8 || nargin == 4
-                error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
-            end
-            paramsList = [];
-            nargin_new = nargin;
-            if ~isnumeric(varargin{nargin}) && ~isa(varargin{nargin},'ss') && ...
-               ~isa(varargin{nargin},'sss')         %paramsList specified
-                paramsList = varargin{nargin};
-                nargin_new = nargin_new-1;
-            end
-            if nargin_new == 3
-                sys = varargin{3};
-                if isa(sys,'ssRed')
-                    if ~isempty(paramsList)
-                        error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
-                    end
-                    paramsList = sys.reductionParameters;
+            if nargin~=1 && ~isempty(varargin{1})   % not an empty model
+                if nargin < 3 || nargin > 8 || nargin == 4
+                    error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
                 end
-                if isa(sys,'ss')    %ss-objects or ssRed-objects
-                   [A,B,C,D,E] = dssdata(sys);
-                elseif isa(sys,'sss')   %sss-objects
-                   [A,B,C,D,E] = full(dssdata(sys));
+                paramsList = [];
+                nargin_new = nargin;
+                if ~isnumeric(varargin{nargin}) && ~isa(varargin{nargin},'ss') && ...
+                   ~isa(varargin{nargin},'sss')         %paramsList specified
+                    paramsList = varargin{nargin};
+                    nargin_new = nargin_new-1;
+                end
+                if nargin_new == 3
+                    sys = varargin{3};
+                    if isa(sys,'ssRed')
+                        if ~isempty(paramsList)
+                            error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
+                        end
+                        paramsList = sys.reductionParameters;
+                    end
+                    if isa(sys,'ss')    %ss-objects or ssRed-objects
+                       [A,B,C,D,E] = dssdata(sys);
+                    elseif isa(sys,'sss')   %sss-objects
+                       [A,B,C,D,E] = full(dssdata(sys));
+                    else
+                       error('The third argument has to be an object of type "ss" or "sss"'); 
+                    end
                 else
-                   error('The third argument has to be an object of type "ss" or "sss"'); 
+                    A = full(varargin{3});
+                    B = full(varargin{4});
+                    C = full(varargin{5});
+
+                    if nargin_new == 6
+                        D = full(varargin{6});
+                        E = [];
+                    elseif nargin_new == 7
+                        D = full(varargin{6});
+                        E = full(varargin{7});
+                    else                
+                        D = [];
+                        E = [];
+                    end             
+                end
+
+                if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr', ...
+                        'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
+                        'spark','cure_spark','cure_irka','cure_rk+pork','userDefined'}) == 0
+                    error('The first argument has a wrong format. Type "help ssRed" for more information.');
                 end
             else
-                A = full(varargin{3});
-                B = full(varargin{4});
-                C = full(varargin{5});
-                
-                if nargin_new == 6
-                    D = full(varargin{6});
-                    E = [];
-                elseif nargin_new == 7
-                    D = full(varargin{6});
-                    E = full(varargin{7});
-                else                
-                    D = [];
-                    E = [];
-                end             
-            end
-            
-            if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr', ...
-                    'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
-                    'spark','cure_spark','cure_irka','cure_rk+pork','userDefined'}) == 0
-                error('The first argument has a wrong format. Type "help ssRed" for more information.');
+               A=[];B=[];C=[];D=[];E=[]; 
             end
             
             % call the construktor of the superclass ss
             obj@ss(A,B,C,D,'e',E);
             
-            % store the correct names for the properties containing the
-            % system matrices. This is a compatibility fix because the
-            % property names changed from lower to upper case in Matlab
-            % R2016a. To access the system matrices, use "obj.(obj.a_)"
-            obj.a_ = ltipack.matchProperty('a',...
-                            ltipack.allprops(obj),class(obj));
-            obj.b_ = ltipack.matchProperty('b',...
-                            ltipack.allprops(obj),class(obj));
-            obj.c_ = ltipack.matchProperty('c',...
-                            ltipack.allprops(obj),class(obj));
-            obj.d_ = ltipack.matchProperty('d',...
-                            ltipack.allprops(obj),class(obj));
-            obj.e_ = ltipack.matchProperty('e',...
-                            ltipack.allprops(obj),class(obj));
-                        
-            % check all fields of paramsList
-            if ~isempty(paramsList)
-                try
-                   for i = 1:size(paramsList,1)
-                      if length(fieldnames(paramsList{i})) ~= 2
-                          error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.');
-                      end
-                      if i > 1 && ismember(paramsList{i-1}.method,{'cure_spark','cure_irka','cure_rk+pork'})
-                          paramsList{i}.params = obj.parseParamsStruct(paramsList{i}.params,paramsList{i}.method,0);
-                      else
-                          paramsList{i}.params = obj.parseParamsStruct(paramsList{i}.params,paramsList{i}.method,1);
-                      end
+            if nargin~=1 && ~isempty(varargin{1})   % not an empty model
+                % store the correct names for the properties containing the
+                % system matrices. This is a compatibility fix because the
+                % property names changed from lower to upper case in Matlab
+                % R2016a. To access the system matrices, use "obj.(obj.a_)"
+                obj.a_ = ltipack.matchProperty('a',...
+                                ltipack.allprops(obj),class(obj));
+                obj.b_ = ltipack.matchProperty('b',...
+                                ltipack.allprops(obj),class(obj));
+                obj.c_ = ltipack.matchProperty('c',...
+                                ltipack.allprops(obj),class(obj));
+                obj.d_ = ltipack.matchProperty('d',...
+                                ltipack.allprops(obj),class(obj));
+                obj.e_ = ltipack.matchProperty('e',...
+                                ltipack.allprops(obj),class(obj));
+
+                % check all fields of paramsList
+                if ~isempty(paramsList)
+                    try
+                       for i = 1:size(paramsList,1)
+                          if length(fieldnames(paramsList{i})) ~= 2
+                              error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.');
+                          end
+                          if i > 1 && ismember(paramsList{i-1}.method,{'cure_spark','cure_irka','cure_rk+pork'})
+                              paramsList{i}.params = obj.parseParamsStruct(paramsList{i}.params,paramsList{i}.method,0);
+                          else
+                              paramsList{i}.params = obj.parseParamsStruct(paramsList{i}.params,paramsList{i}.method,1);
+                          end
+                       end
+                    catch ex
+                       error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.'); 
+                    end
+                end
+
+                % update the reductionParameters list
+                if isempty(paramsList)
+                   obj.reductionParameters = cell(1,1);
+                   obj.reductionParameters{1,1}.method = varargin{1};
+                   try
+                       obj.reductionParameters{1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
+                   catch ex
+                       error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
                    end
-                catch ex
-                   error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.'); 
+                else
+                   len = size(paramsList,1);
+                   obj.reductionParameters = paramsList;
+                   obj.reductionParameters{len+1,1}.method = varargin{1};
+                   try
+                       obj.reductionParameters{len+1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
+                   catch ex
+                       error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
+                   end
                 end
-            end
-            
-            % update the reductionParameters list
-            if isempty(paramsList)
-               obj.reductionParameters = cell(1,1);
-               obj.reductionParameters{1,1}.method = varargin{1};
-               try
-                   obj.reductionParameters{1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
-               catch ex
-                   error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
-               end
-            else
-               len = size(paramsList,1);
-               obj.reductionParameters = paramsList;
-               obj.reductionParameters{len+1,1}.method = varargin{1};
-               try
-                   obj.reductionParameters{len+1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
-               catch ex
-                   error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
-               end
-            end
-            
-            % remove unnecessary parmaters from the reduction history
-            if nargin_new == 3 && isa(sys,'ssRed')
-                if ~strcmp(varargin{1},'projectiveMor')
-                    obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'projectiveMor');
+
+                % remove unnecessary parmaters from the reduction history
+                if nargin_new == 3 && isa(sys,'ssRed')
+                    if ~strcmp(varargin{1},'projectiveMor')
+                        obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'projectiveMor');
+                    end
+                    if strcmp(varargin{1},'irka')
+                        obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'rk'); 
+                    end
                 end
-                if strcmp(varargin{1},'irka')
-                    obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'rk'); 
-                end
+                obj.reductionParameters = obj.removeCureParameters(obj.reductionParameters); 
+
+                obj.x0 = [];
             end
-            obj.reductionParameters = obj.removeCureParameters(obj.reductionParameters); 
-            
-            obj.x0 = [];
         end
                 
         %% Get Basic Properties
@@ -569,6 +575,14 @@ classdef ssRed < ss
            end
     end
         %% Override operators and build-in-functions
+        function sys = clear(sys)
+            sys = ssRed([]);
+        end
+        
+        function varargout = diag(varargin)
+            [varargout{1:nargout}] = sss.diag(varargin{:});
+        end
+        
         function varargout = eig(varargin)
             [varargout{1:nargout}] = sss.eig(varargin{:});
         end
@@ -595,6 +609,13 @@ classdef ssRed < ss
         
         function varargout = spy(varargin)  
             [varargout{1:nargout}] = sss.spy(varargin{:});
+        end
+        
+        function varargout = sss(varargin)
+            error(['ssRed-objects can not be converted to class "sss", ', ...
+                   'because this would result in a loss of information. ', ...
+                   'If conversion is nevertheless desired, use syntax ', ...
+                   '"sysSss = sss(sys.A,sys.B,sys.C,sys.D,sys.E)."']);
         end
         
         function varargout = decayTime(varargin)
