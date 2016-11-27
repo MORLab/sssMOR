@@ -729,7 +729,36 @@ classdef ssRed < ss
             end
             % call the correct function depending on the value of Opts.tf
             if exist('Opts','var')
-                [varargout{1:nargout}] = sss.impulse(varargin{:},Opts);
+                if isfield(Opts,'odeset')
+                    warning('Value for option "odeset" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'tolOutput')
+                    warning('Value for option "tolOutput" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'tolState')
+                    warning('Value for option "tolState" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'ode')
+                    warning('Value for option "ode" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'tsMin')
+                    warning('Value for option "tsMin" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'tLin')
+                    warning('Value for option "tLin" remains ineffective for ssRed-objects'); 
+                end
+                
+                if isfield(Opts,'tf') && Opts.tf == 1 
+                    if nargout > 3
+                       error('Maximal three output arguments if Opts.tf == 1'); 
+                    end
+                    varargout{1} = tf(varargin{1});
+                    if nargout > 1
+                       [varargout{2},varargout{3}] = impulse@ss(varargin{:}); 
+                    end
+                else
+                    [varargout{1:nargout}] = impulse@ss(varargin{:});
+                end
             else
                 [varargout{1:nargout}] = impulse@ss(varargin{:});
             end
@@ -743,7 +772,39 @@ classdef ssRed < ss
             end
             % call the correct function depending on the value of Opts.tf
             if exist('Opts','var')
-                [varargout{1:nargout}] = sss.step(varargin{:},Opts);
+                if isfield(Opts,'odeset')
+                    warning('Value for option "odeset" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'tolOutput')
+                    warning('Value for option "tolOutput" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'tolState')
+                    warning('Value for option "tolState" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'ode')
+                    warning('Value for option "ode" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'tsMin')
+                    warning('Value for option "tsMin" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'htCell')
+                    warning('Value for option "htCell" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'tLin')
+                    warning('Value for option "tLin" remains ineffective for ssRed-objects'); 
+                end
+                
+                if isfield(Opts,'tf') && Opts.tf == 1 
+                    if nargout > 3
+                       error('Maximal three output arguments if Opts.tf == 1'); 
+                    end
+                    varargout{1} = tf(varargin{1});
+                    if nargout > 1
+                       [varargout{2},varargout{3}] = step@ss(varargin{:}); 
+                    end
+                else
+                    [varargout{1:nargout}] = step@ss(varargin{:});
+                end
             else
                 [varargout{1:nargout}] = step@ss(varargin{:});
             end
