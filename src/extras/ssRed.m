@@ -310,6 +310,9 @@ classdef ssRed < ss
 % Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
+    properties
+        x0
+    end
     properties(SetAccess = private)
         reductionParameters
     end
@@ -447,9 +450,18 @@ classdef ssRed < ss
                 end
             end
             obj.reductionParameters = obj.removeCureParameters(obj.reductionParameters); 
+            
+            obj.x0 = [];
         end
                 
         %% Get Basic Properties
+        function x0 = get.x0(sys)
+            x0 = sys.x0;
+            if isempty(x0)
+                x0 = zeros(sys.n,1);
+            end
+        end
+        
         function m = get.m(sys) % number of inputs
             m = size(sys.(sys.b_),2);
         end
@@ -458,6 +470,14 @@ classdef ssRed < ss
         end
         function p = get.p(sys) % number of outputs
             p = size(sys.(sys.c_),1);
+        end
+        
+        %% Set Basic Properties
+        function sys = set.x0(sys, x0)
+            if (~isempty(x0)) && (any(size(x0) ~= [sys.n,1]))
+                error('A and x0 must have the same number of rows.')
+            end
+            sys.x0 = x0;
         end
         
         %% Get helper functions
