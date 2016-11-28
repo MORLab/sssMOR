@@ -266,6 +266,7 @@ classdef testSsRed < sssTest
         end
         
         function testSssFunctionality(testCase)
+            
             % create a ssRed-model
             sys1 = loadSss('building');
             sys2 = loadSss('CDplayer');
@@ -299,7 +300,10 @@ classdef testSsRed < sssTest
             % selectable methods do not match)
             sysrd = c2d(sysr1,0.2);
             
-            % test clear (does not exist for ss-objects)
+            % test clear
+            emptySys = clear(sysr1);
+            verifyEqual(testCase,double(isempty(emptySys)),1,'AbsTol',1e-5, ... 
+                        'Test for the clear-function failed!');
             
             % test connect
             sysr1.u = 'w'; sysr1.y = 'u';
@@ -311,7 +315,7 @@ classdef testSsRed < sssTest
             verification(testCase,sysr_connected,sys_connected, 1e-8, ...
                         'Test for the append-function failed!');
                     
-            % test connectSss (does not exist for ss-objects)
+            % test connectSss (not implemented for ssRed-objects)
             
             % test dcgain
             gain = dcgain(sys3);
@@ -326,8 +330,13 @@ classdef testSsRed < sssTest
                         'Test for the dcgain-function failed!');
                     
             % test diag (does not exist for ss-objects)
+            sysd = diag(sys1);
+            sysdr = diag(sysr1);
+            verification(testCase,sysdr,sysd, 1e-8, ...
+                        'Test for the diag-function failed!');
             
-            % test disp (does something different for ss-objects)
+            % test disp
+            infostr = disp(sysr1);
             
             % test eig
             [V,D,W] = eig(sys1);
@@ -347,17 +356,23 @@ classdef testSsRed < sssTest
             verifyEqual(testCase,D,Dr,'AbsTol',1, ... 
                         'Test for the eigs-function failed (matrix D)!');
                     
-            % test freqresp (frd-object generation does not work for ssRed)
+            % test freqresp
             [G, w] = freqresp(sys1);
             Gr = freqresp(sysr1,w);
             verifyEqual(testCase,G,Gr,'AbsTol',1e-5, ... 
                         'Test for the freqresp-function failed!');
                     
+            Opts.frd = 1;
+            frd = freqresp(sys1,w,Opts);
+            frdr = freqresp(sysr1,w,Opts);
+            verifyEqual(testCase,frd.ResponseData,frdr.ResponseData,'AbsTol',1e-5, ... 
+                        'Test for the freqresp-function failed (frd-object)!');
+                    
             % test impulse
             Opts.tf = 1;
             [tf,h,t] = impulse(sys1,Opts);
             [tfr,hr,tr] = impulse(sysr1,t,Opts);
-            verifyEqual(testCase,h,hr,'AbsTol',1e-5, ... 
+            verifyEqual(testCase,h,hr,'AbsTol',1e-3, ... 
                         'Test for the impulse-function failed!');
                     
             % test issd
@@ -414,6 +429,22 @@ classdef testSsRed < sssTest
             verifyEqual(testCase,sys_add,sysr_add, ...
                         'Test for the plus-function failed!');
                     
+            % test poles
+            p = poles(sys1);
+            pr = poles(sysr1);
+            verifyEqual(testCase,p,pr,'AbsTol',1e-5, ... 
+                        'Test for the poles-function failed!');
+                    
+            % test pzmap
+            [p,z] = pzmap(sys1);
+            [pr,zr] = pzmap(sysr1);
+            pr = pr(1:size(p));
+            zr = zr(1:size(z));
+            verifyEqual(testCase,real(p),real(pr),'AbsTol',1e-5, ... 
+                        'Test for the pzmap-function failed (poles)!');
+            verifyEqual(testCase,real(z),real(zr),'AbsTol',1e-5, ... 
+                        'Test for the pzmap-function failed (zeros)!');
+                    
             % test residue
             [r,p,d] = residue(sys1);
             [rr,pr,dr] = residue(sysr1);
@@ -430,13 +461,7 @@ classdef testSsRed < sssTest
             verifyEqual(testCase,s,sr,'AbsTol',1e-8, ... 
                         'Test for the sigma-function failed!');
                    
-            % test sim (does not exist for ss-objects)
-            sys1 = loadSss('building');
-            Ts = 1e-4;
-            t = 0:Ts:10;
-            u = idinput(length(t),'rgs',[0 0.5/(1/2/Ts)])';
-            datau = iddata([],u',Ts); 
-            y = sim(sys1,datau,'RK4');
+            % test sim (not implemented for ssRed-objects)
             
             % test size
             p = size(sys1,1);
@@ -448,11 +473,12 @@ classdef testSsRed < sssTest
             verifyEqual(testCase,m,mr, ... 
                         'Test for the size-function failed (input dimension)!'); 
                     
-            % test spy (does not exist for ss-objects)
+            % test spy
+            spy(sysr1,'test plot');
             
-            % test ss (does not exist for ssRed-objects)
+            % test ss (not implemented for ssRed-objects)
             
-            % test sss (does not exist for ssRed-objects)
+            % test sss (not implemented for ssRed-objects)
             
             % test step
             Opts.tf = 1;
