@@ -169,7 +169,7 @@ if strcmp(Opts.type,'adi')
 end
 
 if strcmp(Opts.type,'adi')
-    lyapOpts.type='adi';
+    lyapOpts.method='adi';
     lyapOpts.lse=Opts.lse;
     lyapOpts.rctol=1e-9;
     if exist('q','var')
@@ -183,9 +183,10 @@ if strcmp(Opts.type,'adi')
     R=R(:,1:qmax);
     L=L(:,1:qmax);
     qmaxAdi=qmax;
+
 else
     qmax=sys.n;
-    lyapOpts.type='builtIn';
+    lyapOpts.method='hammarling';
     if ~exist('R','var') || ~exist('L','var')
         [R,L]=lyapchol(sys,lyapOpts);
     end
@@ -303,7 +304,7 @@ V = sys.TBalInv(:,1:q);
 W = sys.TBal(1:q,:)';
 
 % Storing additional parameters
-%Stroring additional information about thr reduction in the object 
+%Storing additional information about tbr reduction in the object 
 %containing the reduced model:
 %   1. Define a new field for the Opts struct and write the information
 %      that should be stored to this field
