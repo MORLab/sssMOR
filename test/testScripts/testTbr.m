@@ -212,7 +212,7 @@ classdef testTbr < sssTest
                     end
 
                     % get adi shifts
-                    [messOpts.adi.shifts.p, eqn]=mess_para(eqn,messOpts,oper);
+                    messOpts.adi.shifts.p=mess_para(eqn,messOpts,oper);
 
                     % low rank adi
                     [R,Rout,eqn]=mess_lradi(eqn,messOpts,oper);
