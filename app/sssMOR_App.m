@@ -1905,7 +1905,21 @@ function pb_plot_Callback(hObject, eventdata, handles)
         pb_PaV_refeshObjects_Callback(handles.pb_PaV_refeshObjects, eventdata, handles)
         
     catch ex
-       errordlg(ex.message);
+       % check which function produced the error and display the line of
+       % the error in the error-dialog that is popping up
+       functionList = {'bode','impulse','step','freqresp','pzmap','bodemag'};
+       for i = 1:length(functionList)
+            [found,str] = extractEntryFromErrorStack(ex.stack,functionList{i});
+            if found            
+                errordlg({str;ex.message},'Error Dialog','modal');
+                break;
+            end
+       end
+       % show the normal error dialog if the error was not produced from a
+       % toolbox function
+       if ~found
+            errordlg(ex.message);
+       end
        uiwait
        set(hObject,'String','Plot')
        set(hObject,'Enable','on')
@@ -2897,7 +2911,13 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                     uiwait
                 end
             else
-                errordlg(ex.message,'Error Dialog','modal')
+                % display the line of the error if "tbr" produced the error
+                [found,str] = extractEntryFromErrorStack(ex.stack,'tbr');
+                if found            
+                    errordlg({str;ex.message},'Error Dialog','modal');
+                else
+                    errordlg(ex.message,'Error Dialog','modal')
+                end
                 uiwait
                 return
             end
@@ -2984,7 +3004,14 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                     uiwait
                 end
             else
-                errordlg(ex.message,'Error Dialog','modal')
+                % display the line of the error if "modalMor" produced the 
+                % error
+                [found,str] = extractEntryFromErrorStack(ex.stack,'modalMor');
+                if found            
+                    errordlg({str;ex.message},'Error Dialog','modal');
+                else
+                    errordlg(ex.message,'Error Dialog','modal')
+                end
                 uiwait
                 return
             end
@@ -3052,7 +3079,14 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                         uiwait
                     end
                 else
-                    errordlg(ex.message,'Error Dialog','modal')
+                    % display the line of the error if "rk" produced the 
+                    % error
+                    [found,str] = extractEntryFromErrorStack(ex.stack,'rk');
+                    if found            
+                        errordlg({str;ex.message},'Error Dialog','modal');
+                    else
+                        errordlg(ex.message,'Error Dialog','modal')
+                    end
                     uiwait
                     return
                 end
@@ -3103,7 +3137,14 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                         uiwait
                     end
                 else
-                    errordlg(ex.message,'Error Dialog','modal')
+                    % display the line of the error if "RK_ICOP" produced the 
+                    % error
+                    [found,str] = extractEntryFromErrorStack(ex.stack,'RK_ICOP');
+                    if found            
+                        errordlg({str;ex.message},'Error Dialog','modal');
+                    else
+                        errordlg(ex.message,'Error Dialog','modal')
+                    end
                     uiwait
                     return
                 end
@@ -3168,7 +3209,14 @@ function pb_mor_reduce_Callback(hObject, eventdata, handles)
                         uiwait
                     end
                 else
-                    errordlg(ex.message,'Error Dialog','modal')
+                    % display the line of the error if "irka" produced the 
+                    % error
+                    [found,str] = extractEntryFromErrorStack(ex.stack,'irka');
+                    if found            
+                        errordlg({str;ex.message},'Error Dialog','modal');
+                    else
+                        errordlg(ex.message,'Error Dialog','modal')
+                    end
                     uiwait
                     return
                 end
@@ -4273,7 +4321,13 @@ function pb_an_sys1_stability_Callback(hObject, eventdata, handles)
     try
         stable = isstable(sys);
     catch ex
-        errordlg(ex.message)
+        % display the line of the error if "isstable" produced the error
+        [found,str] = extractEntryFromErrorStack(ex.stack,'isstable');
+        if found            
+            errordlg({str;ex.message},'Error Dialog','modal');
+        else
+            errordlg(ex.message,'Error Dialog','modal')
+        end
         uiwait
         set(handles.figure1,'Pointer','arrow')
         set(handles.virtgr_an_red_buttons,'Enable','on')
@@ -4329,7 +4383,13 @@ function pb_an_sys1_dissipativity_Callback(hObject, eventdata, handles)
     try
         dissipativ = issd(sys);
     catch ex
-        errordlg(ex.message)
+        % display the line of the error if "issd" produced the error
+        [found,str] = extractEntryFromErrorStack(ex.stack,'issd');
+        if found            
+            errordlg({str;ex.message},'Error Dialog','modal');
+        else
+            errordlg(ex.message,'Error Dialog','modal')
+        end
         uiwait
         set(handles.figure1,'Pointer','arrow')
         set(handles.virtgr_an_red_buttons,'Enable','on')
@@ -4393,7 +4453,13 @@ function pb_an_sys1_h2_Callback(hObject, eventdata, handles)
             elseif strcmp(ex.identifier,'Control:foundation:LyapChol4')
                 errordlg('A or (A,E) must have all their eigenvalues in the left-half plane','Error Dialog','modal')
             else
-                errordlg(ex.message)
+                % display the line of the error if "norm" produced the error
+                [found,str] = extractEntryFromErrorStack(ex.stack,'norm');
+                if found            
+                    errordlg({str;ex.message},'Error Dialog','modal');
+                else
+                    errordlg(ex.message,'Error Dialog','modal')
+                end
             end
             uiwait
             set(handles.figure1,'Pointer','arrow')
@@ -4446,7 +4512,13 @@ function pb_an_sys1_hinf_Callback(hObject, eventdata, handles)
         try
             hinf=norm(sys, inf);
         catch ex
-            errordlg(ex.message,'Error Dialog','modal')
+            % display the line of the error if "norm" produced the error
+            [found,str] = extractEntryFromErrorStack(ex.stack,'norm');
+            if found            
+                errordlg({str;ex.message},'Error Dialog','modal');
+            else
+                errordlg(ex.message,'Error Dialog','modal')
+            end
             set(handles.figure1,'Pointer','arrow')
             set(handles.virtgr_an_red_buttons,'Enable','on')
             uiwait
@@ -4495,7 +4567,13 @@ function pb_an_sys1_decaytime_Callback(hObject, eventdata, handles)
         try
             decTime = decayTime(sys);
         catch ex
-            errordlg(ex.message,'Error Dialog','modal')
+            % display the line of the error if "decayTime" produced the error
+            [found,str] = extractEntryFromErrorStack(ex.stack,'decayTime');
+            if found            
+                errordlg({str;ex.message},'Error Dialog','modal');
+            else
+                errordlg(ex.message,'Error Dialog','modal')
+            end
             set(handles.figure1,'Pointer','arrow')
             set(handles.virtgr_an_red_buttons,'Enable','on')
             uiwait
@@ -4638,7 +4716,13 @@ function pb_an_sys2_stability_Callback(hObject, eventdata, handles)
     try
         stable = isstable(sys);
     catch ex
-        errordlg(ex.message)
+        % display the line of the error if "isstable" produced the error
+        [found,str] = extractEntryFromErrorStack(ex.stack,'isstable');
+        if found            
+            errordlg({str;ex.message},'Error Dialog','modal');
+        else
+            errordlg(ex.message,'Error Dialog','modal')
+        end
         uiwait
         set(handles.figure1,'Pointer','arrow')
         set(handles.virtgr_an_red_buttons,'Enable','on')
@@ -4694,7 +4778,13 @@ function pb_an_sys2_dissipativity_Callback(hObject, eventdata, handles)
     try
         dissipativ = issd(sys);
     catch ex
-        errordlg(ex.message)
+        % display the line of the error if "issd" produced the error
+        [found,str] = extractEntryFromErrorStack(ex.stack,'issd');
+        if found            
+            errordlg({str;ex.message},'Error Dialog','modal');
+        else
+            errordlg(ex.message,'Error Dialog','modal')
+        end
         uiwait
         set(handles.figure1,'Pointer','arrow')
         set(handles.virtgr_an_red_buttons,'Enable','on')
@@ -4755,7 +4845,13 @@ function pb_an_sys2_h2_Callback(hObject, eventdata, handles)
             elseif strcmp(ex.identifier,'Control:foundation:LyapChol4')
                 errordlg('A or (A,E) must have all their eigenvalues in the left-half plane','Error Dialog','modal')
             else
-                errordlg(ex.message)
+                % display the line of the error if "norm" produced the error
+                [found,str] = extractEntryFromErrorStack(ex.stack,'norm');
+                if found            
+                    errordlg({str;ex.message},'Error Dialog','modal');
+                else
+                    errordlg(ex.message,'Error Dialog','modal')
+                end
             end
             uiwait
             set(handles.figure1,'Pointer','arrow')
@@ -4807,7 +4903,13 @@ function pb_an_sys2_hinf_Callback(hObject, eventdata, handles)
         try
             hinf=norm(sys, inf);
         catch ex
-            errordlg(ex.message,'Error Dialog','modal')
+            % display the line of the error if "norm" produced the error
+            [found,str] = extractEntryFromErrorStack(ex.stack,'norm');
+            if found            
+                errordlg({str;ex.message},'Error Dialog','modal');
+            else
+                errordlg(ex.message,'Error Dialog','modal')
+            end
             uiwait
             set(handles.figure1,'Pointer','arrow')
             set(handles.virtgr_an_red_buttons,'Enable','on')
@@ -4856,7 +4958,13 @@ function pb_an_sys2_decaytime_Callback(hObject, eventdata, handles)
         try
             decTime = decayTime(sys);
         catch ex
-            errordlg(ex.message,'Error Dialog','modal')
+            % display the line of the error if "decayTime" produced the error
+            [found,str] = extractEntryFromErrorStack(ex.stack,'decayTime');
+            if found            
+                errordlg({str;ex.message},'Error Dialog','modal');
+            else
+                errordlg(ex.message,'Error Dialog','modal')
+            end
             uiwait
             set(handles.figure1,'Pointer','arrow')
             set(handles.virtgr_an_red_buttons,'Enable','on')
@@ -4915,7 +5023,13 @@ function pb_an_compare_h2_Callback(hObject, eventdata, handles)
     try
        normAbs = norm(sys1-sys2); 
     catch ex
-        errordlg(ex.message,'Error Dialog','modal')
+        % display the line of the error if "norm" produced the error
+        [found,str] = extractEntryFromErrorStack(ex.stack,'norm');
+        if found            
+            errordlg({str;ex.message},'Error Dialog','modal');
+        else
+            errordlg(ex.message,'Error Dialog','modal')
+        end
         uiwait
         set(handles.figure1,'Pointer','arrow')
         set(handles.virtgr_an_red_buttons,'Enable','on')
@@ -4970,7 +5084,13 @@ function pb_an_compare_hinf_Callback(hObject, eventdata, handles)
     try
        normAbs = norm(sys1-sys2,inf); 
     catch ex
-        errordlg(ex.message,'Error Dialog','modal')
+        % display the line of the error if "norm" produced the error
+        [found,str] = extractEntryFromErrorStack(ex.stack,'norm');
+        if found            
+            errordlg({str;ex.message},'Error Dialog','modal');
+        else
+            errordlg(ex.message,'Error Dialog','modal')
+        end
         uiwait
         set(handles.figure1,'Pointer','arrow')
         set(handles.virtgr_an_red_buttons,'Enable','on')
