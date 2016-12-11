@@ -25,13 +25,15 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       balanced realization are stored in the sss object sys.
 %
 %       If a reduction order q is passed to the function, the reduced
-%       system will be of this size with the options 'hsvTol' and
-%       'redErr' ignored. If not, the option reduction error 'redErr' is 
-%       crucial. This error is defined as two times the sum of all 
-%       Hankel-Singular values bigger than the reduction order. To avoid 
-%       this option it can be set to zero ('redErr'=0). If so, the
-%       Hankel-Singular values (satisfying the option 'hsvTol') will be
-%       plotted for the user to enter a desired reduction order.
+%       system will be of this size (without adi) or smaller depending on
+%       'rctol' (with adi) with the options 'hsvTol' and 'redErr' ignored.
+%       Use 'forceOrder' to keep the desired order with adi. If not, the 
+%       option reduction error 'redErr' is crucial. This error is defined 
+%       as two times the sum of all Hankel-Singular values bigger than the 
+%       reduction order. To avoid this option it can be set to zero 
+%       ('redErr'=0). If so, the Hankel-Singular values (satisfying the 
+%       option 'hsvTol') will be plotted for the user to enter a desired 
+%       reduction order.
 %
 %       If the option 'type' is set to 'adi', a low rank approximation of the
 %       cholseky factor is performed. If the option 'type' is not 
@@ -64,6 +66,10 @@ function [sysr, varargout] = tbr(sys, varargin)
 %                           [{'warn'} / 'error' / '0']
 %           -.lse:          solve linear system of equations (only for adi)
 %                           [{'gauss'} / 'luChol']
+%           -.rctol:        tolerance for relative change (only for adi)
+%                           [{'1e-9'} / positive float]
+%           -.forceOrder    return desired order (only for adi)
+%                           [{'false'} / 'true']
 %
 % Output Arguments:
 %       -sysr:  reduced system
@@ -106,7 +112,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  08 Aug 2016
+% Last Change:  11 Dec 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -116,6 +122,8 @@ Def.redErr      = 0; % reduction error (redErr>2*sum(hsv(q+1:end)))
 Def.hsvTol      = 1e-15; % hsv tolerance (hsv(q)<hsvTol)
 Def.warnOrError = 'warn'; % display warnings or errors (0,'warn','error')
 Def.lse         = 'gauss'; % usfs for adi ('gauss', 'luChol')
+Def.rctol       = 1e-9; % ADI stopping criterion (relative change)
+Def.forceOrder  = false; % ADI force order q
 
 % check input for q and Opts
 if nargin>1
@@ -171,21 +179,17 @@ end
 if strcmp(Opts.type,'adi')
     lyapOpts.method='adi';
     lyapOpts.lse=Opts.lse;
-    lyapOpts.rctol=1e-9;
+    lyapOpts.rctol=Opts.rctol;
     if exist('q','var')
         lyapOpts.q=q;
     end
     if ~exist('R','var') || ~exist('L','var')
         [R,L]=lyapchol(sys,lyapOpts);
     end
-
-    qmax=min([size(R,2),size(L,2)]); %make sure R and L have the same size
-    R=R(:,1:qmax);
-    L=L(:,1:qmax);
-    qmaxAdi=qmax;
+    
+    qAdi=min([size(L,1),size(R,1)]);
 
 else
-    qmax=sys.n;
     lyapOpts.method='hammarling';
     if ~exist('R','var') || ~exist('L','var')
         [R,L]=lyapchol(sys,lyapOpts);
@@ -199,6 +203,7 @@ sys.HankelSingularValues = real(hsv);
 sys.TBalInv = R'*K*diag(ones(size(hsv))./sqrt(hsv));
 sys.TBal = diag(ones(size(hsv))./sqrt(hsv))*M'*solveLse(sys.E',L',struct('lse','gauss'))';
 
+qmax=size(sys.TBal,1);
 
 % determine reduction order
 if exist('q','var') || Opts.redErr>0
@@ -221,7 +226,7 @@ if exist('q','var') || Opts.redErr>0
             end
         end
         
-        if strcmp(Opts.type,'adi')
+        if strcmp(Opts.type,'adi') && qmax==qAdi
             warning(['Reduction order was set to q = ', num2str(q,'%d'),...
             ' to satisfy the upper bound for the reduction error. ',10,...
             'The upper bound can be unprecise due to the use of ADI.']);
@@ -230,7 +235,7 @@ if exist('q','var') || Opts.redErr>0
                 ' to satisfy the upper bound for the reduction error. ']);
         end
     end
-    if q>sys.n
+    if q>sys.n && sys.n==qmax
         if strcmp(Opts.warnOrError,'error')
             error('Reduction order exceeds system order.');
         elseif strcmp(Opts.warnOrError,'warn')
@@ -238,6 +243,13 @@ if exist('q','var') || Opts.redErr>0
                 'the system order qmax = ', num2str(qmax,'%d'), '.']);
         end
         q=sys.n;
+    end
+    if q>qmax && strcmp(Opts.type,'adi')
+        warning(['The reduction order was set to the size of the ADI ',...
+            'iterates q = ',num2str(qmax,'%d'),'.',...
+            ' To force the desired order (q = ',num2str(q,'%d'),'), use the option',...
+            ' Opts.forceOrder.']);
+        q=qmax;
     end
     if sum(hsv>=Opts.hsvTol*hsv(1))<q
         if strcmp(Opts.warnOrError,'error')
@@ -277,7 +289,7 @@ else
         end
         q=qmax;
     elseif q>qmax
-        if strcmp(Opts.type,'adi') && qmax==qmaxAdi
+        if strcmp(Opts.type,'adi') && qmax==qAdi
             if strcmp(Opts.warnOrError,'error')
                 error(['Reduction order must be smaller than q = ', num2str(qmax,'%d'),...
                     ' due to ADI.']);
