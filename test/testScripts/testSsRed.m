@@ -430,8 +430,13 @@ classdef testSsRed < sssTest
                         'Test for the plus-function failed!');
                     
             % test poles
-            p = poles(sys1);
+            k = 10;
+            p = poles(sys1,k);
+            p = sort(p,'descend');
+            p = cplxpair(p);
             pr = poles(sysr1);
+            pr = sort(pr,'descend');
+            pr = cplxpair(pr(1:k));
             verifyEqual(testCase,p,pr,'AbsTol',1e-5, ... 
                         'Test for the poles-function failed!');
                     
@@ -494,18 +499,37 @@ classdef testSsRed < sssTest
                         'Test for the truncate-function failed!');
                     
             % test zeros
-            z = zeros(sys1);
+            k = 10;
+            z = zeros(sys1,k);
+            z = sort(z,'descend');
+            z = cplxpair(z);
             zr = zeros(sysr1);
+            zr = sort(zr,'descend');
+            zr = cplxpair(zr(1:k));
             verifyEqual(testCase,z,zr,'AbsTol',1e-5, ... 
                         'Test for the zeros-function failed!');
                     
             % test zpk
-             [p,z] = zpk(sys1);
-             [pr,zr] = zpk(sysr1);
-             verifyEqual(testCase,z,zr,'AbsTol',1e-5, ... 
+            k = 10;
+            zpkData = zpk(sys1,k,'lm');
+            zpkDatar = zpk(sysr1);
+            z = cell2mat(zpkData.z);
+            zr = cell2mat(zpkDatar.z);
+            z = sort(z,'descend');
+            zr = sort(zr,'descend');
+            z = cplxpair(z);
+            zr = cplxpair(zr(1:k));
+            verifyEqual(testCase,z,zr,'AbsTol',1e-5, ... 
                         'Test for the zpk-function failed (invariant zeros)!');
-             verifyEqual(testCase,p,pr,'AbsTol',1e-5, ... 
-                        'Test for the zpk-function failed (poles)!');
+            p = cell2mat(zpkData.p);
+            pr = cell2mat(zpkDatar.p);
+            p = sort(p,'descend');
+            pr = sort(pr,'descend');
+            p = cplxpair(p);
+            pr = cplxpair(pr(1:k));
+            verifyEqual(testCase,p,pr,'AbsTol',1e-5, ... 
+                        'Test for the zpk-function failed (invariant zeros)!');     
+            
             
         end
       
