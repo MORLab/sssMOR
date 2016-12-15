@@ -2,41 +2,41 @@ function [sysr, varargout] = tbr(sys, varargin)
 % TBR - Performs model order reduction by Truncated Balanced Realization
 %
 % Syntax:
-%       sys				= TBR(sys)
-%       sysr			= TBR(sys,q)
-%       [sysr,V,W]		= TBR(sys,q)
-%       [sysr,V,W,hsv]	= TBR(sys,q)
+%       sys                 = TBR(sys)
+%       sysr                = TBR(sys,q)
+%       [sysr,V,W]          = TBR(sys,q)
+%       [sysr,V,W,hsv]      = TBR(sys,q)
 %       [sysr,V,W,hsv,R,L]	= TBR(sys,q)
-%       [sysr,...]      = TBR(sys,Opts)
-%       [sysr,...]      = TBR(sys,q,Opts)
-%       [sysr,...]      = TBR(sys,q,R,L,Opts)
+%       [sysr,...]          = TBR(sys,Opts)
+%       [sysr,...]          = TBR(sys,q,Opts)
+%       [sysr,...]          = TBR(sys,q,R,L,Opts)
 %
 % Description:
-%       Computes a reduced model of order q by balancing and truncation,
+%       Computes a reduced model by balanced truncation,
 %       i.e. by transforming the system to a balanced realization where all
 %       states are equally controllable and observable and selecting only
-%       the first q modes responsible for the highest energy transfer in
+%       the modes responsible for the highest energy transfer in
 %       system [1]. 
 %
-%       If q is specified as system order, then TBR computes a balanced 
+%       If the value of q equals the system order, then TBR computes a balanced 
 %       realization of the system.
 %
 %       Hankel singular values and the matrices for transformation to
 %       balanced realization are stored in the sss object sys.
 %
 %       If a reduction order q is passed to the function, the reduced
-%       system will be of this size (without adi) or smaller depending on
-%       'rctol' (with adi) with the options 'hsvTol' and 'redErr' ignored.
+%       system will be of this size (type 'tbr' or 'matchDcGain') or smaller depending on
+%       'rctol' (type 'adi') with the options 'hsvTol' and 'redErr' ignored.
 %       Use 'forceOrder' to keep the desired order with adi. If not, the 
 %       option reduction error 'redErr' is crucial. This error is defined 
-%       as two times the sum of all Hankel-Singular values bigger than the 
-%       reduction order. To avoid this option it can be set to zero 
+%       as two times the sum of all Hankel-Singular values truncated after 
+%       reduction. To avoid this option it can be set to zero 
 %       ('redErr'=0). If so, the Hankel-Singular values (satisfying the 
 %       option 'hsvTol') will be plotted for the user to enter a desired 
 %       reduction order.
 %
 %       If the option 'type' is set to 'adi', a low rank approximation of the
-%       cholseky factor is performed. If the option 'type' is not 
+%       Cholesky factor is performed. If the option 'type' is not 
 %       defined, ADI is applied to systems with sys.n>500.
 %
 %       If the option 'type' is set to 'matchDcGain', then a
