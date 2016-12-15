@@ -6,10 +6,10 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       sysr                = TBR(sys,q)
 %       [sysr,V,W]          = TBR(sys,q)
 %       [sysr,V,W,hsv]      = TBR(sys,q)
-%       [sysr,V,W,hsv,R,L]	= TBR(sys,q)
-%       [sysr,...]          = TBR(sys,Opts)
-%       [sysr,...]          = TBR(sys,q,Opts)
-%       [sysr,...]          = TBR(sys,q,R,L,Opts)
+%       [sysr,V,W,hsv,S,R]	= TBR(sys,q)
+%       [sysr,...]      	= TBR(sys,Opts)
+%       [sysr,...]      	= TBR(sys,q,Opts)
+%       [sysr,...]      	= TBR(sys,q,S,R,Opts)
 %
 % Description:
 %       Computes a reduced model by balanced truncation,
@@ -54,7 +54,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       -sys:   an sss-object containing the LTI system
 %		*Optional Input Arguments:*
 %       -q:     order of reduced system
-%       -R,L:   low rank Cholesky factors of the Gramian matrices
+%       -S,R:   low rank Cholesky factors of the Gramian matrices
 %       -Opts:              a structure containing following options
 %           -.type:         select amongst different tbr algorithms
 %                           [{'tbr'} / 'adi' / 'matchDcGain' ]
@@ -75,7 +75,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       -sysr:  reduced system
 %       -V,W:   projection matrices
 %       -hsv:   Hankel singular values
-%       -R,L:   low rank Cholesky factors of the Gramian matrices
+%       -S,R:   low rank Cholesky factors of the Gramian matrices
 %
 % Examples:
 %       To compute a balanced realization, use
@@ -116,6 +116,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
+%% Execution paramters and input parsing
 % Default execution parameters
 Def.type        = 'tbr'; % select tbr method (tbr, adi, matchDcGain)
 Def.redErr      = 0; % reduction error (redErr>2*sum(hsv(q+1:end)))
@@ -131,8 +132,8 @@ if nargin>1
         Opts=varargin{1};
     elseif nargin>=4
         q=varargin{1};
-        R=varargin{2};
-        L=varargin{3};
+        S=varargin{2};
+        R=varargin{3};
         if nargin==5
             Opts=varargin{4};
         end
@@ -176,6 +177,7 @@ if strcmp(Opts.type,'adi')
     end
 end
 
+%%  Solution of Lyapunov equations
 if strcmp(Opts.type,'adi')
     lyapOpts.method='adi';
     lyapOpts.lse=Opts.lse;
@@ -183,34 +185,33 @@ if strcmp(Opts.type,'adi')
     if exist('q','var')
         lyapOpts.q=q;
     end
-    if ~exist('R','var') || ~exist('L','var')
-        [R,L]=lyapchol(sys,lyapOpts);
+    if ~exist('S','var') || ~exist('R','var')
+        [S,R]=lyapchol(sys,lyapOpts);
     end
     
-    qAdi=min([size(L,1),size(R,1)]);
+    qAdi=min([size(R,2),size(S,2)]);
 
 else
     lyapOpts.method='hammarling';
-    if ~exist('R','var') || ~exist('L','var')
-        [R,L]=lyapchol(sys,lyapOpts);
+    if ~exist('S','var') || ~exist('R','var')
+        [S,R]=lyapchol(sys,lyapOpts);
     end
 end
+
+%% SVD and HSV
+
+[Us,Sigma,Vs]=svd(full(R'*sys.E*S),0);
+hsvs = diag(Sigma);
+sys.HankelSingularValues = real(hsvs);
     
-% calculate balancing transformation and Hankel Singular Values
-[K,S,M]=svd(full(R*L'),0);
-hsv = diag(S);
-sys.HankelSingularValues = real(hsv);
-sys.TBalInv = R'*K*diag(ones(size(hsv))./sqrt(hsv));
-sys.TBal = diag(ones(size(hsv))./sqrt(hsv))*M'*solveLse(sys.E',L',struct('lse','gauss'))';
+%% determine reduction order
+qmax=size(S,1);
 
-qmax=size(sys.TBal,1);
-
-% determine reduction order
 if exist('q','var') || Opts.redErr>0
     if ~exist('q','var')
         if strcmp(Opts.type,'adi') && qmax<sys.n
             % worst case for unknown hsv
-            hsvSum=2*real(hsv(qmax))/real(hsv(1))*(sys.n-qmax+1);
+            hsvSum=2*real(hsvs(qmax))/real(hsvs(1))*(sys.n-qmax+1);
         else
             hsvSum=0;
         end
@@ -222,7 +223,7 @@ if exist('q','var') || Opts.redErr>0
                 end
                 break;
             else
-                hsvSum=hsvSum+2*real(hsv(i))/real(hsv(1));
+                hsvSum=hsvSum+2*real(hsvs(i))/real(hsvs(1));
             end
         end
         
@@ -251,24 +252,24 @@ if exist('q','var') || Opts.redErr>0
             ' Opts.forceOrder.']);
         q=qmax;
     end
-    if sum(hsv>=Opts.hsvTol*hsv(1))<q
+    if sum(hsvs>=Opts.hsvTol*hsvs(1))<q
         if strcmp(Opts.warnOrError,'error')
             error(['The reduction order of q = ', num2str(q,'%d'),' includes ',...
                 'Hankel-Singular values smaller than the chosen tolerance (see Opts.hsv).']);
         elseif strcmp(Opts.warnOrError,'warn')
             warning(['The reduced system of desired order may not be a minimal ',...
                 'realization and it may not be stable. The recommended reduced',...
-                ' order is q = ',num2str(sum(hsv>=Opts.hsvTol*hsv(1)),'%d'),...
+                ' order is q = ',num2str(sum(hsvs>=Opts.hsvTol*hsvs(1)),'%d'),...
                 ' (see Opts.hsvTol).']);
         end
     end
 else
-    qmax = min([sum(hsv>=Opts.hsvTol*hsv(1)), qmax]);
+    qmax = min([sum(hsvs>=Opts.hsvTol*hsvs(1)), qmax]);
     h=figure(1);
-    bar(1:qmax,abs(hsv(1:qmax)./hsv(1)),'r');
+    bar(1:qmax,abs(hsvs(1:qmax)./hsvs(1)),'r');
     title('Hankel Singular Values');
     xlabel('Order');
-    ylabel({'Relative hsv decay';sprintf('abs(hsv/hsv(1)) with hsv(1)=%.4d',hsv(1))});
+    ylabel({'Relative hsv decay';sprintf('abs(hsv/hsv(1)) with hsv(1)=%.4d',hsvs(1))});
     set(gca,'YScale','log');
     set(gca, 'YLim', [-Inf;1.5]);
     set(gca, 'XLim', [0; qmax]);
@@ -312,8 +313,13 @@ else
     end
 end
 
-V = sys.TBalInv(:,1:q);
-W = sys.TBal(1:q,:)';
+
+%%  Computation of balancing transformation
+sys.TBalInv = S*Vs*(Sigma^(-.5));
+sys.TBal    = (Sigma^(-.5))*Us'*R';
+
+V = S*Vs(:,1:q)*(Sigma(1:q,1:q)^(-.5));
+W = R*Us(:,1:q)*(Sigma(1:q,1:q)^(-.5));
 
 % Storing additional parameters
 %Storing additional information about tbr reduction in the object 
@@ -323,10 +329,10 @@ W = sys.TBal(1:q,:)';
 %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
 %      way that the new defined field passes the check
 Opts.originalOrder = sys.n;
-Opts.hsv = hsv;
+Opts.hsv = hsvs;
 
 switch Opts.type
-    case 'tbr'
+    case {'tbr','adi'}
         if isa(sys,'ssRed')
             sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V, sys.reductionParameters);
         else
@@ -383,12 +389,6 @@ switch Opts.type
         end
         
         warning('on','MATLAB:nearlySingularMatrix');    
-    case 'adi'
-        if isa(sys,'ssRed')
-            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V,sys.reductionParameters);
-        else
-            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
-        end
 end
 
 %   Rename ROM
@@ -397,9 +397,9 @@ sysr.Name = sprintf('%s_%i_tbr',sys.Name,sysr.n);
 if nargout>1
     varargout{1} = V;
     varargout{2} = W;
-    varargout{3} = real(hsv);
+    varargout{3} = real(hsvs);
     if nargout>3
-        varargout{4} = R;
-        varargout{5} = L;
+        varargout{4} = S;
+        varargout{5} = R;
     end
 end

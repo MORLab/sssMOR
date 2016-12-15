@@ -969,19 +969,21 @@ classdef ssRed < ss
             end
         end
         
-        function  [R,L] = lyapchol(sys,Opts)
+        function  [S,R] = lyapchol(sys,Opts)
             if sys.isDescriptor
-                R = lyapchol(sys.(sys.a_),sys.(sys.b_),sys.(sys.e_));
+                S = lyapchol(sys.(sys.a_),sys.(sys.b_),sys.(sys.e_));
             else
-                R = lyapchol(sys.(sys.a_),sys.(sys.b_));
+                S = lyapchol(sys.(sys.a_),sys.(sys.b_));
             end
+            S = S';
 
             if nargout>1
                 if sys.isDescriptor
-                    L = lyapchol(sys.(sys.a_)', sys.(sys.c_)',sys.(sys.e_)');
+                    R = lyapchol(sys.(sys.a_)', sys.(sys.c_)',sys.(sys.e_)');
                 else
-                    L = lyapchol(sys.(sys.a_)',sys.(sys.c_)');
+                    R = lyapchol(sys.(sys.a_)',sys.(sys.c_)');
                 end
+                R = R';
             end
         end
     end
