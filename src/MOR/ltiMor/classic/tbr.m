@@ -315,8 +315,8 @@ end
 
 
 %%  Computation of balancing transformation
-sys.TBalInv = S*Vs*(Sigma^(-.5));
-sys.TBal    = (Sigma^(-.5))*Us'*R';
+sys.TBalInv = S*Vs*(Sigma').^(-.5);
+sys.TBal    = (Sigma').^(-.5)*Us'*R';
 
 V = S*Vs(:,1:q)*(Sigma(1:q,1:q)^(-.5));
 W = R*Us(:,1:q)*(Sigma(1:q,1:q)^(-.5));
