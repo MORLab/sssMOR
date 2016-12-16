@@ -3469,7 +3469,8 @@ end
 %Calculate the Hankel-Singular-Values
 
 try 
-    [~,~,~,hsv,R,L] = tbr(sys,sys.n);
+    Opts.rctol      = 1e-3;
+    [~,~,~,hsv,R,L] = tbr(sys,1,Opts);
     handles = saveHankelSingularValues(sys,sysname,hsv,R,L,handles);
 catch ex %***
     if strcmp(ex.identifier,'MATLAB:nomem')
