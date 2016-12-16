@@ -95,6 +95,10 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       * *[1] Moore (1981)*, Principal component analysis in linear systems: controllability,
 %       observability and model reduction
 %       * *[2] Antoulas (2005)*, Approximation of large-scale dynamical systems
+%       * *[3] Penzl (2006)*, Algorithms for model reduction of large
+%       dynamical systems
+%       * *[4] Wolf et al. (2013)*, Model reduction by approximate balanced
+%       truncation: a unifying framework
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
@@ -198,11 +202,16 @@ else
     end
 end
 
-%% SVD and HSV
+%% Computation of balancing transformation
 
 [Us,Sigma,Vs]=svd(full(R'*sys.E*S),0);
 hsvs = diag(Sigma);
 sys.HankelSingularValues = real(hsvs);
+
+if size(R,2)==sys.n && size(S,2) ==sys.n %full Cholesky factors available
+    sys.TBalInv = S*Vs*diag(hsvs.^(-.5));
+    sys.TBal    = diag(hsvs.^(-.5))*Us'*R'*sys.E;
+end
     
 %% determine reduction order
 qmax=size(S,1);
@@ -313,15 +322,22 @@ else
     end
 end
 
+%%  Computation of projection matrices
+%   Note that W must not contain E for the reduced model to be in balanced
+%   form! (there is a difference between W and sys.TBal)
 
-%%  Computation of balancing transformation
-sys.TBalInv = S*Vs*(Sigma').^(-.5);
-sys.TBal    = (Sigma').^(-.5)*Us'*R';
+if q<sys.n %truncation
+    V = S*Vs(:,1:q)*(Sigma(1:q,1:q)^(-.5));
+    W = R*Us(:,1:q)*(Sigma(1:q,1:q)^(-.5));
+elseif q==sys.n %balanced realization
+    V = sys.TBalInv;
+    W = sys.TBal';
+else
+    error('sssMOR:tbr:q>n','Desired reduced order is higher than original')
+end
+    
 
-V = S*Vs(:,1:q)*(Sigma(1:q,1:q)^(-.5));
-W = R*Us(:,1:q)*(Sigma(1:q,1:q)^(-.5));
-
-% Storing additional parameters
+%% Creating ROM
 %Storing additional information about tbr reduction in the object 
 %containing the reduced model:
 %   1. Define a new field for the Opts struct and write the information
@@ -339,10 +355,10 @@ switch Opts.type
             sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
         end
     case 'matchDcGain'
-        W=sys.TBalInv;
-        V=sys.TBal;
-        ABal=W*sys.A*V;
-        BBal=W*sys.B;
+        V=sys.TBalInv;
+        Wt=sys.TBal;
+        ABal=Wt*sys.A*V;
+        BBal=Wt*sys.B;
         CBal=sys.C*V;
 
         [A11,A12,A21,A22] = partition(ABal,q);
@@ -365,7 +381,7 @@ switch Opts.type
         BRed=B1-lse0*B2; 
 
         if sys.isDescriptor
-            EBal=W'*sys.E*V;
+            EBal=Wt*sys.E*V;
             E11=EBal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
             E21=EBal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
             ERed=E11-lse0*E21;

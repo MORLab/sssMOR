@@ -29,8 +29,21 @@ classdef testTbr < sssTest
             sys = loadSss('building.mat');      
             q=5;
             
-            [sysr, V, W, hsv, S, R] = tbr(sys,q);
+            [sysr, V, W, hsv, S, R] = tbr(sys,q);            
+            verification(testCase,sys, sysr, V, W, hsv, S, R);
+        end
+        
+        function testBalancedRealizationExplicit(testCase)
+            sys = loadSss('building.mat');      
             
+            [sysr, V, W, hsv, S, R] = tbr(sys,sys.n);        
+            verification(testCase,sys, sysr, V, W, hsv, S, R);
+        end
+        function testBalancedRealizationImplicit(testCase)
+            sys = loadSss('building.mat');    
+            sys = rk(sys,zeros(1,10),zeros(1,10)); %create model with E~=I
+            
+            [sysr, V, W, hsv, S, R] = tbr(sys,sys.n);        
             verification(testCase,sys, sysr, V, W, hsv, S, R);
         end
         
@@ -72,20 +85,6 @@ classdef testTbr < sssTest
             [sysr,V,W,hsv,S,R]=tbr(sys,q,opts);
             verification(testCase,sys, sysr, V, W, hsv, S, R);
         end
-        function testTbr7(testCase)
-            for i=1:length(testCase.sysCell)
-                sys=testCase.sysCell{i};
-                if ~sys.isDae && sys.isSiso && sys.n>100
-                    Opts.type='tbr';
-                    Opts.redErr=1e-10;
-                    [sysr,~,~,hsv]=tbr(sys,Opts);
-                    [impResSysr,t]=step(ss(sysr));
-                    impResSys=step(ss(sys),t);
-                    hsvError=(sum(hsv(sysr.n+1:end))+hsv(end)*(sys.n-length(hsv)))/hsv(1)*2;
-                    verifyLessThanOrEqual(testCase, norm(impResSys-impResSysr)/length(t), hsvError);
-                end 
-            end
-        end
         function testMatchDcGain(testCase)
             warning('on','tbr:rcond');
             for i=1:length(testCase.sysCell)
@@ -97,7 +96,7 @@ classdef testTbr < sssTest
                     if isempty(w) || ~strcmp(w.identifier,'tbr:rcond') %A22 not close to singular
                         actSolution= freqresp(sysr,0);
                         expSolution= freqresp(sys,0);
-                        verifyLessThanOrEqual(testCase, norm(abs(actSolution)-abs(expSolution)), 1e-3);
+                        verifyEqual(testCase, actSolution , expSolution, 'AbsTol', 1e-3, 'RelTol', 1e-3);
                     end
                 end
             end
@@ -138,6 +137,12 @@ function [] = verification(testCase, sys, sysr,V,W,hsvs,S,R)
 
 
        % Biorthogonal W,V wrt E
-       verifyLessThan(testCase, norm((W'*sys.E*V)-eye(sysr.n)),tol,...
+       if sysr.n<sys.n %approximation
+        verifyLessThan(testCase, norm((W'*sys.E*V)-eye(sysr.n)),tol,...
                'W''*E*V not identity matrix');
+       else %balanced realization
+           verifyLessThan(testCase, norm((W'*V)-eye(sysr.n)),tol,...
+               'W''*V not identity matrix');
+       end
+           
 end
