@@ -677,14 +677,6 @@ classdef ssRed < ss
             [varargout{1:nargout}] = sss.eigs(varargin{:});
         end
         
-        function varargout = poles(varargin)
-            [varargout{1:nargout}] = pole(varargin{:}); 
-        end
-        
-        function varargout = zeros(varargin)
-            [varargout{1:nargout}] = zero(varargin{:}); 
-        end
-        
         function syst = truncate(sys, idxOut, idxIn)
             args.type = '()';
             args.subs{1} = idxOut;

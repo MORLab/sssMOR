@@ -429,12 +429,12 @@ classdef testSsRed < sssTest
             verifyEqual(testCase,sys_add,sysr_add, ...
                         'Test for the plus-function failed!');
                     
-            % test poles
+            % test pole
             k = 10;
-            p = poles(sys1,k);
+            p = pole(sys1,k);
             p = sort(p,'descend');
             p = cplxpair(p);
-            pr = poles(sysr1);
+            pr = pole(sysr1);
             pr = sort(pr,'descend');
             pr = cplxpair(pr(1:k));
             verifyEqual(testCase,p,pr,'AbsTol',1e-5, ... 
@@ -498,12 +498,12 @@ classdef testSsRed < sssTest
             verification(testCase,sysr_sub,sys_sub, 1e-8, ...
                         'Test for the truncate-function failed!');
                     
-            % test zeros
+            % test zero
             k = 10;
-            z = zeros(sys1,k);
+            z = zero(sys1,k);
             z = sort(z,'descend');
             z = cplxpair(z);
-            zr = zeros(sysr1);
+            zr = zero(sysr1);
             zr = sort(zr,'descend');
             zr = cplxpair(zr(1:k));
             verifyEqual(testCase,z,zr,'AbsTol',1e-5, ... 
