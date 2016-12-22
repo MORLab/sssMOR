@@ -2,29 +2,28 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
 % MODELFCT - computes or updates the model function of an sss object
 %
 % Syntax:
-%   sysm = MODELFCT(sys,s0m)
-%   [sysm, s0mTot, V, W] = MODELFCT(sys,s0m)
-%   [sysm, s0mTot, V, W] = MODELFCT(sys,s0m,s0mTot,V,W)
-%   [sysm, s0mTot, V, W] = MODELFCT(sys,s0m,s0mTot,V,W,Opts)
+%       sysm = MODELFCT(sys,s0m)
+%       [sysm, s0mTot, V, W] = MODELFCT(sys,s0m)
+%       [sysm, s0mTot, V, W] = MODELFCT(sys,s0m,s0mTot,V,W)
+%       [sysm, s0mTot, V, W] = MODELFCT(sys,s0m,s0mTot,V,W,Opts)
 %
 % Description:
+%       This function generates a surrogate model, called "model function" |sysm|,
+%       of a high-dimensional model |sys| by Hermite interpolation at the complex
+%       frequencies defined in the vector |s0m|.
 %
-%   This function generates a surrogate model, called "model function" |sysm|,
-%   of a high-dimensional model |sys| by Hermite interpolation at the complex
-%   frequencies defined in the vector |s0m|.
+%       If additional inputs |s0mTot|, |V|, |W| are passed, then the model function
+%       is updated combining the already existing information, defined by
+%       |s0mTot|, to |s0m|. |V| and |W| are updated respectively.
 %
-%   If additional inputs |s0mTot|, |V|, |W| are passed, then the model function
-%   is updated combining the already existing information, defined by
-%   |s0mTot|, to |s0m|. |V| and |W| are updated respectively.
+%       The optionl structure |Opts| allows the definition of additional
+%       execution parameters.
 %
-%   The optionl structure |Opts| allows the definition of additional
-%   execution parameters.
+%       This function is used in the model function based MOR approach
+%       introduced in [1] and [2].
 %
-%   This function is used in the model function based MOR approach
-%   introduced in [1] and [2].
-%
-%   //Note: In its current form, MODELFCT supports only SISO models.
-%    An extension to MIMO will be given in a later release.
+%       //Note: In its current form, MODELFCT supports only SISO models.
+%       An extension to MIMO will be given in a later release.
 % 
 % Input Arguments:  
 %       *Required Input Arguments:*
@@ -50,7 +49,7 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
 %       -V,W:           (updated) projection matrices
 %
 % See also:
-%   cirka, modelFctMor, solveLse, rk, spark
+%       cirka, modelFctMor, solveLse, rk, spark
 %
 % References:
 %       * *[1] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
@@ -58,15 +57,21 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
 %       * *[2] Castagnotto et al. (2016)*, Fast H2 optimal model order
 %              reduction exploiting the local nature of Krylov-Subspace...
 %
-% ------------------------------------------------------------------
-%   This file is part of sssMOR, a Sparse State Space, Model Order
-%   Reduction and System Analysis Toolbox developed at the Institute 
-%   of Automatic Control, Technische Universitaet Muenchen.
-%   For updates and further information please visit www.rt.mw.tum.de
-%   For any suggestions, submission and/or bug reports, mail us at
-%                     -> sssMOR@rt.mw.tum.de <-
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
 % Last Change:  22 Nov 2016
 % Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------

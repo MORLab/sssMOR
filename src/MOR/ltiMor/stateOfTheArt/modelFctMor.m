@@ -2,12 +2,12 @@ function [sysr, s0, sysm, relH2err] = modelFctMor(sys,redFct,varargin)
 % MODELFCTMOR - model function-based model order reduction
 %
 % Syntax:
-%   MODELFCTMOR(sys,redFct)
-%   MODELFCTMOR(sys,redFct,s0)
-%   MODELFCTMOR(sys,redFct,Opts)
-%   MODELFCTMOR(sys,redFct,s0,Opts)
-%   sysr = MODELFCTMOR(sys,redFct)
-%   [sysr, s0, sysm, relH2err] = MODELFCTMOR(sys,redFct)
+%       MODELFCTMOR(sys,redFct)
+%       MODELFCTMOR(sys,redFct,s0)
+%       MODELFCTMOR(sys,redFct,Opts)
+%       MODELFCTMOR(sys,redFct,s0,Opts)
+%       sysr = MODELFCTMOR(sys,redFct)
+%       [sysr, s0, sysm, relH2err] = MODELFCTMOR(sys,redFct)
 %
 % Description:
 %   This function executes the reduction scheme defined by the handle 
@@ -106,15 +106,21 @@ function [sysr, s0, sysm, relH2err] = modelFctMor(sys,redFct,varargin)
 %       * *[1] Castagnotto et al. (2016)*, Fast H2 optimal model order
 %              reduction exploiting the local nature of Krylov-Subspace...
 %
-% ------------------------------------------------------------------
-%   This file is part of sssMOR, a Sparse State Space, Model Order
-%   Reduction and System Analysis Toolbox developed at the Institute 
-%   of Automatic Control, Technische Universitaet Muenchen.
-%   For updates and further information please visit www.rt.mw.tum.de
-%   For any suggestions, submission and/or bug reports, mail us at
-%                     -> sssMOR@rt.mw.tum.de <-
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
+% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
 % Last Change:  22 Nov 2016
 % Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
