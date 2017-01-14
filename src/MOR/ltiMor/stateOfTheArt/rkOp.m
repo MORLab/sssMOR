@@ -113,11 +113,7 @@ if isa(varargin{1},'double') && length(varargin)==2 && length(varargin{1})==leng
     end
     
 elseif isa(varargin{1},'sss') || isa(varargin{1},'ssRed') || isa(varargin{1},'ss') % from lyapunov equation
-    if isa(varargin{1},'ss')
-        sys = sss(varargin{1});
-    else
-        sys = varargin{1};
-    end
+    sys = varargin{1};
     sOpt=zeros(sys.p,sys.m);
     
     if sys.isDescriptor

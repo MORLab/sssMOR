@@ -91,9 +91,6 @@ else
     Opts = parseOpts(Opts,Def);
 end
 
-if isa(sys,'ss')
-    sys=sss(sys);
-end
 sOpt=s0*ones(sys.p,sys.m);
 
 if q<10
