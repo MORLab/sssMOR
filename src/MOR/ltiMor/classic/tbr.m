@@ -2,39 +2,41 @@ function [sysr, varargout] = tbr(sys, varargin)
 % TBR - Performs model order reduction by Truncated Balanced Realization
 %
 % Syntax:
-%       sys				= TBR(sys)
-%       sysr			= TBR(sys,q)
-%       [sysr,V,W]		= TBR(sys,q)
-%       [sysr,V,W,hsv]	= TBR(sys,q)
-%       [sysr,V,W,hsv,R,L]	= TBR(sys,q)
-%       [sysr,...]      = TBR(sys,Opts)
-%       [sysr,...]      = TBR(sys,q,Opts)
-%       [sysr,...]      = TBR(sys,q,R,L,Opts)
+%       sys                 = TBR(sys)
+%       sysr                = TBR(sys,q)
+%       [sysr,V,W]          = TBR(sys,q)
+%       [sysr,V,W,hsv]      = TBR(sys,q)
+%       [sysr,V,W,hsv,S,R]	= TBR(sys,q)
+%       [sysr,...]      	= TBR(sys,Opts)
+%       [sysr,...]      	= TBR(sys,q,Opts)
+%       [sysr,...]      	= TBR(sys,q,S,R,Opts)
 %
 % Description:
-%       Computes a reduced model of order q by balancing and truncation,
+%       Computes a reduced model by balanced truncation,
 %       i.e. by transforming the system to a balanced realization where all
 %       states are equally controllable and observable and selecting only
-%       the first q modes responsible for the highest energy transfer in
+%       the modes responsible for the highest energy transfer in
 %       system [1]. 
 %
-%       If q is specified as system order, then TBR computes a balanced 
+%       If the value of q equals the system order, then TBR computes a balanced 
 %       realization of the system.
 %
 %       Hankel singular values and the matrices for transformation to
 %       balanced realization are stored in the sss object sys.
 %
 %       If a reduction order q is passed to the function, the reduced
-%       system will be of this size with the options 'hsvTol' and
-%       'redErr' ignored. If not, the option reduction error 'redErr' is 
-%       crucial. This error is defined as two times the sum of all 
-%       Hankel-Singular values bigger than the reduction order. To avoid 
-%       this option it can be set to zero ('redErr'=0). If so, the
-%       Hankel-Singular values (satisfying the option 'hsvTol') will be
-%       plotted for the user to enter a desired reduction order.
+%       system will be of this size (type 'tbr' or 'matchDcGain') or smaller depending on
+%       'rctol' (type 'adi') with the options 'hsvTol' and 'redErr' ignored.
+%       Use 'forceOrder' to keep the desired order with adi. If not, the 
+%       option reduction error 'redErr' is crucial. This error is defined 
+%       as two times the sum of all Hankel-Singular values truncated after 
+%       reduction. To avoid this option it can be set to zero 
+%       ('redErr'=0). If so, the Hankel-Singular values (satisfying the 
+%       option 'hsvTol') will be plotted for the user to enter a desired 
+%       reduction order.
 %
 %       If the option 'type' is set to 'adi', a low rank approximation of the
-%       cholseky factor is performed. If the option 'type' is not 
+%       Cholesky factor is performed. If the option 'type' is not 
 %       defined, ADI is applied to systems with sys.n>500.
 %
 %       If the option 'type' is set to 'matchDcGain', then a
@@ -52,7 +54,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       -sys:   an sss-object containing the LTI system
 %		*Optional Input Arguments:*
 %       -q:     order of reduced system
-%       -R,L:   low rank Cholesky factors of the Gramian matrices
+%       -S,R:   low rank Cholesky factors of the Gramian matrices
 %       -Opts:              a structure containing following options
 %           -.type:         select amongst different tbr algorithms
 %                           [{'tbr'} / 'adi' / 'matchDcGain' ]
@@ -64,12 +66,16 @@ function [sysr, varargout] = tbr(sys, varargin)
 %                           [{'warn'} / 'error' / '0']
 %           -.lse:          solve linear system of equations (only for adi)
 %                           [{'gauss'} / 'luChol']
+%           -.rctol:        tolerance for relative change (only for adi)
+%                           [{'1e-9'} / positive float]
+%           -.forceOrder    return desired order (only for adi)
+%                           [{'false'} / 'true']
 %
 % Output Arguments:
 %       -sysr:  reduced system
 %       -V,W:   projection matrices
 %       -hsv:   Hankel singular values
-%       -R,L:   low rank Cholesky factors of the Gramian matrices
+%       -S,R:   low rank Cholesky factors of the Gramian matrices
 %
 % Examples:
 %       To compute a balanced realization, use
@@ -89,6 +95,10 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       * *[1] Moore (1981)*, Principal component analysis in linear systems: controllability,
 %       observability and model reduction
 %       * *[2] Antoulas (2005)*, Approximation of large-scale dynamical systems
+%       * *[3] Penzl (2006)*, Algorithms for model reduction of large
+%       dynamical systems
+%       * *[4] Wolf et al. (2013)*, Model reduction by approximate balanced
+%       truncation: a unifying framework
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
@@ -106,16 +116,19 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  08 Aug 2016
+% Last Change:  11 Dec 2016
 % Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
+%% Execution paramters and input parsing
 % Default execution parameters
-Def.type = 'tbr'; % select tbr method (tbr, adi, matchDcGain)
-Def.redErr = 0; % reduction error (redErr>2*sum(hsv(q+1:end)))
-Def.hsvTol = 1e-15; % hsv tolerance (hsv(q)<hsvTol)
+Def.type        = 'tbr'; % select tbr method (tbr, adi, matchDcGain)
+Def.redErr      = 0; % reduction error (redErr>2*sum(hsv(q+1:end)))
+Def.hsvTol      = 1e-15; % hsv tolerance (hsv(q)<hsvTol)
 Def.warnOrError = 'warn'; % display warnings or errors (0,'warn','error')
-Def.lse = 'gauss'; % usfs for adi ('gauss', 'luChol')
+Def.lse         = 'gauss'; % usfs for adi ('gauss', 'luChol')
+Def.rctol       = 1e-9; % ADI stopping criterion (relative change)
+Def.forceOrder  = false; % ADI force order q
 
 % check input for q and Opts
 if nargin>1
@@ -123,8 +136,8 @@ if nargin>1
         Opts=varargin{1};
     elseif nargin>=4
         q=varargin{1};
-        R=varargin{2};
-        L=varargin{3};
+        S=varargin{2};
+        R=varargin{3};
         if nargin==5
             Opts=varargin{4};
         end
@@ -168,43 +181,46 @@ if strcmp(Opts.type,'adi')
     end
 end
 
+%%  Solution of Lyapunov equations
 if strcmp(Opts.type,'adi')
-    lyapOpts.type='adi';
+    lyapOpts.method='adi';
     lyapOpts.lse=Opts.lse;
-    lyapOpts.rctol=1e-9;
+    lyapOpts.rctol=Opts.rctol;
     if exist('q','var')
         lyapOpts.q=q;
     end
-    if ~exist('R','var') || ~exist('L','var')
-        [R,L]=lyapchol(sys,lyapOpts);
+    if ~exist('S','var') || ~exist('R','var')
+        [S,R]=lyapchol(sys,lyapOpts);
     end
+    
+    qAdi=min([size(R,2),size(S,2)]);
 
-    qmax=min([size(R,2),size(L,2)]); %make sure R and L have the same size
-    R=R(:,1:qmax);
-    L=L(:,1:qmax);
-    qmaxAdi=qmax;
 else
-    qmax=sys.n;
-    lyapOpts.type='builtIn';
-    if ~exist('R','var') || ~exist('L','var')
-        [R,L]=lyapchol(sys,lyapOpts);
+    lyapOpts.method='hammarling';
+    if ~exist('S','var') || ~exist('R','var')
+        [S,R]=lyapchol(sys,lyapOpts);
     end
 end
+
+%% Computation of balancing transformation
+
+[Us,Sigma,Vs]=svd(full(R'*sys.E*S),0);
+hsvs = diag(Sigma);
+sys.HankelSingularValues = real(hsvs);
+
+if size(R,2)==sys.n && size(S,2) ==sys.n %full Cholesky factors available
+    sys.TBalInv = S*Vs*diag(hsvs.^(-.5));
+    sys.TBal    = diag(hsvs.^(-.5))*Us'*R'*sys.E;
+end
     
-% calculate balancing transformation and Hankel Singular Values
-[K,S,M]=svd(full(R*L'),0);
-hsv = diag(S);
-sys.HankelSingularValues = real(hsv);
-sys.TBalInv = R'*K*diag(ones(size(hsv))./sqrt(hsv));
-sys.TBal = diag(ones(size(hsv))./sqrt(hsv))*M'*solveLse(sys.E',L',struct('lse','gauss'))';
+%% determine reduction order
+qmax=size(S,1);
 
-
-% determine reduction order
 if exist('q','var') || Opts.redErr>0
     if ~exist('q','var')
         if strcmp(Opts.type,'adi') && qmax<sys.n
             % worst case for unknown hsv
-            hsvSum=2*real(hsv(qmax))/real(hsv(1))*(sys.n-qmax+1);
+            hsvSum=2*real(hsvs(qmax))/real(hsvs(1))*(sys.n-qmax+1);
         else
             hsvSum=0;
         end
@@ -216,11 +232,11 @@ if exist('q','var') || Opts.redErr>0
                 end
                 break;
             else
-                hsvSum=hsvSum+2*real(hsv(i))/real(hsv(1));
+                hsvSum=hsvSum+2*real(hsvs(i))/real(hsvs(1));
             end
         end
         
-        if strcmp(Opts.type,'adi')
+        if strcmp(Opts.type,'adi') && qmax==qAdi
             warning(['Reduction order was set to q = ', num2str(q,'%d'),...
             ' to satisfy the upper bound for the reduction error. ',10,...
             'The upper bound can be unprecise due to the use of ADI.']);
@@ -229,7 +245,7 @@ if exist('q','var') || Opts.redErr>0
                 ' to satisfy the upper bound for the reduction error. ']);
         end
     end
-    if q>sys.n
+    if q>sys.n && sys.n==qmax
         if strcmp(Opts.warnOrError,'error')
             error('Reduction order exceeds system order.');
         elseif strcmp(Opts.warnOrError,'warn')
@@ -238,24 +254,31 @@ if exist('q','var') || Opts.redErr>0
         end
         q=sys.n;
     end
-    if sum(hsv>=Opts.hsvTol*hsv(1))<q
+    if q>qmax && strcmp(Opts.type,'adi')
+        warning(['The reduction order was set to the size of the ADI ',...
+            'iterates q = ',num2str(qmax,'%d'),'.',...
+            ' To force the desired order (q = ',num2str(q,'%d'),'), use the option',...
+            ' Opts.forceOrder.']);
+        q=qmax;
+    end
+    if sum(hsvs>=Opts.hsvTol*hsvs(1))<q
         if strcmp(Opts.warnOrError,'error')
             error(['The reduction order of q = ', num2str(q,'%d'),' includes ',...
                 'Hankel-Singular values smaller than the chosen tolerance (see Opts.hsv).']);
         elseif strcmp(Opts.warnOrError,'warn')
             warning(['The reduced system of desired order may not be a minimal ',...
                 'realization and it may not be stable. The recommended reduced',...
-                ' order is q = ',num2str(sum(hsv>=Opts.hsvTol*hsv(1)),'%d'),...
+                ' order is q = ',num2str(sum(hsvs>=Opts.hsvTol*hsvs(1)),'%d'),...
                 ' (see Opts.hsvTol).']);
         end
     end
 else
-    qmax = min([sum(hsv>=Opts.hsvTol*hsv(1)), qmax]);
+    qmax = min([sum(hsvs>=Opts.hsvTol*hsvs(1)), qmax]);
     h=figure(1);
-    bar(1:qmax,abs(hsv(1:qmax)./hsv(1)),'r');
+    bar(1:qmax,abs(hsvs(1:qmax)./hsvs(1)),'r');
     title('Hankel Singular Values');
     xlabel('Order');
-    ylabel({'Relative hsv decay';sprintf('abs(hsv/hsv(1)) with hsv(1)=%.4d',hsv(1))});
+    ylabel({'Relative hsv decay';sprintf('abs(hsv/hsv(1)) with hsv(1)=%.4d',hsvs(1))});
     set(gca,'YScale','log');
     set(gca, 'YLim', [-Inf;1.5]);
     set(gca, 'XLim', [0; qmax]);
@@ -276,7 +299,7 @@ else
         end
         q=qmax;
     elseif q>qmax
-        if strcmp(Opts.type,'adi') && qmax==qmaxAdi
+        if strcmp(Opts.type,'adi') && qmax==qAdi
             if strcmp(Opts.warnOrError,'error')
                 error(['Reduction order must be smaller than q = ', num2str(qmax,'%d'),...
                     ' due to ADI.']);
@@ -299,31 +322,43 @@ else
     end
 end
 
-V = sys.TBalInv(:,1:q);
-W = sys.TBal(1:q,:)';
+%%  Computation of projection matrices
+%   Note that W must not contain E for the reduced model to be in balanced
+%   form! (there is a difference between W and sys.TBal)
 
-% Storing additional parameters
-%Stroring additional information about thr reduction in the object 
+if q<sys.n %truncation
+    V = S*Vs(:,1:q)*(Sigma(1:q,1:q)^(-.5));
+    W = R*Us(:,1:q)*(Sigma(1:q,1:q)^(-.5));
+elseif q==sys.n %balanced realization
+    V = sys.TBalInv;
+    W = sys.TBal';
+else
+    error('sssMOR:tbr:q>n','Desired reduced order is higher than original')
+end
+    
+
+%% Creating ROM
+%Storing additional information about tbr reduction in the object 
 %containing the reduced model:
 %   1. Define a new field for the Opts struct and write the information
 %      that should be stored to this field
 %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
 %      way that the new defined field passes the check
 Opts.originalOrder = sys.n;
-Opts.hsv = hsv;
+Opts.hsv = hsvs;
 
 switch Opts.type
-    case 'tbr'
+    case {'tbr','adi'}
         if isa(sys,'ssRed')
             sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V, sys.reductionParameters);
         else
             sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
         end
     case 'matchDcGain'
-        W=sys.TBalInv;
-        V=sys.TBal;
-        ABal=W*sys.A*V;
-        BBal=W*sys.B;
+        V=sys.TBalInv;
+        Wt=sys.TBal;
+        ABal=Wt*sys.A*V;
+        BBal=Wt*sys.B;
         CBal=sys.C*V;
 
         [A11,A12,A21,A22] = partition(ABal,q);
@@ -346,7 +381,7 @@ switch Opts.type
         BRed=B1-lse0*B2; 
 
         if sys.isDescriptor
-            EBal=W'*sys.E*V;
+            EBal=Wt*sys.E*V;
             E11=EBal(1:q,1:q); % E12=E_bal(1:q,1+q:end);
             E21=EBal(1+q:end,1:q); % E22=E_bal(q+1:end,1+q:end);
             ERed=E11-lse0*E21;
@@ -369,14 +404,7 @@ switch Opts.type
             end
         end
         
-        warning('on','MATLAB:nearlySingularMatrix');
-    
-    case 'adi'
-        if isa(sys,'ssRed')
-            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V,sys.reductionParameters);
-        else
-            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
-        end
+        warning('on','MATLAB:nearlySingularMatrix');    
 end
 
 %   Rename ROM
@@ -385,9 +413,9 @@ sysr.Name = sprintf('%s_%i_tbr',sys.Name,sysr.n);
 if nargout>1
     varargout{1} = V;
     varargout{2} = W;
-    varargout{3} = real(hsv);
+    varargout{3} = real(hsvs);
     if nargout>3
-        varargout{4} = R;
-        varargout{5} = L;
+        varargout{4} = S;
+        varargout{5} = R;
     end
 end

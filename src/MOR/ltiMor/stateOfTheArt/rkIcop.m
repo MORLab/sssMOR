@@ -100,6 +100,7 @@ if q<10
     warning('The results may be unprecise for small q.');
 end
 
+%% rkIcop iteration
 for i=1:Opts.maxIter
     sOptOld=sOpt;
     

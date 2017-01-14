@@ -84,7 +84,7 @@ else
 end
 
 %   Predefine variables
-isH2opt = 0; %initialize
+isH2opt = false; %initialize
 %%  Computations 
 %   Check that eigenvalues are mirror images of shifts
 if any(abs(s0))<1e-3
@@ -111,7 +111,7 @@ if condition <=Opts.tol
         end
     end
     %   if you reached this point, all verifications passed!
-    isH2opt = 1;
+    isH2opt = true;
 end
 %%  Print result if no ouput was defined
 if nargout == 0

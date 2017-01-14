@@ -54,24 +54,63 @@ classdef testModal < sssTest
                  
             verification(testCase, actSolution, expSolution, sysr);
         end
-        function testModal3(testCase) 
-            %with E-matrix
-            load('LF10.mat');
-            E=blkdiag(speye(size(M)), M);
-            A=[zeros(size(M)),speye(size(M)); -K, -D];
-            B=[zeros(size(M,1),1); B];
-            C=[C, zeros(1,size(M,1))];
+        function descriptorSymmetric(testCase) 
+            %with E-matrix, symmetric
+            sys = loadSss('rail_1357');
             
+            q = 10;
             Opts.type='SM';
-            [sysr] = modalMor(sss(A,B,C,0,E), 9, Opts);
-            actSolution=full(sort(eig(sysr)));
-%             actSolution={real(actEig), abs(imag(actEig))};
-            
-            [expsysr,~]=modreal(ss(full(E\A),full(E\B),full(C),0),9);
-            expSolution=full(sort(eig(expsysr)));
-%             expSolution={real(expEig), abs(imag(expEig))};
+            [sysr] = modalMor(sys, q, Opts);
+            actSolution=full(sort(eig(sysr)));            
+            expSolution=full(sort(eigs(sys,q,Opts.type)));
                  
             verification(testCase, actSolution, expSolution, sysr);
+        end
+        function descriptor(testCase) 
+            %with E-matrix, not symmetric
+            warning('off'), sys = loadSss('LF10'); warning('on');
+            
+            q = 10;
+            Opts.type='SM';
+            [sysr] = modalMor(sys, q, Opts);
+            actSolution=full(sort(eig(sysr)));            
+            expSolution=full(sort(eigs(sys,q,Opts.type)));
+                 
+            verification(testCase, actSolution, expSolution, sysr);
+        end
+        function loopThroughOptions(testCase) 
+            %run modal mor for all loaded models with all options to check
+            %that all combinations are valid
+            
+            % Define possible opts combinations
+            AllOpts.type    = {'SM','LM',1};
+            AllOpts.orth    = {true, false,'qr'};
+            AllOpts.real    = {true, false,'real'};
+            AllOpts.tol     = {1e-6};
+            AllOpts.dominance = {0,'analyze','2q','3q'};
+            AllOpts.lse     = {'sparse','full'};
+            AllOpts.subspaceW = {'eigs','1by1'};
+            
+            [AllOpts,nCases] = generateAllOpts(AllOpts);
+            
+            h = waitbar(0,'modalMor: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOpts{kOpts};
+                for i=1:length(testCase.sysCell)
+                    %  test system
+                    sys     = testCase.sysCell{i};
+                    sysr    = modalMor(sys, 4, Opts);
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
     end
 end
