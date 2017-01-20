@@ -1,28 +1,23 @@
 # Contributing to sssMOR
 
-Contributions to sssMOR are welcome, as we try to keep the software up to date with **newest MOR routines** and **numerical linear algebra** algorithms. 
+Contributions to sssMOR are welcome, as we try to keep the software up to date with **newest MOR routines** and **numerical linear algebra** algorithms.
 
 In the following are a few guidelines to respect when developing code for sssMOR.
+
+If you have any questions on how to contribute, just get in touch with us at sssMOR@rt.mw.tum.de.
 
 ## Styleguide
 The file ``programmingGuidelines.m`` contains some general programming and naming rules aimed at improving the quality of the code, its readability and the overall functionality. Here is a summary of the most important points.
 
-REFERENCES:
-[1] Johnson (2014): MATLAB Style Guidelines 2.0
-[2] Hung (1999): The Pragmatic Programmer
-
-1. Naming conventions
-- general variable and function names should be mixed-case, starting with
-    a lower case, and be self explainatory. Acronyms should be lower case.
-    Underscores should be avoided! Abbreviations should be avoided unless
-    they are commonly used in the domain
+### Naming conventions
+- general variable and function names should be mixed-case, starting with a lower case, and be self explainatory. Acronyms should be lower case. Underscores should be avoided! Abbreviations should be avoided unless they are commonly used in the domain
 ```
 krylovSubspace, shift, reducedOrderModel, html, tum
 rom = reducedOrderModel %examples of acceptable abbreviations
 fom = fullOrderModel
 ```
 
-- amounts, number of objects: n<Objects>
+- amounts, number of objects: n*Objects*
 ```
 nShifts, nPoints
 ```
@@ -33,13 +28,13 @@ shift % one
 shiftArray, shiftVec % many
 ```
 
-- indices: i<Object>
+- indices: i*Object*
 ```
 iShift, iFile, jPosition
 for iPoint = 1:nPoints %example of nested loops
     for jFile = 1:nFiles
     end
-end 
+end
 ```
 
 - booleans: use positive bolean names
@@ -48,9 +43,7 @@ isFound %instead of isNotFound
 ```
 
 
-- Structures begin with upper case letter. Fieldnames do not repeat the
-    name of the structure
-    
+- Structures begin with upper case letter. Fieldnames do not repeat the name of the structure
 ```
 Segment.length, Options.MAX_ITERATIONS, GeneralOptions.fieldName
 ```
@@ -60,30 +53,32 @@ Segment.length, Options.MAX_ITERATIONS, GeneralOptions.fieldName
 mean, moment, maxError
 ```
 
-2. Definition of execution options
-    Whenever a function can be executed with different parameters or even
-    in different modes, the execution options should be passed at the end
-    of the inputs such as
-    ```
-      sysr = cure(sys,..,Opts)
-    ```
-    Opts is a structure containing some of the parameters that the function
-    accepts.
-    Default paramters are defined at the beginning of the function in which
-    they are used with a default structure
-    ```
-      Def.<fieldname> = ...
-    ```
-    Then, the input should be parsed and the current options structure
-    updated with the function parseOpts:
-    ```
-      if ~exist('Opts','var') || isempty(Opts)
-            Opts = Def;
-      else
-            Opts = parseOpts(Opts,Def);
-      end     
-    ```
-      
+### Definition of execution options
+
+Whenever a function can be executed with different parameters or even in different modes, the execution options should be passed at the end of the inputs such as
+```
+  sysr = cure(sys,..,Opts)
+```
+Opts is a structure containing some of the parameters that the function
+accepts.
+Default paramters are defined at the beginning of the function in which
+they are used with a default structure
+```
+  Def.<fieldname> = ...
+```
+Then, the input should be parsed and the current options structure
+updated with the function parseOpts:
+```
+  if ~exist('Opts','var') || isempty(Opts)
+        Opts = Def;
+  else
+        Opts = parseOpts(Opts,Def);
+  end     
+```
+
+### REFERENCES:
+1. Johnson (2014): MATLAB Style Guidelines 2.0
+2. Hung (1999): The Pragmatic Programmer
 
 ## Testing
 
@@ -120,7 +115,7 @@ fom             | 10^3
 heat-cont       | 10^3
 iss             | 10^5
 rail_1357       | 10^3
-----------------|------------------------ 
+----------------|------------------------
 LF10            | 10^9
 beam            | 10^8
 random          | 10^7
@@ -129,12 +124,24 @@ SpiralInductorPeec | 10^6
 ### Testing on RT84 for new releases
 Here is a simple workflow to respect when preparing the toolbox for a new release
 
-1. log into RT84
-2. open following MATLAB versions (Windows)
-    a. MATLAB2015b
-    b. MATLAB2016a
-    c. MATLAB2014a
-3. open following MATLAB versions (Linux Virtual Box)
+1. Make sure everything is ready **on your machine**
+  1. check that sssMOR (and all subfolders) are in the path
+  1. check in the **Add-On Manager** that no other sssMOR or sss version is installed
+  1. run ``test`` and make sure all tests run through
+  2. run ``publishHelp('all','evalcode',true)`` and make sure that the documentation is generated correctly
+  3. merge the **master** branch into the **realease** branch and create a new tag for the release **sssMORvX.XX**
 
-
-
+1. Run the tests **on different MATLAB releases** on **Windows** and **Linux**
+  1. log into RT84
+  1. copy the current raw files for release onto *C:\_sssMORtests*
+  2. open following MATLAB versions (Windows)
+    * MATLAB2014b
+    * MATLAB2015b
+    * MATLAB2016a
+  1. Open the VM Virtual Box (if empty, add the Virtual Machine under *C:\_Virtualbox_Linux\Ubuntu_64*)
+  3. open following MATLAB versions (Linux Virtual Box)
+    * MATLAB2014b
+    * MATLAB2015b
+    * MATLAB2016a
+  4. Make sure the current release files are the only sssMOR files in the path
+  5. Run ``test``
