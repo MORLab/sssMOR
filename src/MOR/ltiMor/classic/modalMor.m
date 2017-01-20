@@ -34,7 +34,7 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 %			-.type:		option to eigs command;
 %						[{'SM'} / 'LM' / 'SA' / 'LA' / 'SR' / 'LR' / real or complex scalar]
 %			-.orth:		orhtogonalization;
-%						[{'0'} / 'qr']
+%						[false / {'qr'}]
 %			-.real:		real reduced system;
 % 						[{'real'} / '0']
 %           -.tol:      tolerance for the eigenspace computation
