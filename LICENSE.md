@@ -1,4 +1,4 @@
-Copyright (c) 2016, Chair of Automatic Control, TU Muenchen
+Copyright (c) 2015-2017, Chair of Automatic Control, TU Muenchen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
