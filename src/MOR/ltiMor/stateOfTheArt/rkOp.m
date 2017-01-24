@@ -3,7 +3,7 @@ function varargout = rkOp(varargin)
 %
 % Syntax:
 %       sOpt = RKOP(sys)
-%       sOpt = RKOP(h,t)
+%       sOpt = RKOP(g,t)
 %       [sysr, V, W, sOpt] = RKOP(sys,q)
 %       [sysr, V, W, sOpt] = RKOP(sys,...,Opts)
 %
