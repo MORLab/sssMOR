@@ -71,10 +71,10 @@ classdef testModal < sssTest
             warning('off'), sys = loadSss('LF10'); warning('on');
             
             q = 10;
-            Opts.type='SM';
+            Opts.type = 'LM';
             [sysr] = modalMor(sys, q, Opts);
-            actSolution=full(sort(eig(sysr)));            
-            expSolution=full(sort(eigs(sys,q,Opts.type)));
+            actSolution=full(cplxpair(eig(sysr)));            
+            expSolution=full(cplxpair(eigs(sys,q,Opts.type)));
                  
             verification(testCase, actSolution, expSolution, sysr);
         end

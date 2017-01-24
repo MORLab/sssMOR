@@ -380,7 +380,7 @@ function [s0,Opts] = initializeShifts(sys,Opts,iCure)
      %  compute the shifts
      try
          switch Opts.cure.init
-             case 'zero' %zero initialization
+             case {'zero','zeros'} %zero initialization
                  Opts.cure.init = Opts.zeroThres*ones(1,ns0);
              case 'sm' %smallest magnitude eigenvalues
                  Opts.cure.init = -eigs(sys.a,sys.e,ns0,0, ...
@@ -406,6 +406,9 @@ function [s0,Opts] = initializeShifts(sys,Opts,iCure)
                                       struct('tol',1e-6,'v0',sum(sys.b,2)));...
                                     -eigs(sys.a,sys.e,nLm,'lm', ...
                                       struct('tol',1e-6,'v0',sum(sys.b,2)))]';
+             otherwise
+                 error('sssMOR:cure:undefinedInitialization',...
+                     'The desired initialization for CURE is not defined');
          end
      catch err
          warning([getReport(err,'basic'),' Using 0.'])

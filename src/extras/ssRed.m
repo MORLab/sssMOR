@@ -323,12 +323,12 @@ classdef ssRed < ss
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      Niklas Kochdumper
+% Authors:      Niklas Kochdumper, Alessandro Castagnotto
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  15 Jun 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  20 Jan 2017
+% Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
     properties(SetAccess = private)
@@ -396,14 +396,19 @@ classdef ssRed < ss
                 end             
             end
             
-            if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr', ...
+            if ~isa(varargin{1},'char')
+                error('sssMOR:ssRed:wrongUsage',...
+                    'The first argument must be a string specifying the reduction method. Type "help ssRed" for more information.');
+            elseif ~ismember(varargin{1},{'tbr', ...
                     'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
                     'spark','cure_spark','cure_irka','cure_rk+pork','rkOp', ...
-                    'rkIcop','userDefined'}) == 0
-                error('The first argument has a wrong format. Type "help ssRed" for more information.');
+                    'rkIcop','modelFct','cirka','stabsep','userDefined'})
+                error('sssMOR:ssRed:reductionMethodUndefined',...
+                    'The reduction method specified (%s) is undefined. Type "help ssRed" for more information.',...
+                    varargin{1});
             end
             
-            % call the construktor of the superclass ss
+            % call the constructor of the superclass ss
             obj@ss(A,B,C,D,'e',E);
             
             % store the correct names for the properties containing the
@@ -1017,7 +1022,7 @@ classdef ssRed < ss
     %%Private and static helper methods
     methods(Hidden, Access = private, Static)
         
-        function parsedStruct = parseParamsStruct(params,method,cureRequired)
+        function parsedStruct       = parseParamsStruct(params,method,cureRequired)
         % Checks if the struct with the parameters  "params" has the correct
         % structure for the specified reduction method "method". If this is
         % the case, then the values of the required fields of the struct 
@@ -1039,13 +1044,24 @@ classdef ssRed < ss
                list = {'originalOrder','maxiter','tol','type','stopCrit', ...
                        'orth','lse','dgksTol','krylov', ...
                        's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');   
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'rk')                  %rk
                list = {'originalOrder','real','orth','reorth','lse','dgksTol','krylov', ...
                        'IP','Rt','Lt','s0_inp','s0_out'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
+            elseif strcmp(method,'modelFct')           %modelFct
+               list = {'originalOrder','s0mTot','updateModel','modelTol'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
+            elseif strcmp(method,'cirka')               %cirka
+               list = {'originalOrder','modelFctOrder','kIrka','s0',...
+                        'qm0','s0m','maxiter','tol','stopCrit','updateModel',...
+                        'clearInit','irka'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'projectiveMor')       %projectiveMor
                list = {'originalOrder','trans'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
+            elseif strcmp(method,'stabsep')             %stabsep
+               list = {'originalOrder'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'porkV')               %porkV
                list = {'originalOrder'};
@@ -1124,7 +1140,7 @@ classdef ssRed < ss
             end
         end
         
-        function parsedParamsList = removeReductionMethod(paramsList,method)
+        function parsedParamsList   = removeReductionMethod(paramsList,method)
         %Removes the reductionParameters for the specified reduction method
         %"method" from the reduction history. This is i.e. necessary for
         %"rk", because in the algorithm projectiveMor is used. This
@@ -1141,7 +1157,7 @@ classdef ssRed < ss
             end 
         end
         
-        function parsedParamsList = removeCureParameters(paramsList)
+        function parsedParamsList   = removeCureParameters(paramsList)
         %The parameters under the field "cure" stay the same for all cure
         %iterations. Because of this, the field "cure" is only stored for
         %the first iteration step. Therefore, this function removes all the
@@ -1157,7 +1173,7 @@ classdef ssRed < ss
             end
         end
         
-        function outputStruct = parseStructFields(structure,fields,structName)
+        function outputStruct       = parseStructFields(structure,fields,structName)
         %This function checks if the the struct "structure" contains all fields
         %specified in the cell-array "fields". If the case, all the values 
         %of the fields of the struct "structure" are copied to the struct 

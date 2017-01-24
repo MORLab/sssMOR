@@ -32,15 +32,15 @@ function [sysr, V, W, s0, kIrka, sysm, relH2err] = cirka(sys, s0, Opts)
 %
 %       *Optional Input Arguments:*
 %       -Opts:			structure with execution parameters
-%			 -.qm0:     initial size of model function;
+%			-.qm0:     initial size of model function;
 %                       [{2*length(s0)} / positive integer]
-%            -.sm0:     initial shifts for surrogate;
+%           -.sm0:     initial shifts for surrogate;
 %                       [{[s0,s0]} / vector ]
-%            -.maxiter: maximum number of iterations;
+%           -.maxiter: maximum number of iterations;
 %						[{15} / positive integer]
-%            -.tol:		convergence tolerance;
+%           -.tol:		convergence tolerance;
 %						[{1e-3} / positive float]
-%            -.stopcrit:convergence criterion for CIRKA;
+%           -.stopcrit:convergence criterion for CIRKA;
 %                       ['s0' / 'sysr' / 'sysm' / {'combAny'} / 'combAll']
 %           -.verbose:	show text output during iterations;
 %						[{false} / true]
@@ -119,18 +119,20 @@ function [sysr, V, W, s0, kIrka, sysm, relH2err] = cirka(sys, s0, Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  21 Nov 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  20 Jan 2017
+% Copyright (c) 2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
+%%  Check inputs
 if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only for SISO models');end
 warning('off','Control:analysis:NormInfinite3')
+
 %% Define execution options
     Def.qm0     = 2*length(s0); %default initial surrogate size
     Def.s0m     = shiftVec([s0;2*ones(1,length(s0))]); %default surrogate shifts
     Def.maxiter = 15;   %maximum number of CIRKA iterations
     Def.tol     = 1e-3; %tolerance for stopping criterion
-    Def.stopcrit= 'combAny'; %stopping criterion for CIRKA 
+    Def.stopCrit= 'combAny'; %stopping criterion for CIRKA 
                              %s0,sysr,sysm,combAny,combAll
     Def.verbose = 0; Def.plot = 0; %display text and plots
     Def.suppressWarn = 0; %suppress warnings
@@ -139,7 +141,7 @@ warning('off','Control:analysis:NormInfinite3')
     Def.clearInit = 0; %reset the model fct after initialization?
     
     Def.irka.suppressverbose = true;
-    Def.irka.stopcrit        = 'combAny';
+    Def.irka.stopCrit        = 'combAny';
     Def.irka.lse             = 'full';
     Def.irka.tol             = 1e-6;
 
@@ -153,7 +155,7 @@ warning('off','Control:analysis:NormInfinite3')
 %% run computations
     kIter   = 0;
     kIrka   = zeros(1,Opts.maxiter);
-    if any(strcmp(Opts.stopcrit,{'combAny','combAll'})),
+    if any(strcmp(Opts.stopCrit,{'combAny','combAll'})),
         nStopVal = 3;
     else
         nStopVal = 1;
@@ -170,7 +172,7 @@ warning('off','Control:analysis:NormInfinite3')
 
     % run CIRKA iteration
     stop = false;
-    while ~stop
+    while ~stop &&  kIter <= Opts.maxiter
         kIter = kIter + 1; if Opts.verbose, fprintf(sprintf('modelFctMor: k=%i\n',kIter));end
             
         if kIter > 1
@@ -197,58 +199,66 @@ warning('off','Control:analysis:NormInfinite3')
         kIrka(kIter) = kIrkaNew;
         
         % computation of convergence
-        [stop,stopVal(kIter,:)] = stopCrit;
-        if Opts.verbose, 
-            fprintf(1,'\tkIrka: %03i\n',kIrkaNew);
-            fprintf(1,'\tstopVal (%s): %s\n',Opts.stopcrit,sprintf('%3.2e\t',stopVal(kIter,:)));
-            fprintf(1,'\tModelFct size: %i \n',length(s0mTot));
+        [stop,stopVal(kIter,:)] = verifyStopCrit;
+        %Detect STAGNATION
+        if ~stop && kIter > 1 && max(abs(stopVal(kIter-1,:)-stopVal(kIter,:))) < Opts.tol 
+            stop = true;
         end
         
-        if stop
-            sysm = stabsep(ss(sysm));
-            relH2err = norm(ss(sysm-sysr))/norm(ss(sysm));
-            kIrka(kIter+1:end) = []; %remove preallocation
-            V = Vm*Virka;
-            W = Wm*Wirka;
-        else
-            %Detect STAGNATION
-            if kIter > 1 && max(abs(stopVal(kIter-1,:)-stopVal(kIter,:))) < Opts.tol
-                warning('sssMOR:cirka:stagnation','CIRKA stagnation: no convergence but no improvement. Aborting.'); 
-                sysm = stabsep(ss(sysm));
-                relH2err = norm(ss(sysm-sysr))/norm(ss(sysm));
-                kIrka(kIter+1:end) = []; %remove preallocation
-               return
-            end
-            %Overwrite parameters with new variables
-            s0 = s0new;    
-            sysmOld = sysm;
-            sysrOld = sysr;
-        end
-        if kIter >= Opts.maxiter; 
-            warning('sssMOR:cirka:maxiter','modelFctMor did not converge within maxiter'); 
-            if Opts.suppressWarn, warning('on','sssMOR:irka:maxiter');end
-            sysm     = stabsep(ss(sysm));
-            relH2err = norm(ss(sysm-sysr))/norm(ss(sysm));
-            V = Vm*Virka;
-            W = Wm*Wirka;
-            return
-        end
+        s0      = s0new;    
+        sysmOld = sysm;
+        sysrOld = sysr;
+            
+        if Opts.verbose, 
+            fprintf(1,'\tkIrka: %03i\n',kIrkaNew);
+            fprintf(1,'\tstopVal (%s): %s\n',Opts.stopCrit,sprintf('%3.2e\t',stopVal(kIter,:)));
+            fprintf(1,'\tModelFct size: %i \n',length(s0mTot));
+        end     
     end
-    if Opts.suppressWarn,warning('on','sssMOR:irka:maxiter'); end
-    if ~Opts.verbose
+    
+    %%  Terminate execution  
+    % prepare outputs
+    relH2err = norm(sysm-sysr)/norm(sysm);
+    kIrka(kIter+1:end) = []; %remove preallocation
+    V = Vm*Virka;
+    W = Wm*Wirka;
+    
+    % create ssRed object with CIRKA information
+    Opts.s0             = s0;
+    Opts.kIrka          = kIrka;
+    Opts.originalOrder  = sys.n;
+    Opts.modelFctOrder  = sysm.n; 
+    
+    [Ar,Br,Cr,Dr,Er] = dssdata(sysr);
+    sysr = ssRed('cirka',Opts,Ar,Br,Cr,Dr,Er);
+    % make model function stable by removing ustable modes
+    if ~isstable(sysm)
+        n0 = sysm.n;
+        sysm = stabsep(sysm);
+        % Update ssRed object with information about reduction
+        sysm = ssRed('stabsep',struct('originalOrder',n0),sysm);
+    end
+    
+    % display warnings or text output
+    if kIter >= Opts.maxiter;
+        warning('sssMOR:cirka:maxiter','modelFctMor did not converge within maxiter'); 
+    elseif ~Opts.verbose
         fprintf('CIRKA step %03u - Convergence (%s): %s \n', ...
-                kIter, Opts.stopcrit, sprintf('% 3.1e', stopVal(kIter,:)));
+                kIter, Opts.stopCrit, sprintf('% 3.1e', stopVal(kIter,:)));
     end
+    
+    if Opts.suppressWarn,warning('on','sssMOR:irka:maxiter'); end
+
      
 % ============== AUXILIARY ===============================
-    function [stop,stopVal] = stopCrit(varargin)
+    function [stop,stopVal] = verifyStopCrit(varargin)
         % compute the stopping criterion for CIRKA
         
         % input parsing
         if nargin == 0
-            stopcrit = Opts.stopcrit;
+            stopCrit = Opts.stopCrit;
         else
-            stopcrit = varargin{1};
+            stopCrit = varargin{1};
         end
         
         if length(s0mTot)> sys.n,
@@ -256,7 +266,7 @@ warning('off','Control:analysis:NormInfinite3')
             stop = true; 
         else
             %   Compute the change in shifts
-            switch stopcrit
+            switch stopCrit
                 case 's0' 
                     %shift convergence
                     if any(abs(s0))<1e-3
@@ -278,14 +288,14 @@ warning('off','Control:analysis:NormInfinite3')
                     stopVal=norm(sysm-sysmOld)/norm(sysm);
                     stop = (stopVal <= Opts.tol);
                 case 'combAll'
-                    [stop(1),stopVal(1)] = stopCrit('s0');
-                    [stop(2),stopVal(2)] = stopCrit('sysr'); 
-                    [stop(3),stopVal(3)] = stopCrit('sysm');
+                    [stop(1),stopVal(1)] = verifyStopCrit('s0');
+                    [stop(2),stopVal(2)] = verifyStopCrit('sysr'); 
+                    [stop(3),stopVal(3)] = verifyStopCrit('sysm');
                     stop = all(stop);
                 case 'combAny'
-                    [stop(1),stopVal(1)] = stopCrit('s0');
-                    [stop(2),stopVal(2)] = stopCrit('sysr'); 
-                    [stop(3),stopVal(3)] = stopCrit('sysm');
+                    [stop(1),stopVal(1)] = verifyStopCrit('s0');
+                    [stop(2),stopVal(2)] = verifyStopCrit('sysr'); 
+                    [stop(3),stopVal(3)] = verifyStopCrit('sysm');
                     stop = any(stop);
                 otherwise
                     error('The stopping criterion selected is incorrect or not implemented')

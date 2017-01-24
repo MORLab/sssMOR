@@ -172,6 +172,11 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
 %                             zeros(size(sys.C,1),size(sys.B,2)),W'*sys.E*V);
             sysm = projectiveMor(sys,V,W);
         end   
+        %% Save the relevant information into the ssRed object
+        Opts.originalOrder  = sys.n;
+        Opts.s0mTot         = s0mTot;
+        [Am,Bm,Cm,Dm,Em] = dssdata(sysm);
+        sysm = ssRed('modelFct',Opts,Am,Bm,Cm,Dm,Em);
     end
     %%  Functions copied from "spark"
     function computeLU(s0)
