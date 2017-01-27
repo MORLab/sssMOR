@@ -129,6 +129,7 @@ Here is a simple workflow to respect when preparing the toolbox for a new releas
   1. check in the **Add-On Manager** that no other sssMOR or sss version is installed
   1. run ``test`` and make sure all tests run through
   2. run ``publishHelp('all','evalcode',true)`` and make sure that the documentation is generated correctly
+  1. edit the ``CHANGELOG.md`` file with the changes with respect to the previous release.
   3. merge the **master** branch into the **realease** branch and create a new tag for the release **sssMORvX.XX**
 
 1. Run the tests **on different MATLAB releases** on **Windows** and **Linux**
@@ -143,5 +144,7 @@ Here is a simple workflow to respect when preparing the toolbox for a new releas
     * MATLAB2014b
     * MATLAB2015b
     * MATLAB2016a
-  4. Make sure the current release files are the only sssMOR files in the path
-  5. Run ``test``
+  4. Make sure the current release files are the only sssMOR files in the path (e.g. by using the function `addCurrentVersionToPath.m`)
+  5. Run ``test`` on each MATLAB version above
+  1. Open the `sssMOR_App` on each of the MATLAB versions above and perform simple tasks to test the main
+  1. update the `testlog_sssMOR.xlxs` with the test results
