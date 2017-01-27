@@ -1,7 +1,7 @@
 sssMOR - Changelog
 ==================
 
-A list of (major) changes between releases. Sometimes we add also changes to come to our Roadmap.
+A list of (major) changes between releases. Sometimes we add also changes to come to our **roadmap**.
 ***
 
 Roadmap (changes to come)
