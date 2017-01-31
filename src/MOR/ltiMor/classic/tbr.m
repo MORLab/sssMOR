@@ -203,7 +203,9 @@ else
 end
 
 %% Computation of balancing transformation
-
+if isempty(sys.E) %robust compatibility to ssRed
+    sys.E = eye(size(sys.A));
+end
 [Us,Sigma,Vs]=svd(full(R'*sys.E*S),0);
 hsvs = diag(Sigma);
 sys.HankelSingularValues = real(hsvs);
