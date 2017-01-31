@@ -22,7 +22,7 @@ classdef ssRed < ss
 %
 % Input Arguments:
 %       -method: name of the used reduction algorithm;
-%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'userDefined']
+%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'rkOp' / 'rkIcop' / 'userDefined']
 %       -params (tbr):          structure with the parameters for the tbr-algorithm;
 %           -.originalOrder:    Model order before reduction;
 %           -.type:             select amongst different tbr algorithms
@@ -259,6 +259,27 @@ classdef ssRed < ss
 %                               subspaces
 %           -.Rt:               right tangential directions for MIMO
 %           -.Lt:               left tangential directions for MIMO
+%       -params (rkOp):         structure with the parameters for the
+%                               rkOp-algorithm
+%           -.originalOrder:    Model order before reduction
+%           -.sOpt:             optimal expansion point
+%           -.rk:               reduction type
+%                               [{'twoSided'} / 'input' / 'output']
+%           -.lse:              solve linear system of equations
+%                               [{'sparse'} / 'full' / 'gauss' / 'hess' / 'iterative' ]
+%       -params (rkIcop):       structure with the parameters for the
+%                               rkIcop-algorithm
+%           -.originalOrder:    Model order before reduction
+%           -.sOpt:             optimal expansion point
+%           -.s0:               inital expansion point (scalar)
+%           -.rk:               reduction type
+%                               [{'twoSided'} / 'input' / 'output']
+%           -.maxIter:          maximum number of iterations;
+%                               [{20} / positive integer]
+%           -.tol:              convergence tolerance;
+%                               [{1e-2} / positive float]
+%           -.lse:              solve linear system of equations
+%                               [{'sparse'} / 'full' / 'gauss' / 'hess' / 'iterative' ]
 %       -params (userDefined):  []
 %       -A: system matrix
 %       -B: input matrix
@@ -380,8 +401,8 @@ classdef ssRed < ss
                     'The first argument must be a string specifying the reduction method. Type "help ssRed" for more information.');
             elseif ~ismember(varargin{1},{'tbr', ...
                     'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
-                    'spark','cure_spark','cure_irka','cure_rk+pork','userDefined',...
-                    'modelFct','cirka','stabsep'})
+                    'spark','cure_spark','cure_irka','cure_rk+pork','rkOp', ...
+                    'rkIcop','modelFct','cirka','stabsep','userDefined'})
                 error('sssMOR:ssRed:reductionMethodUndefined',...
                     'The reduction method specified (%s) is undefined. Type "help ssRed" for more information.',...
                     varargin{1});
@@ -450,6 +471,10 @@ classdef ssRed < ss
                 end
                 if strcmp(varargin{1},'irka')
                     obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'rk'); 
+                end
+                if strcmp(varargin{1},'rkOp') || strcmp(varargin{1},'rkIcop')
+                    obj.reductionParameters{end-1,1} = [];
+                    obj.reductionParameters = obj.reductionParameters(~cellfun('isempty',obj.reductionParameters));
                 end
             end
             obj.reductionParameters = obj.removeCureParameters(obj.reductionParameters); 
@@ -1104,6 +1129,12 @@ classdef ssRed < ss
                     list = {'fact','stop','stopval','maxIter'};
                     parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
                end
+            elseif strcmp(method,'rkOp')
+               list = {'originalOrder','sOpt','rk','lse'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');  
+            elseif strcmp(method,'rkIcop')
+               list = {'originalOrder','sOpt','s0','rk','maxIter','tol','lse'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params'); 
             elseif strcmp(method,'userDefined')
                parsedStruct = params;
             end
