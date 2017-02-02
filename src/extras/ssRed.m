@@ -507,7 +507,7 @@ classdef ssRed < ss
         end
         
         function isDescriptor = get.isDescriptor(sys)
-            isDescriptor = logical(full(any(any(sys.(sys.e_)-speye(size(sys.(sys.e_)))))));
+            isDescriptor = logical(full(any(any(sys.(sys.e_)-eye(size(sys.(sys.e_)))))));
         end
         
         function sys = resolveDescriptor(sys)
