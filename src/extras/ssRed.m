@@ -513,7 +513,8 @@ classdef ssRed < ss
         function sys = resolveDescriptor(sys)
             sys.(sys.a_) = sys.(sys.e_)\sys.(sys.a_);
             sys.(sys.b_) = sys.(sys.e_)\sys.(sys.b_);
-            sys.(sys.e_) = [];
+            sys.(sys.e_) = eye(size(sys.(sys.a_))); 
+            %makes the usage of sys.e in computations more robust than []
         end
         
         function isSym = get.isSym(sys) %A=A', E=E'
