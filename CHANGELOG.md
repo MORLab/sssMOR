@@ -10,19 +10,27 @@ Roadmap (changes to come)
 - Second order models: direct reduction
 ***
 
-v1.08 [20 January 2017]
+v1.08 [02 Frebruary 2017]
 -----------------------
 ### Changes
 - TBR
-  * changed the definition of the Cholesky (like) factors of the Gramians to unify the notation with the low-rank method. They are now lower triangular matrices (A=LL') as opposed to MATLAB's built-in notation.  
+  * changed the definition of the Cholesky (like) factors of the Gramians to unify the notation with the low-rank method. They are now lower triangular matrices (A=LL') as opposed to MATLAB's built-in notation.
 - CIRKA, MODELFCT, MODELFCTMOR
   * added functions for the H2-optimal reduction using the model function framework, which leads to significant speedup, especially for very large scale models.
+- ADDED EXTRAS
+  * moments, isH2opt, getSylvester moved to extras
+  * shiftVec factorized as own function
+  * ismemberf2, getDesiredOutput added
 - SSS
   * updated to v1.03
 
 ### Bugfixes
 - MODALMOR
   * invariant subspace is computed only using eigs due to its higher efficiency
+- TBR
+  * checking for empty E matrix if model is ssRed
+- RK
+  * checking for empty E matrix if model is ssRed
 ***
 
 v1.07 [05 October 2016]
