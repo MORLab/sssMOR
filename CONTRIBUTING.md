@@ -120,31 +120,3 @@ LF10            | 10^9
 beam            | 10^8
 random          | 10^7
 SpiralInductorPeec | 10^6
-
-### Testing on RT84 for new releases
-Here is a simple workflow to respect when preparing the toolbox for a new release
-
-1. Make sure everything is ready **on your machine**
-  1. check that sssMOR (and all subfolders) are in the path
-  1. check in the **Add-On Manager** that no other sssMOR or sss version is installed
-  1. run ``test`` and make sure all tests run through
-  2. run ``publishHelp('all','evalcode',true)`` and make sure that the documentation is generated correctly
-  1. edit the ``CHANGELOG.md`` file with the changes with respect to the previous release.
-  3. merge the **master** branch into the **realease** branch and create a new tag for the release **sssMORvX.XX**
-
-1. Run the tests **on different MATLAB releases** on **Windows** and **Linux**
-  1. log into RT84
-  1. copy the current raw files for release onto *C:\_sssMORtests*
-  2. open following MATLAB versions (Windows)
-    * MATLAB2014b
-    * MATLAB2015b
-    * MATLAB2016a
-  1. Open the VM Virtual Box (if empty, add the Virtual Machine under *C:\_Virtualbox_Linux\Ubuntu_64*)
-  3. open following MATLAB versions (Linux Virtual Box)
-    * MATLAB2014b
-    * MATLAB2015b
-    * MATLAB2016a
-  4. Make sure the current release files are the only sssMOR files in the path (e.g. by using the function `addCurrentVersionToPath.m`)
-  5. Run ``test`` on each MATLAB version above
-  1. Open the `sssMOR_App` on each of the MATLAB versions above and perform simple tasks to test the main
-  1. update the `testlog_sssMOR.xlxs` with the test results
