@@ -21,7 +21,7 @@ function [sysr, V, W, sOpt] = rkIcop(sys, s0, q, varargin)
 %			-.rk:       reduction type
 %						[{'twoSided'} / 'input' / 'output']
 %			-.maxIter:	maximum number of iterations;
-%						[{20} / positive integer]
+%						[{100} / positive integer]
 %			-.tol:		convergence tolerance;
 %						[{1e-2} / positive float]
 %           -.lse:      solve linear system of equations
@@ -100,6 +100,7 @@ if q<10
     warning('The results may be unprecise for small q.');
 end
 
+%% rkIcop iteration
 for i=1:Opts.maxIter
     sOptOld=sOpt;
     
@@ -171,6 +172,22 @@ for i=1:Opts.maxIter
     end
     if i==Opts.maxIter
         error('sssMor:rkIcopNotConverged',['rkIcop has not converged after ' num2str(Opts.maxIter) ' steps.']);
-    end
+    end  
 end
+
+%%  Storing additional parameters
+%Stroring additional information about thr reduction in the object 
+%containing the reduced model:
+%   1. Define a new field for the Opts struct and write the information
+%      that should be stored to this field
+%   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
+%      way that the new defined field passes the check
+Opts.originalOrder = sys.n;
+if ~isfield(Opts,'rk') Opts.orth = 'twoSided'; end
+if ~isfield(Opts,'lse') Opts.lse = 'sparse'; end
+if ~isfield(Opts,'maxIter') Opts.maxIter = 100; end
+if ~isfield(Opts,'tol') Opts.tol = 1e-2; end
+Opts.s0 = s0;
+Opts.sOpt = sOpt;
+sysr = ssRed('rkIcop',Opts,sysr);
 

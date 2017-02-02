@@ -17,7 +17,7 @@ function [sysr, V, W, s0, Rt, B_, Ssylv, Rsylv, kIter, s0Traj, RtTraj, flag] = i
 %
 % Description:
 %       This function executes the Iterative SVD-Rational Krylov
-%       Algorithm (ISRK) as proposed by Gugergin in [1].
+%       Algorithm (ISRK) as proposed by Gugergin et al. in [1].
 % 
 %       The ISRK iteration combines SVD-based methods like balanced
 %       truncation and rational Krylov. The algorithm requires computing
@@ -182,7 +182,7 @@ while true
     end 
     
     %b) Left projection matrix
-    W = L'*L*sys.E*V;
+    W = L*L'*sys.E*V;
     
     %c) ROM
     sysr = sss(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);

@@ -1,8 +1,40 @@
-# sssMOR - Changelog
+sssMOR - Changelog
+==================
 
-## Roadmap (changes to come)
+A list of (major) changes between releases. Sometimes we add also changes to come to our **roadmap**.
+***
 
-## v1.07 [05 October 2016]
+Roadmap (changes to come)
+-------------------------
+- pMOR: parametric model reduction
+- Second order models: direct reduction
+***
+
+v1.08 [02 Frebruary 2017]
+-----------------------
+### Changes
+- TBR
+  * changed the definition of the Cholesky (like) factors of the Gramians to unify the notation with the low-rank method. They are now lower triangular matrices (A=LL') as opposed to MATLAB's built-in notation.
+- CIRKA, MODELFCT, MODELFCTMOR
+  * added functions for the H2-optimal reduction using the model function framework, which leads to significant speedup, especially for very large scale models.
+- ADDED EXTRAS
+  * moments, isH2opt, getSylvester moved to extras
+  * shiftVec factorized as own function
+  * ismemberf2, getDesiredOutput added
+- SSS
+  * updated to v1.03
+
+### Bugfixes
+- MODALMOR
+  * invariant subspace is computed only using eigs due to its higher efficiency
+- TBR
+  * checking for empty E matrix if model is ssRed
+- RK
+  * checking for empty E matrix if model is ssRed
+***
+
+v1.07 [05 October 2016]
+-----------------------
 ### Changes
 - minor improvements in MODALMOR, TBR, CURE, SPARK
 - SSS toolbox: using v1.02
@@ -10,8 +42,10 @@
 ### Bugfixes
 - SSRED
   - Adding hidden properties for system matrices to cope  with changed ss-class definition after R2016a
+***
 
-## v1.06 [16 September 2016]
+v1.06 [16 September 2016]
+-------------------------
 ### Changes
 - APP
  	- new functionality: plotting of impulse- and step-response
@@ -30,8 +64,10 @@
 
 - RKICOP
 	- **new function: Rational Krylov with an iteratively calculated optimal point**
+***
 
-## v1.05 [9 May 2016]
+v1.05 [9 May 2016]
+------------------
 ### Changes
 - APP
  - **New sssMOR app added**
@@ -62,5 +98,7 @@
 - TBR
 	- **Alternating Direction Implicit (ADI) functionality added using the M.E.S.S. toolbox**
 	- plot decay of hsv and ask user (if q not defined)
+***
 
-## v1.00 - First Release [16 November 2015]
+v1.00 - First Release [16 November 2015]
+-----------------------------------------

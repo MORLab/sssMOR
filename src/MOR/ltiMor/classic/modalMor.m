@@ -1,5 +1,5 @@
 function [sysr, V, W, D] = modalMor(sys, q, Opts)
-% MODALMOR - Modal model order reduction of LTI systems
+% MODALMOR - Modal truncation order reduction of LTI systems
 %
 % Syntax:
 %       sysr			= MODALMOR(sys, q)
@@ -34,13 +34,15 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 %			-.type:		option to eigs command;
 %						[{'SM'} / 'LM' / 'SA' / 'LA' / 'SR' / 'LR' / real or complex scalar]
 %			-.orth:		orhtogonalization;
-%						[{'0'} / 'qr']
+%						[false / {'qr'}]
 %			-.real:		real reduced system;
 % 						[{'real'} / '0']
 %           -.tol:      tolerance for the eigenspace computation
 %                       [{1e-6} / positive float]
 %           -.dominance: perform dominance analysis
 %                       [{0} / 'analyze' / '2q' / '3q' / '4q']
+%           -.subspaceW:choose how the left invariant subspace W is computed;
+%                       [{'eigs'} / '1by1' ]
 %           -.lse:      solve linear system of equations
 %                       [{'sparse'} / 'full']
 %
@@ -68,6 +70,8 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 %		* *[3] Sorensen (1992)*, Implicit Application of Polynomial Filters 
 %              in a k-Step Arnoldi Method.
 %		* *[4] Foellinger (2013)*, Regelungstechnik (pp. 305-319)
+%       * *[5] Litz and Roth (1981)*, State decomposition for singular perturbation
+%              
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
@@ -80,22 +84,23 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      Heiko Panzer, Sylvia Cremer, Rudy Eid, Alessandro
-%               Castagnotto, Lisa Jeschek
+% Authors:      Heiko Panzer, Sylvia Cremer, Rudy Eid, 
+%               Alessandro Castagnotto, Lisa Jeschek
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  16 Aug 2016
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  23 Nov 2016
+% Copyright (c) 2015,2016 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 % Default execution parameters
-Def.type = 'SM'; 
-Def.orth = 'qr'; %orthogonalization ('0','qr')
-Def.real = 'real'; %real reduced system ('0', 'real')
-Def.tol = 1e-6; % tolerance for SM/LM eigenspace
-Def.dominance = 0; %dominance analysis ('0','analyze','2q','3q',..,'9q')
-Def.lse = 'sparse'; % solveLse ('sparse', 'full')
+Def.type        = 'SM'; 
+Def.orth        = 'qr'; %orthogonalization (false,true,'qr')
+Def.real        = 'real'; %real reduced system (true, false)
+Def.tol         = 1e-6; % tolerance for SM/LM eigenspace
+Def.dominance   = 0; %dominance analysis ('0','analyze','2q','3q',..,'9q')
+Def.lse         = 'sparse'; % solveLse ('sparse', 'full')
+Def.subspaceW   = 'eigs'; % 'eigs', '1by1': choose how to compute W
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -111,6 +116,7 @@ if nnz(Opts.dominance) && ~strcmp(Opts.dominance,'analyze')
     end
 end
 
+%% Invariant subspace computation
 %compute right and left eigenvectors
 if q>=size(sys.A,1)-1 %eigs: q<n-1
     if ~sys.isSym
@@ -123,15 +129,11 @@ if q>=size(sys.A,1)-1 %eigs: q<n-1
         W=V;
     end
 else
-    if strcmp(Opts.type,'LM') && (strcmp(Opts.orth,'qr') || strcmp(Opts.real, 'real')) && ~nnz(Opts.dominance)
-        [V, W]=eigenspaceLM(q);
-    elseif strcmp(Opts.type,'SM') && (strcmp(Opts.orth,'qr') || strcmp(Opts.real, 'real')) && ~nnz(Opts.dominance)
-        [V, W]=eigenspaceSM(q);
-    else
-        [V, W]=exactEigenvector(q);
-    end
+    [V, W]=eigenspace(q);
 end
 
+
+%% Post processing
 %dominance analysis
 if Opts.dominance
     [V, W, D] = dominanceAnalysis(q, V, W);
@@ -166,162 +168,87 @@ sysr = ssRed('modalMor',Opts,sysr);
 sysr.Name = sprintf('%s_%i_modal_%s',sys.Name,sysr.n,Opts.type);
 
 %% ------------------ AUXILIARY FUNCTIONS --------------------------
-function [V, W, rlambda]=exactEigenvector(q)
+function [V, W, rlambda] = eigenspace(q)
     %calculate right eigenvectors
     [V, rlambda] = eigs(sys.A, sys.E, q, Opts.type);
     rlambda=diag(rlambda);
 
     %calculate left eigenvectors
-    if ~sys.isSym
-        W = zeros(size(V)); llambda = zeros(size(rlambda));
-        warning('off','MATLAB:nearlySingularMatrix');
-        warning('off','MATLAB:eigs:SigmaNearExactEig');
-        opts.tol=1e3*eps/norm(full(sys.A));
-        for iEig = 1:length(rlambda)
-            %check if eigenvalue is complex conjugated
-            if iEig==1 || abs(rlambda(iEig-1)-conj(rlambda(iEig)))>1e-6 
-                [W(:,iEig),llambda(iEig), flag] = eigs((sys.A-(rlambda(iEig))*sys.E).',1,1e3*eps, opts);
-                %Ritz residual: r=Ax-lambda*x
-                if (sys.A.'*W(:,iEig)-rlambda(iEig)*sys.E.'*W(:,iEig))/norm(W(:,iEig)) >= norm(full(sys.A))*1e3*eps
-                    error('Eigenvectors belong to different eigenvalues. Please try again.');
+    if sys.isSym
+        W=V;
+    else
+        ceA = condest(sys.A);
+        resTol = ceA*1e3*eps;  
+        switch Opts.subspaceW
+            case 'eigs'
+                opts.v0 = real(V(:,1));
+                [W,llambda] = eigs(sys.A.', sys.E.', q, Opts.type, opts);
+                llambda=diag(llambda);
+                % check if we converged to same eigenvalues
+                if norm(sort(llambda)-sort(rlambda))/norm(rlambda) > resTol
+                    warning('sssMOR:modalMor:eigsConvergence',...
+                        'Eigs did not converge to same eigenvalues for V and W. Consider setting Opts.subspaceW = ''exact''.')
                 end
-                if flag~=0
-                    error('Computation of eigenvectors failed.');
+            case '1by1'
+                W = zeros(size(V));
+                warning('off','MATLAB:nearlySingularMatrix');
+                warning('off','MATLAB:eigs:SigmaNearExactEig');
+                opts.tol=1e3*eps/ceA;
+                for iEig = 1:length(rlambda)                    
+                    %check if eigenvalue is complex conjugated
+                    if iEig==1 || isreal(rlambda(iEig))
+                        cplxconjpartner = false;
+                    else %complex eigenvalue
+                        if abs(rlambda(iEig-1)-conj(rlambda(iEig)))>1e-6
+                            cplxconjpartner = true;
+                        else
+                            cplxconjpartner = false;
+                        end
+                    end
+                        
+                    if cplxconjpartner
+                        %switch order of complex conjugated W -> W'*A*V diagonal
+                        W(:,iEig)   = W(:,iEig-1);
+                        W(:,iEig-1) = conj(W(:,iEig-1)); 
+                    else
+                        opts.v0 = V(:,iEig);
+                        [W(:,iEig),~, flag] = eigs((sys.A-(rlambda(iEig))*sys.E).',1,1e3*eps, opts);
+                        %Ritz residual: r=Ax-lambda*E*x
+                        if flag~=0
+                            warning('sssMOR:modalMor:eigsConvergence','Eigs did not converge for selected eigenvalue.');
+                        elseif norm(sys.A.'*W(:,iEig)-rlambda(iEig)*sys.E.'*W(:,iEig))/norm(W(:,iEig)) >= resTol
+                            error('sssMOR:modalMor:ritzResidual','Eigenvectors in W and V belong to different eigenvalues.');
+                        end
+                    end
                 end
-            else
-                %switch order of complex conjugated W -> W'*A*V diagonal
-                W(:,iEig)=W(:,iEig-1);
-                W(:,iEig-1)=conj(W(:,iEig-1)); 
-            end
+                warning('on','MATLAB:nearlySingularMatrix');
+                warning('on','MATLAB:eigs:SigmaNearExactEig');
         end
-        warning('on','MATLAB:nearlySingularMatrix');
-        warning('on','MATLAB:eigs:SigmaNearExactEig');
-    else
-        W=V;
     end
 end
-
-function [V, W]=eigenspaceLM(q)
-    if sys.isDescriptor
-        if strcmp(Opts.lse,'hess')
-            error('Hess not implemented for the use with modalMor.');
-        end
-        
-        solveLse(sys.E);
-        Opts.reuseLU=true;
-    end
-
-    %orthogonal iteration for LM
-    V=rand(sys.n,q);
-    V_old=V;
-    
-    if ~sys.isSym
-        W=rand(sys.n,q);
-        W_old=W;
-        while norm((speye(sys.n)-V*V')*V_old)>Opts.tol || norm((speye(sys.n)-W*W')*W_old)>Opts.tol
-            V_old=V;
-            W_old=W;
-            
-            if sys.isDescriptor
-                [V,W]=solveLse(sys.E,sys.A*V_old,(sys.A'*W_old)',Opts);
-            else
-                V=sys.A*V;
-                W=sys.A'*W;
-            end
-            
-            [V,~]=qr(V,0);
-            [W,~]=qr(W,0);
-        end
-        for j=1:q
-            W(:,j)=W(:,j)/norm(W(:,j));
-            V(:,j)=V(:,j)/norm(V(:,j));
-        end 
-    else
-        while norm((speye(sys.n)-V*V')*V_old)>Opts.tol
-            V_old=V;
-            
-            if sys.isDescriptor
-                V=solveLse(sys.E,sys.A*V_old,Opts);
-            else
-                V=sys.A*V;
-            end
-            
-            [V,~]=qr(V,0);
-        end
-        for j=1:q
-            V(:,j)=V(:,j)/norm(V(:,j));
-        end 
-        W=V;
-    end
-end
-
-function [V, W]=eigenspaceSM(q)
-    if strcmp(Opts.lse,'hess')
-        error('Hess not implemented for the use with modalMor.');
-    end
-    
-    solveLse(sys.A);
-    Opts.reuseLU=true;
-    
-    %inverse orthogonal iteration for SM
-    V=rand(sys.n,q);
-    V_old=V;
-    
-    if ~sys.isSym
-        W=rand(sys.n,q);
-        W_old=W;
-        while norm((eye(sys.n)-V*V')*V_old)>Opts.tol || norm((eye(sys.n)-W*W')*W_old)>Opts.tol
-            V_old=V;
-            W_old=W;        
-            
-            [V,W]=solveLse(sys.A,sys.E*V_old,(sys.E'*W_old)',Opts);
-
-            [V,~]=qr(V,0);
-            [W,~]=qr(W,0);
-        end
-        for j=1:q
-            W(:,j)=W(:,j)/norm(W(:,j));
-            V(:,j)=V(:,j)/norm(V(:,j));
-        end
-    else
-        while norm(V_old - V*(V'*V_old))>Opts.tol
-            V_old=V;
-            
-            V = solveLse(sys.A,sys.E*V_old,Opts);
-            
-            [V,~]=qr(V,0);
-        end
-        for j=1:q
-            V(:,j)=V(:,j)/norm(V(:,j));
-        end 
-        W=V;
-    end
-end
-
 function [V, W] = makeReal(V, W)
     fac = 2/sqrt(2); %factor needed to guarantee preservation of eig
-    k=find(imag(sum(V)));
+    k=find(any(imag(V)));
     if ~isempty(k)
-         if mod(length(k),2)==0
-              for i=1:2:length(k)
-                   temp=V(:,i);
-                   V(:,i)=fac*real(temp);
-                   V(:,i+1)=fac*imag(temp);
-                   temp=W(:,i);
-                   W(:,i)=fac*real(temp);
-                   W(:,i+1)=fac*imag(temp);
+         if mod(length(k),2)==0 %make sure they come in pairs
+              for iK = 1:2:length(k)
+                idx = k(iK);
+                temp=V(:,idx);
+                V(:,idx)=fac*real(temp);
+                V(:,idx+1)=fac*imag(temp);
+                temp=W(:,idx);
+                W(:,idx)=fac*real(temp);
+                W(:,idx+1)=fac*imag(temp);
               end
          else
               warning('Reduced system contains complex elements. Please try reduction order q+1.');
          end
     end
 end
-
 function [V, W, D] = dominanceAnalysis(q, V, W)  
     D=zeros(q,1);
-    tempSys=sys.B*sys.C;
     for j=1:q
-        D(j)=norm((W(:,j)'*tempSys*V(:,j))/(W(:,j)'*sys.A*V(:,j)));
+        D(j)=norm((sys.C*V(:,j)*W(:,j)'*sys.B/(W(:,j)'*sys.A*V(:,j))));
     end
     if ~strcmp(Opts.dominance,'analyze')
         %take eigenvectors of most dominant eigenvalues

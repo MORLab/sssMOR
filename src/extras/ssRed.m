@@ -22,7 +22,7 @@ classdef ssRed < ss
 %
 % Input Arguments:
 %       -method: name of the used reduction algorithm;
-%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork']
+%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'rkOp' / 'rkIcop' / 'userDefined']
 %       -params (tbr):          structure with the parameters for the tbr-algorithm;
 %           -.originalOrder:    Model order before reduction;
 %           -.type:             select amongst different tbr algorithms
@@ -259,6 +259,28 @@ classdef ssRed < ss
 %                               subspaces
 %           -.Rt:               right tangential directions for MIMO
 %           -.Lt:               left tangential directions for MIMO
+%       -params (rkOp):         structure with the parameters for the
+%                               rkOp-algorithm
+%           -.originalOrder:    Model order before reduction
+%           -.sOpt:             optimal expansion point
+%           -.rk:               reduction type
+%                               [{'twoSided'} / 'input' / 'output']
+%           -.lse:              solve linear system of equations
+%                               [{'sparse'} / 'full' / 'gauss' / 'hess' / 'iterative' ]
+%       -params (rkIcop):       structure with the parameters for the
+%                               rkIcop-algorithm
+%           -.originalOrder:    Model order before reduction
+%           -.sOpt:             optimal expansion point
+%           -.s0:               inital expansion point (scalar)
+%           -.rk:               reduction type
+%                               [{'twoSided'} / 'input' / 'output']
+%           -.maxIter:          maximum number of iterations;
+%                               [{20} / positive integer]
+%           -.tol:              convergence tolerance;
+%                               [{1e-2} / positive float]
+%           -.lse:              solve linear system of equations
+%                               [{'sparse'} / 'full' / 'gauss' / 'hess' / 'iterative' ]
+%       -params (userDefined):  []
 %       -A: system matrix
 %       -B: input matrix
 %       -C: output matrix
@@ -301,12 +323,12 @@ classdef ssRed < ss
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      Niklas Kochdumper
+% Authors:      Niklas Kochdumper, Alessandro Castagnotto
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  15 Jun 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  20 Jan 2017
+% Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
     properties(SetAccess = private)
@@ -374,13 +396,19 @@ classdef ssRed < ss
                 end             
             end
             
-            if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr', ...
+            if ~isa(varargin{1},'char')
+                error('sssMOR:ssRed:wrongUsage',...
+                    'The first argument must be a string specifying the reduction method. Type "help ssRed" for more information.');
+            elseif ~ismember(varargin{1},{'tbr', ...
                     'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
-                    'spark','cure_spark','cure_irka','cure_rk+pork'}) == 0
-                error('The first argument has a wrong format. Type "help ssRed" for more information.');
+                    'spark','cure_spark','cure_irka','cure_rk+pork','rkOp', ...
+                    'rkIcop','modelFct','cirka','stabsep','userDefined'})
+                error('sssMOR:ssRed:reductionMethodUndefined',...
+                    'The reduction method specified (%s) is undefined. Type "help ssRed" for more information.',...
+                    varargin{1});
             end
             
-            % call the construktor of the superclass ss
+            % call the constructor of the superclass ss
             obj@ss(A,B,C,D,'e',E);
             
             % store the correct names for the properties containing the
@@ -444,6 +472,10 @@ classdef ssRed < ss
                 if strcmp(varargin{1},'irka')
                     obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'rk'); 
                 end
+                if strcmp(varargin{1},'rkOp') || strcmp(varargin{1},'rkIcop')
+                    obj.reductionParameters{end-1,1} = [];
+                    obj.reductionParameters = obj.reductionParameters(~cellfun('isempty',obj.reductionParameters));
+                end
             end
             obj.reductionParameters = obj.removeCureParameters(obj.reductionParameters); 
         end
@@ -475,13 +507,14 @@ classdef ssRed < ss
         end
         
         function isDescriptor = get.isDescriptor(sys)
-            isDescriptor = logical(full(any(any(sys.(sys.e_)-speye(size(sys.(sys.e_)))))));
+            isDescriptor = logical(full(any(any(sys.(sys.e_)-eye(size(sys.(sys.e_)))))));
         end
         
         function sys = resolveDescriptor(sys)
             sys.(sys.a_) = sys.(sys.e_)\sys.(sys.a_);
             sys.(sys.b_) = sys.(sys.e_)\sys.(sys.b_);
-            sys.(sys.e_) = [];
+            sys.(sys.e_) = eye(size(sys.(sys.a_))); 
+            %makes the usage of sys.e in computations more robust than []
         end
         
         function isSym = get.isSym(sys) %A=A', E=E'
@@ -548,6 +581,58 @@ classdef ssRed < ss
            end
     end
         %% Override operators and build-in-functions
+        
+        function infostr = disp(sys)
+        % Displays information about a reduced state-space model (Similar
+        % to sss/disp, but with additional information)
+            if isempty(sys)
+                fprintf(1,'  Empty reduced state-space model.\n\n');
+            else
+                mc = metaclass(sys);
+                str = [];
+                if ~isempty(mc.Name) && ~isempty(sys.Name)
+                    str = [mc.Name ' Model ' sys.Name, ' '];
+                end
+
+                if sys.isDae;            str = [str '(DAE)'];
+                elseif sys.isDescriptor; str = [str '(DssRed)'];
+                else                     str = [str '(ssRed)'];
+                end
+
+                if sys.isSiso;       str = [str '(SISO)'];
+                elseif sys.isSimo;   str = [str '(SIMO)'];
+                elseif sys.isMiso;   str = [str '(MISO)'];
+                elseif sys.isMimo;   str = [str '(MIMO)'];
+                end
+
+                str = [str  char(10), num2str(sys.n) ' states, ' num2str(sys.m) ...
+                    ' inputs, ' num2str(sys.p) ' outputs'];
+
+                if sys.Ts==0
+                    str = [str  char(10) 'Continuous-time state-space model.'];
+                else
+                    str = [str  char(10) 'Sample time: ' num2str(sys.Ts) ' seconds'];
+                    str = [str  char(10) 'Discrete-time state-space model.'];
+                end
+                
+                params = sys.reductionParameters{end,1};
+                if strcmp(params.method,'userDefined')
+                    str = [str char(10) 'Reduction Method: ' params.method char(10)];
+                else
+                    str = [str char(10) 'Reduction Method: ' params.method char(10) ...
+                            'Original order: ' num2str(params.params.originalOrder)];
+                end
+
+                if nargout>0
+                    infostr = {str};
+                else
+                    str = strrep(str, char(10), [char(10) '  ']);
+                    disp(['  ' str char(10)]);
+                end
+            end
+        end
+        
+        
         function varargout = eig(sys, varargin)
             if sys.isBig
                 warning(['System order is very large: ',num2str(sys.n),'. You may want to try eigs(sys) instead.'])
@@ -850,7 +935,7 @@ classdef ssRed < ss
 
                 % get h,t by calling ss/step
 
-                sys.(sys.d) = zeros(size(sys.(sys.d_)));
+                sys.(sys.d_) = zeros(size(sys.(sys.d_)));
                 if ~isempty(t)
                     [h,tg] = step@ss(sys, t(end));
                 else
@@ -916,19 +1001,21 @@ classdef ssRed < ss
             end
         end
         
-        function  [R,L] = lyapchol(sys,Opts)
+        function  [S,R] = lyapchol(sys,Opts)
             if sys.isDescriptor
-                R = lyapchol(sys.(sys.a_),sys.(sys.b_),sys.(sys.e_));
+                S = lyapchol(sys.(sys.a_),sys.(sys.b_),sys.(sys.e_));
             else
-                R = lyapchol(sys.(sys.a_),sys.(sys.b_));
+                S = lyapchol(sys.(sys.a_),sys.(sys.b_));
             end
+            S = S';
 
             if nargout>1
                 if sys.isDescriptor
-                    L = lyapchol(sys.(sys.a_)', sys.(sys.c_)',sys.(sys.e_)');
+                    R = lyapchol(sys.(sys.a_)', sys.(sys.c_)',sys.(sys.e_)');
                 else
-                    L = lyapchol(sys.(sys.a_)',sys.(sys.c_)');
+                    R = lyapchol(sys.(sys.a_)',sys.(sys.c_)');
                 end
+                R = R';
             end
         end
     end
@@ -936,7 +1023,7 @@ classdef ssRed < ss
     %%Private and static helper methods
     methods(Hidden, Access = private, Static)
         
-        function parsedStruct = parseParamsStruct(params,method,cureRequired)
+        function parsedStruct       = parseParamsStruct(params,method,cureRequired)
         % Checks if the struct with the parameters  "params" has the correct
         % structure for the specified reduction method "method". If this is
         % the case, then the values of the required fields of the struct 
@@ -958,13 +1045,24 @@ classdef ssRed < ss
                list = {'originalOrder','maxiter','tol','type','stopCrit', ...
                        'orth','lse','dgksTol','krylov', ...
                        's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');   
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'rk')                  %rk
                list = {'originalOrder','real','orth','reorth','lse','dgksTol','krylov', ...
                        'IP','Rt','Lt','s0_inp','s0_out'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
+            elseif strcmp(method,'modelFct')           %modelFct
+               list = {'originalOrder','s0mTot','updateModel','modelTol'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
+            elseif strcmp(method,'cirka')               %cirka
+               list = {'originalOrder','modelFctOrder','kIrka','s0',...
+                        'qm0','s0m','maxiter','tol','stopCrit','updateModel',...
+                        'clearInit','irka'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'projectiveMor')       %projectiveMor
                list = {'originalOrder','trans'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
+            elseif strcmp(method,'stabsep')             %stabsep
+               list = {'originalOrder'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'porkV')               %porkV
                list = {'originalOrder'};
@@ -1032,10 +1130,18 @@ classdef ssRed < ss
                     list = {'fact','stop','stopval','maxIter'};
                     parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
                end
+            elseif strcmp(method,'rkOp')
+               list = {'originalOrder','sOpt','rk','lse'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');  
+            elseif strcmp(method,'rkIcop')
+               list = {'originalOrder','sOpt','s0','rk','maxIter','tol','lse'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params'); 
+            elseif strcmp(method,'userDefined')
+               parsedStruct = params;
             end
         end
         
-        function parsedParamsList = removeReductionMethod(paramsList,method)
+        function parsedParamsList   = removeReductionMethod(paramsList,method)
         %Removes the reductionParameters for the specified reduction method
         %"method" from the reduction history. This is i.e. necessary for
         %"rk", because in the algorithm projectiveMor is used. This
@@ -1052,7 +1158,7 @@ classdef ssRed < ss
             end 
         end
         
-        function parsedParamsList = removeCureParameters(paramsList)
+        function parsedParamsList   = removeCureParameters(paramsList)
         %The parameters under the field "cure" stay the same for all cure
         %iterations. Because of this, the field "cure" is only stored for
         %the first iteration step. Therefore, this function removes all the
@@ -1068,7 +1174,7 @@ classdef ssRed < ss
             end
         end
         
-        function outputStruct = parseStructFields(structure,fields,structName)
+        function outputStruct       = parseStructFields(structure,fields,structName)
         %This function checks if the the struct "structure" contains all fields
         %specified in the cell-array "fields". If the case, all the values 
         %of the fields of the struct "structure" are copied to the struct 

@@ -162,6 +162,9 @@ else
     Opts = parseOpts(Opts,Def);
 end              
  
+if islogical(Opts.orth) && Opts.orth
+    Opts.orth = Def.orth; %set default orthogonalization method
+end
 %%  Parse input
 if length(varargin) == 1
     % usage: ARNOLDI(E,A,B,s0)
@@ -504,7 +507,7 @@ if jCol>1
                 TLw(:,jCol)=TLw(:,jCol)-h*TLw(:,iCol);
               end 
             end
-       case '2mgs'
+        case '2mgs'
             for k=0:1
                 for iCol=1:jCol-1
                   h=IP(V(:,jCol),V(:,iCol));

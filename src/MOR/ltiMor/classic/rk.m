@@ -132,6 +132,14 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 % create the options structure
 Def.real = true; %keep the projection matrices real?       
 
+% use hess if sys is ssRed object
+if isa(sys,'ssRed'), 
+    Def.lse='hess'; 
+    if isempty(sys.E), sys.E = eye(size(sys.A)); end %ssRed robust compatibility
+else
+    Def.lse = 'sparse'; 
+end
+
 if ~isempty(varargin) && isstruct(varargin{end})
     Opts = varargin{end};
     varargin = varargin(1:end-1);
@@ -166,14 +174,6 @@ if ~isempty(varargin)
     end
 end
 
-% use hess if sys is ssRed object
-if isa(sys,'ssRed')
-    if isfield(Opts,'lse') && ~isempty(Opts.lse) && ~strcmp(Opts.lse,'hess')
-        warning('Opts.lse has been changed to "hess".');
-    end
-    Opts.lse='hess';
-end
-
 %%  Check the inputs
 if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
     (~exist('s0_out', 'var') || isempty(s0_out))
@@ -181,7 +181,7 @@ if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
 end
 
 if exist('s0_inp', 'var')
-    s0_inp = s0_vect(s0_inp);
+    s0_inp = shiftVec(s0_inp);
     % sort expansion points & tangential directions
     s0old = s0_inp;
     if Opts.real, 
@@ -202,7 +202,7 @@ else
     s0_inp = [];
 end
 if exist('s0_out', 'var')
-    s0_out = s0_vect(s0_out);
+    s0_out = shiftVec(s0_out);
         % sort expansion points & tangential directions
     s0old = s0_out;
     if Opts.real, 
@@ -308,19 +308,3 @@ if ~exist('s0_out','var') Opts.s0_out = []; else Opts.s0_out = s0_out; end
 
 % Convert to ssRed-object
 sysr = ssRed('rk',Opts,sysr);
-
-%% ----------- AUXILIARY --------------
-function s0=s0_vect(s0)
-    % change two-row notation to vector notation
-    if size(s0,1)==2
-        temp=zeros(1,sum(s0(2,:)));
-        for j=1:size(s0,2)
-            k=sum(s0(2,1:(j-1))); k=(k+1):(k+s0(2,j));
-            temp(k)=s0(1,j)*ones(1,s0(2,j));
-        end
-        s0=temp;
-    end
-
-    if size(s0,1)>size(s0,2)
-        s0=transpose(s0);
-    end
