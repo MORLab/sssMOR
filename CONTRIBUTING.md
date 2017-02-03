@@ -1,12 +1,18 @@
-# Contributing to sssMOR
+Contributing to sssMOR
+=======================
 
 Contributions to sssMOR are welcome, as we try to keep the software up to date with **newest MOR routines** and **numerical linear algebra** algorithms.
 
 In the following are a few guidelines to respect when developing code for sssMOR.
-
 If you have any questions on how to contribute, just get in touch with us at sssMOR@rt.mw.tum.de.
 
-## Styleguide
+> Note: The Gitlab repositories hosting the sss and sssMOR projects will become public soon, making it even easier for you to contribute to the sssMOR project.
+>Sign up for our newsletter under https://lists.lrz.de/mailman/listinfo/sssmor to stay up to date.
+
+***
+Styleguide
+-----------
+
 The file ``programmingGuidelines.m`` contains some general programming and naming rules aimed at improving the quality of the code, its readability and the overall functionality. Here is a summary of the most important points.
 
 ### Naming conventions
@@ -73,14 +79,16 @@ updated with the function parseOpts:
         Opts = Def;
   else
         Opts = parseOpts(Opts,Def);
-  end     
+  end
 ```
 
 ### REFERENCES:
 1. Johnson (2014): MATLAB Style Guidelines 2.0
 2. Hung (1999): The Pragmatic Programmer
 
-## Testing
+***
+Testing
+---------
 
 As the size of the project and interconnections between functions increases rapidly, it is essential to test the bais functionality of the toolbox every time we committ a change.
 For this reason, we have implemented ``unittest`` routines for every function that can be run within the test suites
