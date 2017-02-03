@@ -77,6 +77,7 @@ if ~isempty(varargin) && isa(varargin{1},'struct')
     Opts=varargin{1};
 end
 
+warning('off','sss:sss:ssRedConversion')
 %% Parse the inputs
 %   Default execution parameters
 Def.rk = 'twoSided'; % 'twoSided','input','output'
@@ -190,4 +191,7 @@ if ~isfield(Opts,'tol') Opts.tol = 1e-2; end
 Opts.s0 = s0;
 Opts.sOpt = sOpt;
 sysr = ssRed('rkIcop',Opts,sysr);
+
+warning('on','sss:sss:ssRedConversion')
+
 

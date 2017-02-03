@@ -81,7 +81,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       To compute a balanced realization, use
 %
 %> sys = loadSss('building');
-%> sysBal = tbr(sys,sys.n)
+%> sysBal = tbr(sys,sys.n); disp(sysBal)
 %
 %       To performe balanced reduction, specify a reduced order q
 %
