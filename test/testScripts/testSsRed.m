@@ -30,7 +30,7 @@ classdef testSsRed < sssTest
         function testSsRedTbr(testCase)
             
             % Create ssRed-object througth reduction with tbr (SISO)          
-            sys = loadSss('build.mat');
+            sys = loadSss('building.mat');
             sysr = tbr(sys,10);
             
             % Test some functions of the Control System Toolbox on the
@@ -68,7 +68,7 @@ classdef testSsRed < sssTest
             warning('off','all')
             
             % Create ssRed-object througth reduction with irka (SISO)          
-            sys = loadSss('build.mat');
+            sys = loadSss('building.mat');
             s0 = [0 1+i 1-i];
             sysr = irka(sys,s0);
             
@@ -112,7 +112,7 @@ classdef testSsRed < sssTest
             warning('off','all')
             
             % Create ssRed-object througth reduction with rk (SISO)          
-            sys = loadSss('build.mat');
+            sys = loadSss('building.mat');
             s0 = [0 1+i 1-i];
             sysr = rk(sys,s0);
             
@@ -156,7 +156,7 @@ classdef testSsRed < sssTest
             warning('off','all')
             
             % Create ssRed-object througth reduction with modalMor (SISO)          
-            sys = loadSss('build.mat');
+            sys = loadSss('building.mat');
             Opts.type = 'SR';
             Opts.real = 'real';
             sysr = modalMor(sys,10,Opts);
@@ -198,7 +198,7 @@ classdef testSsRed < sssTest
             warning('off','all')
             
             % Create ssRed-object througth reduction with cure_spark (SISO)          
-            sys = loadSss('build.mat');
+            sys = loadSss('building.mat');
             Opts.cure = struct('nk',4, 'redfun', 'spark', 'verbose', 1, 'stopval',12);
             sysr = cure(sys,Opts);
             
