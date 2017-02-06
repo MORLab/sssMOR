@@ -281,7 +281,7 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
     %      way that the new defined field passes the check
       
-    usedOpts = sysrTemp.reductionParameters{end,1}.params;
+    usedOpts = sysrTemp.reductionParameters(end).params;
     usedOpts.cure = Opts.cure;
     usedOpts.currentReducedOrder = sysr.n+Opts.cure.nk;
     usedOpts.originalOrder = sys.n;

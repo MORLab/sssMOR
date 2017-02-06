@@ -411,13 +411,13 @@ classdef ssRed < ss
                 if ~isempty(paramsList)
                     try
                        for i = 1:size(paramsList,1)
-                          if length(fieldnames(paramsList{i})) ~= 2
+                          if length(fieldnames(paramsList(i))) ~= 2
                               error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.');
                           end
-                          if i > 1 && ismember(paramsList{i-1}.method,{'cure_spark','cure_irka','cure_rk+pork'})
-                              paramsList{i}.params = obj.parseParamsStruct(paramsList{i}.params,paramsList{i}.method,0);
+                          if i > 1 && ismember(paramsList(i-1).method,{'cure_spark','cure_irka','cure_rk+pork'})
+                              paramsList(i).params = obj.parseParamsStruct(paramsList(i).params,paramsList(i).method,0);
                           else
-                              paramsList{i}.params = obj.parseParamsStruct(paramsList{i}.params,paramsList{i}.method,1);
+                              paramsList(i).params = obj.parseParamsStruct(paramsList(i).params,paramsList(i).method,1);
                           end
                        end
                     catch ex
@@ -427,19 +427,18 @@ classdef ssRed < ss
 
                 % update the reductionParameters list
                 if isempty(paramsList)
-                   obj.reductionParameters = cell(1,1);
-                   obj.reductionParameters{1,1}.method = varargin{1};
+                   obj.reductionParameters(1).method = varargin{1};
                    try
-                       obj.reductionParameters{1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
+                       obj.reductionParameters(1).params = obj.parseParamsStruct(varargin{2},varargin{1},1);
                    catch ex
                        error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
                    end
                 else
                    len = size(paramsList,1);
                    obj.reductionParameters = paramsList;
-                   obj.reductionParameters{len+1,1}.method = varargin{1};
+                   obj.reductionParameters(len+1).method = varargin{1};
                    try
-                       obj.reductionParameters{len+1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
+                       obj.reductionParameters(len+1).params = obj.parseParamsStruct(varargin{2},varargin{1},1);
                    catch ex
                        error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
                    end
@@ -531,12 +530,12 @@ classdef ssRed < ss
             l = length(sys.reductionParameters);
         
             try
-                if l > 1 && ismember(sys.reductionParameters{l-1}.method,{'cure_spark','cure_irka','cure_rk+pork'})
-                    sys.reductionParameters{l}.params = sys.parseParamsStruct(params.params,params.method,0);
-                    sys.reductionParameters{l}.method = params.method;
+                if l > 1 && ismember(sys.reductionParameters(l-1).method,{'cure_spark','cure_irka','cure_rk+pork'})
+                    sys.reductionParameters(l).params = sys.parseParamsStruct(params.params,params.method,0);
+                    sys.reductionParameters(l).method = params.method;
                 else
-                    sys.reductionParameters{l}.params = sys.parseParamsStruct(params.params,params.method,0);
-                    sys.reductionParameters{l}.method = params.method;
+                    sys.reductionParameters(l).params = sys.parseParamsStruct(params.params,params.method,0);
+                    sys.reductionParameters(l).method = params.method;
                 end
             catch ex
                 error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
@@ -609,7 +608,7 @@ classdef ssRed < ss
                     str = [str  char(10) 'Discrete-time state-space model.'];
                 end
                 
-                params = sys.reductionParameters{end,1};
+                params = sys.reductionParameters(end,1);
                 if strcmp(params.method,'userDefined')
                     str = [str char(10) 'Reduction Method: ' params.method char(10)];
                 else
@@ -917,8 +916,8 @@ classdef ssRed < ss
             
             parsedParamsList = paramsList;
             if size(paramsList,1) > 1
-                if strcmp(paramsList{end-1}.method,method)
-                     parsedParamsList{end-1} = [];
+                if strcmp(paramsList(end-1).method,method)
+                     parsedParamsList(end-1) = [];
                      parsedParamsList = parsedParamsList(~cellfun('isempty',parsedParamsList));
                 end
             end 
@@ -933,9 +932,9 @@ classdef ssRed < ss
             parsedParamsList = paramsList;
         
             for i = 2:length(paramsList)
-                if ismember(paramsList{i-1}.method,{'cure_spark','cure_irka','cure_rk+pork'}) && ...
-                   isfield(paramsList{i}.params,'cure')
-                    parsedParamsList{i}.params = rmfield(parsedParamsList{i}.params,'cure');
+                if ismember(paramsList(i-1).method,{'cure_spark','cure_irka','cure_rk+pork'}) && ...
+                   isfield(paramsList(i).params,'cure')
+                    parsedParamsList(i).params = rmfield(parsedParamsList(i).params,'cure');
                 end
             end
         end
