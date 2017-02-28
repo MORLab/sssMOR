@@ -180,7 +180,7 @@ warning('off','MATLAB:nearlySingularMatrix')
         %      way that the new defined field passes the check
 
         Opts.originalOrder = sys.n;
-        sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'spark',Opts);
+        sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'spark',Opts,sys);
         
     end
     if nargout == 1
