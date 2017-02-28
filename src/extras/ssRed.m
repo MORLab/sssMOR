@@ -307,8 +307,6 @@ classdef ssRed < ss
     
     properties
         x0
-    end
-    properties(SetAccess = private)
         reductionParameters
     end
     properties(Dependent, Hidden)
@@ -405,40 +403,26 @@ classdef ssRed < ss
                 end
                 
                 % check all fields of paramsList
-                if ~isempty(paramsList)
-                    try
-                       for i = 1:size(paramsList,1)
-                          if length(fieldnames(paramsList(i))) ~= 2
-                              error('Argument "paramsList" has the wrong format. Type "help ssRed" for more information.');
-                          end
-                          if i > 1 && ismember(paramsList(i-1).method,{'cure_spark','cure_irka','cure_rk+pork'})
-                              paramsList(i).params = obj.parseParamsStruct(paramsList(i).params,paramsList(i).method,0);
-                          else
-                              paramsList(i).params = obj.parseParamsStruct(paramsList(i).params,paramsList(i).method,1);
-                          end
-                       end
-                    catch ex
-                       error('Argument "paramsList" has the wrong format. Type "help ssRed" for more information.'); 
-                    end
-                end
+                obj.checkParamsList(paramsList)
 
                 % update the reductionParameters list
                 if isempty(paramsList)
-                   obj.reductionParameters(1).method = method;
+                   paramsTemp(1).method = method;
                    try
-                       obj.reductionParameters(1).params = obj.parseParamsStruct(params,method,1);
+                       paramsTemp(1).params = obj.parseParamsStruct(params,method,1);
                    catch ex
                        error('Argument "params" has the wrong format. Type "help ssRed" for more information.');
                    end
+                   obj.reductionParameters = paramsTemp;
                 else
                    len = size(paramsList,2);
-                   obj.reductionParameters = paramsList;
-                   obj.reductionParameters(len+1).method = method;
+                   paramsList(len+1).method = method;
                    try
-                       obj.reductionParameters(len+1).params = obj.parseParamsStruct(params,method,1);
+                       paramsList(len+1).params = obj.parseParamsStruct(params,method,1);
                    catch ex
                        error('Argument "params" has the wrong format. Type "help ssRed" for more information.');
                    end
+                   obj.reductionParameters = paramsList;
                 end
                 
                 % postprocess cure parameters
@@ -473,6 +457,15 @@ classdef ssRed < ss
                 error('A and x0 must have the same number of rows.')
             end
             sys.x0 = x0;
+        end
+        
+        function sys = set.reductionParameters(sys,reductionParameters)
+            try
+                sys.checkParamsList(reductionParameters)
+            catch ex
+                error('Invalid value for the property "reductionParameters". Type "help ssRed" for more information.');
+            end
+            sys.reductionParameters = reductionParameters;            
         end
         
         %% Get helper functions
@@ -774,6 +767,29 @@ classdef ssRed < ss
     
     %%Private and static helper methods
     methods(Hidden, Access = private, Static)
+        
+        function checkParamsList(paramsList)
+        % Checks if the list "paramsList" with reduction parameters 
+        % resulting from multiple reduction steps has the correct format.
+        % If this is not the case, an error is produced
+        
+           if ~isempty(paramsList)
+                try
+                   for i = 1:size(paramsList,1)
+                      if length(fieldnames(paramsList(i))) ~= 2
+                          error('Argument "paramsList" has the wrong format. Type "help ssRed" for more information.');
+                      end
+                      if i > 1 && ismember(paramsList(i-1).method,{'cure_spark','cure_irka','cure_rk+pork'})
+                          ssRed.parseParamsStruct(paramsList(i).params,paramsList(i).method,0);
+                      else
+                          ssRed.parseParamsStruct(paramsList(i).params,paramsList(i).method,1);
+                      end
+                   end
+                catch ex
+                   error('Argument "paramsList" has the wrong format. Type "help ssRed" for more information.'); 
+                end
+            end 
+        end
         
         function parsedStruct = parseParamsStruct(params,method,cureRequired)
         % Checks if the struct with the parameters  "params" has the correct
