@@ -512,26 +512,6 @@ classdef ssRed < ss
             end
         end    
         
-        function sys = changeReductionParameters(sys,params)
-        % This function overrides the last entry of the cell-array 
-        % "obj.reductionParameters" with the parameters specified in 
-        % "params". 
-        
-            l = length(sys.reductionParameters);
-        
-            try
-                if l > 1 && ismember(sys.reductionParameters(l-1).method,{'cure_spark','cure_irka','cure_rk+pork'})
-                    sys.reductionParameters(l).params = sys.parseParamsStruct(params.params,params.method,0);
-                    sys.reductionParameters(l).method = params.method;
-                else
-                    sys.reductionParameters(l).params = sys.parseParamsStruct(params.params,params.method,0);
-                    sys.reductionParameters(l).method = params.method;
-                end
-            catch ex
-                error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
-            end 
-        end
-        
         %% Overload subsref to cope with compatibility issues in MATLAB
         function result = subsref(sys, arg)
             %   Parts are taken from built-in subsref
@@ -894,23 +874,6 @@ classdef ssRed < ss
             elseif strcmp(method,'userDefined')
                parsedStruct = params;
             end
-        end
-        
-        function parsedParamsList = removeReductionMethod(paramsList,method)
-        %Removes the reductionParameters for the specified reduction method
-        %"method" from the reduction history. This is i.e. necessary for
-        %"rk", because in the algorithm projectiveMor is used. This
-        %function then deletes "projectiveMor" from the reduction history, 
-        %because "projectiveMor" performs just the projection in "rk", but 
-        %is not a standalone reduction algorithm    
-            
-            parsedParamsList = paramsList;
-            if size(paramsList,1) > 1
-                if strcmp(paramsList(end-1).method,method)
-                     parsedParamsList(end-1) = [];
-                     parsedParamsList = parsedParamsList(~cellfun('isempty',parsedParamsList));
-                end
-            end 
         end
         
         function parsedParamsList = removeCureParameters(paramsList)
