@@ -288,15 +288,15 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     usedOpts.shifts = s0;
     
     if isa(sysr,'ssRed')
-        sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
-                     Br_tot, Cr_tot, zeros(p,m), Er_tot,sysr.reductionParameters);
+        sysr = ssRed(Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot, ...
+                     strcat('cure_',Opts.cure.redfun),usedOpts,sysr);
     else            %first Iteration
         if ~isempty(reductionParameters)
-            sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
-                         Br_tot, Cr_tot, zeros(p,m), Er_tot, reductionParameters);
+            sysr = ssRed(Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot, ...
+                         strcat('cure_',Opts.cure.redfun),usedOpts,reductionParameters);
         else
-            sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
-                         Br_tot, Cr_tot, zeros(p,m), Er_tot);
+            sysr = ssRed(Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot, ...
+                         strcat('cure_',Opts.cure.redfun),usedOpts);
         end
     end
     

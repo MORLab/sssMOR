@@ -164,7 +164,7 @@ if ~ischar(Opts.dominance), Opts.dominance = num2str(Opts.dominance); end
 Opts.originalOrder = sys.n;
 
 % Convert the reduced system to an ssRed-object
-sysr = ssRed('modalMor',Opts,sysr);
+sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'modalMor',Opts,sys);
 sysr.Name = sprintf('%s_%i_modal_%s',sys.Name,sysr.n,Opts.type);
 
 %% ------------------ AUXILIARY FUNCTIONS --------------------------

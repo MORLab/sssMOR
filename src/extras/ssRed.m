@@ -2,17 +2,13 @@ classdef ssRed < ss
 % SSRED - Reduced state-space LTI system (ssRed) class
 %
 % Syntax:
-%       sysr = ssRed(method,params,A,B,C)
-%       sysr = ssRed(method,params,A,B,C,paramsList)
-%       sysr = ssRed(method,params,A,B,C,D)
-%       sysr = ssRed(method,params,A,B,C,D,paramsList)
-%       sysr = ssRed(method,params,A,B,C,D,E)
-%       sysr = ssRed(method,params,A,B,C,D,E,paramsList)
-%       sysr = ssRed(method,params,sys_sss)
-%       sysr = ssRed(method,params,sys_sss,paramsList)
-%       sysr = ssRed(method,params,sys_ss)
-%       sysr = ssRed(method,params,sys_ss,paramsList)
-%       sysr = ssRed(method,params,sys_ssRed)
+%       sysr = ssRed(A,B,C)
+%       sysr = ssRed(A,B,C,D)
+%       sysr = ssRed(A,B,C,D,E)
+%       sysr = ssRed(A,B,C,D,E,method,params)
+%       sysr = ssRed(A,B,C,D,E,method,params,sys)
+%       sysr = ssRed(A,B,C,D,E,method,params,paramsList)
+%       
 %
 % Description:
 %       This class is derived from the ss-class. It is used to represent
@@ -21,8 +17,19 @@ classdef ssRed < ss
 %       objects normally possess
 %
 % Input Arguments:
+%       -A: system matrix
+%       -B: input matrix
+%       -C: output matrix
+%       -D: static gain matrix
+%       -E: descriptor matrix
 %       -method: name of the used reduction algorithm;
 %                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'userDefined']
+%       -sys:   original state space system before reduction (class sss or ssRed)
+%       -paramsList:    Structure array. Each entry represents one 
+%                       reduction (without the current reduction).
+%           -.method:           name of the applied reduction algorithm (see above)                               
+%           -.params:           structure with the parameters of the
+%                               applied algorithm (see below)
 %       -params (tbr):          structure with the parameters for the tbr-algorithm;
 %           -.originalOrder:    Model order before reduction;
 %           -.type:             select amongst different tbr algorithms
@@ -260,18 +267,6 @@ classdef ssRed < ss
 %           -.Rt:               right tangential directions for MIMO
 %           -.Lt:               left tangential directions for MIMO
 %       -params (userDefined):  []
-%       -A: system matrix
-%       -B: input matrix
-%       -C: output matrix
-%       -D: static gain matrix
-%       -E: descriptor matrix
-%       -sys_ss:    control system toolbox state-space (ss)-object
-%       -sys_sss:   sparse state-space (sss)-object
-%       -paramsList{i}: Cell-Array of structs. Each field of the cell-array 
-%                       represents one reduction (without the current reduction).
-%           -.method:           name of the used reduction algorithm (see above)                               
-%           -.params:           structure with the parameters of the used
-%                               algorithm (see above)
 %
 % Output Arguments:
 %       -sys: reduced state-space (ssRed)-object
@@ -283,7 +278,7 @@ classdef ssRed < ss
 %> B = rand(10,1);
 %> C = rand(1,10);
 %> params.originalOrder = 20;
-%> sysr = ssRed('porkV',params,A,B,C);
+%> sysr = ssRed(A,B,C,'porkV',params);
 %
 % See Also: 
 %        ss, dss, sss
@@ -335,63 +330,58 @@ classdef ssRed < ss
     
     methods
         function obj = ssRed(varargin)
-            % parse and check the arguments
-            if nargin~=1 && ~isempty(varargin{1})   % not an empty model
-                if nargin < 3 || nargin > 8 || nargin == 4
+            
+            % parse input arguments
+            if nargin~=1 && ~isempty(varargin{1})   % not an empty model            
+                if nargin < 3 || nargin > 8
                     error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
                 end
-                paramsList = [];
-                nargin_new = nargin;
-                if ~isnumeric(varargin{nargin}) && ~isa(varargin{nargin},'ss') && ...
-                   ~isa(varargin{nargin},'sss')         %paramsList specified
-                    paramsList = varargin{nargin};
-                    nargin_new = nargin_new-1;
+                
+                % default values
+                D = []; E = []; method = 'userDefined'; paramsList = [];
+                params = [];
+                
+                % system matrices
+                A = full(varargin{1});
+                B = full(varargin{2});
+                C = full(varargin{3});
+                iTemp = 4;          % next index in varargin
+                if nargin >= iTemp && isnumeric(varargin{4})
+                   D = full(varargin{4});
+                   iTemp = 5;
+                   if nargin >= iTemp && isnumeric(varargin{5})
+                      E = full(varargin{5});
+                      iTemp = 6;
+                   end
                 end
-                if nargin_new == 3
-                    sys = varargin{3};
-                    if isa(sys,'ssRed')
-                        if ~isempty(paramsList)
-                            error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
+                
+                % additional input arguments
+                switch nargin
+                    case iTemp
+                        error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
+                    case iTemp+1
+                        method = varargin{iTemp};
+                        params = varargin{iTemp+1};
+                    case iTemp+2
+                        method = varargin{iTemp};
+                        params = varargin{iTemp+1};
+                        if isa(varargin{iTemp+2},'ssRed')
+                            paramsList = varargin{iTemp+2}.reductionParameters;
+                        elseif isstruct(varargin{iTemp+2})
+                            paramsList = varargin{iTemp+2};
                         end
-                        paramsList = sys.reductionParameters;
-                    end
-                    if isa(sys,'ss')    %ss-objects or ssRed-objects
-                       [A,B,C,D,E] = dssdata(sys);
-                    elseif isa(sys,'sss')   %sss-objects
-                       [A,B,C,D,E] = full(dssdata(sys));
-                    else
-                       error('The third argument has to be an object of type "ss" or "sss"'); 
-                    end
-                else
-                    A = full(varargin{3});
-                    B = full(varargin{4});
-                    C = full(varargin{5});
-
-                    if nargin_new == 6
-                        D = full(varargin{6});
-                        E = [];
-                    elseif nargin_new == 7
-                        D = full(varargin{6});
-                        E = full(varargin{7});
-                    else                
-                        D = [];
-                        E = [];
-                    end             
-                end
-
-                if ~isa(varargin{1},'char') || ismember(varargin{1},{'tbr', ...
-                        'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
-                        'spark','cure_spark','cure_irka','cure_rk+pork','userDefined'}) == 0
-                    error('The first argument has a wrong format. Type "help ssRed" for more information.');
                 end
             else
-               A=[];B=[];C=[];D=[];E=[]; 
+               % ensures that syntax "ssRed([])" gives back an empty model
+               A=[];B=[];C=[];D=[];E=[];
             end
             
             % call the construktor of the superclass ss
             obj@ss(A,B,C,D,'e',E);
             
+            % verify correctness of input parameters
             if nargin~=1 && ~isempty(varargin{1})   % not an empty model
+                
                 % store the correct names for the properties containing the
                 % system matrices. This is a compatibility fix because the
                 % property names changed from lower to upper case in Matlab
@@ -406,13 +396,20 @@ classdef ssRed < ss
                                 ltipack.allprops(obj),class(obj));
                 obj.e_ = ltipack.matchProperty('e',...
                                 ltipack.allprops(obj),class(obj));
-
+                            
+                % parameter "method"
+                if ~isa(method,'char') || ismember(method,{'tbr', ...
+                        'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
+                        'spark','cure_spark','cure_irka','cure_rk+pork','userDefined'}) == 0
+                    error('Argument "method" has a wrong format. Type "help ssRed" for more information.');
+                end
+                
                 % check all fields of paramsList
                 if ~isempty(paramsList)
                     try
                        for i = 1:size(paramsList,1)
                           if length(fieldnames(paramsList(i))) ~= 2
-                              error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.');
+                              error('Argument "paramsList" has the wrong format. Type "help ssRed" for more information.');
                           end
                           if i > 1 && ismember(paramsList(i-1).method,{'cure_spark','cure_irka','cure_rk+pork'})
                               paramsList(i).params = obj.parseParamsStruct(paramsList(i).params,paramsList(i).method,0);
@@ -421,40 +418,33 @@ classdef ssRed < ss
                           end
                        end
                     catch ex
-                       error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.'); 
+                       error('Argument "paramsList" has the wrong format. Type "help ssRed" for more information.'); 
                     end
                 end
 
                 % update the reductionParameters list
                 if isempty(paramsList)
-                   obj.reductionParameters(1).method = varargin{1};
+                   obj.reductionParameters(1).method = method;
                    try
-                       obj.reductionParameters(1).params = obj.parseParamsStruct(varargin{2},varargin{1},1);
+                       obj.reductionParameters(1).params = obj.parseParamsStruct(params,method,1);
                    catch ex
-                       error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
+                       error('Argument "params" has the wrong format. Type "help ssRed" for more information.');
                    end
                 else
-                   len = size(paramsList,1);
+                   len = size(paramsList,2);
                    obj.reductionParameters = paramsList;
-                   obj.reductionParameters(len+1).method = varargin{1};
+                   obj.reductionParameters(len+1).method = method;
                    try
-                       obj.reductionParameters(len+1).params = obj.parseParamsStruct(varargin{2},varargin{1},1);
+                       obj.reductionParameters(len+1).params = obj.parseParamsStruct(params,method,1);
                    catch ex
-                       error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
+                       error('Argument "params" has the wrong format. Type "help ssRed" for more information.');
                    end
                 end
-
-                % remove unnecessary parmaters from the reduction history
-                if nargin_new == 3 && isa(sys,'ssRed')
-                    if ~strcmp(varargin{1},'projectiveMor')
-                        obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'projectiveMor');
-                    end
-                    if strcmp(varargin{1},'irka')
-                        obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'rk'); 
-                    end
-                end
-                obj.reductionParameters = obj.removeCureParameters(obj.reductionParameters); 
-
+                
+                % postprocess cure parameters
+                obj.reductionParameters = obj.removeCureParameters(obj.reductionParameters);
+                
+                % set initial values
                 obj.x0 = [];
             end
         end

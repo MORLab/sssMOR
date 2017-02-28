@@ -302,4 +302,4 @@ if ~exist('s0_inp','var') Opts.s0_inp = []; else Opts.s0_inp = s0_inp; end
 if ~exist('s0_out','var') Opts.s0_out = []; else Opts.s0_out = s0_out; end
 
 % Convert to ssRed-object
-sysr = ssRed('rk',Opts,sysr);
+sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'rk',Opts,sys);

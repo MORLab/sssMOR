@@ -271,9 +271,9 @@ classdef testSsRed < sssTest
             sys1 = loadSss('building');
             sys2 = loadSss('CDplayer');
             sys3 = loadSss('beam');
-            sysr1 = ssRed('userDefined',[],sys1.A,sys1.B,sys1.C,sys1.D,sys1.E);
-            sysr2 = ssRed('userDefined',[],sys2.A,sys2.B,sys2.C,sys2.D,sys2.E);
-            sysr3 = ssRed('userDefined',[],sys3.A,sys3.B,sys3.C,sys3.D,sys3.E);
+            sysr1 = ssRed(sys1.A,sys1.B,sys1.C,sys1.D,sys1.E);
+            sysr2 = ssRed(sys2.A,sys2.B,sys2.C,sys2.D,sys2.E);
+            sysr3 = ssRed(sys3.A,sys3.B,sys3.C,sys3.D,sys3.E);
             
             % test append
             sys_appended = append(sys1,sys2);

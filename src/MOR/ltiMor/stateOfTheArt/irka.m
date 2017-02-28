@@ -229,7 +229,7 @@ Opts.LtTraj = LtTraj;
 Opts.s0 = s0;
 
 % Convert the reduced system to a ssRed-object
-sysr = ssRed('irka',Opts,sysr);
+sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'irka',Opts,sys);
 
 if ~Opts.suppressverbose %display at least the last value
     fprintf('IRKA step %03u - Convergence (%s): %s \n', ...
