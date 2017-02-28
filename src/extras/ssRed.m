@@ -571,12 +571,23 @@ classdef ssRed < ss
                     str = [str  char(10) 'Discrete-time state-space model.'];
                 end
                 
-                params = sys.reductionParameters(end,1);
-                if strcmp(params.method,'userDefined')
-                    str = [str char(10) 'Reduction Method: ' params.method char(10)];
+                % display all reduction algorithms used, but each reduction
+                % algorithm only once, even if it was used multiple times
+                usedMethods = [];
+                methodString = '';
+                for i = 1:size(sys.reductionParameters,2)
+                   if ~ismember(sys.reductionParameters(1,i).method,usedMethods)
+                       usedMethods{end+1} = sys.reductionParameters(1,i).method;
+                       methodString = strcat(methodString,sys.reductionParameters(1,i).method,',',char(1));
+                   end
+                end
+                methodString = methodString(1:size(methodString,2)-2);
+                
+                if strcmp(sys.reductionParameters(end,1).method,'userDefined')
+                    str = [str char(10) 'Reduction Method(s): ' methodString char(10)];
                 else
-                    str = [str char(10) 'Reduction Method: ' params.method char(10) ...
-                            'Original order: ' num2str(params.params.originalOrder)];
+                    str = [str char(10) 'Reduction Method(s): ' methodString char(10) ...
+                            'Original order: ' num2str(sys.reductionParameters(1,1).params.originalOrder)];
                 end
 
                 if nargout>0
