@@ -23,7 +23,7 @@ classdef ssRed < ss
 %       -D: static gain matrix
 %       -E: descriptor matrix
 %       -method: name of the used reduction algorithm;
-%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'stabsep' / 'rkOp' / 'rkIcop' / 'modelFct' / 'circa' / 'userDefined']
+%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'stabsep' / 'rkOp' / 'rkIcop' / 'modelFct' / 'cirka' / 'userDefined']
 %       -sys:   original state space system before reduction (class sss or ssRed)
 %       -paramsList:    Structure array. Each entry represents one 
 %                       reduction (without the current reduction).
@@ -454,7 +454,7 @@ classdef ssRed < ss
                 if ~isa(method,'char') || ismember(method,{'tbr', ...
                         'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
                         'spark','cure_spark','cure_irka','cure_rk+pork', ...
-                        'stabsep','rkOp','rkIcop','modelFct','circa', ...
+                        'stabsep','rkOp','rkIcop','modelFct','cirka', ...
                         'userDefined'}) == 0
                     error('Argument "method" has a wrong format. Type "help ssRed" for more information.');
                 end

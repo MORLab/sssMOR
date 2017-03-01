@@ -187,7 +187,7 @@ if ~isfield(Opts,'maxIter') Opts.maxIter = 100; end
 if ~isfield(Opts,'tol') Opts.tol = 1e-2; end
 Opts.s0 = s0;
 Opts.sOpt = sOpt;
-sysr = ssRed('rkIcop',Opts,sysr);
+sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'rkIcop',Opts,sys);
 
 warning('on','sss:sss:ssRedConversion')
 

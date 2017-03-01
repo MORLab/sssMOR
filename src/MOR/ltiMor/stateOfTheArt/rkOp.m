@@ -228,7 +228,13 @@ if length(varargin)==2 && ~isa(varargin{1},'double') && isscalar(varargin{2})
     if ~isfield(Opts,'rk') Opts.orth = 'twoSided'; end
     if ~isfield(Opts,'lse') Opts.lse = 'sparse'; end
     Opts.sOpt = sOpt;
-    varargout{1} = ssRed('rkOp',Opts,varargout{1});
+    if exist('sys','var')
+        varargout{1} = ssRed(varargout{1}.A,varargout{1}.B,varargout{1}.C, ...
+                             varargout{1}.D,varargout{1}.E,'rkOp',Opts,sys);
+    else
+        varargout{1} = ssRed(varargout{1}.A,varargout{1}.B,varargout{1}.C, ...
+                             varargout{1}.D,varargout{1}.E,'rkOp',Opts);
+    end
     
 elseif length(varargin)==1 || (length(varargin)==2 && length(varargin{1})==length(varargin{2}))
     varargout{1} = sOpt;
