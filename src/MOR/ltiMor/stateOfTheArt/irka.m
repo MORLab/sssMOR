@@ -88,8 +88,8 @@ function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj,
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  13 Apr 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  20 Jan 2017
+% Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
@@ -110,10 +110,10 @@ end
 %% Parse the inputs
 %   Default execution parameters
 Def.maxiter = 50; 
-Def.tol = 1e-3; 
-Def.type = ''; %'stab', 'newton', 'restarted'
+Def.tol     = 1e-3; 
+Def.type    = ''; %'stab', 'newton', 'restarted'
 Def.verbose = 0; % text output durint iteration?
-Def.stopCrit = 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
+Def.stopCrit= 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
 Def.suppressverbose = 0;
 
 % create the options structure
@@ -208,18 +208,18 @@ while true
 end
 
 %%  Storing additional parameters
-%Stroring additional information about thr reduction in the object 
+%Stroring additional information about the reduction in the object 
 %containing the reduced model:
 %   1. Define a new field for the Opts struct and write the information
 %      that should be stored to this field
 %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
 %      way that the new defined field passes the check
 Opts.originalOrder = sys.n;
-if ~isfield(Opts,'orth') Opts.orth = '2mgs'; end
-if ~isfield(Opts,'reorth') Opts.reorth = 0; end
-if ~isfield(Opts,'lse') Opts.lse = 'sparse'; end
-if ~isfield(Opts,'dgksTol') Opts.dgksTol = 1e-12; end
-if ~isfield(Opts,'krylov') Opts.krylov = 0; end
+if ~isfield(Opts,'orth'),   Opts.orth = '2mgs'; end
+if ~isfield(Opts,'reorth'), Opts.reorth = 0; end
+if ~isfield(Opts,'lse'),    Opts.lse = 'sparse'; end
+if ~isfield(Opts,'dgksTol'),Opts.dgksTol = 1e-12; end
+if ~isfield(Opts,'krylov'), Opts.krylov = 0; end
 Opts.Rt = Rt;
 Opts.Lt = Lt;
 Opts.kIter = kIter;
@@ -231,6 +231,7 @@ Opts.s0 = s0;
 % Convert the reduced system to a ssRed-object
 sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'irka',Opts,sys);
 
+%%  Finish execution
 if ~Opts.suppressverbose %display at least the last value
     fprintf('IRKA step %03u - Convergence (%s): %s \n', ...
             kIter, Opts.stopCrit, sprintf('% 3.1e', stopCrit));

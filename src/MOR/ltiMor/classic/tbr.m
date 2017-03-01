@@ -81,7 +81,7 @@ function [sysr, varargout] = tbr(sys, varargin)
 %       To compute a balanced realization, use
 %
 %> sys = loadSss('building');
-%> sysBal = tbr(sys,sys.n)
+%> sysBal = tbr(sys,sys.n); disp(sysBal)
 %
 %       To performe balanced reduction, specify a reduced order q
 %
@@ -203,7 +203,9 @@ else
 end
 
 %% Computation of balancing transformation
-
+if isempty(sys.E) %robust compatibility to ssRed
+    sys.E = eye(size(sys.A));
+end
 [Us,Sigma,Vs]=svd(full(R'*sys.E*S),0);
 hsvs = diag(Sigma);
 sys.HankelSingularValues = real(hsvs);
@@ -274,7 +276,7 @@ if exist('q','var') || Opts.redErr>0
     end
 else
     qmax = min([sum(hsvs>=Opts.hsvTol*hsvs(1)), qmax]);
-    h=figure(1);
+    h=figure;
     bar(1:qmax,abs(hsvs(1:qmax)./hsvs(1)),'r');
     title('Hankel Singular Values');
     xlabel('Order');
@@ -395,8 +397,8 @@ switch Opts.type
         warning('on','MATLAB:nearlySingularMatrix');    
 end
 
-%   Rename ROM
-sysr.Name = sprintf('%s_%i_tbr',sys.Name,sysr.n);
+% %   Rename ROM
+% sysr.Name = sprintf('%s_%i_tbr',sys.Name,sysr.n);
 
 if nargout>1
     varargout{1} = V;

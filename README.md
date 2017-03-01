@@ -1,30 +1,17 @@
-﻿# sssMOR
-A sparse state-space, model order reduction toolbox developed at the Chair of 
-Automatic Control, Technische Universität München
+﻿sssMOR
+=======
 
-*Programmed and tested with: MATLAB R2015b*
+A sparse state-space, model order reduction toolbox developed at the Chair of
+Automatic Control, Technische Universität München.
 
-## Testing
+For more information, type `doc` in the command window or visit http://www.rt.mw.tum.de/?sssMOR. Check out also our demo by typing `sssMOR_gettingStarted` in the command window
 
-For the tests, a unitTest environment has been created. New functionalities, as well as new ways of calling the functions, should be included as test cases. You can find more information about this in the "test" directory of sssMOR.
+***
+*Programmed with:* MATLAB R2015b
 
-**Important:** in oder to run the tests you need the add the benchmarks from the SLICOT library (available [here](http://www.icm.tu-bs.de/NICONET/benchmodred.html)) to the directory "benchmarks", since ".mat" files are not included by Git.
+*Tested on:* MATLAB R2014b, R2015b, R2016b (both Windows 7 and Ubuntu 16.04.1 LTS)
 
-Please make sure to **avoid using following benchmarks** for testing since they are badly conditioned: *LF10, beam, random, SpiralInductorPeec*
+*Some functions require:* Control System Toolbox, Optimization Toolbox.
 
-Here is a table of different benchmarks and the worst condition number for (A - s0 E) using IRKA shifts:
-
-benchmark       |  O(max(condest(A-s0 E)))
-----------------| ------------------------
-CDplayer        | 10^5
-build           | 10^5
-eady            | 10^3
-fom             | 10^3
-heat-cont       | 10^3
-iss             | 10^5
-rail_1357       | 10^3
-----------------|------------------------ 
-LF10            | 10^9
-beam            | 10^8
-random          | 10^7
-SpiralInductorPeec | 10^6
+> Note: The Gitlab repositories hosting the sss and sssMOR projects will become public soon, making it even easier for you to contribute to the sssMOR project.
+>Sign up for our newsletter under https://lists.lrz.de/mailman/listinfo/sssmor to stay up to date.

@@ -23,7 +23,7 @@ classdef ssRed < ss
 %       -D: static gain matrix
 %       -E: descriptor matrix
 %       -method: name of the used reduction algorithm;
-%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'userDefined']
+%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'stabsep' / 'rkOp' / 'rkIcop' / 'modelFct' / 'circa' / 'userDefined']
 %       -sys:   original state space system before reduction (class sss or ssRed)
 %       -paramsList:    Structure array. Each entry represents one 
 %                       reduction (without the current reduction).
@@ -271,6 +271,56 @@ classdef ssRed < ss
 %                               applying the stabsep-function
 %           -.originalOrder:    Model order before reduction
 %           -.reducedOrder:     Model order after reduction
+%       -params (rkOp):         structure with the parameters for the
+%                               rkOp-algorithm
+%           -.originalOrder:    Model order before reduction
+%           -.sOpt:             optimal expansion point
+%           -.rk:               reduction type
+%                               [{'twoSided'} / 'input' / 'output']
+%           -.lse:              solve linear system of equations
+%                               [{'sparse'} / 'full' / 'gauss' / 'hess' / 'iterative' ]
+%       -params (rkIcop):       structure with the parameters for the
+%                               rkIcop-algorithm
+%           -.originalOrder:    Model order before reduction
+%           -.sOpt:             optimal expansion point
+%           -.s0:               inital expansion point (scalar)
+%           -.rk:               reduction type
+%                               [{'twoSided'} / 'input' / 'output']
+%           -.maxIter:          maximum number of iterations;
+%                               [{20} / positive integer]
+%           -.tol:              convergence tolerance;
+%                               [{1e-2} / positive float]
+%           -.lse:              solve linear system of equations
+%                               [{'sparse'} / 'full' / 'gauss' / 'hess' / 'iterative' ]
+%       -params (modelFct):     structure with the parameters for the
+%                               modelFct-algorithm
+%           -.originalOrder:    Model order before reduction
+%           -.s0mTot:           vector of all shifts used
+%           -.updateModel:      chooses which shifts of s0mr are included in update;
+%                               [{'new'} / 'all' / 'lean' ]
+%           -.modelTol:         tolerance for identifying new shifts;
+%                               [{1e-2} / positive float ]
+%       -params (cirka):        structure with the parameters for the
+%                               cirka-algorithm
+%           -.originalOrder:    Model order before reduction
+%           -.modelFctOrder:    Final order of the model function
+%           -.kIrka:            Vector of irka iterations
+%           -.s0:               final shifts for reduction
+%           -.qm0:              initial size of model function;
+%                               [{2*length(s0)} / positive integer]
+%           -.s0m:              initial shifts for surrogate;
+%                               [{[s0,s0]} / vector ]
+%           -.maxiter:          maximum number of iterations;
+%                               [{15} / positive integer]
+%           -.tol:              convergence tolerance;
+%                               [{1e-3} / positive float]
+%           -.stopCrit:         convergence criterion for CIRKA;
+%                               ['s0' / 'sysr' / 'sysm' / {'combAny'} / 'combAll']
+%           -.updateModel:      type of model function update;
+%                               [{'new'},'all']
+%           -.clearInit:        reset the model function after first iteration;
+%                               [{true}, false]
+%           -.irka:             irka options (cmp irka)
 %       -params (userDefined):  []
 %
 % Output Arguments:
@@ -302,12 +352,12 @@ classdef ssRed < ss
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      Niklas Kochdumper
+% Authors:      Niklas Kochdumper, Alessandro Castagnotto
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  15 Jun 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  20 Jan 2017
+% Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
     properties
@@ -379,7 +429,7 @@ classdef ssRed < ss
                A=[];B=[];C=[];D=[];E=[];
             end
             
-            % call the construktor of the superclass ss
+            % call the constructor of the superclass ss
             obj@ss(A,B,C,D,'e',E);
             
             % verify correctness of input parameters
@@ -404,7 +454,8 @@ classdef ssRed < ss
                 if ~isa(method,'char') || ismember(method,{'tbr', ...
                         'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
                         'spark','cure_spark','cure_irka','cure_rk+pork', ...
-                        'stabsep','userDefined'}) == 0
+                        'stabsep','rkOp','rkIcop','modelFct','circa', ...
+                        'userDefined'}) == 0
                     error('Argument "method" has a wrong format. Type "help ssRed" for more information.');
                 end
                 
@@ -490,13 +541,14 @@ classdef ssRed < ss
         end
         
         function isDescriptor = get.isDescriptor(sys)
-            isDescriptor = logical(full(any(any(sys.(sys.e_)-speye(size(sys.(sys.e_)))))));
+            isDescriptor = logical(full(any(any(sys.(sys.e_)-eye(size(sys.(sys.e_)))))));
         end
         
         function sys = resolveDescriptor(sys)
             sys.(sys.a_) = sys.(sys.e_)\sys.(sys.a_);
             sys.(sys.b_) = sys.(sys.e_)\sys.(sys.b_);
-            sys.(sys.e_) = [];
+            sys.(sys.e_) = eye(size(sys.(sys.a_))); 
+            %makes the usage of sys.e in computations more robust than []
         end
         
         function isSym = get.isSym(sys) %A=A', E=E'
@@ -847,10 +899,18 @@ classdef ssRed < ss
                list = {'originalOrder','maxiter','tol','type','stopCrit', ...
                        'orth','lse','dgksTol','krylov', ...
                        's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');   
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'rk')                  %rk
                list = {'originalOrder','real','orth','reorth','lse','dgksTol','krylov', ...
                        'IP','Rt','Lt','s0_inp','s0_out'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
+            elseif strcmp(method,'modelFct')            %modelFct
+               list = {'originalOrder','s0mTot','updateModel','modelTol'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
+            elseif strcmp(method,'cirka')               %cirka
+               list = {'originalOrder','modelFctOrder','kIrka','s0',...
+                        'qm0','s0m','maxiter','tol','stopCrit','updateModel',...
+                        'clearInit','irka'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'projectiveMor')       %projectiveMor
                list = {'originalOrder','trans'};
@@ -924,7 +984,13 @@ classdef ssRed < ss
             elseif strcmp(method,'stabsep')             %stabsep
                list = {'originalOrder','reducedOrder'};
                parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'userDefined')
+            elseif strcmp(method,'rkOp')                %rkOp
+               list = {'originalOrder','sOpt','rk','lse'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');  
+            elseif strcmp(method,'rkIcop')              %rkIcop
+               list = {'originalOrder','sOpt','s0','rk','maxIter','tol','lse'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params'); 
+            elseif strcmp(method,'userDefined')         %userDefined
                parsedStruct = params;
             end
         end

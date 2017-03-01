@@ -34,7 +34,7 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 %			-.type:		option to eigs command;
 %						[{'SM'} / 'LM' / 'SA' / 'LA' / 'SR' / 'LR' / real or complex scalar]
 %			-.orth:		orhtogonalization;
-%						[{'0'} / 'qr']
+%						[false / {'qr'}]
 %			-.real:		real reduced system;
 % 						[{'real'} / '0']
 %           -.tol:      tolerance for the eigenspace computation
@@ -247,9 +247,8 @@ function [V, W] = makeReal(V, W)
 end
 function [V, W, D] = dominanceAnalysis(q, V, W)  
     D=zeros(q,1);
-    tempSys=sys.B*sys.C;
     for j=1:q
-        D(j)=norm((W(:,j)'*tempSys*V(:,j))/(W(:,j)'*sys.A*V(:,j)));
+        D(j)=norm((sys.C*V(:,j)*W(:,j)'*sys.B/(W(:,j)'*sys.A*V(:,j))));
     end
     if ~strcmp(Opts.dominance,'analyze')
         %take eigenvectors of most dominant eigenvalues

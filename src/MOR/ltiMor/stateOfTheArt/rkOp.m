@@ -3,7 +3,7 @@ function varargout = rkOp(varargin)
 %
 % Syntax:
 %       sOpt = RKOP(sys)
-%       sOpt = RKOP(h,t)
+%       sOpt = RKOP(g,t)
 %       [sysr, V, W, sOpt] = RKOP(sys,q)
 %       [sysr, V, W, sOpt] = RKOP(sys,...,Opts)
 %
@@ -216,6 +216,19 @@ if length(varargin)==2 && ~isa(varargin{1},'double') && isscalar(varargin{2})
         end
     end
     varargout{4}=sOpt;
+    
+    %%  Storing additional parameters
+    %Stroring additional information about thr reduction in the object 
+    %containing the reduced model:
+    %   1. Define a new field for the Opts struct and write the information
+    %      that should be stored to this field
+    %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
+    %      way that the new defined field passes the check
+    if exist('sys','var') Opts.originalOrder = sys.n; else Opts.originalOrder = []; end
+    if ~isfield(Opts,'rk') Opts.orth = 'twoSided'; end
+    if ~isfield(Opts,'lse') Opts.lse = 'sparse'; end
+    Opts.sOpt = sOpt;
+    varargout{1} = ssRed('rkOp',Opts,varargout{1});
     
 elseif length(varargin)==1 || (length(varargin)==2 && length(varargin{1})==length(varargin{2}))
     varargout{1} = sOpt;

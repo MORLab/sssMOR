@@ -1,17 +1,13 @@
 % PROGRAMMING GUIDELINES
-% ------------------------------------------------------------------
-% programmingGuidelines
-% Inputs:       
-% Outputs:
-% ------------------------------------------------------------------
+%
 % USAGE:  This script summarizes the naming and coding conventions 
 % used for the development of the MORLab Toolbox. All developers must
 % abide by these guidelines.
 %
-% ------------------------------------------------------------------
 % REFERENCES:
 % [1] Johnson (2014): MATLAB Style Guidelines 2.0
 % [2] Hung (1999): The Pragmatic Programmer
+% 
 % ------------------------------------------------------------------
 % This file is part of sssMOR, a Sparse State Space, Model Order
 % Reduction and System Analysis Toolbox developed at the Institute 

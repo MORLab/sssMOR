@@ -22,18 +22,22 @@ classdef testCirka < sssTest
             
             for i=1:length(testCase.sysCell)
                 %  test system
-                sys=testCase.sysCell{i};  
-                sys= sys(1,1);
+                sys=    testCase.sysCell{i};  
+                sys=    sys(1,1);
                 
                 [sysr, V, W, s0, kIrka, sysm, relH2err] = cirka(sys, s0);
                 
                 verifyClass(testCase,sysr,'ssRed')
+                verifyClass(testCase,sysm,'ssRed')
+                verifyGreaterThanOrEqual(testCase,relH2err,0);
+
                 verifySize(testCase,V,[sys.n,n])
                 verifySize(testCase,W,[sys.n,n])
-%                 verifyEqual(testCase,sysr,projectiveMor(sys,V,W),'RelTol',1e-3)
                 verifyTrue(testCase,isstable(sysm))
                 verifyGreaterThanOrEqual(testCase,size(sysm.A,1),n);
-                verifyEqual(testCase,norm(sysm-sysr)/norm(sysm),relH2err)           
+                verifyEqual(testCase,norm(sysm-sysr)/norm(sysm),relH2err)    
+                
+                verifySize(testCase,sysr.reductionParameters,[1 1]);
             end
             warning('on','sssMOR:irka:maxiter')
         end
