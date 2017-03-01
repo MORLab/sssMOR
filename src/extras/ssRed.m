@@ -266,6 +266,11 @@ classdef ssRed < ss
 %                               subspaces
 %           -.Rt:               right tangential directions for MIMO
 %           -.Lt:               left tangential directions for MIMO
+%       -params (stabsep):      structure with the parameters for the
+%                               model order reduction resulting from 
+%                               applying the stabsep-function
+%           -.originalOrder:    Model order before reduction
+%           -.reducedOrder:     Model order after reduction
 %       -params (userDefined):  []
 %
 % Output Arguments:
@@ -398,7 +403,8 @@ classdef ssRed < ss
                 % parameter "method"
                 if ~isa(method,'char') || ismember(method,{'tbr', ...
                         'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
-                        'spark','cure_spark','cure_irka','cure_rk+pork','userDefined'}) == 0
+                        'spark','cure_spark','cure_irka','cure_rk+pork', ...
+                        'stabsep','userDefined'}) == 0
                     error('Argument "method" has a wrong format. Type "help ssRed" for more information.');
                 end
                 
@@ -774,6 +780,23 @@ classdef ssRed < ss
         function  varargout = lyapchol(varargin)
             [varargout{1:nargout}] = sss.lyapchol(varargin{:});
         end
+        
+        function varargout = stabsep(varargin)
+            [varargout{1:nargout}] = stabsep@ss(varargin{:});
+            % add an entry to the reduction history if the model order was
+            % changed
+            if nargout >= 1
+                if varargout{1}.n < varargin{1}.n
+                    sys = varargout{1};
+                    params.originalOrder = varargin{1}.n;
+                    params.reducedOrder = sys.n;
+                    varargout{1} = ssRed(sys.(sys.a_),sys.(sys.b_), ...
+                                         sys.(sys.c_),sys.(sys.d_), ...
+                                         sys.(sys.e_),'stabsep', ...
+                                         params, varargin{1});
+                end
+            end
+        end
     end
     
     %%Private and static helper methods
@@ -898,6 +921,9 @@ classdef ssRed < ss
                     list = {'fact','stop','stopval','maxIter'};
                     parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
                end
+            elseif strcmp(method,'stabsep')             %stabsep
+               list = {'originalOrder','reducedOrder'};
+               parsedStruct = ssRed.parseStructFields(params,list,'params');
             elseif strcmp(method,'userDefined')
                parsedStruct = params;
             end
