@@ -152,6 +152,7 @@ sysr = sss(Ar_tot,Br_tot,Cr_tot,zeros(p,m),Er_tot);
 Dr_tot = sys.d;
 
 sysrVec = {}; % keep track of reduced models over iterations
+sOpt = []; %preallocate optimal shifts
 %%   Start cumulative reduction
 if Opts.cure.verbose, fprintf('\nBeginning CURE iteration...\n'); end
 
@@ -163,7 +164,7 @@ while ~stopCrit(sys,sysr,sysrVec,Opts) && iCure < Opts.cure.maxIter
     sys = sss(sys.a,B_,C_,0,sys.e);
     
     %   Initializations
-    [s0,Opts] = initializeShifts(sys,Opts,iCure);    
+    [s0,Opts] = initializeShifts(sys,sOpt,Opts,iCure);    
     if Opts.cure.verbose,
         sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(s0(1)),imag(s0(1)),real(s0(2)),imag(s0(2))]);
         fprintf('\tCURE start shifts\t%s\n',sStr);
@@ -207,8 +208,8 @@ while ~stopCrit(sys,sysr,sysrVec,Opts) && iCure < Opts.cure.maxIter
             end
             n = size(V,2);
             if Opts.cure.verbose, 
-                Se = eig(Sv);
-                sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(Se(1)),imag(Se(1)),real(Se(2)),imag(Se(2))]);
+                sOpt = eig(Sv);
+                sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(sOpt(1)),imag(sOpt(1)),real(sOpt(2)),imag(sOpt(2))]);
                 fprintf('\tCURE final shifts\t%s\n',sStr);
             end
         case 'W'
@@ -247,8 +248,8 @@ while ~stopCrit(sys,sysr,sysrVec,Opts) && iCure < Opts.cure.maxIter
             end
             n = size(W,2);
             if Opts.cure.verbose, 
-                Se = eig(Sw);
-                sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(Se(1)),imag(Se(1)),real(Se(2)),imag(Se(2))]);
+                sOpt = eig(Sw);
+                sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(sOpt(1)),imag(sOpt(1)),real(sOpt(2)),imag(sOpt(2))]);
                 fprintf('\tCURE final shifts\t%s\n',sStr);
             end
     end
@@ -329,7 +330,7 @@ switch opts.cure.stop
     otherwise
         error('The stopping criterion chosen does not exist or is not yet implemented');
 end
-function [s0,Opts] = initializeShifts(sys,Opts,iCure)
+function [s0,Opts] = initializeShifts(sys,sOpt,Opts,iCure)
  %%   parse
  if Opts.cure.init ==0, Opts.cure.init = 'zero'; end
  
@@ -386,12 +387,23 @@ function [s0,Opts] = initializeShifts(sys,Opts,iCure)
                                       struct('tol',1e-6,'v0',sum(sys.b,2)));...
                                     -eigs(sys.a,sys.e,nLm,'lm', ...
                                       struct('tol',1e-6,'v0',sum(sys.b,2)))]';
+             case 'lastOpt'
+                 % take the optimal shifts from the last iteration
+                 if ~isempty(sOpt)
+                    s0 = sOpt;
+                 else
+                     % initialize at zero in the first step
+                    s0 = Opts.zeroThres*ones(1,Opts.cure.nk);
+                 end
          end
      catch err
          warning([getReport(err,'basic'),' Using 0.'])
          Opts.cure.init = Opts.zeroThres*ones(1,ns0);
      end
-     s0 = Opts.cure.init(1:Opts.cure.nk);
+     if ~strcmp(Opts.cure.init,'lastOpt')
+         % for all other cases all initilization points were found
+        s0 = Opts.cure.init(1:Opts.cure.nk);
+     end
  end 
     %   make sure the initial values for the shifts are complex conjugated
     if mod(nnz(imag(s0)),2)~=0 %if there are complex valued shifts...
