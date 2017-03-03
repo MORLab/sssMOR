@@ -40,9 +40,9 @@ function varargout = spark(sys,s0,Opts)
 %           -.spark.verbose: text output during the optimization
 %                           [{'0'} / '1']
 %           -.spark.mfe:    maximum functions evaluations
-%                           [{'5e3'} / positive integer]
+%                           [{'1e3'} / positive integer]
 %           -.spark.mi:     maximum iterations in solver
-%                           [{'150'} / positive integer]
+%                           [{'1e3'} / positive integer]
 %           -.spark.xTol:   step tolerance in solver
 %                           [{'1e-10'} / positive float]
 %           -.spark.fTol:   function value tolerance
@@ -103,7 +103,7 @@ Def.spark.type = 'model'; %SPARK type, 'model' or 'standard'
 Def.spark.test = 0; %execute analysis code
 Def.spark.verbose = 0; %show text?
 Def.spark.mfe = 5e3;
-Def.spark.mi = 150; %5e3
+Def.spark.mi = 	5e3;
 Def.spark.xTol = 1e-10;
 Def.spark.fTol = 1e-10;
 Def.spark.modelTol = 1e-5;
