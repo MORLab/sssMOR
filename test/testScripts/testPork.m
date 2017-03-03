@@ -18,7 +18,7 @@ classdef testPork < sssTest
                     [sysr, V] = rk(sys,s0);
                 else
                     Opts.rType = 'dir';[r,p] = residue (sysrIrka,Opts);
-                    s0 = -(conj(p)); r = r{2}.'; 
+                    s0 = -(conj(p)).'; r = r{2}.'; 
                     [sysr, V] = rk(sys,s0,r);
                 end              
                 
@@ -52,7 +52,7 @@ classdef testPork < sssTest
                         [~, ~, W, ~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0);
                     else
                         Opts.rType = 'dir';[r,p] = residue (sysrIrka,Opts);
-                        s0 = -(conj(p)); l = r{1}; 
+                        s0 = -(conj(p)).'; l = r{1}; 
                         [~, ~, W,~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0,[],l);
                     end              
 
