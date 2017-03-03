@@ -245,7 +245,7 @@ classdef testArnoldi < sssTest
                 sysrIrka = irka(sys, zeros(1,n),r, l);
                 Opts.rType = 'dir';
                 [r,p] = residue (sysrIrka,Opts);
-                s0 = -(conj(p)); Lt = r{1}; Rt = r{2}.';         
+                s0 = -(conj(p)).'; Lt = r{1}; Rt = r{2}.';         
                 
                 %   run Hermite arnoldi
                 [V,~,Rv,W,~,Lw] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0, Rt, Lt,@(x,y) (x'*y));
@@ -313,7 +313,7 @@ classdef testArnoldi < sssTest
                 sysrIrka = irka(sys, zeros(1,n),r, l);
                 Opts.rType = 'dir';
                 [r,p] = residue (sysrIrka,Opts);
-                s0 = -(conj(p)); Lt = r{1}; Rt = r{2}.';         
+                s0 = -(conj(p)).'; Lt = r{1}; Rt = r{2}.';         
 
                 %   run Hermite arnoldi
                 [V,~,Rv,W,~,Lw] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0, Rt, Lt,@(x,y) (x'*y));
