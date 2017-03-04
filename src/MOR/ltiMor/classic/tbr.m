@@ -363,7 +363,7 @@ switch Opts.type
         BBal=Wt*sys.B;
         CBal=sys.C*V;
 
-        [A11,A12,A21,A22] = partition(ABal,q);
+        [A11,A12,A21,A22] = partition(ABal,q,q);
         B1=BBal(1:q,:);B2=BBal(q+1:end,:);
         C1=CBal(:,1:q);C2=CBal(:,q+1:end);
         
