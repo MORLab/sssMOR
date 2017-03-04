@@ -10,7 +10,7 @@ classdef testSylvester< sssTest
                 sysrIrka = irka(sys, zeros(1,n),r,l);
                 
                 Opts.rType = 'dir';[r,p] = residue (sysrIrka,Opts);
-                s0 = -(conj(p)); l = r{1}; r = r{2}.';         
+                s0 = -(conj(p)).'; l = r{1}; r = r{2}.';         
                 
                 [sysr, V, ~, Bb, ~, Rsylv] = rk(sys,s0,s0,r,l);
                 warning off
@@ -45,7 +45,7 @@ classdef testSylvester< sssTest
                 sysrIrka = irka(sys, zeros(1,n),r,l);
                 
                 Opts.rType = 'dir';[r,p] = residue (sysrIrka,Opts);
-                s0 = -(conj(p)); l = r{1}; r = r{2}.';         
+                s0 = -(conj(p)).'; l = r{1}; r = r{2}.';         
                 
                 [sysr, ~, W, ~, ~, ~, Cb, ~, Lsylv] = rk(sys,s0,s0,r,l);
                 warning off
