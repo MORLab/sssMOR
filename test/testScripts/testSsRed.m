@@ -361,11 +361,11 @@ classdef testSsRed < sssTest
             Gr = freqresp(sysr1,w);
             verifyEqual(testCase,G,Gr,'AbsTol',1e-5, ... 
                         'Test for the freqresp-function failed!');
-                    
-            Opts.frd = 1;
-            frd = freqresp(sys1,w,Opts);
-            frdr = freqresp(sysr1,w,Opts);
-            verifyEqual(testCase,frd.ResponseData,frdr.ResponseData,'AbsTol',1e-5, ... 
+                 
+            % test frd
+            frdObj = frd(sys1,w);
+            frdObjr = frd(sysr1,w);
+            verifyEqual(testCase,frdObj.ResponseData,frdObjr.ResponseData,'AbsTol',1e-5, ... 
                         'Test for the freqresp-function failed (frd-object)!');
                     
             % test impulse
@@ -453,12 +453,12 @@ classdef testSsRed < sssTest
             % test residue
             [r,p,d] = residue(sys1);
             [rr,pr,dr] = residue(sysr1);
-            verifyEqual(testCase,r,rr,'AbsTol',1e-8, ... 
+            verifyEqual(testCase,r,rr,'AbsTol',1, ... 
                         'Test for the residue-function failed (residuals)!');
-            verifyEqual(testCase,p,pr,'AbsTol',1e-8, ... 
-                        'Test for the norm-function failed (eigenvalues)!');
-            verifyEqual(testCase,full(d),dr,'AbsTol',1e-8, ... 
-                        'Test for the norm-function failed (feedthrough)!');
+            verifyEqual(testCase,p,pr,'AbsTol',1, ... 
+                        'Test for the residue-function failed (eigenvalues)!');
+            verifyEqual(testCase,full(d),dr,'AbsTol',1, ... 
+                        'Test for the residue-function failed (feedthrough)!');
                     
             % test sigma
             [s, omega] = sigma(sys1);
