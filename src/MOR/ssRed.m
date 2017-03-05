@@ -432,23 +432,23 @@ classdef ssRed < ss
             % call the constructor of the superclass ss
             obj@ss(A,B,C,D,'e',E);
             
+            % store the correct names for the properties containing the
+            % system matrices. This is a compatibility fix because the
+            % property names changed from lower to upper case in Matlab
+            % R2016a. To access the system matrices, use "obj.(obj.a_)"
+            obj.a_ = ltipack.matchProperty('a',...
+                            ltipack.allprops(obj),class(obj));
+            obj.b_ = ltipack.matchProperty('b',...
+                            ltipack.allprops(obj),class(obj));
+            obj.c_ = ltipack.matchProperty('c',...
+                            ltipack.allprops(obj),class(obj));
+            obj.d_ = ltipack.matchProperty('d',...
+                            ltipack.allprops(obj),class(obj));
+            obj.e_ = ltipack.matchProperty('e',...
+                            ltipack.allprops(obj),class(obj));
+            
             % verify correctness of input parameters
             if nargin~=1 && ~isempty(varargin{1})   % not an empty model
-                
-                % store the correct names for the properties containing the
-                % system matrices. This is a compatibility fix because the
-                % property names changed from lower to upper case in Matlab
-                % R2016a. To access the system matrices, use "obj.(obj.a_)"
-                obj.a_ = ltipack.matchProperty('a',...
-                                ltipack.allprops(obj),class(obj));
-                obj.b_ = ltipack.matchProperty('b',...
-                                ltipack.allprops(obj),class(obj));
-                obj.c_ = ltipack.matchProperty('c',...
-                                ltipack.allprops(obj),class(obj));
-                obj.d_ = ltipack.matchProperty('d',...
-                                ltipack.allprops(obj),class(obj));
-                obj.e_ = ltipack.matchProperty('e',...
-                                ltipack.allprops(obj),class(obj));
                             
                 % parameter "method"
                 if ~isa(method,'char') || ismember(method,{'tbr', ...
