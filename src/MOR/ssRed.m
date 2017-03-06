@@ -392,7 +392,7 @@ classdef ssRed < ss
                 
                 % default values
                 D = []; E = []; method = 'userDefined'; paramsList = [];
-                params = [];
+                params = []; name = [];
                 
                 % system matrices
                 A = full(varargin{1});
@@ -418,6 +418,9 @@ classdef ssRed < ss
                     case iTemp+2
                         method = varargin{iTemp};
                         params = varargin{iTemp+1};
+                        if isa(varargin{iTemp+2},'sss') || isa(varargin{iTemp+2},'ss')
+                            name = varargin{iTemp+2}.Name;
+                        end
                         if isa(varargin{iTemp+2},'ssRed')
                             paramsList = varargin{iTemp+2}.reductionParameters;
                         elseif isstruct(varargin{iTemp+2})
@@ -431,6 +434,9 @@ classdef ssRed < ss
             
             % call the constructor of the superclass ss
             obj@ss(A,B,C,D,'e',E);
+            
+            % set the name property of the model
+            obj.Name = name;
             
             % store the correct names for the properties containing the
             % system matrices. This is a compatibility fix because the

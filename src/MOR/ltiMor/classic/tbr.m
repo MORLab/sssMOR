@@ -397,9 +397,6 @@ switch Opts.type
         warning('on','MATLAB:nearlySingularMatrix');    
 end
 
-% %   Rename ROM
-% sysr.Name = sprintf('%s_%i_tbr',sys.Name,sysr.n);
-
 if nargout>1
     varargout{1} = V;
     varargout{2} = W;

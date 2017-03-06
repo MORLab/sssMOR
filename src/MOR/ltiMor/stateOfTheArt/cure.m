@@ -130,7 +130,8 @@ function sysr = cure(sys,Opts)
         Opts.cure.maxIter = floor(sys.n/Opts.cure.nk);
     end
     
-    % store the reductionParameters, if sys is of type ssRed
+    % store name and the reductionParameters, if sys is of type ssRed
+    name = sys.Name;
     reductionParameters = [];
     if isa(sys,'ssRed')
         reductionParameters = sys.reductionParameters;
@@ -299,6 +300,7 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                          strcat('cure_',Opts.cure.redfun),usedOpts);
         end
     end
+    sysr.Name = name;
     
     % display
     if Opts.cure.test

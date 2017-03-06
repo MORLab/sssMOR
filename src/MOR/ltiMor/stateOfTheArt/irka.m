@@ -202,7 +202,6 @@ while true
         % keep only what has been computed
         s0Traj = s0Traj(:,:,1:kIter);
         RtTraj = RtTraj(:,:,1:kIter); LtTraj = LtTraj(:,:,1:kIter);
-        sysr.Name = sprintf('%s_%i_irka',sys.Name, sysr.n);
         break
     end      
 end
