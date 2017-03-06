@@ -451,12 +451,8 @@ classdef ssRed < ss
             if nargin~=1 && ~isempty(varargin{1})   % not an empty model
                             
                 % parameter "method"
-                if ~isa(method,'char') || ismember(method,{'tbr', ...
-                        'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
-                        'spark','cure_spark','cure_irka','cure_rk+pork', ...
-                        'stabsep','rkOp','rkIcop','modelFct','cirka', ...
-                        'userDefined'}) == 0
-                    error('Argument "method" has a wrong format. Type "help ssRed" for more information.');
+                if ~isa(method,'char') 
+                    error('Argument "method" has to be a string. Type "help ssRed" for more information.');
                 end
                 
                 % check all fields of paramsList
@@ -846,6 +842,15 @@ classdef ssRed < ss
                                          sys.(sys.c_),sys.(sys.d_), ...
                                          sys.(sys.e_),'stabsep', ...
                                          params, varargin{1});
+                    if nargout >= 2
+                        sys = varargout{2};
+                        params.originalOrder = varargin{1}.n;
+                        params.reducedOrder = sys.n;
+                        varargout{2} = ssRed(sys.(sys.a_),sys.(sys.b_), ...
+                                             sys.(sys.c_),sys.(sys.d_), ...
+                                             sys.(sys.e_),'stabsep', ...
+                                             params, varargin{1});
+                    end
                 end
             end
         end
@@ -887,111 +892,123 @@ classdef ssRed < ss
         % stored for the first cure iteration, the parameter "cureRequired"
         % indicates whether the field "cure" is required in the struct
         % "params" or not
-            
-            % check algorithm-specific parameters
-            if strcmp(method,'tbr')                     %tbr
-               list = {'originalOrder','type','redErr','hsvTol','lse','hsv'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');                 
-            elseif strcmp(method,'modalMor')            %modalMor  
-               list = {'originalOrder','type','orth','real','tol','dominance'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params'); 
-            elseif strcmp(method,'irka')                %irka
-               list = {'originalOrder','maxiter','tol','type','stopCrit', ...
-                       'orth','lse','dgksTol','krylov', ...
-                       's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'rk')                  %rk
-               list = {'originalOrder','real','orth','reorth','lse','dgksTol','krylov', ...
-                       'IP','Rt','Lt','s0_inp','s0_out'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'modelFct')            %modelFct
-               list = {'originalOrder','s0mTot','updateModel','modelTol'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'cirka')               %cirka
-               list = {'originalOrder','modelFctOrder','kIrka','s0',...
-                        'qm0','s0m','maxiter','tol','stopCrit','updateModel',...
-                        'clearInit','irka'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'projectiveMor')       %projectiveMor
-               list = {'originalOrder','trans'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'porkV')               %porkV
-               list = {'originalOrder'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'porkW')               %porkW
-               list = {'originalOrder'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'spark')               %spark
-               list = {'originalOrder'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-               
-               list = {'spark','mespark'};
-               ssRed.parseStructFields(params,list,'params');
-               
-               list = {'type','mfe','mi','xTol', ...
-                       'pork','fTol','modelTol'};
-               parsedStruct.spark = ssRed.parseStructFields(params.spark,list,'params.spark');
-               
-               list = {'ritz','pertIter','maxIter'};
-               parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
-            elseif strcmp(method,'cure_spark')          %cure_spark  
-               list = {'originalOrder','currentReducedOrder','shifts'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params'); 
-                
-               if cureRequired
-                    list = {'cure','spark','mespark'};
-                    ssRed.parseStructFields(params,list,'params');
-               
-                    list = {'fact','stop','stopval','maxIter'};
-                    parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
-               else
-                    list = {'spark','mespark'};
-                    ssRed.parseStructFields(params,list,'params');
-               end
+        
+            % check if the reduction method belongs to the predefined 
+            % method
+            if ~ismember(method,{'tbr', ...
+                    'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
+                    'spark','cure_spark','cure_irka','cure_rk+pork', ...
+                    'stabsep','rkOp','rkIcop','modelFct','cirka', ...
+                    'userDefined'})
+                % for user defined custom reduction methods, the struct can
+                % be arbitrary. Therefore there are no checks neccesary
+                parsedStruct = params;
+            else
+                % check algorithm-specific parameters
+                if strcmp(method,'tbr')                     %tbr
+                   list = {'originalOrder','type','redErr','hsvTol','lse','hsv'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');                 
+                elseif strcmp(method,'modalMor')            %modalMor  
+                   list = {'originalOrder','type','orth','real','tol','dominance'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params'); 
+                elseif strcmp(method,'irka')                %irka
+                   list = {'originalOrder','maxiter','tol','type','stopCrit', ...
+                           'orth','lse','dgksTol','krylov', ...
+                           's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'rk')                  %rk
+                   list = {'originalOrder','real','orth','reorth','lse','dgksTol','krylov', ...
+                           'IP','Rt','Lt','s0_inp','s0_out'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'modelFct')            %modelFct
+                   list = {'originalOrder','s0mTot','updateModel','modelTol'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'cirka')               %cirka
+                   list = {'originalOrder','modelFctOrder','kIrka','s0',...
+                            'qm0','s0m','maxiter','tol','stopCrit','updateModel',...
+                            'clearInit','irka'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'projectiveMor')       %projectiveMor
+                   list = {'originalOrder','trans'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'porkV')               %porkV
+                   list = {'originalOrder'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'porkW')               %porkW
+                   list = {'originalOrder'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'spark')               %spark
+                   list = {'originalOrder'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
 
-               list = {'type','mfe','mi','xTol', ...
-                       'fTol','modelTol'};
-               parsedStruct.spark = ssRed.parseStructFields(params.spark,list,'params.spark');
-               
-               list = {'ritz','pertIter','maxIter'};
-               parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
-            elseif strcmp(method,'cure_irka')           %cure_irka
-               list = {'originalOrder','currentReducedOrder','shifts','maxiter','tol', ...
-                       'type','stopCrit','orth','lse','dgksTol','krylov', ...
-                       's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-               
-               if cureRequired
-                    list = {'cure'};
-                    ssRed.parseStructFields(params,list,'params');
-               
-                    list = {'fact','stop','stopval','maxIter'};
-                    parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');  
-               end
-            elseif strcmp(method,'cure_rk+pork')        %cure_rk+pork
-               list = {'originalOrder','currentReducedOrder','shifts','real', ...
-                       'orth','reorth','lse','dgksTol','krylov', ...
-                       'IP','Rt','Lt','s0_inp','s0_out'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-               
-               if cureRequired
-                    list = {'cure'};
-                    ssRed.parseStructFields(params,list,'params');
-               
-                    list = {'fact','stop','stopval','maxIter'};
-                    parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
-               end
-            elseif strcmp(method,'stabsep')             %stabsep
-               list = {'originalOrder','reducedOrder'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'rkOp')                %rkOp
-               list = {'originalOrder','sOpt','rk','lse'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');  
-            elseif strcmp(method,'rkIcop')              %rkIcop
-               list = {'originalOrder','sOpt','s0','rk','maxIter','tol','lse'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params'); 
-            elseif strcmp(method,'userDefined')         %userDefined
-               parsedStruct = params;
+                   list = {'spark','mespark'};
+                   ssRed.parseStructFields(params,list,'params');
+
+                   list = {'type','mfe','mi','xTol', ...
+                           'pork','fTol','modelTol'};
+                   parsedStruct.spark = ssRed.parseStructFields(params.spark,list,'params.spark');
+
+                   list = {'ritz','pertIter','maxIter'};
+                   parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
+                elseif strcmp(method,'cure_spark')          %cure_spark  
+                   list = {'originalOrder','currentReducedOrder','shifts'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params'); 
+
+                   if cureRequired
+                        list = {'cure','spark','mespark'};
+                        ssRed.parseStructFields(params,list,'params');
+
+                        list = {'fact','stop','stopval','maxIter'};
+                        parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
+                   else
+                        list = {'spark','mespark'};
+                        ssRed.parseStructFields(params,list,'params');
+                   end
+
+                   list = {'type','mfe','mi','xTol', ...
+                           'fTol','modelTol'};
+                   parsedStruct.spark = ssRed.parseStructFields(params.spark,list,'params.spark');
+
+                   list = {'ritz','pertIter','maxIter'};
+                   parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
+                elseif strcmp(method,'cure_irka')           %cure_irka
+                   list = {'originalOrder','currentReducedOrder','shifts','maxiter','tol', ...
+                           'type','stopCrit','orth','lse','dgksTol','krylov', ...
+                           's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+
+                   if cureRequired
+                        list = {'cure'};
+                        ssRed.parseStructFields(params,list,'params');
+
+                        list = {'fact','stop','stopval','maxIter'};
+                        parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');  
+                   end
+                elseif strcmp(method,'cure_rk+pork')        %cure_rk+pork
+                   list = {'originalOrder','currentReducedOrder','shifts','real', ...
+                           'orth','reorth','lse','dgksTol','krylov', ...
+                           'IP','Rt','Lt','s0_inp','s0_out'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+
+                   if cureRequired
+                        list = {'cure'};
+                        ssRed.parseStructFields(params,list,'params');
+
+                        list = {'fact','stop','stopval','maxIter'};
+                        parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
+                   end
+                elseif strcmp(method,'stabsep')             %stabsep
+                   list = {'originalOrder','reducedOrder'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'rkOp')                %rkOp
+                   list = {'originalOrder','sOpt','rk','lse'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');  
+                elseif strcmp(method,'rkIcop')              %rkIcop
+                   list = {'originalOrder','sOpt','s0','rk','maxIter','tol','lse'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params'); 
+                elseif strcmp(method,'userDefined')         %userDefined
+                   parsedStruct = params;
+                end
             end
         end
         
