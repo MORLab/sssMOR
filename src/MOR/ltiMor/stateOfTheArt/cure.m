@@ -105,8 +105,7 @@ function [sysr,sysrVec] = cure(sys,Opts)
         Def.cure.redfun     = 'spark'; %reduction algorithm
         Def.cure.nk         = 2; % reduced order at each step
         Def.cure.stop       = 'normROM'; %type of stopping criterion
-        Def.cure.stopval    = round(sqrt(sys.n)); %default reduced order
-            if ~isEven(Def.cure.stopval), Def.cure.stopval = Def.cure.stopval +1;end
+        Def.cure.stopval    = 1e-6;
         Def.cure.init       = 'sm'; %shift initialization type
         Def.cure.fact       = 'V'; %error factorization
         Def.cure.test       = 0; %execute analysis code?
@@ -153,24 +152,24 @@ BrL_tot = zeros(0,p); CrL_tot = zeros(p,0);
 BrR_tot = zeros(0,m); CrR_tot = zeros(m,0);
 
 sysr = sss(Ar_tot,Br_tot,Cr_tot,zeros(p,m),Er_tot);
-Dr_tot = sys.d;
+Dr_tot = full(sys.d);
 
 sysrVec = {}; % keep track of reduced models over iterations
 %%   Start cumulative reduction
 if Opts.cure.verbose, fprintf('\nBeginning CURE iteration...\n'); end
 
 iCure = 0; %iteration counter
-while ~stopCrit(sys,sysr,sysrVec,Opts) && iCure < Opts.cure.maxIter
+stop  = false;
+while ~stop && iCure < Opts.cure.maxIter
     iCure = iCure + 1;
-    if Opts.cure.verbose, fprintf('\tCURE iteration %03i\n',iCure');end
     %   Redefine the G_ system at each iteration
     sys = sss(sys.a,B_,C_,[],sys.e);
     
     %   Initializations
     [s0,Opts] = initializeShifts(sys,Opts,iCure);    
-    if Opts.cure.verbose,
+    if Opts.cure.verbose
         sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(s0(1)),imag(s0(1)),real(s0(2)),imag(s0(2))]);
-        fprintf('\tCURE start shifts\t%s\n',sStr);
+        fprintf('\t\tstart shifts\t%s\n',sStr);
     end
     
 	% 1) Reduction
@@ -203,10 +202,10 @@ while ~stopCrit(sys,sysr,sysrVec,Opts) && iCure < Opts.cure.maxIter
                     error('The selected reduction scheme (Opts.cure.redfun) is not availabe in cure');
             end
             n = size(V,2);
-            if Opts.cure.verbose, 
+            if Opts.cure.verbose
                 Se = eig(Sv);
                 sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(Se(1)),imag(Se(1)),real(Se(2)),imag(Se(2))]);
-                fprintf('\tCURE final shifts\t%s\n',sStr);
+                fprintf('\t\tfinal shifts\t%s\n',sStr);
             end
         case 'W'
         % W-based decomposition, if A.'*W - E.'*W*Sw.' - C.'*Lw = 0
@@ -235,10 +234,10 @@ while ~stopCrit(sys,sysr,sysrVec,Opts) && iCure < Opts.cure.maxIter
                     end  
             end
             n = size(W,2);
-            if Opts.cure.verbose, 
+            if Opts.cure.verbose 
                 Se = eig(Sw);
                 sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(Se(1)),imag(Se(1)),real(Se(2)),imag(Se(2))]);
-                fprintf('\tCURE final shifts\t%s\n',sStr);
+                fprintf('\t\tfinal shifts\t%s\n',sStr);
             end
     end
     
@@ -299,6 +298,15 @@ while ~stopCrit(sys,sysr,sysrVec,Opts) && iCure < Opts.cure.maxIter
         if Opts.cure.gif, writeGif('append'); end     
         drawnow
     end
+    
+    %% Stopping criterion
+    [stop, stopCrit] = stoppingCriterion(sys,sysr,sysrVec,Opts);
+    
+    if Opts.cure.verbose
+        fprintf('CURE step %03u - Convergence (%s):\t%s \n',iCure,...
+            Opts.cure.stop,sprintf('% 3.1e', stopCrit));
+    end
+
 end
 %%   Was maxIter achieved?
 if iCure >= Opts.cure.maxIter
@@ -307,7 +315,12 @@ end
 %%   Add the feedthrough term before returning the reduced system
 sysr.D = Dr_tot;
 %%  Finishing execution
-if Opts.cure.verbose,fprintf('Stopping criterion satisfied. Exiting cure...\n\n');end
+if Opts.cure.verbose
+    fprintf('Stopping criterion satisfied. Exiting cure...\n\n');
+else
+    fprintf('CURE step %03u - Convergence (%s):\t%s \n',iCure,...
+            Opts.cure.stop,sprintf('% 3.1e', stopCrit));
+end
 if Opts.cure.test
         sysr_bode = sysr;
         figure(fhOriginalSystem);
@@ -318,7 +331,7 @@ if Opts.cure.test
         if Opts.cure.gif, writeGif('append'), end
 end
 %% --------------------------AUXILIARY FUNCTIONS---------------------------
-function stop = stopCrit(sys,sysr,sysrVec,opts)
+function [stop,stopCrit] = stoppingCriterion(sys,sysr,sysrVec,opts)
 %   computes the stopping criterion for CURE iteration
 switch opts.cure.stop
     case 'h2Error'
@@ -327,19 +340,24 @@ switch opts.cure.stop
         end
         if isempty(sys.h2Norm), sys.h2Norm = norm(sys,2); end
         if sysr.n>0 %avoid computing when initializing
-            stop = (norm(sys-sysr,2)/sys.h2Norm <= opts.cure.stopval);
+            stopCrit = norm(sys-sysr,2)/sys.h2Norm;
+            stop =  stopCrit <= opts.cure.stopval;
         else
+            stopCrit    = NaN;
             stop = 0;
         end
     case 'normROM'
         if length(sysrVec)>2 %run at least three steps
             nNew = norm(sysr); nOld = norm(sysrVec{end-1});
-            stop = (nNew-nOld)/nNew < opts.cure.stopval;
+            stopCrit = abs(nNew-nOld)/nNew;
+            stop =  stopCrit < opts.cure.stopval;
         else
-            stop = false;
+            stopCrit    = NaN;
+            stop        = false;
         end
     case 'nmax'
-        stop = (sysr.n >=opts.cure.stopval);
+        stopCrit = sysr.n;
+        stop = (stopCrit >=opts.cure.stopval);
     otherwise
         error('The stopping criterion chosen does not exist or is not yet implemented');
 end
