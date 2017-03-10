@@ -1,13 +1,14 @@
-function sysr = cure(sys,Opts)
+function [sysr,sysrVec] = cure(sys,Opts)
 % CURE - CUmulative REduction framework
 %
 % Syntax:
 %       sysr = CURE(sys)
 %       sysr = CURE(sys,Opts)
+%       [sysr, sysrVec] = CURE(sys,Opts)
 %
 % Description:
 %       This function implements the CUmulative REduction framework
-%       (CURE) introduced by Panzer and Wolf (see [1,2]).
+%       (CURE) introduced by Panzer, Wolf and Lohmann (see [1,2]).
 %
 %       Using the duality between Sylvester equation and Krylov subspaces, the 
 %       error is factorized at each step of CURE and only the high-dimensional
@@ -16,9 +17,6 @@ function sysr = cure(sys,Opts)
 %       Currently, this function supports following reduction strategies at
 %       each step of CURE:
 %       spark (def.), irka, rk+pork (pseudo-optimal reduction)
-%
-%       You can reduce index 1 DAEs in semiexplicit form by selecting the
-%       appropriate option. See [3] for more details.
 %
 %       //Note: Currently CUREd SPARK works only for SISO systems.
 %
@@ -36,7 +34,7 @@ function sysr = cure(sys,Opts)
 %           -.cure.init:    shift initialization mode 
 %                           [{'sm'} / 'zero' / 'lm' / 'slm']
 %           -.cure.stop:    stopping criterion
-%                           [{'nmax'} / 'h2Error']
+%                           [{'normROM'} / 'nmax' / 'h2Error']
 %           -.cure.stopval: value according to which the stopping criterion is evaluated
 %                           [{'round(sqrt(sys.n))'} / positive integer]
 %           -.cure.verbose: display text during cure 
@@ -58,7 +56,7 @@ function sysr = cure(sys,Opts)
 %
 % Output Arguments:     
 %       -sysr: Reduced system
-%
+%       -sysrVec: A cell array of all reduced models at each step
 % Examples:
 %       By default, cure reduces a given model sys to a reduced order of
 %       sqrt(sys.n) by steps of nk = 2 using mespark (model function based
@@ -79,8 +77,6 @@ function sysr = cure(sys,Opts)
 %       * *[1] Panzer (2014)*, Model Order Reduction by Krylov Subspace Methods
 %              with Global Error Bounds and Automatic Choice of Parameters
 %       * *[2] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
-%       * *[3] Castagnotto et al. (2015)*, Stability-preserving, adaptive
-%              model order reduction of DAEs by Krylov subspace methods
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
 % Reduction and System Analysis Toolbox developed at the Chair of 
@@ -96,27 +92,27 @@ function sysr = cure(sys,Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  13 Apr 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  03 Mar 2017
+% Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
     % default values
-    Def.warn = 0;%show warnings?
-    Def.cure.verbose = 0; %show progress text?
-    Def.w = []; %frequencies for bode plot
-    Def.zeroThres = 1e-4; % define the threshold to replace "0" by
-        Def.cure.redfun = 'spark'; %reduction algorithm
-        Def.cure.nk = 2; % reduced order at each step
-        Def.cure.stop = 'nmax'; %type of stopping criterion
-        Def.cure.stopval = round(sqrt(sys.n)); %default reduced order
-            if ~isEven(Def.cure.stopval), Def.cure.stopval = Def.cure.stopval +1;end
-        Def.cure.init = 'sm'; %shift initialization type
-        Def.cure.fact = 'V'; %error factorization
-        Def.cure.SE_DAE = 0; %SE-DAE reduction
-        Def.cure.test = 0; %execute analysis code?
-        Def.cure.gif = 0; %produce a .gif of the CURE iteration
-        Def.cure.maxIter = 20; %maximum number of iterations
+    Def.warn        = 0;%show warnings?
+    Def.w           = []; %frequencies for bode plot
+    Def.zeroThres   = 1e-4; % define the threshold to replace "0" by
+        Def.cure.verbose    = 0; %show progress text?
+        Def.cure.redfun     = 'spark'; %reduction algorithm
+        Def.cure.nk         = 2; % reduced order at each step
+        Def.cure.stop       = 'normROM'; %type of stopping criterion
+        Def.cure.stopval    = 1e-6;
+        Def.cure.init       = 'sm'; %shift initialization type
+        Def.cure.fact       = 'V'; %error factorization
+        Def.cure.test       = 0; %execute analysis code?
+        Def.cure.gif        = 0; %produce a .gif of the CURE iteration
+        Def.cure.maxIter    = 20; %maximum number of iterations
+        Def.cure.checkEVB   = true; %check if [EV,B_] or dual have full rank
+        Def.cure.sEVBTol    = 1e-16; %rank tolerance for [EV,B_] matrix (or dual)
         
     % create the options structure
     if ~exist('Opts','var') || isempty(Opts)
@@ -148,6 +144,7 @@ if Opts.cure.test
     phHandle = axH(2); phLim  = get(phHandle,'YLim');
     drawnow
     if Opts.cure.gif, writeGif('create'); end
+    drawnow
 end
 %%   Initialize some variables
 [~,m] = size(sys.b);  p = size(sys.c,1);
@@ -156,50 +153,26 @@ BrL_tot = zeros(0,p); CrL_tot = zeros(p,0);
 BrR_tot = zeros(0,m); CrR_tot = zeros(m,0);
 
 sysr = sss(Ar_tot,Br_tot,Cr_tot,zeros(p,m),Er_tot);
-%%   Computation for semiexplicit index 1 DAEs (SE DAEs)
-if Opts.cure.SE_DAE
-    [DrImp,A22InvB22] = implicitFeedthrough(sys,Opts.cure.SE_DAE);
-    
-    % if we inted to used spark, the DAE has to be modified if DrImp~=0
-    if DrImp && strcmp(Opts.cure.redfun,'spark')
-        B_ = adaptDaeForSpark(sys,Opts.cure.SE_DAE,A22InvB22);
-        
-        % if Opts.cure.test, add a new plot for the modified system
-        if Opts.cure.test
-            %switch the plot to be updated in the loop
-            fhSystemBeingReduced = figure('Name', 'CURE - modified DAE (strictly proper)');
-            sys = sss(sys.a,B_,C_,0,sys.e);
-            [m,w] = freqresp(sys,Opts.w);
-            bode(frd(m,w),bodeOpts)  
-            axH = findall(gcf,'type','axes');
-            magHandle = axH(3); magLim = get(magHandle,'YLim');
-            phHandle = axH(2); phLim  = get(phHandle,'YLim');
-            drawnow
-            if Opts.cure.gif, writeGif('create'); end
-        end 
-    elseif DrImp
-        error(['Cumulative reduction of non strictly proper index 1 DAEs ' ...
-                'in semiexplicit form is currently supported only for spark'])
-    end
-else
-    DrImp = zeros(size(sys.d));
-end 
+Dr_tot = full(sys.d);
 
-%   We reduce only the strictly proper part and add the feedthrough at the end   
-Dr_tot = sys.d + DrImp;
-
+sysrVec = {}; % keep track of reduced models over iterations
 %%   Start cumulative reduction
 if Opts.cure.verbose, fprintf('\nBeginning CURE iteration...\n'); end
 
 iCure = 0; %iteration counter
-while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
+stop  = false;
+while ~stop && iCure < Opts.cure.maxIter
     iCure = iCure + 1;
-    if Opts.cure.verbose, fprintf('\tCURE iteration %03i\n',iCure');end
     %   Redefine the G_ system at each iteration
     sys = sss(sys.a,B_,C_,[],sys.e);
     
     %   Initializations
-    [s0,Opts] = initializeShifts(sys,Opts,iCure);        
+    [s0,Opts] = initializeShifts(sys,Opts,iCure);    
+    if Opts.cure.verbose
+        sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(s0(1)),imag(s0(1)),real(s0(2)),imag(s0(2))]);
+        fprintf('\t\tstart shifts\t%s\n',sStr);
+    end
+    
 	% 1) Reduction
     switch Opts.cure.fact
         case 'V'
@@ -230,6 +203,11 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                     error('The selected reduction scheme (Opts.cure.redfun) is not availabe in cure');
             end
             n = size(V,2);
+            if Opts.cure.verbose
+                Se = eig(Sv);
+                sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(Se(1)),imag(Se(1)),real(Se(2)),imag(Se(2))]);
+                fprintf('\t\tfinal shifts\t%s\n',sStr);
+            end
         case 'W'
         % W-based decomposition, if A.'*W - E.'*W*Sw.' - C.'*Lw = 0
             switch Opts.cure.redfun
@@ -257,7 +235,13 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
                     end  
             end
             n = size(W,2);
+            if Opts.cure.verbose 
+                Se = eig(Sw);
+                sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(Se(1)),imag(Se(1)),real(Se(2)),imag(Se(2))]);
+                fprintf('\t\tfinal shifts\t%s\n',sStr);
+            end
     end
+    
     %%  Cumulate the matrices and define sysr
 	%Er = W.'*E*V;  Ar = W.'*A*V;  Br = W.'*B_;  Cr = C_*V;
     Er_tot = blkdiag(Er_tot, Er);
@@ -287,6 +271,7 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
     usedOpts.currentReducedOrder = sysr.n+Opts.cure.nk;
     usedOpts.originalOrder = sys.n;
     usedOpts.shifts = s0;
+
     
     if isa(sysr,'ssRed')
         sysr = ssRed(Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot, ...
@@ -301,27 +286,43 @@ while ~stopCrit(sys,sysr,Opts) && iCure < Opts.cure.maxIter
         end
     end
     sysr.Name = name;
+
+	%create a cell array of reduced models
+    sysrVec{end+1} = sysr;
     
     % display
     if Opts.cure.test
+        % frequency response
         sysr_bode = sysr; 
         figure(fhSystemBeingReduced);
         bode(sysr_bode,w,'--r');
         set(magHandle,'YLim', magLim); set(phHandle,'YLim', phLim);
+        if Opts.cure.gif, writeGif('append'); end     
         drawnow
-        if Opts.cure.gif, writeGif('append'); end
     end
-end
+    
+    %% Stopping criterion
+    [stop, stopCrit] = stoppingCriterion(sys,sysr,sysrVec,Opts);
+    
+    if Opts.cure.verbose
+        fprintf('CURE step %03u - Convergence (%s):\t%s \n',iCure,...
+            Opts.cure.stop,sprintf('% 3.1e', stopCrit));
+    end
 
+end
 %%   Was maxIter achieved?
 if iCure >= Opts.cure.maxIter
     warning('Iterations count reached maxIter. You might want to increase maxIter or the convergence criterion')
 end
 %%   Add the feedthrough term before returning the reduced system
 sysr.D = Dr_tot;
-
 %%  Finishing execution
-if Opts.cure.verbose,fprintf('Stopping criterion satisfied. Exiting cure...\n\n');end
+if Opts.cure.verbose
+    fprintf('Stopping criterion satisfied. Exiting cure...\n\n');
+else
+    fprintf('CURE step %03u - Convergence (%s):\t%s \n',iCure,...
+            Opts.cure.stop,sprintf('% 3.1e', stopCrit));
+end
 if Opts.cure.test
         sysr_bode = sysr;
         figure(fhOriginalSystem);
@@ -331,9 +332,8 @@ if Opts.cure.test
         
         if Opts.cure.gif, writeGif('append'), end
 end
-
 %% --------------------------AUXILIARY FUNCTIONS---------------------------
-function stop = stopCrit(sys,sysr,opts)
+function [stop,stopCrit] = stoppingCriterion(sys,sysr,sysrVec,opts)
 %   computes the stopping criterion for CURE iteration
 switch opts.cure.stop
     case 'h2Error'
@@ -342,12 +342,24 @@ switch opts.cure.stop
         end
         if isempty(sys.h2Norm), sys.h2Norm = norm(sys,2); end
         if sysr.n>0 %avoid computing when initializing
-            stop = (norm(sys-sysr,2)/sys.h2Norm <= opts.cure.stopval);
+            stopCrit = norm(sys-sysr,2)/sys.h2Norm;
+            stop =  stopCrit <= opts.cure.stopval;
         else
+            stopCrit    = NaN;
             stop = 0;
         end
+    case 'normROM'
+        if length(sysrVec)>2 %run at least three steps
+            nNew = norm(sysr); nOld = norm(sysrVec{end-1});
+            stopCrit = abs(nNew-nOld)/nNew;
+            stop =  stopCrit < opts.cure.stopval;
+        else
+            stopCrit    = NaN;
+            stop        = false;
+        end
     case 'nmax'
-        stop = (sysr.n >=opts.cure.stopval);
+        stopCrit = sysr.n;
+        stop = (stopCrit >=opts.cure.stopval);
     otherwise
         error('The stopping criterion chosen does not exist or is not yet implemented');
 end
@@ -428,34 +440,7 @@ function [s0,Opts] = initializeShifts(sys,Opts,iCure)
     %   replace 0 with thresh, where threshold is a small number
     %   (sometimes the optimizer complaints about cost function @0)
     s0(s0==0)=Opts.zeroThres;  
-function [DrImp,A22InvB22] = implicitFeedthrough(sys,dynamicOrder)
-%   compute the implicit feedthrough of a SE DAE
 
-    B22 = sys.b(dynamicOrder+1:end);
-    C22 = sys.c(dynamicOrder+1:end);
-    if norm(B22)>0 && norm(C22)>0
-        %this is not suffiecient for Dr~=0, but it is necessary
-        
-        %   Computing A22\B22 since it can be reused before spark
-        A22InvB22 = sys.a(dynamicOrder+1:end,dynamicOrder+1:end)\B22;
-        if norm(A22InvB22)>0
-            DrImp = -C22*A22InvB22;
-        else
-            DrImp = zeros(p,m);
-        end
-    else
-        A22InvB22 = zeros(size(B22));
-        DrImp = zeros(p,m);
-    end
-function Bnew = adaptDaeForSpark(sys,dynamicOrder,A22InvB22)
-% adapt B if the system is SE-DAE with Dr,imp ~=0
-% analogously, the same effect could be achieved by modifying C
-
-    [~,A12] = partition(sys.a,dynamicOrder);
-    B11 = sys.b(1:dynamicOrder);
-    
-    Bnew = [ B11 - A12*A22InvB22;
-          zeros(size(sys.a,1)-dynamicOrder,size(B11,2))]; 
 function writeGif(gifMode)
     filename = 'CURE.gif';
     dt = 1.5;

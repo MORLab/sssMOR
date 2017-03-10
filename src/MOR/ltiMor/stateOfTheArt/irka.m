@@ -1,7 +1,8 @@
-function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj, LtTraj] = irka(sys, s0, varargin) 
+function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj, LtTraj] = irka(sys, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
+%       sysr                            = IRKA(sys, q)
 %       sysr                            = IRKA(sys, s0)
 %       sysr                            = IRKA(sys, s0, Rt, Lt)
 %       sysr                            = IRKA(sys, s0,..., Opts)
@@ -24,12 +25,18 @@ function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj,
 %       reduced model over the iterations. This behavior can be changed
 %       with the optional Opts structure.
 %
+%       The algorithm can be called either with a reduced order q, in which
+%       case all initial shifts are set at the origin (and tangential
+%       directions to ones), or with a prescribed initial set of shifts s0
+%       (and tangential directions Rt,Lt).
+%
 % Input Arguments:  
 %       *Required Input Arguments:*
 %       -sys:			full order model (sss)
-%       -s0:			vector of initial shifts
 %
 %       *Optional Input Arguments:*
+%       -q:             reduced order
+%       -s0:			vector of initial shifts
 %       -Rt/Lt:			initial right/left tangential directions for MIMO
 %       -Opts:			structure with execution parameters
 %			-.maxiter:	maximum number of iterations;
@@ -99,12 +106,23 @@ if ~isempty(varargin) && isstruct(varargin{end})
 else
     Opts = struct();
 end
-if ~isempty(varargin)
+if isempty(varargin)
+        error('sssMOR:irka:inputarguments','Not enough input arguments');
+elseif length(varargin)==1
+    if length(varargin{1}) == 1
+        % Reduced order specified
+        s0 = zeros(1,varargin{1});
+    else
+        % Shifts specified
+        s0 = varargin{1};
+    end
+    Rt = ones(sys.m,length(s0));
+    Lt = ones(sys.p,length(s0));
+else %MIMO
         %usage irka(sys,s0,Rt,Lt)
-        Rt = varargin{1};
-        Lt = varargin{2};
-elseif ~sys.isSiso
-        error('specify initial tangential directions for MIMO systems');
+        s0 = varargin{1};
+        Rt = varargin{2};
+        Lt = varargin{3};
 end
     
 %% Parse the inputs
