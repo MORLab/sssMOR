@@ -363,6 +363,8 @@ classdef ssRed < ss
     properties
         x0
         reductionParameters
+        
+        issymmetric
     end
     properties(Dependent, Hidden)
         n,p,m
@@ -375,7 +377,8 @@ classdef ssRed < ss
         ConGram, ConGramChol
         ObsGram, ObsGramChol
         residues
-        isSym
+        
+        isSym       %deprecated; backward compatibility; use issymmetric
     end
     properties(Hidden,Access = private)
         a_,b_,c_,d_,e_
@@ -553,17 +556,21 @@ classdef ssRed < ss
             %makes the usage of sys.e in computations more robust than []
         end
         
-        function isSym = get.isSym(sys) %A=A', E=E'
-            if isequal(sys.isSym,0) || isequal(sys.isSym,1)
-                isSym = sys.isSym;
+        function isSym = get.isSym(sys)
+            isSym = sys.issymmetric;
+        end   
+        
+        function issymmetric = get.issymmetric(sys) %A=A', E=E'
+            if isequal(sys.issymmetric,0) || isequal(sys.issymmetric,1)
+                issymmetric = sys.issymmetric;
             else
-                if max(max(sys.(sys.a_)-sys.(sys.a_).'))<1e-6 && max(max(sys.(sys.e_)-sys.(sys.e_).'))<1e-6
-                    isSym = 1;
+                if full(max(max(sys.(sys.a_)-sys.(sys.a_).')))<1e-6 && full(max(max(sys.(sys.e_)-sys.(sys.e_).')))<1e-6
+                    issymmetric = true;
                 else
-                    isSym = 0;
+                    issymmetric = false;
                 end
             end
-        end    
+        end
         
         %% Overload subsref to cope with compatibility issues in MATLAB
         function result = subsref(sys, arg)
