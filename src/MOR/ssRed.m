@@ -362,8 +362,7 @@ classdef ssRed < ss
     
     properties
         x0
-        reductionParameters
-        
+        redParam        
         issymmetric
     end
     properties(Dependent, Hidden)
@@ -378,6 +377,7 @@ classdef ssRed < ss
         ObsGram, ObsGramChol
         residues
         
+        reductionParameters %deprecated; backward compatibility; use redParam
         isSym       %deprecated; backward compatibility; use issymmetric
     end
     properties(Hidden,Access = private)
@@ -521,13 +521,13 @@ classdef ssRed < ss
             sys.x0 = x0;
         end
         
-        function sys = set.reductionParameters(sys,reductionParameters)
+        function sys = set.redParam(sys,redParam)
             try
-                sys.checkParamsList(reductionParameters)
+                sys.checkParamsList(redParam)
             catch ex
                 error('Invalid value for the property "reductionParameters". Type "help ssRed" for more information.');
             end
-            sys.reductionParameters = reductionParameters;            
+            sys.redParam = redParam;            
         end
         
         %% Get helper functions
@@ -554,6 +554,14 @@ classdef ssRed < ss
             sys.(sys.b_) = sys.(sys.e_)\sys.(sys.b_);
             sys.(sys.e_) = eye(size(sys.(sys.a_))); 
             %makes the usage of sys.e in computations more robust than []
+        end
+        
+        function reductionParameters = get.reductionParameters(sys)
+           reductionParameters = sys.redParam;
+        end
+        
+        function sys = set.reductionParameters(sys,redParam)
+           sys.redParam = redParam; 
         end
         
         function isSym = get.isSym(sys)
