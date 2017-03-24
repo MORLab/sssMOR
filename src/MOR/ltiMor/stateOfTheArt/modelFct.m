@@ -113,6 +113,8 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
             ['Model function is already as big as the original.',...
             ' Returning the original model.']);
         sysm = sys;
+        V = speye(sys.n);
+        W = V;
     end
     
 %%  Auxiliary functions --------------------------------------------------

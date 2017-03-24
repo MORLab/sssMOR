@@ -1,28 +1,29 @@
-# Contributing to sssMOR
+Contributing to sssMOR
+=======================
 
-Contributions to sssMOR are welcome, as we try to keep the software up to date with **newest MOR routines** and **numerical linear algebra** algorithms. 
+Contributions to sssMOR are welcome, as we try to keep the software up to date with **newest MOR routines** and **numerical linear algebra** algorithms.
 
 In the following are a few guidelines to respect when developing code for sssMOR.
+If you have any questions on how to contribute, just get in touch with us at sssMOR@rt.mw.tum.de.
 
-## Styleguide
+> Note: The Gitlab repositories hosting the sss and sssMOR projects will become public soon, making it even easier for you to contribute to the sssMOR project.
+>Sign up for our newsletter under https://lists.lrz.de/mailman/listinfo/sssmor to stay up to date.
+
+***
+Styleguide
+-----------
+
 The file ``programmingGuidelines.m`` contains some general programming and naming rules aimed at improving the quality of the code, its readability and the overall functionality. Here is a summary of the most important points.
 
-REFERENCES:
-[1] Johnson (2014): MATLAB Style Guidelines 2.0
-[2] Hung (1999): The Pragmatic Programmer
-
-1. Naming conventions
-- general variable and function names should be mixed-case, starting with
-    a lower case, and be self explainatory. Acronyms should be lower case.
-    Underscores should be avoided! Abbreviations should be avoided unless
-    they are commonly used in the domain
+### Naming conventions
+- general variable and function names should be mixed-case, starting with a lower case, and be self explainatory. Acronyms should be lower case. Underscores should be avoided! Abbreviations should be avoided unless they are commonly used in the domain
 ```
 krylovSubspace, shift, reducedOrderModel, html, tum
 rom = reducedOrderModel %examples of acceptable abbreviations
 fom = fullOrderModel
 ```
 
-- amounts, number of objects: n<Objects>
+- amounts, number of objects: n*Objects*
 ```
 nShifts, nPoints
 ```
@@ -33,13 +34,13 @@ shift % one
 shiftArray, shiftVec % many
 ```
 
-- indices: i<Object>
+- indices: i*Object*
 ```
 iShift, iFile, jPosition
 for iPoint = 1:nPoints %example of nested loops
     for jFile = 1:nFiles
     end
-end 
+end
 ```
 
 - booleans: use positive bolean names
@@ -48,9 +49,7 @@ isFound %instead of isNotFound
 ```
 
 
-- Structures begin with upper case letter. Fieldnames do not repeat the
-    name of the structure
-    
+- Structures begin with upper case letter. Fieldnames do not repeat the name of the structure
 ```
 Segment.length, Options.MAX_ITERATIONS, GeneralOptions.fieldName
 ```
@@ -60,32 +59,36 @@ Segment.length, Options.MAX_ITERATIONS, GeneralOptions.fieldName
 mean, moment, maxError
 ```
 
-2. Definition of execution options
-    Whenever a function can be executed with different parameters or even
-    in different modes, the execution options should be passed at the end
-    of the inputs such as
-    ```
-      sysr = cure(sys,..,Opts)
-    ```
-    Opts is a structure containing some of the parameters that the function
-    accepts.
-    Default paramters are defined at the beginning of the function in which
-    they are used with a default structure
-    ```
-      Def.<fieldname> = ...
-    ```
-    Then, the input should be parsed and the current options structure
-    updated with the function parseOpts:
-    ```
-      if ~exist('Opts','var') || isempty(Opts)
-            Opts = Def;
-      else
-            Opts = parseOpts(Opts,Def);
-      end     
-    ```
-      
+### Definition of execution options
 
-## Testing
+Whenever a function can be executed with different parameters or even in different modes, the execution options should be passed at the end of the inputs such as
+```
+  sysr = cure(sys,..,Opts)
+```
+Opts is a structure containing some of the parameters that the function
+accepts.
+Default paramters are defined at the beginning of the function in which
+they are used with a default structure
+```
+  Def.<fieldname> = ...
+```
+Then, the input should be parsed and the current options structure
+updated with the function parseOpts:
+```
+  if ~exist('Opts','var') || isempty(Opts)
+        Opts = Def;
+  else
+        Opts = parseOpts(Opts,Def);
+  end
+```
+
+### REFERENCES:
+1. Johnson (2014): MATLAB Style Guidelines 2.0
+2. Hung (1999): The Pragmatic Programmer
+
+***
+Testing
+---------
 
 As the size of the project and interconnections between functions increases rapidly, it is essential to test the bais functionality of the toolbox every time we committ a change.
 For this reason, we have implemented ``unittest`` routines for every function that can be run within the test suites
@@ -120,21 +123,8 @@ fom             | 10^3
 heat-cont       | 10^3
 iss             | 10^5
 rail_1357       | 10^3
-----------------|------------------------ 
+----------------|------------------------
 LF10            | 10^9
 beam            | 10^8
 random          | 10^7
 SpiralInductorPeec | 10^6
-
-### Testing on RT84 for new releases
-Here is a simple workflow to respect when preparing the toolbox for a new release
-
-1. log into RT84
-2. open following MATLAB versions (Windows)
-    a. MATLAB2015b
-    b. MATLAB2016a
-    c. MATLAB2014a
-3. open following MATLAB versions (Linux Virtual Box)
-
-
-

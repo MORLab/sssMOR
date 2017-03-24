@@ -6164,6 +6164,10 @@ function success = loadSystemWithLoadSss(filename,path)
        end
 
        name = sTemp;
+       
+       % replace "-" with "_", because variable names are not allowed
+       % contain "-"
+       name = strrep(name,'-','_');
 
        % create system using loadSss
        sys = loadSss(strcat(path,filename));         

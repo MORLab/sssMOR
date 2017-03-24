@@ -285,8 +285,12 @@ warning('off','Control:analysis:NormInfinite3')
                     stop = (stopVal <= Opts.tol);
                 case 'sysm' 
                     %model function convergence
+                    warning('off','Control:analysis:NormInfinite3');
+                    warning('off','Control:analysis:InaccurateResponse');
                     stopVal=norm(sysm-sysmOld)/norm(sysm);
                     stop = (stopVal <= Opts.tol);
+                    warning('on','Control:analysis:NormInfinite3');
+                    warning('on','Control:analysis:InaccurateResponse');
                 case 'combAll'
                     [stop(1),stopVal(1)] = verifyStopCrit('s0');
                     [stop(2),stopVal(2)] = verifyStopCrit('sysr'); 
