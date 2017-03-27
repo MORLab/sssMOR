@@ -27,6 +27,7 @@ function [S,R,output_data] = rksm(varargin)
 %       [S,R,output_data]         = MY_RKSM(sys,s_inp,s_out,Rt,Lt)
 %       [S,R,output_data]         = MY_RKSM(sys,s_inp,...,Opts)
 %
+% Info: Funktionen f?r neue shifts muessen ab Zeile 470 unter der 'mess'-Option eingebunden werden 
 %
 %
 % possible Options:
@@ -77,7 +78,6 @@ function [S,R,output_data] = rksm(varargin)
 %
 %% still to come/immer noch zu erledigen
 % - adaptive SISO testen --> ganz nach hinten geschoben
-% - check if rksm is available in lyapchol machen 
 %% Create Def-struct containing default values and make global settings
 % Note: there may be no point named Def.reuseLU, otherwise one gets a conflict with solveLse/lyapchol/bilyapchol
 
@@ -306,6 +306,7 @@ elseif length(varargin) > 1
     tol = Opts.rctol;
     maxiter = Opts.maxiter_rksm;
     
+    
     if length(varargin) > 8 || length(varargin) < 3
         error('Wrong input');
     elseif (size(s_inp,1) > 2 && size(s_inp,2) > 2) ||  (size(s_inp,2) > 2 && size(s_inp,1) > 2)
@@ -457,6 +458,64 @@ switch Opts.rksm_method
                         elseif strcmp(Opts.shifts,'mess')
                             % hier irgendeine andere Funktion um shifts zu
                             % berechnen
+
+                            % hier einstellen, ab welcher iteration neue
+                            % shifts gerufen werden sollen
+                            if ii < 15 
+                                j=1;
+                                kk = 1;
+                            else
+                                if ~exist('kk','var')
+                                    kk = 1;
+                                end
+                                % start-Werte f?r irka, wenn mess dann
+                                % auskommentieren
+                                shifts = zeros(1,4+kk);
+                                Rt = ones(m,4+kk);        
+                                Lt = ones(p,4+kk);
+            
+                                % sys-Objekt erstellen, es ist m?glich auch
+                                % mit dem rteduzierten Modell zu arbeiten
+                                C = ones(1,n);
+                                D = zeros(size(C,1),m);
+                                sys = sss(A,B,C,D,E);
+
+                                %Cr = ones(1,size(Ar,1));
+                                %Dr = zeros(size(Cr,1),size(Br,2));
+                                %Ar = real(Ar); Br = real(Br); Cr = real(Cr);  Er = real(Er);
+                                %sys = sss(Ar,Br,Cr,Dr,Er);
+                                if ~exist('C','var')
+                                    C = Opts.Cma(1,:);
+                                end
+                                [~, ~, ~, s0, Rt, Lt] = irka(sys,shifts,Rt,Lt);
+                                [s_ma] = make_shiftmatrix(s0,m,p,A);
+                                kk = kk + 1;
+
+                                    % mess-shifts zum einkommentieren
+
+
+%                                   eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'prm',speye(size(sys.A)),'type','N','haveE',sys.isDescriptor);
+%                                   % opts struct: MESS options
+%                                   messOpts.adi=struct('shifts',struct('l0',20,'kp',50,'km',25,'b0',ones(sys.n,1),...
+%                                   'info',1),'maxiter',Opts.maxiter,'restol',0,'rctol',Opts.rctol,...
+%                                   'info',1,'norm','fro');
+%                                   Opts.lse         = 'gauss'; 
+%                                   lseType='solveLse';
+%                                   oper = operatormanager(lseType);
+%                                   messOpts.solveLse.lse=Opts.lse;
+%                                   messOpts.solveLse.krylov=0;
+%                                   % get adi shifts
+%                                   [s0,~,~,~,~,~,~,eqn]=mess_para(eqn,messOpts,oper); s0=s0';
+%                                   Rt = ones(m,size(s0,2));
+%                                   Lt = ones(p,size(s0,2));
+%                                   [~, ~, ~, s0, Rt, Lt] = irka(sys,s0,Rt,Lt);
+%                                   [s_ma] = make_shiftmatrix(s0,m,p,A);
+
+
+                                  % hier das j+1 muss immer gesetzt werden
+                                  % fuer einen guten Programmablauf
+                                  j = 1;
+                            end
                         end
                         counter_inp = 0;       
                         high_inp = false;
