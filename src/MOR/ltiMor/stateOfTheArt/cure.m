@@ -32,23 +32,21 @@ function [sysr,sysrVec] = cure(sys,Opts)
 %           -.cure.fact:    factorization mode 
 %                           [{'V'} / 'W']
 %           -.cure.init:    shift initialization mode 
-%                           [{'sm'} / 'zero' / 'lm' / 'slm']
+%                           [{'zero'} / 'sm' / 'lm' / 'slm' / array]
 %           -.cure.stop:    stopping criterion
 %                           [{'normROM'} / 'nmax' / 'h2Error']
 %           -.cure.stopval: value according to which the stopping criterion is evaluated
-%                           [{'round(sqrt(sys.n))'} / positive integer]
+%                           [{1e-6} / positive float]
 %           -.cure.verbose: display text during cure 
-%                           [{'0'} / '1']
-%           -.cure.SE_DAE:  reduction of index 1 semiexplicit DAE 
-%                           [{'0'} / '1']
+%                           [{false} / true]
 %           -.cure.test:    execute analysis code 
-%                           [{'0'} / '1']
+%                           [{false} / true]
 %           -.cure.gif:     produce a .gif file of the CURE iteration
-%                           [{'0'} / '1']
+%                           [{false} / true]
 %           -.cure.maxIter: maximum number of CURE iterations
 %                           [{'20'} / positive integer]
 %           -.warn:         show warnings
-%                           [{'0'} / '1']
+%                           [{false} / true]
 %           -.w:            frequencies for analysis plots
 %                           [{''} / '{wmin,wmax}' / vector of frequencies]
 %           -.zeroThres:    value that can be used to replace 0 
@@ -88,11 +86,12 @@ function [sysr,sysrVec] = cure(sys,Opts)
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      Heiko Panzer, Alessandro Castagnotto, Maria Cruz Varona
+% Authors:      Heiko Panzer, Alessandro Castagnotto, Maria Cruz Varona,
+%               Philipp Seiwald
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  03 Mar 2017
+% Last Change:  23 Mar 2017
 % Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -106,7 +105,7 @@ function [sysr,sysrVec] = cure(sys,Opts)
         Def.cure.nk         = 2; % reduced order at each step
         Def.cure.stop       = 'normROM'; %type of stopping criterion
         Def.cure.stopval    = 1e-6;
-        Def.cure.init       = 'sm'; %shift initialization type
+        Def.cure.init       = 'slm'; %shift initialization type
         Def.cure.fact       = 'V'; %error factorization
         Def.cure.test       = 0; %execute analysis code?
         Def.cure.gif        = 0; %produce a .gif of the CURE iteration
@@ -178,32 +177,21 @@ while ~stop && iCure < Opts.cure.maxIter
             % V-based decomposition, if A*V - E*V*S - B*Rv = 0
             switch Opts.cure.redfun
                 case 'spark'               
-                    [sysrTemp,V] = spark(sys,s0,Opts);
-                    
+                    [sysrTemp,V,Sv,Rv,~] = spark(sys,s0,Opts);
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                 case 'irka'
-                    [sysrTemp,V,W,~,~,~,~,~,Rv] = irka(sys,s0');
-                                      
+                    [sysrTemp,V,W,~,~,~,~,Sv,Rv] = irka(sys,s0);
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                     
                 case 'rk+pork'
-                    [sysrTemp, V, ~, ~, Sv, Rv] = rk(sys,s0');
-
+                    [sysrTemp, V, ~, ~, Sv, Rv] = rk(sys,s0);
                     [Ar,Br,Cr,Er] = porkV(V,Sv,Rv,C_);
-                    
-                    %   Adapt Cr for SE DAEs
-                    Cr = Cr - DrImp*Rv;
-                    %   Adapt Cr_tot for SE DAEs
-                    if ~isempty(Cr_tot)
-                        Cr_tot(:,end-n+1:end) = Cr_tot(:,end-n+1:end) + ...
-                            DrImp*CrR_tot(:,end-n+1:end);
-                    end
                 otherwise 
                     error('The selected reduction scheme (Opts.cure.redfun) is not availabe in cure');
             end
             n = size(V,2);
+            Se = eig(Sv); % shifts for this iteration
             if Opts.cure.verbose
-                Se = eig(Sv);
                 sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(Se(1)),imag(Se(1)),real(Se(2)),imag(Se(2))]);
                 fprintf('\t\tfinal shifts\t%s\n',sStr);
             end
@@ -212,30 +200,23 @@ while ~stop && iCure < Opts.cure.maxIter
             switch Opts.cure.redfun
                 case 'spark'               
                     Opts.spark.pork = 'W';
-                    [sysrTemp,W,~,Lw,~] = spark(sys.',s0,Opts);
+                    [sysrTemp,W,Sw,Lw,~] = spark(sys.',s0,Opts);
                     
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                 case 'irka'
-                    [sysrTemp,V,W,~,~,~,~,~,~,~,~,Lw] = irka(sys,s0');
+                    [sysrTemp,V,W,~,~,~,~,~,~,~,Sw,Lw] = irka(sys,s0);
                     
                     [Ar,Br,Cr,~,Er] = dssdata(sysrTemp);
                     
                 case 'rk+pork'
-                    [sysrTemp, ~, W, ~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0');
+                    [sysrTemp, ~, W, ~, ~, ~, ~, Sw, Lw] = rk(sys,[],s0);
                     
                     [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B_); 
                     
-                    %   Adapt Br for SE-DAEs
-                    Br = Br - Lw.'*DrImp;
-                    %   Adapt Cr_tot for SE DAEs
-                    if ~isempty(Br_tot)
-                        Br_tot(end-n+1:end,:) = Br_tot(end-n+1:end,:) + ...
-                            BrR_tot(end-n+1:end,:)*DrImp;
-                    end  
             end
             n = size(W,2);
+            Se = eig(Sw); % shifts for this iteration
             if Opts.cure.verbose 
-                Se = eig(Sw);
                 sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(Se(1)),imag(Se(1)),real(Se(2)),imag(Se(2))]);
                 fprintf('\t\tfinal shifts\t%s\n',sStr);
             end
@@ -250,7 +231,7 @@ while ~stop && iCure < Opts.cure.maxIter
     if Opts.cure.fact=='V'
         B_ = B_ - sys.e*(V*(Er\Br));    % B_bot
         BrL_tot = [BrL_tot; zeros(n,p)];    BrR_tot = [BrR_tot; Br];
-        CrL_tot = [CrL_tot, zeros(p,n)];    CrR_tot = [CrR_tot, Cr];
+        CrL_tot = [CrL_tot, zeros(p,n)];    CrR_tot = [CrR_tot, Rv];
     elseif Opts.cure.fact=='W'
         C_ = C_ - Cr/Er*W.'*sys.e;		% C_bot
         BrL_tot = [BrL_tot; Lw.'];   BrR_tot = [BrR_tot; zeros(n,m)];
@@ -299,8 +280,13 @@ while ~stop && iCure < Opts.cure.maxIter
         drawnow
     end
     
-    %% Stopping criterion
+    %% Evaluate stopping criterion
     [stop, stopCrit] = stoppingCriterion(sys,sysr,sysrVec,Opts);
+    if length(Opts.cure.init)==Opts.cure.nk
+        % initialization was only for one iteration
+        % use the current (optimal) shifts for the next one
+        Opts.cure.init = Se.';
+    end
     
     if Opts.cure.verbose
         fprintf('CURE step %03u - Convergence (%s):\t%s \n',iCure,...
@@ -362,82 +348,86 @@ switch opts.cure.stop
         error('The stopping criterion chosen does not exist or is not yet implemented');
 end
 function [s0,Opts] = initializeShifts(sys,Opts,iCure)
- %%   parse
- if Opts.cure.init ==0, Opts.cure.init = 'zero'; end
- 
- %%   initialization of the shifts
- if ~ischar(Opts.cure.init) %initial shifts were defined
-     if length(Opts.cure.init) == Opts.cure.nk %correct amount for iteration
+ % Compatibility with 0, 'zero'
+ if Opts.cure.init == 0, Opts.cure.init = 'zero'; end
+
+ % Check if a vector of values has been passed
+ if isa(Opts.cure.init,'double')
+     %==============================
+     %  initial shifts were defined
+     %==============================
+     if length(Opts.cure.init) < Opts.cure.nk % not enough
+         error('sssMOR:cure:wrongInitialization',...
+             'The inital vector of frequencies is incompatible with the desired nk');
+     elseif length(Opts.cure.init) == Opts.cure.nk % only 4 one iteration
          s0 = Opts.cure.init;
-     elseif length(Opts.cure.init)> Opts.cure.nk
-         firstIndex = (iCure-1)*Opts.cure.nk+1;
+         s0 = reshape(s0,[1,length(s0)]); %make sure it's a row vector
+     elseif length(Opts.cure.init)> Opts.cure.nk % more than one iteration
+         firstIndex = (iCure-1)*Opts.cure.nk+1; %select value dep. on iCure
             if firstIndex + Opts.cure.nk -1 > length(Opts.cure.init)
-                % overlap with the previous set of shifst
+                % repeat shifts
                 Opts.cure.init = [Opts.cure.init, Opts.cure.init];
             end
             % new set of shifts
             s0 = Opts.cure.init(firstIndex:firstIndex+Opts.cure.nk-1);
-     else
-         error('The initial vector of shifts s0 passed to CURE is invalid');
      end
-     
- else %choose initialization option     
+ else 
+     %===================================
+     % define initial shifts
+     %===================================
      %  choose the number of shifts to compute
      if strcmp(Opts.cure.stop,'nmax')
          ns0 = Opts.cure.stopval; %just as many as needed
      else %another stopping criterion was chosen
-         ns0 = round(sqrt(sys.n));
-         if ~isEven(ns0), ns0 = ns0+1; end
+         ns0 = Opts.cure.nk;
      end     
      %  compute the shifts
-     try
-         switch Opts.cure.init
-             case {'zero','zeros'} %zero initialization
-                 Opts.cure.init = Opts.zeroThres*ones(1,ns0);
-             case 'sm' %smallest magnitude eigenvalues
-                 Opts.cure.init = -eigs(sys.a,sys.e,ns0,0, ...
-                        struct('tol',1e-6,'v0',sum(sys.b,2)));
-             case 'lm' %largest magnitude eigenvalues
-                 Opts.cure.init = -eigs(sys.a,sys.e,ns0,'lm', ...
-                        struct('tol',1e-6,'v0',sum(sys.b,2)));
-             case 'slm' %(def.) smallest and largest eigs
-                 %  decide how many 'lm' and 'sm' eigs to compute
-                 if ns0 <=4
-                     nSm = 2; nLm = 2;
-                 else %ns0 > 4
-                    if isEven(ns0)
-                        nSm = ns0/2; nLm = nSm;
-                        s0 = [];
-                    else
-                        nSm = (ns0-1)/2; nLm = nSm;
-                        s0 = 0; %initialize the first shift at 0
-                    end
-                    if ~isEven(nSm), nSm = nSm +1; nLm = nLm -1;end
-                 end
-                 Opts.cure.init = [ -eigs(sys.a,sys.e,nSm,'sm', ...
-                                      struct('tol',1e-6,'v0',sum(sys.b,2)));...
-                                    -eigs(sys.a,sys.e,nLm,'lm', ...
-                                      struct('tol',1e-6,'v0',sum(sys.b,2)))]';
-             otherwise
-                 error('sssMOR:cure:undefinedInitialization',...
-                     'The desired initialization for CURE is not defined');
-         end
-     catch err
-         warning([getReport(err,'basic'),' Using 0.'])
-         Opts.cure.init = Opts.zeroThres*ones(1,ns0);
+     switch Opts.cure.init
+         case {'zero','zeros'} %zero initialization
+             Opts.cure.init = Opts.zeroThres*ones(1,ns0);
+         case 'sm' %smallest magnitude eigenvalues
+             Opts.cure.init = -eigs(sys.a,sys.e,ns0,0, ...
+                    struct('tol',1e-6,'v0',sum(sys.b,2))).';
+         case 'lm' %largest magnitude eigenvalues
+             Opts.cure.init = -eigs(sys.a,sys.e,ns0,'lm', ...
+                    struct('tol',1e-6,'v0',sum(sys.b,2))).';
+         case 'slm' % smallest and largest eigs
+             %  decide how many 'lm' and 'sm' eigs to compute
+             if ns0 <=4
+                 nSm = 2; nLm = 2;
+                 Opts.cure.init = [];
+             else %ns0 > 4
+                if isEven(ns0)
+                    nSm = ns0/2; nLm = nSm;
+                    Opts.cure.init = [];
+                else
+                    nSm = (ns0-1)/2; nLm = nSm;
+                    Opts.cure.init = 0; %initialize the first shift at 0
+                end
+                if ~isEven(nSm), nSm = nSm +1; nLm = nLm -1;end
+             end
+             Opts.cure.init = [Opts.cure.init,...
+                        -eigs(sys.a,sys.e,nSm,'sm', ...
+                        struct('tol',1e-6,'v0',sum(sys.b,2))).',...
+                        -eigs(sys.a,sys.e,nLm,'lm', ...
+                        struct('tol',1e-6,'v0',sum(sys.b,2))).'];
+         otherwise
+             error('sssMOR:cure:undefinedInitialization',...
+                 'The desired initialization for CURE is not defined');
      end
-     s0 = Opts.cure.init(1:Opts.cure.nk);
- end 
-    %   make sure the initial values for the shifts are complex conjugated
-    if mod(nnz(imag(s0)),2)~=0 %if there are complex valued shifts...
-        % find the s0 which has no compl.conj. partner
-        % (assumes that only one shifts has no partner)
-        s0(abs(imag(s0)-imag(sum(s0)))<1e-16) = 0;
-    end
-    %     cplxpair(s0); %only checking
-    %   replace 0 with thresh, where threshold is a small number
-    %   (sometimes the optimizer complaints about cost function @0)
-    s0(s0==0)=Opts.zeroThres;  
+ s0 = Opts.cure.init(1:Opts.cure.nk);
+end 
+%   make sure the initial values for the shifts are complex conjugated
+if mod(nnz(imag(s0)),2)~=0 %if there are complex valued shifts...
+    % find the s0 which has no compl.conj. partner
+    % (assumes that only one shifts has no partner)
+    s0(abs(imag(s0)-imag(sum(s0)))<1e-16) = 0;
+end
+%     cplxpair(s0); %only checking
+%   replace 0 with thresh, where threshold is a small number
+%   (sometimes the optimizer complaints about cost function @0)
+s0(s0==0)=Opts.zeroThres;  
+reshape(s0,[1,length(s0)]); %make sure it's a row vector
 
 function writeGif(gifMode)
     filename = 'CURE.gif';
