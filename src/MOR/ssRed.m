@@ -2,17 +2,13 @@ classdef ssRed < ss
 % SSRED - Reduced state-space LTI system (ssRed) class
 %
 % Syntax:
-%       sysr = ssRed(method,params,A,B,C)
-%       sysr = ssRed(method,params,A,B,C,paramsList)
-%       sysr = ssRed(method,params,A,B,C,D)
-%       sysr = ssRed(method,params,A,B,C,D,paramsList)
-%       sysr = ssRed(method,params,A,B,C,D,E)
-%       sysr = ssRed(method,params,A,B,C,D,E,paramsList)
-%       sysr = ssRed(method,params,sys_sss)
-%       sysr = ssRed(method,params,sys_sss,paramsList)
-%       sysr = ssRed(method,params,sys_ss)
-%       sysr = ssRed(method,params,sys_ss,paramsList)
-%       sysr = ssRed(method,params,sys_ssRed)
+%       sysr = ssRed(A,B,C)
+%       sysr = ssRed(A,B,C,D)
+%       sysr = ssRed(A,B,C,D,E)
+%       sysr = ssRed(A,B,C,D,E,method,params)
+%       sysr = ssRed(A,B,C,D,E,method,params,sys)
+%       sysr = ssRed(A,B,C,D,E,method,params,paramsList)
+%       
 %
 % Description:
 %       This class is derived from the ss-class. It is used to represent
@@ -21,8 +17,19 @@ classdef ssRed < ss
 %       objects normally possess
 %
 % Input Arguments:
+%       -A: system matrix
+%       -B: input matrix
+%       -C: output matrix
+%       -D: static gain matrix
+%       -E: descriptor matrix
 %       -method: name of the used reduction algorithm;
-%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'rkOp' / 'rkIcop' / 'userDefined']
+%                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'stabsep' / 'rkOp' / 'rkIcop' / 'modelFct' / 'cirka' / 'userDefined']
+%       -sys:   original state space system before reduction (class sss or ssRed)
+%       -paramsList:    Structure array. Each entry represents one 
+%                       reduction (without the current reduction).
+%           -.method:           name of the applied reduction algorithm (see above)                               
+%           -.params:           structure with the parameters of the
+%                               applied algorithm (see below)
 %       -params (tbr):          structure with the parameters for the tbr-algorithm;
 %           -.originalOrder:    Model order before reduction;
 %           -.type:             select amongst different tbr algorithms
@@ -259,6 +266,11 @@ classdef ssRed < ss
 %                               subspaces
 %           -.Rt:               right tangential directions for MIMO
 %           -.Lt:               left tangential directions for MIMO
+%       -params (stabsep):      structure with the parameters for the
+%                               model order reduction resulting from 
+%                               applying the stabsep-function
+%           -.originalOrder:    Model order before reduction
+%           -.reducedOrder:     Model order after reduction
 %       -params (rkOp):         structure with the parameters for the
 %                               rkOp-algorithm
 %           -.originalOrder:    Model order before reduction
@@ -309,22 +321,7 @@ classdef ssRed < ss
 %           -.clearInit:        reset the model function after first iteration;
 %                               [{true}, false]
 %           -.irka:             irka options (cmp irka)
-%       -params (stabsep):      structure with the parameters for the
-%                               stabsep-algorithm
-%           -.originalOrder     Model order before reduction
 %       -params (userDefined):  []
-%       -A: system matrix
-%       -B: input matrix
-%       -C: output matrix
-%       -D: static gain matrix
-%       -E: descriptor matrix
-%       -sys_ss:    control system toolbox state-space (ss)-object
-%       -sys_sss:   sparse state-space (sss)-object
-%       -paramsList{i}: Cell-Array of structs. Each field of the cell-array 
-%                       represents one reduction (without the current reduction).
-%           -.method:           name of the used reduction algorithm (see above)                               
-%           -.params:           structure with the parameters of the used
-%                               algorithm (see above)
 %
 % Output Arguments:
 %       -sys: reduced state-space (ssRed)-object
@@ -336,7 +333,7 @@ classdef ssRed < ss
 %> B = rand(10,1);
 %> C = rand(1,10);
 %> params.originalOrder = 20;
-%> sysr = ssRed('porkV',params,A,B,C);
+%> sysr = ssRed(A,B,C,'porkV',params);
 %
 % See Also: 
 %        ss, dss, sss
@@ -363,8 +360,10 @@ classdef ssRed < ss
 % Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
-    properties(SetAccess = private)
-        reductionParameters
+    properties
+        x0
+        redParam        
+        issymmetric
     end
     properties(Dependent, Hidden)
         n,p,m
@@ -376,8 +375,10 @@ classdef ssRed < ss
         TBal, TBalInv
         ConGram, ConGramChol
         ObsGram, ObsGramChol
+        residues
         
-        isSym
+        reductionParameters %deprecated; backward compatibility; use redParam
+        isSym       %deprecated; backward compatibility; use issymmetric
     end
     properties(Hidden,Access = private)
         a_,b_,c_,d_,e_
@@ -385,63 +386,60 @@ classdef ssRed < ss
     
     methods
         function obj = ssRed(varargin)
-            % parse and check the arguments
-            if nargin < 3 || nargin > 8 || nargin == 4
-                error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
-            end
-            paramsList = [];
-            nargin_new = nargin;
-            if ~isnumeric(varargin{nargin}) && ~isa(varargin{nargin},'ss') && ...
-               ~isa(varargin{nargin},'sss')         %paramsList specified
-                paramsList = varargin{nargin};
-                nargin_new = nargin_new-1;
-            end
-            if nargin_new == 3
-                sys = varargin{3};
-                if isa(sys,'ssRed')
-                    if ~isempty(paramsList)
-                        error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
-                    end
-                    paramsList = sys.reductionParameters;
+            
+            % parse input arguments
+            if nargin~=1 && ~isempty(varargin{1})   % not an empty model            
+                if nargin < 3 || nargin > 8
+                    error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
                 end
-                if isa(sys,'ss')    %ss-objects or ssRed-objects
-                   [A,B,C,D,E] = dssdata(sys);
-                elseif isa(sys,'sss')   %sss-objects
-                   [A,B,C,D,E] = full(dssdata(sys));
-                else
-                   error('The third argument has to be an object of type "ss" or "sss"'); 
+                
+                % default values
+                D = []; E = []; method = 'userDefined'; paramsList = [];
+                params = []; name = [];
+                
+                % system matrices
+                A = full(varargin{1});
+                B = full(varargin{2});
+                C = full(varargin{3});
+                iTemp = 4;          % next index in varargin
+                if nargin >= iTemp && isnumeric(varargin{4})
+                   D = full(varargin{4});
+                   iTemp = 5;
+                   if nargin >= iTemp && isnumeric(varargin{5})
+                      E = full(varargin{5});
+                      iTemp = 6;
+                   end
+                end
+                
+                % additional input arguments
+                switch nargin
+                    case iTemp
+                        error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
+                    case iTemp+1
+                        method = varargin{iTemp};
+                        params = varargin{iTemp+1};
+                    case iTemp+2
+                        method = varargin{iTemp};
+                        params = varargin{iTemp+1};
+                        if isa(varargin{iTemp+2},'sss') || isa(varargin{iTemp+2},'ss')
+                            name = varargin{iTemp+2}.Name;
+                        end
+                        if isa(varargin{iTemp+2},'ssRed')
+                            paramsList = varargin{iTemp+2}.reductionParameters;
+                        elseif isstruct(varargin{iTemp+2})
+                            paramsList = varargin{iTemp+2};
+                        end
                 end
             else
-                A = full(varargin{3});
-                B = full(varargin{4});
-                C = full(varargin{5});
-                
-                if nargin_new == 6
-                    D = full(varargin{6});
-                    E = [];
-                elseif nargin_new == 7
-                    D = full(varargin{6});
-                    E = full(varargin{7});
-                else                
-                    D = [];
-                    E = [];
-                end             
-            end
-            
-            if ~isa(varargin{1},'char')
-                error('sssMOR:ssRed:wrongUsage',...
-                    'The first argument must be a string specifying the reduction method. Type "help ssRed" for more information.');
-            elseif ~ismember(varargin{1},{'tbr', ...
-                    'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
-                    'spark','cure_spark','cure_irka','cure_rk+pork','rkOp', ...
-                    'rkIcop','modelFct','cirka','stabsep','userDefined'})
-                error('sssMOR:ssRed:reductionMethodUndefined',...
-                    'The reduction method specified (%s) is undefined. Type "help ssRed" for more information.',...
-                    varargin{1});
+               % ensures that syntax "ssRed([])" gives back an empty model
+               A=[];B=[];C=[];D=[];E=[];name=[];
             end
             
             % call the constructor of the superclass ss
             obj@ss(A,B,C,D,'e',E);
+            
+            % set the name property of the model
+            obj.Name = name;
             
             % store the correct names for the properties containing the
             % system matrices. This is a compatibility fix because the
@@ -457,62 +455,54 @@ classdef ssRed < ss
                             ltipack.allprops(obj),class(obj));
             obj.e_ = ltipack.matchProperty('e',...
                             ltipack.allprops(obj),class(obj));
-                        
-            % check all fields of paramsList
-            if ~isempty(paramsList)
-                try
-                   for i = 1:size(paramsList,1)
-                      if length(fieldnames(paramsList{i})) ~= 2
-                          error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.');
-                      end
-                      if i > 1 && ismember(paramsList{i-1}.method,{'cure_spark','cure_irka','cure_rk+pork'})
-                          paramsList{i}.params = obj.parseParamsStruct(paramsList{i}.params,paramsList{i}.method,0);
-                      else
-                          paramsList{i}.params = obj.parseParamsStruct(paramsList{i}.params,paramsList{i}.method,1);
-                      end
+            
+            % verify correctness of input parameters
+            if nargin~=1 && ~isempty(varargin{1})   % not an empty model
+                            
+                % parameter "method"
+                if ~isa(method,'char') 
+                    error('Argument "method" has to be a string. Type "help ssRed" for more information.');
+                end
+                
+                % check all fields of paramsList
+                obj.checkParamsList(paramsList)
+
+                % update the reductionParameters list
+                if isempty(paramsList)
+                   paramsTemp(1).method = method;
+                   try
+                       paramsTemp(1).params = obj.parseParamsStruct(params,method,1);
+                   catch ex
+                       error('Argument "params" has the wrong format. Type "help ssRed" for more information.');
                    end
-                catch ex
-                   error('The argument "paramsList" has the wrong format. Type "help ssRed" for more information.'); 
+                   obj.reductionParameters = paramsTemp;
+                else
+                   len = size(paramsList,2);
+                   paramsList(len+1).method = method;
+                   try
+                       paramsList(len+1).params = obj.parseParamsStruct(params,method,1);
+                   catch ex
+                       error('Argument "params" has the wrong format. Type "help ssRed" for more information.');
+                   end
+                   obj.reductionParameters = paramsList;
                 end
+                
+                % postprocess cure parameters
+                obj.reductionParameters = obj.removeCureParameters(obj.reductionParameters);
+                
+                % set initial values
+                obj.x0 = [];
             end
-            
-            % update the reductionParameters list
-            if isempty(paramsList)
-               obj.reductionParameters = cell(1,1);
-               obj.reductionParameters{1,1}.method = varargin{1};
-               try
-                   obj.reductionParameters{1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
-               catch ex
-                   error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
-               end
-            else
-               len = size(paramsList,1);
-               obj.reductionParameters = paramsList;
-               obj.reductionParameters{len+1,1}.method = varargin{1};
-               try
-                   obj.reductionParameters{len+1,1}.params = obj.parseParamsStruct(varargin{2},varargin{1},1);
-               catch ex
-                   error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
-               end
-            end
-            
-            % remove unnecessary parmaters from the reduction history
-            if nargin_new == 3 && isa(sys,'ssRed')
-                if ~strcmp(varargin{1},'projectiveMor')
-                    obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'projectiveMor');
-                end
-                if strcmp(varargin{1},'irka')
-                    obj.reductionParameters = obj.removeReductionMethod(obj.reductionParameters,'rk'); 
-                end
-                if strcmp(varargin{1},'rkOp') || strcmp(varargin{1},'rkIcop')
-                    obj.reductionParameters{end-1,1} = [];
-                    obj.reductionParameters = obj.reductionParameters(~cellfun('isempty',obj.reductionParameters));
-                end
-            end
-            obj.reductionParameters = obj.removeCureParameters(obj.reductionParameters); 
         end
                 
         %% Get Basic Properties
+        function x0 = get.x0(sys)
+            x0 = sys.x0;
+            if isempty(x0)
+                x0 = zeros(sys.n,1);
+            end
+        end
+        
         function m = get.m(sys) % number of inputs
             m = size(sys.(sys.b_),2);
         end
@@ -521,6 +511,23 @@ classdef ssRed < ss
         end
         function p = get.p(sys) % number of outputs
             p = size(sys.(sys.c_),1);
+        end
+        
+        %% Set Basic Properties
+        function sys = set.x0(sys, x0)
+            if (~isempty(x0)) && (any(size(x0) ~= [sys.n,1]))
+                error('A and x0 must have the same number of rows.')
+            end
+            sys.x0 = x0;
+        end
+        
+        function sys = set.redParam(sys,redParam)
+            try
+                sys.checkParamsList(redParam)
+            catch ex
+                error('Invalid value for the property "reductionParameters". Type "help ssRed" for more information.');
+            end
+            sys.redParam = redParam;            
         end
         
         %% Get helper functions
@@ -549,36 +556,28 @@ classdef ssRed < ss
             %makes the usage of sys.e in computations more robust than []
         end
         
-        function isSym = get.isSym(sys) %A=A', E=E'
-            if isequal(sys.isSym,0) || isequal(sys.isSym,1)
-                isSym = sys.isSym;
+        function reductionParameters = get.reductionParameters(sys)
+           reductionParameters = sys.redParam;
+        end
+        
+        function sys = set.reductionParameters(sys,redParam)
+           sys.redParam = redParam; 
+        end
+        
+        function isSym = get.isSym(sys)
+            isSym = sys.issymmetric;
+        end   
+        
+        function issymmetric = get.issymmetric(sys) %A=A', E=E'
+            if isequal(sys.issymmetric,0) || isequal(sys.issymmetric,1)
+                issymmetric = sys.issymmetric;
             else
-                if max(max(sys.(sys.a_)-sys.(sys.a_).'))<1e-6 && max(max(sys.(sys.e_)-sys.(sys.e_).'))<1e-6
-                    isSym = 1;
+                if full(max(max(sys.(sys.a_)-sys.(sys.a_).')))<1e-6 && full(max(max(sys.(sys.e_)-sys.(sys.e_).')))<1e-6
+                    issymmetric = true;
                 else
-                    isSym = 0;
+                    issymmetric = false;
                 end
             end
-        end    
-        
-        function sys = changeReductionParameters(sys,params)
-        % This function overrides the last entry of the cell-array 
-        % "obj.reductionParameters" with the parameters specified in 
-        % "params". 
-        
-            l = length(sys.reductionParameters);
-        
-            try
-                if l > 1 && ismember(sys.reductionParameters{l-1}.method,{'cure_spark','cure_irka','cure_rk+pork'})
-                    sys.reductionParameters{l}.params = sys.parseParamsStruct(params.params,params.method,0);
-                    sys.reductionParameters{l}.method = params.method;
-                else
-                    sys.reductionParameters{l}.params = sys.parseParamsStruct(params.params,params.method,0);
-                    sys.reductionParameters{l}.method = params.method;
-                end
-            catch ex
-                error('The argument "params" has the wrong format. Type "help ssRed" for more information.');
-            end 
         end
         
         %% Overload subsref to cope with compatibility issues in MATLAB
@@ -647,12 +646,23 @@ classdef ssRed < ss
                     str = [str  char(10) 'Discrete-time state-space model.'];
                 end
                 
-                params = sys.reductionParameters{end,1};
-                if strcmp(params.method,'userDefined')
-                    str = [str char(10) 'Reduction Method: ' params.method char(10)];
+                % display all reduction algorithms used, but each reduction
+                % algorithm only once, even if it was used multiple times
+                usedMethods = [];
+                methodString = '';
+                for i = 1:size(sys.reductionParameters,2)
+                   if ~ismember(sys.reductionParameters(1,i).method,usedMethods)
+                       usedMethods{end+1} = sys.reductionParameters(1,i).method;
+                       methodString = strcat(methodString,sys.reductionParameters(1,i).method,',',char(1));
+                   end
+                end
+                methodString = methodString(1:size(methodString,2)-2);
+                
+                if strcmp(sys.reductionParameters(end,1).method,'userDefined')
+                    str = [str char(10) 'Reduction Method(s): ' methodString char(10)];
                 else
-                    str = [str char(10) 'Reduction Method: ' params.method char(10) ...
-                            'Original order: ' num2str(params.params.originalOrder)];
+                    str = [str char(10) 'Reduction Method(s): ' methodString char(10) ...
+                            'Original order: ' num2str(sys.reductionParameters(1,1).params.originalOrder)];
                 end
 
                 if nargout>0
@@ -664,390 +674,205 @@ classdef ssRed < ss
             end
         end
         
+        function sys = clear(sys)
+            sys = ssRed([]);
+        end
         
-        function varargout = eig(sys, varargin)
-            if sys.isBig
-                warning(['System order is very large: ',num2str(sys.n),'. You may want to try eigs(sys) instead.'])
+        function varargout = diag(varargin)
+            [varargout{1:nargout}] = sss.diag(varargin{:});
+        end
+        
+        function varargout = eig(varargin)
+            [varargout{1:nargout}] = sss.eig(varargin{:});
+        end
+        
+        function varargout = minus(varargin) 
+            [varargout{1:nargout}] = sss.minus(varargin{:});
+        end
+        
+        function varargout = plus(varargin) 
+            [varargout{1:nargout}] = sss.plus(varargin{:});
+        end
+        
+        function varargout = mtimes(varargin) 
+            [varargout{1:nargout}] = sss.mtimes(varargin{:});
+        end
+        
+        function varargout = residue(varargin)  
+            [varargout{1:nargout}] = sss.residue(varargin{:});
+        end
+        
+        function varargout = spy(varargin)  
+            [varargout{1:nargout}] = sss.spy(varargin{:});
+        end
+        
+        function varargout = sss(varargin)
+            error(['In sssMOR convertion from class "ssRed" to class ', ...
+                   '"sss" is prohibited because this would result in a loss ', ...
+                   'of information. If conversion is nevertheless desired, ', ...
+                   'use syntax "sysSss = sss(sys.A,sys.B,sys.C,sys.D,sys.E)."']);
+        end
+        
+        function varargout = decayTime(varargin)
+            [varargout{1:nargout}] = sss.decayTime(varargin{:});
+        end
+        
+        function varargout = issd(varargin)
+            [varargout{1:nargout}] = sss.issd(varargin{:});
+        end
+        
+        function varargout = eigs(varargin)
+            [varargout{1:nargout}] = sss.eigs(varargin{:});
+        end
+        
+        function syst = truncate(sys, idxOut, idxIn)
+            args.type = '()';
+            args.subs{1} = idxOut;
+            args.subs{2} = idxIn;
+            syst = subsref(sys,args);
+        end
+        
+        function varargout = freqresp(varargin)
+            % check if Options are specified
+            if ~isempty(varargin) && isstruct(varargin{end})
+                Opts = varargin{end};
+                varargin = varargin(1:end-1);
             end
-            
-            [A,~,~,~,E] = dssdata(sys);
-            if sys.isDescriptor
-                if nargout==1||nargout==0
-                    [varargout{1}] = eig(full(A), full(E),varargin{:});
-                elseif nargout == 2
-                    [varargout{1}, varargout{2}] = eig(full(A), full(E),varargin{:});
-                elseif nargout == 3
-                    [varargout{1}, varargout{2}, varargout{3}]  = eig(full(A), full(E),varargin{:});
+            % call the correct build in functions
+            if exist('Opts','var')
+                if isfield(Opts,'maxPoints')
+                    warning('Value for option "maxPoints" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'lse')
+                    warning('Value for option "lse" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'frd') && Opts.frd == 1 && nargout == 1
+                    [G,w] = freqresp@ss(varargin{:});
+                    varargout{1} = frd(G,w);
+                else
+                    [varargout{1:nargout}] = freqresp@ss(varargin{:});
                 end
             else
-                if nargout==1||nargout==0
-                    [varargout{1}] = eig(full(A),varargin{:});
-                elseif nargout == 2
-                    [varargout{1}, varargout{2}] = eig(full(A),varargin{:});
-                elseif nargout == 3
-                    [varargout{1}, varargout{2}, varargout{3}]  = eig(full(A),varargin{:});
-                end
+                [varargout{1:nargout}] = freqresp@ss(varargin{:});
             end
         end
         
-        function diff = minus(sys1, sys2) 
-            [A1,B1,C1,D1,E1] = dssdata(sys1);
-            [A2,B2,C2,D2,E2] = dssdata(sys2);
-            if size(A1,1) == 0
-                if isa(sys2,'sss')
-                    diff = sss(A2, B2, -C2, D2, E2);
-                else
-                    diff = dss(A2, B2, -C2, D2, E2);
+        function  varargout = impulse(varargin)
+            % check if Options are specified
+            if ~isempty(varargin) && isstruct(varargin{end})
+                Opts = varargin{end};
+                varargin = varargin(1:end-1);
+            end
+            % call the correct function depending on the value of Opts.tf
+            if exist('Opts','var')
+                if isfield(Opts,'odeset')
+                    warning('Value for option "odeset" remains ineffective for ssRed-objects'); 
                 end
-                return
-            end
-            if size(A2,1) == 0
-                diff = dss(A1, B1, C1, D1, E1);
-                return
-            end
-
-            if size(B1,2) ~= size(B2,2)
-                error('sys1 and sys2 must have same number of inputs.')
-            end
-            if size(C1,1) ~= size(C2,1)
-                error('sys1 and sys2 must have same number of outputs.')
-            end
-            if isa(sys1,'ss') && isempty(E1)
-                sys1.(sys1.e_) = eye(size(A1,1));
-            end
-            if isa(sys2,'ss') && isempty(E2)
-                sys2.(sys1.e_) = eye(size(A2,1));
-            end
-
-            if isa(sys2,'sss')           
-                diff = sss([A1 sparse(size(A1,1),size(A2,1)); sparse(size(A2,1),size(A1,1)) A2], ...
-                    [B1; B2], ...
-                    [C1, -C2], ...
-                    D1 - D2, ...
-                    [E1 sparse(size(A1,1),size(A2,1)); sparse(size(A2,1),size(A1,1)) E2]);
-            else
-                diff = dss([A1 zeros(size(A1,1),size(A2,1)); zeros(size(A2,1),size(A1,1)) A2], ...
-                    [B1; B2], ...
-                    [C1, -C2], ...
-                    D1 - D2, ...
-                    [E1 zeros(size(A1,1),size(A2,1)); zeros(size(A2,1),size(A1,1)) E2]);
-            end
-        end
-        
-        function [r,p,d] = residue(sys, Opts)       
-            Def.rType = 'res';
-
-            if ~exist('Opts','var') || isempty(Opts)
-                Opts = Def;
-            else
-                Opts = parseOpts(Opts,Def);
-            end
-
-            %perform eigen-decomposition of system
-            try
-                [T,J] = eig(sys);
-            catch err
-                error('Computation of the eigenvalues and eigenvectors failed with message:%s',err.message);
-            end
-
-            % transform system to diagonal form
-            p=diag(J).';
-            if issparse(T)
-                rcondNumber = 1/condest(T);
-            else
-                rcondNumber=rcond(T);
-            end
-            if rcondNumber<eps
-                warning(['Matrix of eigenvectors is close to singular or badly scaled. Results may be inaccurate. RCOND =',num2str(rcondNumber)]);
-            end
-            [~,B,C,D,E] = dssdata(sys);
-            B=(E*T)\B;
-            C=C*T;
-            d=D;
-
-            % calculate residues
-            if strcmp(Opts.rType,'dir')
-                % return the residual directions instead of the residuals
-                r = {C, B};  
-            else
-                % return the residuals
-                r = cell(1,sys.n);
-                for i=1:sys.n
-                    r{i} = full(C(:,i)*B(i,:));
+                if isfield(Opts,'tolOutput')
+                    warning('Value for option "tolOutput" remains ineffective for ssRed-objects'); 
                 end
-            end
-        end
-        
-        function tmax = decayTime(sys)
-            [res,p]=residue(sys);
-
-            % is system stable?
-            if any(real(p)>0 & real(p)<1e6) % larger than 0 but, smaller than infinity-threshold
-                % no -> tmax=NaN
-                tmax=NaN;
-                warning('sss:decayTime:UnstableSys','The system is not stable. The decay time is set to tmax=NaN.');
-                return
-            end
-
-            tmax=0; temp = cat(3,res{:}); 
-            for i=1:sys.p
-                for j=1:sys.m
-                    % how much does each pole contribute to energy flow?
-                    h2=zeros(size(p));
-                    for k=1:length(p)
-                        %we need the siso residual for all poles into on vectors
-                        resIJvec = squeeze(temp(i,j,:)).';
-                        h2(k)=res{k}(i,j)*sum(resIJvec./(-p(k)-p));
-                    end
-
-                    [h2_sorted, I] = sort(real(h2));
-                    % which pole contributes more than 1% of total energy?
-                    I_dom = I( h2_sorted > 0.01*sum(h2_sorted) );
-                    if isempty(I_dom)
-                        % no poles are dominant, use slowest
-                        I_dom = 1:length(p);
-                    end
-                    % use slowest among dominant poles
-                    [h2_dom, I2] = sort(abs(real(p(I_dom))));
-
-                    % when has slowest pole decayed to 1% of its maximum amplitude?
-                    tmax=max([tmax, log(100)/abs(real(p(I_dom(I2(1)))))]);
+                if isfield(Opts,'tolState')
+                    warning('Value for option "tolState" remains ineffective for ssRed-objects'); 
                 end
-            end
-        end
-        
-        function [issd, numericalAbscissa] = issd(sys)
-            %  Parse input
-            if condest(sys.(sys.e_))>1e16, error('issd does not support DAEs'),end
-
-            %  Perform computations
-            % E >0?
-            isPosDef = ispd(sys.(sys.e_));
-            if ~isPosDef
-                if nargout == 0, warning('System is not strictly dissipative (E~>0).'); 
-                else issd = 0; end
-                return
-            end
-
-            % A + A' <0?  
-            isNegDef = ispd(-sys.(sys.a_)-sys.(sys.a_)');
-            if isNegDef
-                if nargout == 0, fprintf('System is strictly dissipative.\n'); else issd = 1; end
-            else
-                if nargout == 0, warning('System is not strictly dissipative (E>0, A+A''~<0)'); else issd = 0; end
-            end
-
-            if nargout==2 % computation of the numerical abscissa required
-                p    = 20;		% number of Lanczos vectors
-                tol  = 1e-10;	% convergence tolerance
-                opts = struct('issym',true, 'p',p, 'tol',tol, 'v0',sum(sys.(sys.e_),2));
-                try
-                    numericalAbscissa = eigs((sys.(sys.a_)+sys.(sys.a_)')/2, sys.(sys.e_), 1, 'la', opts);
-                catch err
-                    warning('Computation of the numerical abscissa failed with message:%s',err.message);
-                    numericalAbscissa = NaN;
+                if isfield(Opts,'ode')
+                    warning('Value for option "ode" remains ineffective for ssRed-objects'); 
                 end
-            end
-        end
-        
-        function  [tf,g,t] = impulse(sys,varargin)
-        % Override the impulse-function with three output-arguments for
-        % ssRed-objects, because this syntax does not exist for the
-        % Matlab build-in impulse function. Impulse with three output
-        % arguments is needed in the sssMOR_App. So this function makes it
-        % possible that plotting with the app works for ssRed-objects, too.
-        
-            % check if a tf-object should be given back
-            if ~isempty(varargin) && isfield(varargin{nargin-1},'tf') && ...
-                    varargin{nargin-1}.tf == 1
-               
-                % final Time
-                t = [];
-                if nargin == 3 && isfloat(varargin{1})
-                    t = varargin{1};
+                if isfield(Opts,'tsMin')
+                    warning('Value for option "tsMin" remains ineffective for ssRed-objects'); 
                 end
-
-                if ~isempty(t)
-                    Tfinal=t(end);
-                else
-                    Tfinal=0;
+                if isfield(Opts,'tLin')
+                    warning('Value for option "tLin" remains ineffective for ssRed-objects'); 
                 end
-
-                % get h,t by calling ss/step
-
-                sys.(sys.d_) = zeros(size(sys.(sys.d_)));
-                if ~isempty(t)
-                    [h,tg] = step(sys, t(end));
-                else
-                    [h,tg] = step(sys);
-                end
-
-                % compute impulse response [g,t]
-                if length(size(h)) == 2
-                    g{1,1}=gradient(h,tg);                        
-                    g{1,1}(isnan(h))=0;
-                else
-                    g = cell(size(h,2),size(h,3));
-                    for k=1:size(g,1)
-                        for j=1:size(g,2)
-                            g{k,j}=gradient(h(:,k,j),tg);                        
-                            g{k,j}(isnan(h(:,k,j)))=0;
-                        end
-                    end
-                end
-
-                % get Ts and Tfinal
-                Ts=Inf;
-                if isempty(t) || isscalar(t)
-                    for k=1:size(g,1)
-                         for j=1:size(g,2)
-                            Ts=min(min(diff(tg),Ts));
-                            if ~isscalar(t)
-                                Tfinal=max(max(tg),Tfinal);
-                            end
-                         end
-                    end
-                else
-                    Ts=min(diff(t));
-                    Tfinal=t(end);
-                end
-
-                t=0:Ts:Tfinal(end);
-
-                % create tf-object
-                tf = cellfun(@(x) [x(1) diff(x')],g,'UniformOutput',false);
-                tf = filt(tf,1,Ts);
-                tf.Name = sys.Name;
-                t = t';
                 
-                % provide output arguments
-                if nargout == 1
-                    varargout{1} = tf;
-                elseif nargout == 3
-                    varargout{1} = tf;
-                    varargout{2} = h;
-                    varargout{3} = t;
+                if isfield(Opts,'tf') && Opts.tf == 1 
+                    if nargout > 3
+                       error('Maximal three output arguments if Opts.tf == 1'); 
+                    end
+                    varargout{1} = tf(varargin{1});
+                    if nargout > 1
+                       [varargout{2},varargout{3}] = impulse@ss(varargin{:}); 
+                    end
                 else
-                    error('Only up to three output arguments are supported, if Opts.tf==1');
+                    [varargout{1:nargout}] = impulse@ss(varargin{:});
                 end
             else
-                if nargout == 0
-                    impulse@ss(sys,varargin);
-                elseif nargout == 1
-                    varargout{1} = impulse@ss(sys,varargin);
-                elseif nargout == 2
-                    [varargout{1},varargout{2}] = impulse@ss(sys,varargin);
-                elseif nargout == 3
-                    [varargout{1},varargout{2},varargout{3}] = impulse@ss(sys,varargin);
-                end
+                [varargout{1:nargout}] = impulse@ss(varargin{:});
             end
         end
         
-        function  varargout = step(sys,varargin)
-        % Override the step-function with three output-arguments for
-        % ssRed-objects, because this syntax does not exist for the
-        % Matlab build-in step function. Step with three output
-        % arguments is needed in the sssMOR_App. So this function makes it
-        % possible that plotting with the app works for ssRed-objects, too.
-        
-            % check if a tf-object should be given back
-            if ~isempty(varargin) && isfield(varargin{nargin-1},'tf') && ...
-                    varargin{nargin-1}.tf == 1
-                % final Time
-                t = [];
-                if nargin == 3 && isfloat(varargin{1})
-                    t = varargin{1};
+        function  varargout = step(varargin)
+            % check if Options are specified
+            if ~isempty(varargin) && isstruct(varargin{end})
+                Opts = varargin{end};
+                varargin = varargin(1:end-1);
+            end
+            % call the correct function depending on the value of Opts.tf
+            if exist('Opts','var')
+                if isfield(Opts,'odeset')
+                    warning('Value for option "odeset" remains ineffective for ssRed-objects'); 
                 end
-
-                if ~isempty(t)
-                    Tfinal=t(end);
-                else
-                    Tfinal=0;
+                if isfield(Opts,'tolOutput')
+                    warning('Value for option "tolOutput" remains ineffective for ssRed-objects'); 
                 end
-
-                % get h,t by calling ss/step
-
-                sys.(sys.d_) = zeros(size(sys.(sys.d_)));
-                if ~isempty(t)
-                    [h,tg] = step@ss(sys, t(end));
-                else
-                    [h,tg] = step@ss(sys, []);
+                if isfield(Opts,'tolState')
+                    warning('Value for option "tolState" remains ineffective for ssRed-objects'); 
                 end
-
-                % create cell array
-                if length(size(h)) == 2
-                    h_{1,1}=h;                        
-                else
-                    h_ = cell(size(h,2),size(h,3));
-                    for k=1:size(h_,1)
-                        for j=1:size(h_,2)
-                            h_{k,j}=h(:,k,j);                      
-                        end
-                    end
+                if isfield(Opts,'ode')
+                    warning('Value for option "ode" remains ineffective for ssRed-objects'); 
                 end
-
-                % get Ts and Tfinal
-                Ts=Inf;
-                if isempty(t) || isscalar(t)
-                    for k=1:size(h_,1)
-                         for j=1:size(h_,2)
-                            Ts=min(min(diff(tg),Ts));
-                            if ~isscalar(t)
-                                Tfinal=max(max(tg),Tfinal);
-                            end
-                         end
-                    end
-                else
-                    Ts=min(diff(t));
-                    Tfinal=t(end);
+                if isfield(Opts,'tsMin')
+                    warning('Value for option "tsMin" remains ineffective for ssRed-objects'); 
                 end
-
-                t=0:Ts:Tfinal(end);
-
-                % create tf-object
-                tf = cellfun(@(x) [x(1) diff(x')],h_,'UniformOutput',false);
-                tf = filt(tf,1,Ts);
-                tf.Name = sys.Name;
-                t = t';
+                if isfield(Opts,'htCell')
+                    warning('Value for option "htCell" remains ineffective for ssRed-objects'); 
+                end
+                if isfield(Opts,'tLin')
+                    warning('Value for option "tLin" remains ineffective for ssRed-objects'); 
+                end
                 
-                % provide output arguments
-                if nargout == 1
-                    varargout{1} = tf;
-                elseif nargout == 3
-                    varargout{1} = tf;
-                    varargout{2} = h;
-                    varargout{3} = t;
+                if isfield(Opts,'tf') && Opts.tf == 1 
+                    if nargout > 3
+                       error('Maximal three output arguments if Opts.tf == 1'); 
+                    end
+                    varargout{1} = tf(varargin{1});
+                    if nargout > 1
+                       [varargout{2},varargout{3}] = step@ss(varargin{:}); 
+                    end
                 else
-                    error('Only up to three output arguments are supported, if Opts.tf==1');
+                    [varargout{1:nargout}] = step@ss(varargin{:});
                 end
             else
-                if nargout == 0
-                    step@ss(sys,varargin);
-                elseif nargout == 1
-                    varargout{1} = step@ss(sys,varargin);
-                elseif nargout == 2
-                    [varargout{1},varargout{2}] = step@ss(sys,varargin);
-                elseif nargout == 3
-                    [varargout{1},varargout{2},varargout{3}] = step@ss(sys,varargin);
-                end
+                [varargout{1:nargout}] = step@ss(varargin{:});
             end
         end
         
-        function  [S,R] = lyapchol(sys,Opts)
-            if sys.isDescriptor
-                S = lyapchol(sys.(sys.a_),sys.(sys.b_),sys.(sys.e_));
-            else
-                S = lyapchol(sys.(sys.a_),sys.(sys.b_));
-            end
-            S = S';
-
-            if nargout>1
-                if sys.isDescriptor
-                    R = lyapchol(sys.(sys.a_)', sys.(sys.c_)',sys.(sys.e_)');
-                else
-                    R = lyapchol(sys.(sys.a_)',sys.(sys.c_)');
+        function  varargout = lyapchol(varargin)
+            [varargout{1:nargout}] = sss.lyapchol(varargin{:});
+        end
+        
+        function varargout = stabsep(varargin)
+            [varargout{1:nargout}] = stabsep@ss(varargin{:});
+            % add an entry to the reduction history if the model order was
+            % changed
+            if nargout >= 1
+                if varargout{1}.n < varargin{1}.n
+                    sys = varargout{1};
+                    params.originalOrder = varargin{1}.n;
+                    params.reducedOrder = sys.n;
+                    varargout{1} = ssRed(sys.(sys.a_),sys.(sys.b_), ...
+                                         sys.(sys.c_),sys.(sys.d_), ...
+                                         sys.(sys.e_),'stabsep', ...
+                                         params, varargin{1});
+                    if nargout >= 2
+                        sys = varargout{2};
+                        params.originalOrder = varargin{1}.n;
+                        params.reducedOrder = sys.n;
+                        varargout{2} = ssRed(sys.(sys.a_),sys.(sys.b_), ...
+                                             sys.(sys.c_),sys.(sys.d_), ...
+                                             sys.(sys.e_),'stabsep', ...
+                                             params, varargin{1});
+                    end
                 end
-                R = R';
             end
         end
     end
@@ -1055,7 +880,30 @@ classdef ssRed < ss
     %%Private and static helper methods
     methods(Hidden, Access = private, Static)
         
-        function parsedStruct       = parseParamsStruct(params,method,cureRequired)
+        function checkParamsList(paramsList)
+        % Checks if the list "paramsList" with reduction parameters 
+        % resulting from multiple reduction steps has the correct format.
+        % If this is not the case, an error is produced
+        
+           if ~isempty(paramsList)
+                try
+                   for i = 1:size(paramsList,1)
+                      if length(fieldnames(paramsList(i))) ~= 2
+                          error('Argument "paramsList" has the wrong format. Type "help ssRed" for more information.');
+                      end
+                      if i > 1 && ismember(paramsList(i-1).method,{'cure_spark','cure_irka','cure_rk+pork'})
+                          ssRed.parseParamsStruct(paramsList(i).params,paramsList(i).method,0);
+                      else
+                          ssRed.parseParamsStruct(paramsList(i).params,paramsList(i).method,1);
+                      end
+                   end
+                catch ex
+                   error('Argument "paramsList" has the wrong format. Type "help ssRed" for more information.'); 
+                end
+            end 
+        end
+        
+        function parsedStruct = parseParamsStruct(params,method,cureRequired)
         % Checks if the struct with the parameters  "params" has the correct
         % structure for the specified reduction method "method". If this is
         % the case, then the values of the required fields of the struct 
@@ -1065,132 +913,127 @@ classdef ssRed < ss
         % stored for the first cure iteration, the parameter "cureRequired"
         % indicates whether the field "cure" is required in the struct
         % "params" or not
-            
-            % check algorithm-specific parameters
-            if strcmp(method,'tbr')                     %tbr
-               list = {'originalOrder','type','redErr','hsvTol','lse','hsv'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');                 
-            elseif strcmp(method,'modalMor')            %modalMor  
-               list = {'originalOrder','type','orth','real','tol','dominance'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params'); 
-            elseif strcmp(method,'irka')                %irka
-               list = {'originalOrder','maxiter','tol','type','stopCrit', ...
-                       'orth','lse','dgksTol','krylov', ...
-                       's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'rk')                  %rk
-               list = {'originalOrder','real','orth','reorth','lse','dgksTol','krylov', ...
-                       'IP','Rt','Lt','s0_inp','s0_out'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'modelFct')           %modelFct
-               list = {'originalOrder','s0mTot','updateModel','modelTol'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'cirka')               %cirka
-               list = {'originalOrder','modelFctOrder','kIrka','s0',...
-                        'qm0','s0m','maxiter','tol','stopCrit','updateModel',...
-                        'clearInit','irka'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'projectiveMor')       %projectiveMor
-               list = {'originalOrder','trans'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'stabsep')             %stabsep
-               list = {'originalOrder'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'porkV')               %porkV
-               list = {'originalOrder'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'porkW')               %porkW
-               list = {'originalOrder'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-            elseif strcmp(method,'spark')               %spark
-               list = {'originalOrder'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-               
-               list = {'spark','mespark'};
-               ssRed.parseStructFields(params,list,'params');
-               
-               list = {'type','mfe','mi','xTol', ...
-                       'pork','fTol','modelTol'};
-               parsedStruct.spark = ssRed.parseStructFields(params.spark,list,'params.spark');
-               
-               list = {'ritz','pertIter','maxIter'};
-               parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
-            elseif strcmp(method,'cure_spark')          %cure_spark  
-               list = {'originalOrder','currentReducedOrder','shifts'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params'); 
-                
-               if cureRequired
-                    list = {'cure','spark','mespark'};
-                    ssRed.parseStructFields(params,list,'params');
-               
-                    list = {'fact','stop','stopval','maxIter'};
-                    parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
-               else
-                    list = {'spark','mespark'};
-                    ssRed.parseStructFields(params,list,'params');
-               end
+        
+            % check if the reduction method belongs to the predefined 
+            % method
+            if ~ismember(method,{'tbr', ...
+                    'modalMor','rk','irka','projectiveMor','porkV','porkW', ...
+                    'spark','cure_spark','cure_irka','cure_rk+pork', ...
+                    'stabsep','rkOp','rkIcop','modelFct','cirka', ...
+                    'userDefined'})
+                % for user defined custom reduction methods, the struct can
+                % be arbitrary. Therefore there are no checks neccesary
+                parsedStruct = params;
+            else
+                % check algorithm-specific parameters
+                if strcmp(method,'tbr')                     %tbr
+                   list = {'originalOrder','type','redErr','hsvTol','lse','hsv'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');                 
+                elseif strcmp(method,'modalMor')            %modalMor  
+                   list = {'originalOrder','type','orth','real','tol','dominance'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params'); 
+                elseif strcmp(method,'irka')                %irka
+                   list = {'originalOrder','maxiter','tol','type','stopCrit', ...
+                           'orth','lse','dgksTol','krylov', ...
+                           's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'rk')                  %rk
+                   list = {'originalOrder','real','orth','reorth','lse','dgksTol','krylov', ...
+                           'IP','Rt','Lt','s0_inp','s0_out'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'modelFct')            %modelFct
+                   list = {'originalOrder','s0mTot','updateModel','modelTol'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'cirka')               %cirka
+                   list = {'originalOrder','modelFctOrder','kIrka','s0',...
+                            'qm0','s0m','maxiter','tol','stopCrit','updateModel',...
+                            'clearInit','irka'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'projectiveMor')       %projectiveMor
+                   list = {'originalOrder','trans'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'porkV')               %porkV
+                   list = {'originalOrder'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'porkW')               %porkW
+                   list = {'originalOrder'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'spark')               %spark
+                   list = {'originalOrder'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
 
-               list = {'type','mfe','mi','xTol', ...
-                       'fTol','modelTol'};
-               parsedStruct.spark = ssRed.parseStructFields(params.spark,list,'params.spark');
-               
-               list = {'ritz','pertIter','maxIter'};
-               parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
-            elseif strcmp(method,'cure_irka')           %cure_irka
-               list = {'originalOrder','currentReducedOrder','shifts','maxiter','tol', ...
-                       'type','stopCrit','orth','lse','dgksTol','krylov', ...
-                       's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-               
-               if cureRequired
-                    list = {'cure'};
-                    ssRed.parseStructFields(params,list,'params');
-               
-                    list = {'fact','stop','stopval','maxIter'};
-                    parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');  
-               end
-            elseif strcmp(method,'cure_rk+pork')        %cure_rk+pork
-               list = {'originalOrder','currentReducedOrder','shifts','real', ...
-                       'orth','reorth','lse','dgksTol','krylov', ...
-                       'IP','Rt','Lt','s0_inp','s0_out'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');
-               
-               if cureRequired
-                    list = {'cure'};
-                    ssRed.parseStructFields(params,list,'params');
-               
-                    list = {'fact','stop','stopval','maxIter'};
-                    parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
-               end
-            elseif strcmp(method,'rkOp')
-               list = {'originalOrder','sOpt','rk','lse'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params');  
-            elseif strcmp(method,'rkIcop')
-               list = {'originalOrder','sOpt','s0','rk','maxIter','tol','lse'};
-               parsedStruct = ssRed.parseStructFields(params,list,'params'); 
-            elseif strcmp(method,'userDefined')
-               parsedStruct = params;
+                   list = {'spark','mespark'};
+                   ssRed.parseStructFields(params,list,'params');
+
+                   list = {'type','mfe','mi','xTol', ...
+                           'pork','fTol','modelTol'};
+                   parsedStruct.spark = ssRed.parseStructFields(params.spark,list,'params.spark');
+
+                   list = {'ritz','pertIter','maxIter'};
+                   parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
+                elseif strcmp(method,'cure_spark')          %cure_spark  
+                   list = {'originalOrder','currentReducedOrder','shifts'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params'); 
+
+                   if cureRequired
+                        list = {'cure','spark','mespark'};
+                        ssRed.parseStructFields(params,list,'params');
+
+                        list = {'fact','stop','stopval','maxIter'};
+                        parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
+                   else
+                        list = {'spark','mespark'};
+                        ssRed.parseStructFields(params,list,'params');
+                   end
+
+                   list = {'type','mfe','mi','xTol', ...
+                           'fTol','modelTol'};
+                   parsedStruct.spark = ssRed.parseStructFields(params.spark,list,'params.spark');
+
+                   list = {'ritz','pertIter','maxIter'};
+                   parsedStruct.mespark = ssRed.parseStructFields(params.mespark,list,'params.mespark');
+                elseif strcmp(method,'cure_irka')           %cure_irka
+                   list = {'originalOrder','currentReducedOrder','shifts','maxiter','tol', ...
+                           'type','stopCrit','orth','lse','dgksTol','krylov', ...
+                           's0','Rt','Lt','kIter','s0Traj','RtTraj','LtTraj'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+
+                   if cureRequired
+                        list = {'cure'};
+                        ssRed.parseStructFields(params,list,'params');
+
+                        list = {'fact','stop','stopval','maxIter'};
+                        parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');  
+                   end
+                elseif strcmp(method,'cure_rk+pork')        %cure_rk+pork
+                   list = {'originalOrder','currentReducedOrder','shifts','real', ...
+                           'orth','reorth','lse','dgksTol','krylov', ...
+                           'IP','Rt','Lt','s0_inp','s0_out'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+
+                   if cureRequired
+                        list = {'cure'};
+                        ssRed.parseStructFields(params,list,'params');
+
+                        list = {'fact','stop','stopval','maxIter'};
+                        parsedStruct.cure = ssRed.parseStructFields(params.cure,list,'params.cure');
+                   end
+                elseif strcmp(method,'stabsep')             %stabsep
+                   list = {'originalOrder','reducedOrder'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');
+                elseif strcmp(method,'rkOp')                %rkOp
+                   list = {'originalOrder','sOpt','rk','lse'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params');  
+                elseif strcmp(method,'rkIcop')              %rkIcop
+                   list = {'originalOrder','sOpt','s0','rk','maxIter','tol','lse'};
+                   parsedStruct = ssRed.parseStructFields(params,list,'params'); 
+                elseif strcmp(method,'userDefined')         %userDefined
+                   parsedStruct = params;
+                end
             end
         end
         
-        function parsedParamsList   = removeReductionMethod(paramsList,method)
-        %Removes the reductionParameters for the specified reduction method
-        %"method" from the reduction history. This is i.e. necessary for
-        %"rk", because in the algorithm projectiveMor is used. This
-        %function then deletes "projectiveMor" from the reduction history, 
-        %because "projectiveMor" performs just the projection in "rk", but 
-        %is not a standalone reduction algorithm    
-            
-            parsedParamsList = paramsList;
-            if size(paramsList,1) > 1
-                if strcmp(paramsList{end-1}.method,method)
-                     parsedParamsList{end-1} = [];
-                     parsedParamsList = parsedParamsList(~cellfun('isempty',parsedParamsList));
-                end
-            end 
-        end
-        
-        function parsedParamsList   = removeCureParameters(paramsList)
+        function parsedParamsList = removeCureParameters(paramsList)
         %The parameters under the field "cure" stay the same for all cure
         %iterations. Because of this, the field "cure" is only stored for
         %the first iteration step. Therefore, this function removes all the
@@ -1199,14 +1042,14 @@ classdef ssRed < ss
             parsedParamsList = paramsList;
         
             for i = 2:length(paramsList)
-                if ismember(paramsList{i-1}.method,{'cure_spark','cure_irka','cure_rk+pork'}) && ...
-                   isfield(paramsList{i}.params,'cure')
-                    parsedParamsList{i}.params = rmfield(parsedParamsList{i}.params,'cure');
+                if ismember(paramsList(i-1).method,{'cure_spark','cure_irka','cure_rk+pork'}) && ...
+                   isfield(paramsList(i).params,'cure')
+                    parsedParamsList(i).params = rmfield(parsedParamsList(i).params,'cure');
                 end
             end
         end
         
-        function outputStruct       = parseStructFields(structure,fields,structName)
+        function outputStruct = parseStructFields(structure,fields,structName)
         %This function checks if the the struct "structure" contains all fields
         %specified in the cell-array "fields". If the case, all the values 
         %of the fields of the struct "structure" are copied to the struct 

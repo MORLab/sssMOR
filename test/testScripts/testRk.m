@@ -362,11 +362,11 @@ classdef testRk < sssTest
                  %  test system
                  sys = testCase.sysCell{i};
                  %  get good shifts
-                 n = 4; r = ones(sys.m,n); l = ones(sys.p,n);
+                 n = 6; r = ones(sys.m,n); l = ones(sys.p,n);
                  sysrIrka = irka(sys, zeros(1,n),r, l);
                  Opts.rType = 'dir';
                  [r,p] = residue (sysrIrka,Opts);
-                 s0 = -(conj(p)); Lt = r{1}; Rt = r{2}.';
+                 s0 = -(conj(p)).'; Lt = r{1}; Rt = r{2}.';
                  % make sure real shifts have real directions
                  k = find(imag(s0)==0);
                  if max(imag(Rt(k))) > 1e-10

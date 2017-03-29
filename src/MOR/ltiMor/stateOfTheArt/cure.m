@@ -125,7 +125,8 @@ function [sysr,sysrVec] = cure(sys,Opts)
         Opts.cure.maxIter = floor(sys.n/Opts.cure.nk);
     end
     
-    % store the reductionParameters, if sys is of type ssRed
+    % store name and the reductionParameters, if sys is of type ssRed
+    name = sys.Name;
     reductionParameters = [];
     if isa(sys,'ssRed')
         reductionParameters = sys.reductionParameters;
@@ -246,7 +247,7 @@ while ~stop && iCure < Opts.cure.maxIter
     %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
     %      way that the new defined field passes the check
       
-    usedOpts = sysrTemp.reductionParameters{end,1}.params;
+    usedOpts = sysrTemp.reductionParameters(end).params;
     usedOpts.cure = Opts.cure;
     usedOpts.currentReducedOrder = sysr.n+Opts.cure.nk;
     usedOpts.originalOrder = sys.n;
@@ -254,17 +255,18 @@ while ~stop && iCure < Opts.cure.maxIter
 
     
     if isa(sysr,'ssRed')
-        sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
-                     Br_tot, Cr_tot, zeros(p,m), Er_tot,sysr.reductionParameters);
+        sysr = ssRed(Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot, ...
+                     strcat('cure_',Opts.cure.redfun),usedOpts,sysr);
     else            %first Iteration
         if ~isempty(reductionParameters)
-            sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
-                         Br_tot, Cr_tot, zeros(p,m), Er_tot, reductionParameters);
+            sysr = ssRed(Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot, ...
+                         strcat('cure_',Opts.cure.redfun),usedOpts,reductionParameters);
         else
-            sysr = ssRed(strcat('cure_',Opts.cure.redfun),usedOpts,Ar_tot, ...
-                         Br_tot, Cr_tot, zeros(p,m), Er_tot);
+            sysr = ssRed(Ar_tot, Br_tot, Cr_tot, zeros(p,m), Er_tot, ...
+                         strcat('cure_',Opts.cure.redfun),usedOpts);
         end
     end
+    sysr.Name = name;
 
 	%create a cell array of reduced models
     sysrVec{end+1} = sysr;

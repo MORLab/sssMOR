@@ -19,7 +19,7 @@ classdef testRkIcop < sssTest
                     end
                     if success==1
                         try
-                            rkIcop(ss(sys),0.5,12,Opts);
+                            rkIcop(ssRed(sys.A,sys.B,sys.C,sys.D,sys.E),0.5,12,Opts);
                         catch err
                             if strcmp(err.identifier,'sssMor:rkIcopNotConverged')
                                 success=0;

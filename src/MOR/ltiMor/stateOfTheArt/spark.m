@@ -184,10 +184,8 @@ warning('off','MATLAB:nearlySingularMatrix')
         %      way that the new defined field passes the check
 
         Opts.originalOrder = sys.n;
-
-        params.method = 'spark';
-        params.params = Opts;
-        sysr = changeReductionParameters(sysr,params);
+        sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'spark',Opts,sys);
+        
     end
     if nargout == 1
        varargout{1} = sysr;

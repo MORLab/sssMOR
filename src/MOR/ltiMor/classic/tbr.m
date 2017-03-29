@@ -351,11 +351,7 @@ Opts.hsv = hsvs;
 
 switch Opts.type
     case {'tbr','adi'}
-        if isa(sys,'ssRed')
-            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V, sys.reductionParameters);
-        else
-            sysr = ssRed('tbr',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
-        end
+        sysr = ssRed(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V, 'tbr', Opts, sys);
     case 'matchDcGain'
         V=sys.TBalInv;
         Wt=sys.TBal;
@@ -391,26 +387,15 @@ switch Opts.type
             lse2=solveLse(ERed',E21')';
             CRed=C1-lse1*A21+C2*A22*lse2*ARed;
             DRed=sys.D-lse1*B2+lse1*lse2*BRed;
-            if isa(sys,'ssRed')
-                sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed, ERed,sys.reductionParameters);
-            else
-                sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed, ERed);
-            end
+            sysr = ssRed(ARed, BRed, CRed, DRed, ERed,'tbr',Opts,sys);
         else % Er=I
             CRed=C1-solveLse(A22',C2')'*A21;
             DRed=sys.D-solveLse(A22',C2')'*B2;
-            if isa(sys,'ssRed')
-                sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed,sys.reductionParameters);
-            else
-                sysr = ssRed('tbr',Opts,ARed, BRed, CRed, DRed); 
-            end
+            sysr = ssRed(ARed, BRed, CRed, DRed,'tbr',Opts,sys);
         end
         
         warning('on','MATLAB:nearlySingularMatrix');    
 end
-
-% %   Rename ROM
-% sysr.Name = sprintf('%s_%i_tbr',sys.Name,sysr.n);
 
 if nargout>1
     varargout{1} = V;

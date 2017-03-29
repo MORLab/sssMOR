@@ -164,8 +164,7 @@ if ~ischar(Opts.dominance), Opts.dominance = num2str(Opts.dominance); end
 Opts.originalOrder = sys.n;
 
 % Convert the reduced system to an ssRed-object
-sysr = ssRed('modalMor',Opts,sysr);
-sysr.Name = sprintf('%s_%i_modal_%s',sys.Name,sysr.n,Opts.type);
+sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'modalMor',Opts,sys);
 
 %% ------------------ AUXILIARY FUNCTIONS --------------------------
 function [V, W, rlambda] = eigenspace(q)

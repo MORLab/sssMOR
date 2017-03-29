@@ -9,7 +9,7 @@ classdef testRkOp < sssTest
                     [g,t]=impulse(ss(sys),0:0.01:decayTime(sys));
                     sOpt1 = rkOp(g,t);
                     sOpt2 = rkOp(sys);
-                    rkOp(ss(sys),10,Opts);
+                    rkOp(ssRed(sys.A,sys.B,sys.C,sys.D,sys.E),10,Opts);
                     verification (testCase, sOpt1, sOpt2);
                 end
             end

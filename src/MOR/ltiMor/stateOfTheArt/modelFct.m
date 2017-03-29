@@ -174,11 +174,16 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
 %                             zeros(size(sys.C,1),size(sys.B,2)),W'*sys.E*V);
             sysm = projectiveMor(sys,V,W);
         end   
-        %% Save the relevant information into the ssRed object
+        %%  Storing additional parameters
+        %Stroring additional information about thr reduction in the object 
+        %containing the reduced model:
+        %   1. Define a new field for the Opts struct and write the information
+        %      that should be stored to this field
+        %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
+        %      way that the new defined field passes the check
         Opts.originalOrder  = sys.n;
         Opts.s0mTot         = s0mTot;
-        [Am,Bm,Cm,Dm,Em] = dssdata(sysm);
-        sysm = ssRed('modelFct',Opts,Am,Bm,Cm,Dm,Em);
+        sysm = ssRed(sysm.A,sysm.B,sysm.C,sysm.D,sysm.E,'modelFct',Opts,sys);
     end
     %%  Functions copied from "spark"
     function computeLU(s0)

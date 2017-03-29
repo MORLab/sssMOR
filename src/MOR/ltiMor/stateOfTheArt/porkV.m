@@ -86,7 +86,7 @@ if nargout == 1
     %      way that the new defined field passes the check
     
     Opts.originalOrder = size(V,1);
-    varargout{1} = ssRed('porkV',Opts,Ar,Br,Cr,zeros(size(Cr,1),size(Br,2)),Er);
+    varargout{1} = ssRed(Ar,Br,Cr,zeros(size(Cr,1),size(Br,2)),Er,'porkV',Opts);
 else
     varargout{1} = Ar;
     varargout{2} = Br;
