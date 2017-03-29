@@ -199,8 +199,7 @@ classdef testSsRed < sssTest
             
             % Create ssRed-object througth reduction with cure_spark (SISO)          
             sys = loadSss('building.mat');
-            Opts.cure = struct('nk',4, 'redfun', 'spark', 'verbose', 1, 'stopval',12);
-            sysr = cure(sys,Opts);
+            sysr = cure(sys);
             
             % Test some functions of the Control System Toolbox on the
             % ssRed-object (SISO)
@@ -213,7 +212,7 @@ classdef testSsRed < sssTest
             tzero(sysr);
             
             % Try to reduce the ssRed-object again (SISO)
-            sysr = cure(sysr,Opts);
+            sysr = cure(sysr);
             
             % Create ssRed-object througth reduction with cure_irka (SISO)          
             Opts.cure = struct('nk',4, 'redfun', 'irka', 'verbose', 1, 'stopval',12);
@@ -233,7 +232,8 @@ classdef testSsRed < sssTest
             sysr = cure(sysr,Opts);
             
             % Create ssRed-object througth reduction with cure_rk+pork (SISO)          
-            Opts.cure = struct('nk',4, 'redfun', 'rk+pork', 'verbose', 1, 'stopval',12);
+            Opts.cure = struct('nk',4, 'redfun', 'rk+pork', 'verbose', 1,...
+                'stop','nmax','stopval',12,'init','sm');
             sysr = cure(sys,Opts);
             
             % Test some functions of the Control System Toolbox on the
@@ -251,7 +251,6 @@ classdef testSsRed < sssTest
             
             % Create ssRed-object througth reduction with cure_rk+pork (MIMO)          
             sys = loadSss('CDplayer.mat');
-            Opts.cure = struct('nk',4, 'redfun', 'rk+pork', 'verbose', 1, 'stopval',12);
             sysr = cure(sys,Opts);
             
             % Test some functions of the Control System Toolbox on the

@@ -319,6 +319,6 @@ function init_demo
     sys = sss(-1,1,1);
     modalMor(sys,0);
     tbr(sys,1);
-    irka(sys,0,struct('suppressverbose',true));
+    irka(sys,1,struct('suppressverbose',true));
     clear sys ans;
 end

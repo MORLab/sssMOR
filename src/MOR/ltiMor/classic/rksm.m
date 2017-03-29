@@ -476,15 +476,15 @@ switch Opts.rksm_method
                                 end
                                 % start-Werte f?r irka, wenn mess dann
                                 % auskommentieren
-                                shifts = zeros(1,4+kk);
-                                Rt = ones(m,4+kk);        
-                                Lt = ones(p,4+kk);
+%                                 shifts = zeros(1,4+kk);
+%                                 Rt = ones(m,4+kk);        
+%                                 Lt = ones(p,4+kk);
             
                                 % sys-Objekt erstellen, es ist m?glich auch
                                 % mit dem rteduzierten Modell zu arbeiten
-                                C = ones(1,n);
-                                D = zeros(size(C,1),m);
-                                sys = sss(A,B,C,D,E);
+%                                 C = ones(1,n);
+%                                 D = zeros(size(C,1),m);
+%                                 sys = sss(A,B,C,D,E);
 
                                 %Cr = ones(1,size(Ar,1));
                                 %Dr = zeros(size(Cr,1),size(Br,2));
@@ -517,6 +517,7 @@ switch Opts.rksm_method
                                   Lt = ones(p,size(s0,2));
                                   [~, ~, ~, s0, Rt, Lt] = irka(sys,s0,Rt,Lt);
                                   [s_ma] = make_shiftmatrix(s0,m,p,A);
+
 
                                   % hier das j+1 muss immer gesetzt werden
                                   % fuer einen guten Programmablauf
@@ -618,6 +619,7 @@ switch Opts.rksm_method
 
                     % calculating the new directions input space
                     % Opts.getLU = 1;       comment in if Opts.reuseLU does not work
+%                     rhsB = B; 
                     rhsB = V(:,jbasis:jnew-1);     % new rhs
                     %output_data.rhsb(:,ii) = rhsB;
                     Anew_V = (A-jCol_inp*E);       % A matrix for solveLse function for V direction
@@ -814,7 +816,7 @@ switch Opts.rksm_method
                    end
                end
 
-               % calculating the ruduced system in a cheap manner
+               % calculating the reduced system in a cheap manner
                if withoutC == 1
                    [Ar,Er,Br] = reduction(A,B,E,Ar,Br,Er,jnew,jnew_last,V);
                else
@@ -848,14 +850,33 @@ switch Opts.rksm_method
                Opts.reuseLU = 1;
                Er_inv_Ar = solveLse(Er,Ar,Opts);
                AV = A*V;        EV = E*V;
+               
+               Pr = S'*S;
 
                % compute factors from residual
                Borth = B-EV*Er_inv_Br;
+%                B_s     = B-EV*(Er\Br);
+
                Borth2 = Borth'*Borth;
+%                BstBs   = B_s'*B_s;
+               
                Cr_hat_rhs = Borth'*(AV-EV*Er_inv_Ar);
                Cr_hat = solveLse(Borth2,Cr_hat_rhs);
                %F = E*V*(Er_inv_Br+(S*S')*Cr_hat');
                F = E*V*(Er_inv_Br+(S'*S)*Cr_hat');
+
+               
+%                c_rs    = BstBs\(B_s'*(AV-EV*(Er\Ar)));
+               
+               
+%                FHeiko = EV*((Er\Br) + (S'*S)*c_rs');
+               
+%                BstF = B_s'*FHeiko;
+%                FtF  = FHeiko'*FHeiko;
+               
+%                R_normHeiko = max(abs(eig(full([BstBs, BstF; BstF', FtF] * [eye(m), eye(m);eye(m), zeros(m,m)]))));
+%                 norm_APE = sqrt(max(abs(eig( (AV'*AV) * Pr * (EV'*EV) * Pr ))))
+%                 norm_Pr  = max(abs(eig( full(V'*V*Pr) )));
  
                % compute residual norm (Euclidean Norm)
                if strcmp(Opts.rksmnorm, 'H2')
@@ -1082,7 +1103,7 @@ switch Opts.rksm_method
                Borth2 = Borth'*Borth;
                Cr_hat_rhs = Borth'*(AV-EV*Er_inv_Ar);
                Cr_hat = solveLse(Borth2,Cr_hat_rhs);
-               F = E*V*(Er_inv_Br+(S*S')*Cr_hat');
+               F = E*V*(Er_inv_Br+(S'*S)*Cr_hat');
  
                % compute residual norm (Euclidean Norm)
                if strcmp(Opts.rksmnorm, 'H2')
