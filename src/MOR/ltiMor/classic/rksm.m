@@ -183,6 +183,10 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
     end % end of switch
     tol = Opts.rctol;
     maxiter = Opts.maxiter_rksm;
+
+    if size(s_inp,2) == 1 && exist('s_inp','var')
+        error('At least two starting shifts are necessary');
+    end
               
 % input of matrices    
 elseif length(varargin) > 1
@@ -311,6 +315,8 @@ elseif length(varargin) > 1
         error('Wrong input');
     elseif (size(s_inp,1) > 2 && size(s_inp,2) > 2) ||  (size(s_inp,2) > 2 && size(s_inp,1) > 2)
         error('Wrong input, s0 must be either a vector or a 2 cross 1 matrix or a 1 cross 2 matrix ');
+    elseif size(s_inp,1) == 1 && exist('s_inp','var')
+        error('At least two starting shifts are necessary');
     end
 end
     
@@ -461,7 +467,7 @@ switch Opts.rksm_method
 
                             % hier einstellen, ab welcher iteration neue
                             % shifts gerufen werden sollen
-                            if ii < 15 
+                            if ii < 25 
                                 j=1;
                                 kk = 1;
                             else
@@ -487,30 +493,30 @@ switch Opts.rksm_method
                                 if ~exist('C','var')
                                     C = Opts.Cma(1,:);
                                 end
-                                [~, ~, ~, s0, Rt, Lt] = irka(sys,shifts,Rt,Lt);
-                                [s_ma] = make_shiftmatrix(s0,m,p,A);
-                                kk = kk + 1;
+%                                 [~, ~, ~, s0, Rt, Lt] = irka(sys,shifts,Rt,Lt);
+% 
+%                                 [s_ma] = make_shiftmatrix(s0,m,p,A);
+%                                 kk = kk + 1;
 
                                     % mess-shifts zum einkommentieren
 
 
-%                                   eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'prm',speye(size(sys.A)),'type','N','haveE',sys.isDescriptor);
-%                                   % opts struct: MESS options
-%                                   messOpts.adi=struct('shifts',struct('l0',20,'kp',50,'km',25,'b0',ones(sys.n,1),...
-%                                   'info',1),'maxiter',Opts.maxiter,'restol',0,'rctol',Opts.rctol,...
-%                                   'info',1,'norm','fro');
-%                                   Opts.lse         = 'gauss'; 
-%                                   lseType='solveLse';
-%                                   oper = operatormanager(lseType);
-%                                   messOpts.solveLse.lse=Opts.lse;
-%                                   messOpts.solveLse.krylov=0;
-%                                   % get adi shifts
-%                                   [s0,~,~,~,~,~,~,eqn]=mess_para(eqn,messOpts,oper); s0=s0';
-%                                   Rt = ones(m,size(s0,2));
-%                                   Lt = ones(p,size(s0,2));
-%                                   [~, ~, ~, s0, Rt, Lt] = irka(sys,s0,Rt,Lt);
-%                                   [s_ma] = make_shiftmatrix(s0,m,p,A);
-
+                                  eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'prm',speye(size(sys.A)),'type','N','haveE',sys.isDescriptor);
+                                  % opts struct: MESS options
+                                  messOpts.adi=struct('shifts',struct('l0',20,'kp',50,'km',25,'b0',ones(sys.n,1),...
+                                  'info',1),'maxiter',Opts.maxiter,'restol',0,'rctol',Opts.rctol,...
+                                  'info',1,'norm','fro');
+                                  Opts.lse         = 'gauss'; 
+                                  lseType='solveLse';
+                                  oper = operatormanager(lseType);
+                                  messOpts.solveLse.lse=Opts.lse;
+                                  messOpts.solveLse.krylov=0;
+                                  % get adi shifts
+                                  [s0,~,~,~,~,~,~,eqn]=mess_para(eqn,messOpts,oper); s0=s0';
+                                  Rt = ones(m,size(s0,2));
+                                  Lt = ones(p,size(s0,2));
+                                  [~, ~, ~, s0, Rt, Lt] = irka(sys,s0,Rt,Lt);
+                                  [s_ma] = make_shiftmatrix(s0,m,p,A);
 
                                   % hier das j+1 muss immer gesetzt werden
                                   % fuer einen guten Programmablauf
@@ -527,11 +533,12 @@ switch Opts.rksm_method
 
                     % save last shift,read in next shift, check order for input and output shifts
                     % save last shift
-                    if ii < length(s_ma(1,:))
+                    if ii <= length(s_ma(1,:))
                         jCol_inp = s_ma(1,j);     jCol_inp_old = s_ma(1,j-1); 
-                    elseif ii >= length(s_ma(1,:)) % hier muss ich was ?ndern ich muss glaub die unteren beiden tauschen
-                        %jCol_inp = s_ma(1,j);     jCol_inp_old = jCol_inp;
+                    elseif ii > length(s_ma(1,:)) 
                         jCol_inp_old = jCol_inp;  jCol_inp = s_ma(1,j); 
+                    elseif ~exist('jCol_inp','var')
+                        jCol_inp = s_ma(1,j);  jCol_inp_old = s_ma(1,j-1);  
                     end
                         jCol_Rt = s_ma(2,j);       jCol_Lt = s_ma(3,j);  
 
@@ -847,7 +854,8 @@ switch Opts.rksm_method
                Borth2 = Borth'*Borth;
                Cr_hat_rhs = Borth'*(AV-EV*Er_inv_Ar);
                Cr_hat = solveLse(Borth2,Cr_hat_rhs);
-               F = E*V*(Er_inv_Br+(S*S')*Cr_hat');
+               %F = E*V*(Er_inv_Br+(S*S')*Cr_hat');
+               F = E*V*(Er_inv_Br+(S'*S)*Cr_hat');
  
                % compute residual norm (Euclidean Norm)
                if strcmp(Opts.rksmnorm, 'H2')
