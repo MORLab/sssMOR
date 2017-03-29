@@ -24,7 +24,7 @@ p = size(C,1);
 
 %% testing function for several cases
 % initialize method
-method = 3; % 1 for standard rksm cyclic, reusing shifts, onesided, hermite
+method = 1; % 1 for standard rksm cyclic, reusing shifts, onesided, hermite
             % 2 for standard rksm cyclic, reusing shifts, onesided, hermite, tangential directions (MIMO)
             % 3 for standard rksm cyclic, reusing shifts, twosided, hermite
             % 4 for standard rksm cyclic, reusing shifts, twosided, not hermite
@@ -36,14 +36,14 @@ method = 3; % 1 for standard rksm cyclic, reusing shifts, onesided, hermite
 % choose computation of residual norm and other options
 Opts.residual  = 'residual_lyap';  
 %Opts.residual  = 'norm_chol';
-Opts.maxiter_rksm = 1000;
+Opts.maxiter_rksm = 200;
 Opts.maxiter = Opts.maxiter_rksm;
-Opts.rctol = 1e-12; 
+Opts.rctol = 1e-14; 
 
             
 switch method
     case 1
-% mess shifts
+    % mess shifts
 %         eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'prm',speye(size(sys.A)),'type','N','haveE',sys.isDescriptor);
 % 
 %         % opts struct: MESS options
@@ -58,26 +58,59 @@ switch method
 %         messOpts.solveLse.krylov=0;
 % 
 %         % get adi shifts
-%         [messOpts.adi.shifts.p,~,~,~,~,~,~,eqn]=mess_para(eqn,messOpts,oper);
+%         [s0,~,~,~,~,~,~,eqn]=mess_para(eqn,messOpts,oper); s0=s0';
+        
+        %shifts = zeros(1,10);
+        %Rt = ones(m,20);        
+        %Rt = ones(m,10);
+        %Lt = ones(p,10);
+        %Lt = ones(p,6);
+        %[~, ~, ~, s0, Rt, Lt] = irka(sys,s0,Rt,Lt);
+        %[~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
+        %Opts.shifts = 'mess';
+        %Opts.Cma = C;
         
 
         Opts.method = 'rksm';
+        Opts.shifts = 'mess';
         %Opts.rksmnorm = 'fro';
         Opts.reduction = 'onesided';
         % compute shifts using irka
-        shifts = zeros(1,8);
-        Rt = ones(m,18);
-        Lt = ones(p,18);
+        shifts = zeros(1,2);
+        Rt = ones(m,8);
+        Lt = ones(p,8);
         [~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
         % call function
         [S,R,data_out] = rksm(sys,s0,Opts);
         %[S,R,data_out] = lyapchol(sys,s0,Opts);
         
     case 2
-        shifts = zeros(1,10);
-        Rt = ones(m,6);
-        Lt = ones(p,6);
-        [~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
+% mess shifts
+        eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'prm',speye(size(sys.A)),'type','N','haveE',sys.isDescriptor);
+
+        % opts struct: MESS options
+        messOpts.adi=struct('shifts',struct('l0',20,'kp',50,'km',25,'b0',ones(sys.n,1),...
+            'info',1),'maxiter',Opts.maxiter,'restol',0,'rctol',Opts.rctol,...
+            'info',1,'norm','fro');
+
+        Opts.lse         = 'gauss'; 
+        lseType='solveLse';
+        oper = operatormanager(lseType);
+        messOpts.solveLse.lse=Opts.lse;
+        messOpts.solveLse.krylov=0;
+
+        % get adi shifts
+        [s0,~,~,~,~,~,~,eqn]=mess_para(eqn,messOpts,oper); s0=s0';
+        
+        %shifts = zeros(1,10);
+        Rt = ones(m,20);        
+        %Rt = ones(m,7);
+        Lt = ones(p,20);
+        %Lt = ones(p,6);
+        [~, ~, ~, s0, Rt, Lt] = irka(sys,s0,Rt,Lt);
+        %[~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
+        Opts.shifts = 'mess';
+        Opts.Cma = C;
         [S,R,data_out] = rksm(A,B,E,s0,Rt,Opts);
         
     case 3
@@ -143,17 +176,17 @@ V = data_out.V_basis;
 W = data_out.W_basis;
 
 %% testing quality of solution
-% if isempty(W)
-%     Pr = S'*S;
-%     P = V*Pr*V';
-%    % P  = Pr'*Pr;
-% else
-%     Pr = W*S*V';
-%     P  = Pr*Pr';
-% end
-%  
-% Y = A*P*E' + E*P*A' + B*B';
-% Y_norm = norm(Y);
+if isempty(W)
+    Pr = S'*S;
+    P = V*Pr*V';
+   % P  = Pr'*Pr;
+else
+    Pr = W*S*V';
+    P  = Pr*Pr';
+end
+ 
+Y = A*P*E' + E*P*A' + B*B';
+Y_norm = norm(Y);
 
 
 %% comparing with other methods
@@ -163,8 +196,8 @@ W = data_out.W_basis;
 % Yhammarling = A*Phammarling*E' + E*Phammarling*A' + B*B';
 % Yhammarling_norm = norm(Yhammarling);
 
-% Opts.method = 'adi';
-% [Sadi] = lyapchol(sys,Opts);
-% Padi = Sadi*Sadi';
-% Yadi = A*Padi*E' + E*Padi*A' + B*B';
-% Yadi_norm = norm(Yadi);
+Opts.method = 'adi';
+ [Sadi] = lyapchol(sys,Opts);
+ Padi = Sadi*Sadi';
+ Yadi = A*Padi*E' + E*Padi*A' + B*B';
+ Yadi_norm = norm(Yadi);
