@@ -491,7 +491,7 @@ switch Opts.rksm_method
                                 %Ar = real(Ar); Br = real(Br); Cr = real(Cr);  Er = real(Er);
                                 %sys = sss(Ar,Br,Cr,Dr,Er);
                                 if ~exist('C','var')
-                                    C = Opts.Cma(1,:);
+                                    %C = Opts.Cma(1,:);
                                 end
 %                                 [~, ~, ~, s0, Rt, Lt] = irka(sys,shifts,Rt,Lt);
 % 
