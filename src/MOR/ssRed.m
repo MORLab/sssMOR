@@ -432,7 +432,7 @@ classdef ssRed < ss
                 end
             else
                % ensures that syntax "ssRed([])" gives back an empty model
-               A=[];B=[];C=[];D=[];E=[];
+               A=[];B=[];C=[];D=[];E=[];name=[];
             end
             
             % call the constructor of the superclass ss
