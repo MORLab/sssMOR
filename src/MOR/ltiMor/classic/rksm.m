@@ -518,7 +518,7 @@ switch Opts.rksm_method
                                   [~, ~, ~, s0, Rt, Lt] = irka(sys,s0,Rt,Lt);
                                   [s_ma] = make_shiftmatrix(s0,m,p,A);
 
-
+                                  Opts.shifts = 'cyclic';
                                   % hier das j+1 muss immer gesetzt werden
                                   % fuer einen guten Programmablauf
                                   j = 1;
