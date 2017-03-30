@@ -95,7 +95,7 @@ function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj,
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  20 Jan 2017
+% Last Change:  29 Mar 2017
 % Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -150,17 +150,13 @@ s0 = s0_vect(s0);
 r = length(s0);
 
 % sort expansion points & tangential directions
-s0old = s0;
-s0 = cplxpair(s0);
 if exist('Rt','var') && ~isempty(Rt)
-    [~,cplxSorting] = ismember(s0,s0old); 
-    Rt = Rt(:,cplxSorting);
-    Lt = Lt(:,cplxSorting);
+    [s0,Rt,Lt] = cplxpairAll(s0,Rt,Lt);
 else
+    s0 = cplxpair(s0);
     Rt = ones(sys.m,r);
     Lt = ones(sys.p,r);
 end
-clear s0old
 
 % Initialize variables
 sysr = sss([],[],[]);
@@ -197,8 +193,10 @@ while true
                 'Tangential directions corresponding to real shifts are complex')              
         end
         Rt(:,idx) = real(Rt(:,idx)); Lt(:,idx) = real(Lt(:,idx));
+        [s0,Rt,Lt] = cplxpairAll(s0,Rt,Lt);
     else
         s0 = -eig(sysr)';
+        s0 = cplxpair(s0); %make sure the ordering is the same for evaluation of the stopping criterion
     end
     if strcmp(Opts.type,'stab')
         % mirror shifts with negative real part

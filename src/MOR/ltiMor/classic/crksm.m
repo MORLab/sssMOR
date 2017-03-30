@@ -1,6 +1,7 @@
-function [S,R,output_data] = rksm(varargin)
+function [S,R,output_data] = crksm(varargin)
 % My_rksm - Solve Laypunov equations with a cummulative rational Krylov
 % subspace method
+% Info: Funktionen fuer neue shifts muessen ab Zeile 470 unter der 'mess'-Option eingebunden werden 
 %
 %              APE' + EPA' + BB' = 0 (I)
 %              AQE' + EQA' + C'C = 0 (II)
@@ -27,7 +28,20 @@ function [S,R,output_data] = rksm(varargin)
 %       [S,R,output_data]         = MY_RKSM(sys,s_inp,s_out,Rt,Lt)
 %       [S,R,output_data]         = MY_RKSM(sys,s_inp,...,Opts)
 %
-% Info: Funktionen f?r neue shifts muessen ab Zeile 470 unter der 'mess'-Option eingebunden werden 
+%
+% Input:
+%       - system matrices A, B, C, and E or a sys-object
+%       - intial shift vector s_inp (must have at least two entries)
+%       - tangential directions Rt and Lt in the MIMO case
+%       - Opts-struct
+%
+% Output:
+%       - Cholseky factors S, R of the solutions P, Q of the linear
+%         Lyapunov equations
+%       - data-Struct output_data containing:
+%         V_basis, W_basis, norm values of the iterations norm_val,
+%         additional shifts, last reduced system Ar, Br, ...
+%         last rhs, reference residual norm res0, last norm value
 %
 %
 % possible Options:
@@ -76,8 +90,8 @@ function [S,R,output_data] = rksm(varargin)
 % - Opts.info_rksm:   shows status information during the function
 %                     call of rksm [0 / 1]
 %
-%% still to come/immer noch zu erledigen
-% - adaptive SISO testen --> ganz nach hinten geschoben
+
+
 %% Create Def-struct containing default values and make global settings
 % Note: there may be no point named Def.reuseLU, otherwise one gets a conflict with solveLse/lyapchol/bilyapchol
 
@@ -184,8 +198,10 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
     tol = Opts.rctol;
     maxiter = Opts.maxiter_rksm;
 
-    if size(s_inp,2) == 1 && exist('s_inp','var')
-        error('At least two starting shifts are necessary');
+    if exist('s_inp','var')
+        if size(s_inp,2) == 1
+            error('At least two starting shifts are necessary');
+        end
     end
               
 % input of matrices    
@@ -515,10 +531,10 @@ switch Opts.rksm_method
                                   [s0,~,~,~,~,~,~,eqn]=mess_para(eqn,messOpts,oper); s0=s0';
                                   Rt = ones(m,size(s0,2));
                                   Lt = ones(p,size(s0,2));
-                                  [~, ~, ~, s0, Rt, Lt] = irka(sys,s0,Rt,Lt);
+                                  %[~, ~, ~, s0, Rt, Lt] = irka(sys,s0,Rt,Lt);
                                   [s_ma] = make_shiftmatrix(s0,m,p,A);
 
-                                  Opts.shifts = 'cyclic';
+                                  %Opts.shifts = 'cyclic';
                                   % hier das j+1 muss immer gesetzt werden
                                   % fuer einen guten Programmablauf
                                   j = 1;
@@ -531,15 +547,19 @@ switch Opts.rksm_method
                             counter_out = 0;       high_out = false; 
                         end
                     end
-
                     % save last shift,read in next shift, check order for input and output shifts
                     % save last shift
                     if ii <= length(s_ma(1,:))
                         jCol_inp = s_ma(1,j);     jCol_inp_old = s_ma(1,j-1); 
-                    elseif ii > length(s_ma(1,:)) 
+                    elseif ii > length(s_ma(1,:)) && exist('jCol_inp','var')
                         jCol_inp_old = jCol_inp;  jCol_inp = s_ma(1,j); 
                     elseif ~exist('jCol_inp','var')
-                        jCol_inp = s_ma(1,j);  jCol_inp_old = s_ma(1,j-1);  
+                        jCol_inp = s_ma(1,j);  
+                        if j > 1
+                            jCol_inp_old = s_ma(1,j-1);
+                        else
+                            jCol_inp_old = jCol_inp;
+                        end
                     end
                         jCol_Rt = s_ma(2,j);       jCol_Lt = s_ma(3,j);  
 
