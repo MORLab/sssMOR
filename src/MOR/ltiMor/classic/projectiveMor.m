@@ -117,15 +117,7 @@ Opts.originalOrder = sys.n;
 %%  Projection
 switch Opts.trans
     case 'T'
-        if isa(sys,'ssRed')
-            sysr = ssRed('projectiveMor',Opts,W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V,sys.reductionParameters);
-        else
-            sysr = ssRed('projectiveMor',Opts,W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V);
-        end
+        sysr = ssRed(W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V,'projectiveMor',Opts,sys);
     case 'H'
-        if isa(sys,'ssRed')
-            sysr = ssRed('projectiveMor',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V,sys.reductionParameters);
-        else
-            sysr = ssRed('projectiveMor',Opts,W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V);
-        end
+        sysr = ssRed(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V,'projectiveMor',Opts,sys);
 end

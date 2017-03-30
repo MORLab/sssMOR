@@ -223,20 +223,24 @@ warning('off','Control:analysis:NormInfinite3')
     V = Vm*Virka;
     W = Wm*Wirka;
     
-    % create ssRed object with CIRKA information
+    %%  Storing additional parameters
+    %Stroring additional information about thr reduction in the object 
+    %containing the reduced model:
+    %   1. Define a new field for the Opts struct and write the information
+    %      that should be stored to this field
+    %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
+    %      way that the new defined field passes the check
     Opts.s0             = s0;
     Opts.kIrka          = kIrka;
     Opts.originalOrder  = sys.n;
     Opts.modelFctOrder  = sysm.n; 
     
-    [Ar,Br,Cr,Dr,Er] = dssdata(sysr);
-    sysr = ssRed('cirka',Opts,Ar,Br,Cr,Dr,Er);
+    sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'cirka',Opts,sys);
+    
     % make model function stable by removing ustable modes
     if ~isstable(sysm)
         n0 = sysm.n;
         sysm = stabsep(sysm);
-        % Update ssRed object with information about reduction
-        sysm = ssRed('stabsep',struct('originalOrder',n0),sysm);
     end
     
     % display warnings or text output

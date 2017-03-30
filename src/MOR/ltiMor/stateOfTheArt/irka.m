@@ -218,7 +218,6 @@ while true
         % keep only what has been computed
         s0Traj = s0Traj(:,:,1:kIter);
         RtTraj = RtTraj(:,:,1:kIter); LtTraj = LtTraj(:,:,1:kIter);
-        sysr.Name = sprintf('%s_%i_irka',sys.Name, sysr.n);
         break
     end      
 end
@@ -245,7 +244,7 @@ Opts.LtTraj = LtTraj;
 Opts.s0 = s0;
 
 % Convert the reduced system to a ssRed-object
-sysr = ssRed('irka',Opts,sysr);
+sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'irka',Opts,sys);
 
 %%  Finish execution
 if ~Opts.suppressverbose %display at least the last value
