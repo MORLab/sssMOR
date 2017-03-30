@@ -128,3 +128,16 @@ LF10            | 10^9
 beam            | 10^8
 random          | 10^7
 SpiralInductorPeec | 10^6
+
+### Continuous Integration (CI)
+
+Information:
+- https://jenkins.io/index.html
+- 
+- http://blogs.mathworks.com/developer/2015/01/20/the-other-kind-of-continuous-integration/
+- http://uwethuemmel.com/continuous-integration-workflow-with-matlab-git-and-jenkins/
+  - Description on how to install Jenkins with Git and MATLAB
+
+
+Set-Up with Jenikns
+Next, we need to tell Jenkins the location of our git repository. The first step is to install the git plugin for Jenkins (how to install plugins is explained here).
