@@ -1,6 +1,7 @@
 function [S,R,output_data] = crksm(varargin)
 % My_rksm - Solve Laypunov equations with a cummulative rational Krylov
 % subspace method
+% Info: Funktionen fuer neue shifts muessen ab Zeile 470 unter der 'mess'-Option eingebunden werden 
 %
 %              APE' + EPA' + BB' = 0 (I)
 %              AQE' + EQA' + C'C = 0 (II)
@@ -27,7 +28,20 @@ function [S,R,output_data] = crksm(varargin)
 %       [S,R,output_data]         = MY_RKSM(sys,s_inp,s_out,Rt,Lt)
 %       [S,R,output_data]         = MY_RKSM(sys,s_inp,...,Opts)
 %
-% Info: Funktionen f?r neue shifts muessen ab Zeile 470 unter der 'mess'-Option eingebunden werden 
+%
+% Input:
+%       - system matrices A, B, C, and E or a sys-object
+%       - intial shift vector s_inp (must have at least two entries)
+%       - tangential directions Rt and Lt in the MIMO case
+%       - Opts-struct
+%
+% Output:
+%       - Cholseky factors S, R of the solutions P, Q of the linear
+%         Lyapunov equations
+%       - data-Struct output_data containing:
+%         V_basis, W_basis, norm values of the iterations norm_val,
+%         additional shifts, last reduced system Ar, Br, ...
+%         last rhs, reference residual norm res0, last norm value
 %
 %
 % possible Options:
@@ -76,8 +90,8 @@ function [S,R,output_data] = crksm(varargin)
 % - Opts.info_rksm:   shows status information during the function
 %                     call of rksm [0 / 1]
 %
-%% still to come/immer noch zu erledigen
-% - adaptive SISO testen --> ganz nach hinten geschoben
+
+
 %% Create Def-struct containing default values and make global settings
 % Note: there may be no point named Def.reuseLU, otherwise one gets a conflict with solveLse/lyapchol/bilyapchol
 
