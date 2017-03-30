@@ -679,31 +679,31 @@ classdef ssRed < ss
         end
         
         function varargout = diag(varargin)
-            [varargout{1:nargout}] = sss.diag(varargin{:});
+            [varargout{1:nargout}] = sssFunc.diag(varargin{:});
         end
         
         function varargout = eig(varargin)
-            [varargout{1:nargout}] = sss.eig(varargin{:});
+            [varargout{1:nargout}] = sssFunc.eig(varargin{:});
         end
         
         function varargout = minus(varargin) 
-            [varargout{1:nargout}] = sss.minus(varargin{:});
+            [varargout{1:nargout}] = sssFunc.minus(varargin{:});
         end
         
         function varargout = plus(varargin) 
-            [varargout{1:nargout}] = sss.plus(varargin{:});
+            [varargout{1:nargout}] = sssFunc.plus(varargin{:});
         end
         
         function varargout = mtimes(varargin) 
-            [varargout{1:nargout}] = sss.mtimes(varargin{:});
+            [varargout{1:nargout}] = sssFunc.mtimes(varargin{:});
         end
         
         function varargout = residue(varargin)  
-            [varargout{1:nargout}] = sss.residue(varargin{:});
+            [varargout{1:nargout}] = sssFunc.residue(varargin{:});
         end
         
         function varargout = spy(varargin)  
-            [varargout{1:nargout}] = sss.spy(varargin{:});
+            [varargout{1:nargout}] = sssFunc.spy(varargin{:});
         end
         
         function varargout = sss(varargin)
@@ -714,15 +714,15 @@ classdef ssRed < ss
         end
         
         function varargout = decayTime(varargin)
-            [varargout{1:nargout}] = sss.decayTime(varargin{:});
+            [varargout{1:nargout}] = sssFunc.decayTime(varargin{:});
         end
         
         function varargout = issd(varargin)
-            [varargout{1:nargout}] = sss.issd(varargin{:});
+            [varargout{1:nargout}] = sssFunc.issd(varargin{:});
         end
         
         function varargout = eigs(varargin)
-            [varargout{1:nargout}] = sss.eigs(varargin{:});
+            [varargout{1:nargout}] = sssFunc.eigs(varargin{:});
         end
         
         function syst = truncate(sys, idxOut, idxIn)
@@ -847,7 +847,7 @@ classdef ssRed < ss
         end
         
         function  varargout = lyapchol(varargin)
-            [varargout{1:nargout}] = sss.lyapchol(varargin{:});
+            [varargout{1:nargout}] = sssFunc.lyapchol(varargin{:});
         end
         
         function varargout = stabsep(varargin)
