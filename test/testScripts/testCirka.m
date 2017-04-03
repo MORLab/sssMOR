@@ -59,7 +59,7 @@ classdef testCirka < sssTest
                     [sysr, ~, ~, s0opt, kIrka, ~, ~] = cirka(sys, s0,Opts);
                     if length(kIrka)< Opts.maxiter
                         if strcmp(crit{j},'s0')
-                            verifyEqual(testCase,-s0opt',eig(sysr),'RelTol',Opts.tol)
+                            verifyEqual(testCase,cplxpair(-s0opt'),cplxpair(eig(sysr)),'RelTol',Opts.tol)
                             verifyTrue(testCase,isH2opt(sys,sysr,s0opt,struct('tol',Opts.tol)))
                         end
                     end
