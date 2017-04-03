@@ -114,7 +114,6 @@ global hermite_gram_sch hermite withoutC Rt Lt s_out
 output_data = struct('V_basis',[], 'W_basis',[], 'norm_val',[],'shifts',[],...
                      'Ar',[], 'Br',[], 'Er',[], 'Cr',[], 'rhsb',[], 'res0',[], 'lastnorm',[]);
 
-
 %% parsing of inputs
 if isa(varargin{end},'struct')  % wenn opts gesetzt ist, dann wird bei varargin opts nicht mitgezaehlt
     Opts = varargin{end};
@@ -150,7 +149,8 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
         disp('no C matrix available, onesided Krylov subspaces are used!');
     end
     if strcmp(Opts.reduction,'onesided') && exist('C','var')
-        clear C p
+        %clear C p
+        withoutC = true;
     end
     
     switch length(varargin)
@@ -160,7 +160,7 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
             
         case 3
             s_inp = varargin{2};
-            if exist('C','var')
+            if exist('C','var') && withoutC == 0
                 s_out = varargin{3};
                 if size(s_inp,1) > 2 || size(s_inp,2) ~= size(s_out,2) || size(s_out,1) > 2
                     error('shift vector s_inp (input space) and s_out (output space) must have the same dimensions');
@@ -347,7 +347,7 @@ else
 end
 
 % check C matrix (twosided case), hermite case 
-if ~exist('C','var') || isempty(C) || strcmp(Opts.reduction,'onesided')
+if ~exist('C','var') || isempty(C) || strcmp(Opts.reduction,'onesided') || withoutC == 1
     withoutC = true;
     p = 1;
 else
@@ -483,61 +483,76 @@ switch Opts.rksm_method
 
                             % hier einstellen, ab welcher iteration neue
                             % shifts gerufen werden sollen
-                            if ii < 25 
+                            if ii < 10 
                                 j=1;
-                                kk = 1;
+                                kk = 6;
                             else
                                 if ~exist('kk','var')
                                     kk = 1;
                                 end
-                                % start-Werte f?r irka, wenn mess dann
-                                % auskommentieren
-%                                 shifts = zeros(1,4+kk);
-%                                 Rt = ones(m,4+kk);        
-%                                 Lt = ones(p,4+kk);
+                                % start-Werte fuer irka, wenn mess-funktion
+                                % gew?hlt werden soll, dann diesen teil auskommentiern
+                                shifts = zeros(1,4+kk); % initialize starting shifts for irka
+                                
+                                % tangential directions for irka with original system
+                                %Rt = ones(m,size(shifts,2));        
+                                %Lt = ones(p,size(shifts,2));
             
-                                % sys-Objekt erstellen, es ist m?glich auch
-                                % mit dem rteduzierten Modell zu arbeiten
-%                                 C = ones(1,n);
-%                                 D = zeros(size(C,1),m);
-%                                 sys = sss(A,B,C,D,E);
+                                % sys-Objekt erstellen, es ist moeglich auch mit dem rteduzierten Modell zu arbeiten
+                                % originales Modell
+                                %C = ones(1,n); % falls keine C-matrix vorhanden, falls doch auskommentieren
+                                %D = zeros(size(C,1),m);
+                                %sys = sss(A,B,C,D,E);
 
-                                %Cr = ones(1,size(Ar,1));
-                                %Dr = zeros(size(Cr,1),size(Br,2));
-                                %Ar = real(Ar); Br = real(Br); Cr = real(Cr);  Er = real(Er);
-                                %sys = sss(Ar,Br,Cr,Dr,Er);
-                                if ~exist('C','var')
-                                    %C = Opts.Cma(1,:);
+                                % reduziertes Modell
+%                                 Cr = ones(1,size(Ar,1)); % falls keine C-matrix eingelsesen wurde, wenn z. B. nur S berechnet wird
+%                                 Dr = zeros(size(Cr,1),size(Br,2)); % braucht man fuer sss-Befehl
+%                                 Ar = real(Ar); Br = real(Br); Cr = real(Cr);  Er = real(Er); % um sicher zu gehen, das Modell reell ist
+%                                 Rt = ones(size(Br,2),size(shifts,2)); % starting right tangential directions
+%                                 Lt = ones(size(Cr,1),size(shifts,2)); % starting left tangential directions
+%                                 sys = sss(Ar,Br,Cr,Dr,Er); % reduced system as sss-object
+                                
+                                % irka rufen fuer das originale System
+                                %[~, ~, ~, s0, Rt, Lt] = irka(sys,shifts,Rt,Lt);
+
+                                % call mess-function to ggenerate mess-shifts
+                                % build system-object for mess-functions
+                                eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'prm',speye(size(sys.A)),'type','N','haveE',sys.isDescriptor);
+                                
+                                % opts struct: MESS options
+                                messOpts.adi=struct('shifts',struct('l0',20,'kp',50,'km',25,'b0',ones(sys.n,1),...
+                                'info',1),'maxiter',Opts.maxiter,'restol',0,'rctol',Opts.rctol,...
+                                'info',1,'norm','fro');
+                                
+                                % set other mess-options
+                                Opts.lse = 'gauss'; 
+                                lseType = 'solveLse';
+                                oper = operatormanager(lseType);
+                                messOpts.solveLse.lse=Opts.lse;
+                                messOpts.solveLse.krylov=0;
+                                
+                                % get adi shifts, call mess_para function
+                                [s0,~,~,~,~,~,~,eqn]=mess_para(eqn,messOpts,oper); s0=s0';
+                                
+                                % eventuell irka mit den mess-shifts rufen
+                                Rt = ones(m,size(s0,2));        
+                                Lt = ones(p,size(s0,2));
+                                [~, ~, ~, s0, Rt, Lt] = irka(sys,shifts,Rt,Lt);
+                                
+                                % clear Lt-global-variable, if it is not needed
+                                if strcmp(Opts.reduction,'onesided')
+                                    clear Lt;
                                 end
-%                                 [~, ~, ~, s0, Rt, Lt] = irka(sys,shifts,Rt,Lt);
-% 
-%                                 [s_ma] = make_shiftmatrix(s0,m,p,A);
-%                                 kk = kk + 1;
+                                
+                                % make shift matrix, wichtig fuer CRKSM-Programmablauf
+                                [s_ma] = make_shiftmatrix(s0,m,p,A);
 
-                                    % mess-shifts zum einkommentieren
-
-
-                                  eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'prm',speye(size(sys.A)),'type','N','haveE',sys.isDescriptor);
-                                  % opts struct: MESS options
-                                  messOpts.adi=struct('shifts',struct('l0',20,'kp',50,'km',25,'b0',ones(sys.n,1),...
-                                  'info',1),'maxiter',Opts.maxiter,'restol',0,'rctol',Opts.rctol,...
-                                  'info',1,'norm','fro');
-                                  Opts.lse         = 'gauss'; 
-                                  lseType='solveLse';
-                                  oper = operatormanager(lseType);
-                                  messOpts.solveLse.lse=Opts.lse;
-                                  messOpts.solveLse.krylov=0;
-                                  % get adi shifts
-                                  [s0,~,~,~,~,~,~,eqn]=mess_para(eqn,messOpts,oper); s0=s0';
-                                  Rt = ones(m,size(s0,2));
-                                  Lt = ones(p,size(s0,2));
-                                  %[~, ~, ~, s0, Rt, Lt] = irka(sys,s0,Rt,Lt);
-                                  [s_ma] = make_shiftmatrix(s0,m,p,A);
-
-                                  %Opts.shifts = 'cyclic';
-                                  % hier das j+1 muss immer gesetzt werden
-                                  % fuer einen guten Programmablauf
-                                  j = 1;
+                                % hier: andere OPtionen setzen
+                                %Opts.shifts = 'cyclic';
+                                
+                                % hier das j+1 muss immer gesetzt werden fuer einen guten Programmablauf
+                                j = 1;
+                                 
                             end
                         end
                         counter_inp = 0;       
@@ -549,8 +564,10 @@ switch Opts.rksm_method
                     end
                     % save last shift,read in next shift, check order for input and output shifts
                     % save last shift
-                    if ii <= length(s_ma(1,:))
+                    if ii <= length(s_ma(1,:)) && j ~= 1
                         jCol_inp = s_ma(1,j);     jCol_inp_old = s_ma(1,j-1); 
+                    elseif ii <= length(s_ma(1,:)) && j == 1
+                        jCol_inp_old = jCol_inp;    jCol_inp = s_ma(1,j);   
                     elseif ii > length(s_ma(1,:)) && exist('jCol_inp','var')
                         jCol_inp_old = jCol_inp;  jCol_inp = s_ma(1,j); 
                     elseif ~exist('jCol_inp','var')
@@ -1280,6 +1297,7 @@ end
 % preallocate memory
 if hermite == 1 && withoutC ==1
     s_info = zeros(3+m,size(s_inp,2));
+    clear Lt
 elseif hermite == 1 && withoutC == 0
     s_info = zeros(2+m+p,size(s_inp,2));
 else
