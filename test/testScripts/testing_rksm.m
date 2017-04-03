@@ -6,7 +6,6 @@ clearvars -global
 
 % load any benchmark system
 sys = loadSss('fom');
-% sys = sys(1,1)
 % other models: rail_1357, rail_5177, iss, gyro, building, CDplayer, beam,
 %               eady, heat-cont, LF10, random, bips98_606,
 %               SpiralInductorPeec, fom
@@ -17,7 +16,6 @@ B = sys.B;
 C = sys.C;
 E = sys.E;
 
-% additional information
 m = size(B,2);
 p = size(C,1);
 
@@ -37,7 +35,7 @@ method = 1; % 1 for standard rksm cyclic, reusing shifts, onesided, hermite
 % choose computation of residual norm and other options
 Opts.residual  = 'residual_lyap';  
 %Opts.residual  = 'norm_chol';
-Opts.maxiter_rksm = 200;
+Opts.maxiter_rksm = 300;
 
 Opts.maxiter = Opts.maxiter_rksm;
 Opts.rctol = 1e-12; 
@@ -45,86 +43,57 @@ Opts.rctol = 1e-12;
             
 switch method
     case 1
-    % mess shifts
-%         eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'prm',speye(size(sys.A)),'type','N','haveE',sys.isDescriptor);
-% 
-%         % opts struct: MESS options
-%         messOpts.adi=struct('shifts',struct('l0',20,'kp',50,'km',25,'b0',ones(sys.n,1),...
-%             'info',1),'maxiter',Opts.maxiter,'restol',0,'rctol',Opts.rctol,...
-%             'info',1,'norm','fro');
-% 
-%         Opts.lse = 'gauss'; 
-%         lseType='solveLse';
-%         oper = operatormanager(lseType);
-%         messOpts.solveLse.lse=Opts.lse;
-%         messOpts.solveLse.krylov=0;
-% 
-%         % get adi shifts
-%         [s0,~,~,~,~,~,~,eqn]=mess_para(eqn,messOpts,oper); s0=s0';
-        
-        %shifts = zeros(1,10);
-        %Rt = ones(m,20);        
-        %Rt = ones(m,10);
-        %Lt = ones(p,10);
-        %Lt = ones(p,6);
-        %[~, ~, ~, s0, Rt, Lt] = irka(sys,s0,Rt,Lt);
-        %[~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
-        %Opts.shifts = 'mess';
-        %Opts.Cma = C;
-        
-
+        % set Opts for rksm 
         Opts.method = 'rksm';
         Opts.shifts = 'mess';
         %Opts.rksmnorm = 'fro';
         Opts.reduction = 'onesided';
+        
         % compute shifts using irka
         shifts = zeros(1,2);
-        Rt = ones(m,8);
-        Lt = ones(p,8);
-
+        Rt = ones(m,size(shifts,2));
+        Lt = ones(p,size(shifts,2));
         [~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
-        % call function
-        Opts.shifts = 'mess';
+        
+        
+        % call function crksm
         tic
-        [S,R,data_out] = rksm(sys,s0,Opts);
+        [S,R,data_out] = crksm(sys,s0,Opts);
         toc
         %[S,R,data_out] = lyapchol(sys,s0,Opts);
         
     case 2
-% mess shifts
-        eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'prm',speye(size(sys.A)),'type','N','haveE',sys.isDescriptor);
-
-        % opts struct: MESS options
-        messOpts.adi=struct('shifts',struct('l0',20,'kp',50,'km',25,'b0',ones(sys.n,1),...
-            'info',1),'maxiter',Opts.maxiter,'restol',0,'rctol',Opts.rctol,...
-            'info',1,'norm','fro');
-
-        Opts.lse         = 'gauss'; 
-        lseType='solveLse';
-        oper = operatormanager(lseType);
-        messOpts.solveLse.lse=Opts.lse;
-        messOpts.solveLse.krylov=0;
-
-        % get adi shifts
-        [s0,~,~,~,~,~,~,eqn]=mess_para(eqn,messOpts,oper); s0=s0';
+        % set Opts for rksm 
+        Opts.method = 'rksm';
+        Opts.shifts = 'cyclic';
+        %Opts.rksmnorm = 'fro';
+        Opts.reduction = 'onesided';
         
-        %shifts = zeros(1,10);
-        Rt = ones(m,20);        
-        %Rt = ones(m,7);
-        Lt = ones(p,20);
-        %Lt = ones(p,6);
-        [~, ~, ~, s0, Rt, Lt] = irka(sys,s0,Rt,Lt);
-        %[~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
-        Opts.shifts = 'mess';
-        Opts.Cma = C;
+        % compute shifts using irka
+        shifts = zeros(1,10);
+        Rt = ones(m,size(shifts,2));
+        Lt = ones(p,size(shifts,2));
+        [~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
+        
+         % call function crksm
         tic
-        [S,R,data_out] = rksm(A,B,E,s0,Rt,Opts);
+        [S,R,data_out] = crksm(sys,s0,Rt,Opts);
+        %[S,R,data_out] = crksm(A,B,E,s0,Rt,Opts);
         toc
         
     case 3
+        % set Opts for rksm 
+        Opts.method = 'rksm';
+        Opts.shifts = 'cyclic';
+        %Opts.rksmnorm = 'fro';
+        Opts.reduction = 'onesided';
+        
         % compute shifts using irka
         shifts = zeros(1,10);
-        [~, ~, ~, s0] = irka(sys, shifts);
+        Rt = ones(m,size(shifts,2));
+        Lt = ones(p,size(shifts,2));
+        [~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
+        
         % call funtion
         tic
         [S,R,data_out] = rksm(A,B,C,E,s0,Opts);
@@ -132,28 +101,33 @@ switch method
         %[S,R,data_out] = lyapchol(sys,s0,Opts);
     case 4
         % compute shifts using irka
-        shifts = zeros(1,12);
-        Rt = ones(m,10);
-        Lt = ones(p,10);
+        shifts = zeros(1,10);
+        Rt = ones(m,size(shifts,2));
+        Lt = ones(p,size(shifts,2));
         [~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
+        
+        
         s0_inp = s0(1,1:6);
         s0_out = s0(1,7:12);
         tic
-        [S,R,data_out] = rksm(A,B,C,E,s0_inp,s0_out,Opts);
+        [S,R,data_out] = crksm(A,B,C,E,s0_inp,s0_out,Opts);
         toc
         %[S,R,data_out] = My_rksm(sys,s0_inp,s0_out,Opts);
         
     case 5
-        shifts = zeros(1,12);
-        Rt = ones(m,12);
-        Lt = ones(p,12);
+        % compute shifts using irka
+        shifts = zeros(1,10);
+        Rt = ones(m,size(shifts,2));
+        Lt = ones(p,size(shifts,2));
         [~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
+        
+        
         s0_inp = s0(1,1:6);
         s0_out = s0(1,7:12);
         Rt = Rt(1,1:6);
         Lt = Lt(1,1:6);
         tic
-        [S,R,data_out] = rksm(A,B,C,E,s0_inp,s0_out,Rt,Lt,Opts);
+        [S,R,data_out] = crksm(A,B,C,E,s0_inp,s0_out,Rt,Lt,Opts);
         toc
         %[S,R,data_out] = My_rksm(sys,s0_inp,s0_out,Rt,Lt,Opts);
         
@@ -163,10 +137,13 @@ switch method
         [S,data_out] = rksm(A,B,E,s0,Opts);
         
     case 7
+        % compute shifts using irka
         shifts = zeros(1,10);
-        Rt = ones(m,10);
-        Lt = ones(p,10);
+        Rt = ones(m,size(shifts,2));
+        Lt = ones(p,size(shifts,2));
         [~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
+        
+        
         % Alternative f?r Shifts
         %s0(1,1) = norm(A, 'fro')/condest(A);
         %eigenwerte = -eigs(A,E);
@@ -174,11 +151,15 @@ switch method
         
         Opts.shifts = 'adaptive';
         tic
-        [S,data_out] = rksm(A,B,E,s0,Opts);
+        [S,data_out] = crksm(A,B,E,s0,Opts);
         toc
     case 8
-        shifts = zeros(1,2);
-        [~, ~, ~, s0] = irka(sys, shifts);
+        % compute shifts using irka
+        shifts = zeros(1,10);
+        Rt = ones(m,size(shifts,2));
+        Lt = ones(p,size(shifts,2));
+        [~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
+        
         % Alternative f?r Shifts
         %s0(1,1) = norm(A, 'fro')/condest(A);
         %eigenwerte = -eigs(A,E);
@@ -186,14 +167,18 @@ switch method
 
         Opts.Shifts = 'adaptive';
         tic
-        [S,R,data_out] = rksm(A,B,C,E,s0,Opts);
+        [S,R,data_out] = crksm(A,B,C,E,s0,Opts);
         toc
+    case 9
+        disp('hallo');
         
+     
 end
+
+
+% testing quality of solution (when dimension is high, comment out n>1500)
 V = data_out.V_basis;
 W = data_out.W_basis;
-
-%% testing quality of solution
 if isempty(W)
     Pr = S'*S;
     P = V*Pr*V';
@@ -207,7 +192,7 @@ Y = A*P*E' + E*P*A' + B*B';
 Y_norm = norm(Y);
 
 
-%% comparing with other methods
+% comparing with other hammarling-method
 % Opts.method = 'hammarling';
 % [Shammarling,Rhammarling] = lyapchol(sys,Opts);
 % Phammarling = Shammarling*Shammarling';
@@ -215,72 +200,45 @@ Y_norm = norm(Y);
 % Yhammarling_norm = norm(Yhammarling);
 
 
-%% M-MESS ADIif strcmp(Opts.method, 'adi') % check if MESS is available
-Opts.lse = 'gauss';
-if ~exist('operatormanager.m','file')||~exist('mess_para.m','file')||~exist('mess_lradi.m','file') 
-    warning('MESS toolbox not found. Using built-in lyapchol instead of ADI.');
-    Opts.method='hammarling';
-end
-pathUsfs=which('operatormanager');
-if strcmp(Opts.method, 'adi') && ~exist(strrep(pathUsfs,'operatormanager.m','solveLse'),'dir')
-    warning('MESS user function (usfs) "solveLse" not found. Using usfs "default" instead of "solveLse".');
-    Opts.method='hammarling';
-    lseType='default';
-else
-    lseType='solveLse';
-end
 
+% mess-adi options
+Opts.method = 'adi';
+Opts.messPara = 'heur';    % only for MESS
+Opts.rctol = 0;
+Opts.restol = 1e-12;
+Opts.norm = 2;
 
-% eqn struct: system data
-eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'prm',speye(size(sys.A)),'type','N','haveE',sys.isDescriptor);
+% call 
+tic
+[Sadi,Radi] = lyapchol(sys,Opts);
+toc
 
-% opts struct: MESS options
-messOpts.adi=struct('shifts',struct('l0',20,'kp',50,'km',25,'b0',ones(sys.n,1),...
-    'info',1),'maxiter',Opts.maxiter,'restol',0,'rctol',Opts.rctol,...
-    'info',1,'norm','fro');
-
-oper = operatormanager(lseType);
-messOpts.solveLse.lse=Opts.lse;
-messOpts.solveLse.krylov=0;
-
-% get adi shifts
-[messOpts.adi.shifts.p,~,~,~,~,~,~,eqn]=mess_para(eqn,messOpts,oper);
-
-[Sadi,Sadi_out]=mess_lradi(eqn,messOpts,oper);
-
-% if Opts.q && size(S,2)<Opts.q
-%             warning(['Because of small relative changes in the last ADI iterations,',...
-%                 ' the size of S is set to q_S = ',num2str(size(S,2),'%i'),'.']);
-% end
-% if Sout.rc(end)>Opts.rctol
-%     warning(['Maximum number of ADI iterations reached (maxiter = ',num2str(Opts.maxiter,'%d'),...
-%             '). rctol is not satisfied for S: ',num2str(Sout.rc(end),'%d'),' > rctol (',num2str(Opts.rctol,'%d'),').']);
-% end
-% 
-% if nargout>1
-%     if sys.isSym && ~any(size(sys.B)-size(sys.C')) && norm(full(sys.B-sys.C'))==0
-%         R=S;
-%     else
-%         eqn.type='T';
-%         [R,Rout]=mess_lradi(eqn,messOpts,oper);
-%         if Rout.rc(end)>Opts.rctol
-%             warning(['Maximum number of ADI iterations reached (maxiter = ',num2str(Opts.maxiter,'%d'),...
-%                 '). rctol is not satisfied for R: ',num2str(Rout.rc(end),'%d'),' > rctol (',num2str(Opts.rctol,'%d'),').']);
-%         end
-%     end
-%     if Opts.q && size(R,2)<Opts.q
-%         warning(['Because of small relative changes in the last ADI iterations,',...
-%         ' the size of R is set to q_R = ',num2str(size(R,2),'%i'),'.']);
-%     end
-% end
-
-% Opts.method = 'adi';
-% 
-% Opts.rctol = 0;
-% tic
-% [Sadi] = lyapchol(sys,Opts);
-% toc
+% testing quality of solution (when dimension is high, comment out n>1500)
 Padi = Sadi*Sadi';
 Yadi = A*Padi*E' + E*Padi*A' + B*B';
 Yadi_norm = norm(Yadi);
+
+% save data from workspace in your path, comment the following in
+% file_name = 'eady';
+% save(file_name)
+
+% genrate plot (if you want a plot of the residual norm comment the following in ;))
+
+% plot(1:size(S,2)/m,data_out.norm_val, '-ob','LineWidth',2);
+% hold on
+% plot(1:size(Sadi,2)/m,Radi.res,'-+r','LineWidth',2);
+% title('Convergence Rate "fom" model CRKSM ');
+% xlabel('Number of Iterations');
+% ylabel('Convergence Rate');
+% legend('CRKSM','Location','southwest');
+% legend('CRKSM','ADI','Location','southwest');
+
+
+% generate a filename.tikz file for using matlab2tikz in latex,
+% matlab2tikz-directory must be in yout path (I removed this directory, so you have to add it again) 
+% note: cleanfigure-command is helpful!
+
+% cleanfigure
+% matlab2tikz( 'filename.tikz' );
+
 
