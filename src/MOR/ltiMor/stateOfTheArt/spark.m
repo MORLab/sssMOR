@@ -99,6 +99,7 @@ function varargout = spark(sys,s0,Opts)
 %% Parse input and load default parameters
 % default values
 Def.zeroThres  = 1e-6; 
+
 Def.spark.type = 'model'; %SPARK type, 'model' or 'standard'
 Def.spark.test = 0; %execute analysis code
 Def.spark.verbose = 0; %show text?
@@ -117,16 +118,7 @@ Def.spark.pork = 'V';
 if ~exist('Opts','var') || isempty(Opts)
         Opts = Def;
 else
-    if ~isfield(Opts,'spark') || isempty(Opts.spark)
-        Opts.spark = Def.spark;
-    else
-        Opts.spark = parseOpts(Opts.spark,Def.spark);
-    end
-    if ~isfield(Opts,'mespark') || isempty(Opts.mespark)
-        Opts.mespark = Def.mespark;
-    else
-        Opts.mespark = parseOpts(Opts.mespark,Def.mespark);
-    end
+      Opts = parseOpts(Opts,Def);
 end
 
 %   Check input size
