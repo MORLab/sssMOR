@@ -38,10 +38,8 @@ classdef testCure < sssTest
             Opts.warn =1;
             Opts.w = w;
 
-            warning off
-            cure(sys,Opts);
-            warning on
-            close all
+            warning off, cure(sys,Opts); warning on
+            close all, delete('CURE.gif')
         end
         function testCuredIrka(testCase)
             sys = loadSss('rail_1357');
