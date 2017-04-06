@@ -863,6 +863,12 @@ classdef ssRed < ss
                                          sys.(sys.c_),sys.(sys.d_), ...
                                          sys.(sys.e_),'stabsep', ...
                                          params, varargin{1});
+                    
+                    % make robust to computations with sys.e_
+                    if isempty(varargout{1}.(sys.e_))
+                        varargout{1}.(sys.e_) = eye(sys.n);
+                    end
+                        
                     if nargout >= 2
                         sys = varargout{2};
                         params.originalOrder = varargin{1}.n;
@@ -871,6 +877,10 @@ classdef ssRed < ss
                                              sys.(sys.c_),sys.(sys.d_), ...
                                              sys.(sys.e_),'stabsep', ...
                                              params, varargin{1});
+                    end
+                    % make robust to computations with sys.e_
+                    if isempty(varargout{1}.(sys.e_))
+                        varargout{1}.(sys.e_) = eye(sys.n);
                     end
                 end
             end

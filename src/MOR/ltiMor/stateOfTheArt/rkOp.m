@@ -112,7 +112,7 @@ if isa(varargin{1},'double') && length(varargin)==2 && length(varargin{1})==leng
         end
     end
     
-elseif isa(varargin{1},'sss') || isa(varargin{1},'ssRed') || isa(varargin{1},'ss') % from lyapunov equation
+elseif isa(varargin{1},'sss') || isa(varargin{1},'ss') % from lyapunov equation
     sys = varargin{1};
     sOpt=zeros(sys.p,sys.m);
     
@@ -124,21 +124,12 @@ elseif isa(varargin{1},'sss') || isa(varargin{1},'ssRed') || isa(varargin{1},'ss
     
     for i=1:sys.p
         for j=1:sys.m
-
-            P=lyap(sys.A,sys.B(:,j)*sys.B(:,j).', [], sys.E);
-            Psym=0.5*(sys.E*P*sys.E.'+sys.E*P.'*sys.E.');
+            %  Solve lyapunov equations using sss lyapchol
+            S  = sssFunc.lyapchol(sys.A,sys.B(:,j),sys.E);
+            Sy = sssFunc.lyapchol(sys.A,sys.E*S,sys.E);
+            Y = Sy*Sy';
             
-            count = 1;
-            % Psysm is theoretically symmetric, but numerically not
-            while(~issymmetric(Psym))
-                Psym=0.5*(Psym+Psym.');
-                if count > 5
-                    error('Psym not symmetric.');
-                end
-            end
-            
-            Y=lyap(sys.A,Psym, [], sys.E);
-
+            %   Determine optimal parameter
             sOpt(i,j)=sqrt(c(i,:)*sys.A*Y*sys.A.'*c(i,:).'/(sys.C(i,:)*Y*sys.C(i,:).'));
 
             if nnz(sOpt(i,j)<0) || ~isreal(sOpt(i,j))

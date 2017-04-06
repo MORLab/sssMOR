@@ -8,28 +8,10 @@ classdef testRkIcop < sssTest
                 if ~sys.isDae
                     sOpt1 = rkOp(sys);
                     success=1;
-                    try
-                        [~,~,~,sOpt2] = rkIcop(sys,10,30);
-                    catch err
-                        if strcmp(err.identifier,'sssMor:rkIcopNotConverged')
-                            success=0;
-                        else
-                            error(err.message);
-                        end
-                    end
+                    [~,~,~,sOpt2] = rkIcop(sys,10,30);
+                    verification (testCase, sOpt1, sOpt2);
                     if success==1
-                        try
-                            rkIcop(ssRed(sys.A,sys.B,sys.C,sys.D,sys.E),0.5,12,Opts);
-                        catch err
-                            if strcmp(err.identifier,'sssMor:rkIcopNotConverged')
-                                success=0;
-                            else
-                                error(err.message);
-                            end
-                        end
-                        if success==1
-                            verification (testCase, sOpt1, sOpt2);
-                        end
+                       rkIcop(ssRed(sys.A,sys.B,sys.C,sys.D,sys.E),0.5,12,Opts);
                     end
                 end
             end

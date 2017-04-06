@@ -80,10 +80,10 @@ end
 warning('off','sss:sss:ssRedConversion')
 %% Parse the inputs
 %   Default execution parameters
-Def.rk = 'twoSided'; % 'twoSided','input','output'
-Def.tol = 1e-2; % stopping tolerance
+Def.rk      = 'twoSided'; % 'twoSided','input','output'
+Def.tol     = 1e-2; % stopping tolerance
 Def.maxIter = 100; % maximum number of iterations
-Def.lse = 'sparse'; % 'sparse', 'full', 'hess', 'gauss', 'iterative'
+Def.lse     = 'sparse'; % 'sparse', 'full', 'hess', 'gauss', 'iterative'
 
 % create the options structure
 if ~exist('Opts','var') || isempty(fieldnames(Opts))
@@ -163,13 +163,18 @@ for i=1:Opts.maxIter
     end
     
     % calculate sOpt
-    sOpt = rkOp(sysr, Opts);
+    if isstable(sysr)
+        sOpt = rkOp(sysr, Opts);
+    else
+        warning('sssMOR:rkIcop:sysrUnstable','The ROM in rkIcop was unstable. Using stabsep')
+        sOpt = rkOp(stabsep(sysr), Opts);
+    end
     
     if abs(sOpt-sOptOld)/sOpt <= Opts.tol
         break
     end
     if i==Opts.maxIter
-        error('sssMor:rkIcopNotConverged',['rkIcop has not converged after ' num2str(Opts.maxIter) ' steps.']);
+        warning('sssMor:rkIcopNotConverged',['rkIcop has not converged after ' num2str(Opts.maxIter) ' steps.']);
     end  
 end
 
