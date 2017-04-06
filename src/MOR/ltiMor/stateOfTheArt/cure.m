@@ -31,8 +31,11 @@ function [sysr,sysrVec] = cure(sys,Opts)
 %                           [{'2'} / positive integer]
 %           -.cure.fact:    factorization mode 
 %                           [{'V'} / 'W']
-%           -.cure.init:    shift initialization mode 
+%           -.cure.initMode:shift initialization mode 
 %                           [{'zero'} / 'sm' / 'lm' / 'slm' / array]
+%           -.cure.initN:   number of initial shifts
+%                           [{stopval} (for stop='nmax'), {5*nk} (else),
+%                           integer]
 %           -.cure.stop:    stopping criterion
 %                           [{'normROM'} / 'nmax' / 'h2Error']
 %           -.cure.stopval: value according to which the stopping criterion is evaluated
@@ -105,7 +108,8 @@ function [sysr,sysrVec] = cure(sys,Opts)
         Def.cure.nk         = 2; % reduced order at each step
         Def.cure.stop       = 'normROM'; %type of stopping criterion
         Def.cure.stopval    = 1e-6;
-        Def.cure.init       = 'slm'; %shift initialization type
+        Def.cure.initMode   = 'slm'; %shift initialization type
+        Def.cure.initN      = 5*Def.cure.nk; %will be overwritten if stop=='nmax'
         Def.cure.fact       = 'V'; %error factorization
         Def.cure.test       = 0; %execute analysis code?
         Def.cure.gif        = 0; %produce a .gif of the CURE iteration
@@ -123,6 +127,15 @@ function [sysr,sysrVec] = cure(sys,Opts)
     % make sure reduced order does not exceed original
     if Opts.cure.maxIter > sys.n/Opts.cure.nk
         Opts.cure.maxIter = floor(sys.n/Opts.cure.nk);
+    end
+    % initialize all shifts if Opts.cure.stop=='nmax'
+    if strcmp(Opts.cure.stop,'nmax')
+        Opts.cure.initN = Opts.cure.stopval;
+    elseif Opts.cure.initN>sys.n
+        %make sure the number of initial shifts is not greater than
+        %original order
+        warning('sssMOR:cure:numberOfInitialShifts','The number of initial shifts in CURE exceeds the full order and will be set to sys.n')
+        Opts.cure.initN = sys.n;
     end
     
     % store name and the reductionParameters, if sys is of type ssRed
@@ -168,7 +181,7 @@ while ~stop && iCure < Opts.cure.maxIter
     %   Initializations
     [s0,Opts] = initializeShifts(sys,Opts,iCure);    
     if Opts.cure.verbose
-        sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(s0(1)),imag(s0(1)),real(s0(2)),imag(s0(2))]);
+        sStr = sprintf('%3.2e %+3.2ei \t %3.2e %+3.2ei',[real(s0(1)),imag(s0(1)),real(s0(2)),imag(s0(2))]);
         fprintf('\t\tstart shifts\t%s\n',sStr);
     end
     
@@ -193,7 +206,7 @@ while ~stop && iCure < Opts.cure.maxIter
             n = size(V,2);
             Se = eig(Sv); % shifts for this iteration
             if Opts.cure.verbose
-                sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(Se(1)),imag(Se(1)),real(Se(2)),imag(Se(2))]);
+                sStr = sprintf('%3.2e %+3.2ei \t %3.2e %+3.2ei',[real(Se(1)),imag(Se(1)),real(Se(2)),imag(Se(2))]);
                 fprintf('\t\tfinal shifts\t%s\n',sStr);
             end
         case 'W'
@@ -218,7 +231,7 @@ while ~stop && iCure < Opts.cure.maxIter
             n = size(W,2);
             Se = eig(Sw); % shifts for this iteration
             if Opts.cure.verbose 
-                sStr = sprintf('%3.2e+i%3.2e \t %3.2e+i%3.2e',[real(Se(1)),imag(Se(1)),real(Se(2)),imag(Se(2))]);
+                sStr = sprintf('%3.2e %+3.2ei \t %3.2e %+3.2ei',[real(Se(1)),imag(Se(1)),real(Se(2)),imag(Se(2))]);
                 fprintf('\t\tfinal shifts\t%s\n',sStr);
             end
     end
@@ -284,10 +297,10 @@ while ~stop && iCure < Opts.cure.maxIter
     
     %% Evaluate stopping criterion
     [stop, stopCrit] = stoppingCriterion(sys,sysr,sysrVec,Opts);
-    if length(Opts.cure.init)==Opts.cure.nk
+    if length(Opts.cure.initMode)==Opts.cure.nk
         % initialization was only for one iteration
         % use the current (optimal) shifts for the next one
-        Opts.cure.init = Se.';
+        Opts.cure.initMode = Se.';
     end
     
     if Opts.cure.verbose
@@ -351,64 +364,60 @@ switch opts.cure.stop
 end
 function [s0,Opts] = initializeShifts(sys,Opts,iCure)
  % Compatibility with 0, 'zero'
- if Opts.cure.init == 0, Opts.cure.init = 'zero'; end
+ if Opts.cure.initMode == 0, Opts.cure.initMode = 'zero'; end
 
  % Check if a vector of values has been passed
- if isa(Opts.cure.init,'double')
+ if isa(Opts.cure.initMode,'double')
      %==============================
      %  initial shifts were defined
      %==============================
-     if length(Opts.cure.init) < Opts.cure.nk % not enough
+     if length(Opts.cure.initMode) < Opts.cure.nk % not enough
          error('sssMOR:cure:wrongInitialization',...
              'The inital vector of frequencies is incompatible with the desired nk');
-     elseif length(Opts.cure.init) == Opts.cure.nk % only 4 one iteration
-         s0 = Opts.cure.init;
+     elseif length(Opts.cure.initMode) == Opts.cure.nk % only 4 one iteration
+         s0 = Opts.cure.initMode;
          s0 = reshape(s0,[1,length(s0)]); %make sure it's a row vector
-     elseif length(Opts.cure.init)> Opts.cure.nk % more than one iteration
+     elseif length(Opts.cure.initMode)> Opts.cure.nk % more than one iteration
          firstIndex = (iCure-1)*Opts.cure.nk+1; %select value dep. on iCure
-            if firstIndex + Opts.cure.nk -1 > length(Opts.cure.init)
+            if firstIndex + Opts.cure.nk -1 > length(Opts.cure.initMode)
                 % repeat shifts
-                Opts.cure.init = [Opts.cure.init, Opts.cure.init];
+                Opts.cure.initMode = [Opts.cure.initMode, Opts.cure.initMode];
             end
             % new set of shifts
-            s0 = Opts.cure.init(firstIndex:firstIndex+Opts.cure.nk-1);
+            s0 = Opts.cure.initMode(firstIndex:firstIndex+Opts.cure.nk-1);
      end
  else 
      %===================================
      % define initial shifts
      %===================================
      %  choose the number of shifts to compute
-     if strcmp(Opts.cure.stop,'nmax')
-         ns0 = Opts.cure.stopval; %just as many as needed
-     else %another stopping criterion was chosen
-         ns0 = Opts.cure.nk;
-     end     
+     ns0 = Opts.cure.initN;   
      %  compute the shifts
-     switch Opts.cure.init
+     switch Opts.cure.initMode
          case {'zero','zeros'} %zero initialization
-             Opts.cure.init = Opts.zeroThres*ones(1,ns0);
+             Opts.cure.initMode = Opts.zeroThres*ones(1,ns0);
          case 'sm' %smallest magnitude eigenvalues
-             Opts.cure.init = -eigs(sys.a,sys.e,ns0,0, ...
+             Opts.cure.initMode = -eigs(sys.a,sys.e,ns0,0, ...
                     struct('tol',1e-6,'v0',sum(sys.b,2))).';
          case 'lm' %largest magnitude eigenvalues
-             Opts.cure.init = -eigs(sys.a,sys.e,ns0,'lm', ...
+             Opts.cure.initMode = -eigs(sys.a,sys.e,ns0,'lm', ...
                     struct('tol',1e-6,'v0',sum(sys.b,2))).';
          case 'slm' % smallest and largest eigs
              %  decide how many 'lm' and 'sm' eigs to compute
              if ns0 <=4
                  nSm = 2; nLm = 2;
-                 Opts.cure.init = [];
+                 Opts.cure.initMode = [];
              else %ns0 > 4
                 if isEven(ns0)
                     nSm = ns0/2; nLm = nSm;
-                    Opts.cure.init = [];
+                    Opts.cure.initMode = [];
                 else
                     nSm = (ns0-1)/2; nLm = nSm;
-                    Opts.cure.init = 0; %initialize the first shift at 0
+                    Opts.cure.initMode = 0; %initialize the first shift at 0
                 end
                 if ~isEven(nSm), nSm = nSm +1; nLm = nLm -1;end
              end
-             Opts.cure.init = [Opts.cure.init,...
+             Opts.cure.initMode = [Opts.cure.initMode,...
                         -eigs(sys.a,sys.e,nSm,'sm', ...
                         struct('tol',1e-6,'v0',sum(sys.b,2))).',...
                         -eigs(sys.a,sys.e,nLm,'lm', ...
@@ -417,7 +426,7 @@ function [s0,Opts] = initializeShifts(sys,Opts,iCure)
              error('sssMOR:cure:undefinedInitialization',...
                  'The desired initialization for CURE is not defined');
      end
- s0 = Opts.cure.init(1:Opts.cure.nk);
+ s0 = Opts.cure.initMode(1:Opts.cure.nk);
 end 
 %   make sure the initial values for the shifts are complex conjugated
 if mod(nnz(imag(s0)),2)~=0 %if there are complex valued shifts...
