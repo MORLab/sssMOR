@@ -2,6 +2,8 @@ classdef testRkIcop < sssTest
     
     methods (Test)  
         function testRkIcop1(testCase)
+            warning('off','sssMOR:rkIcop:sysrUnstable')
+            warning('off','sssMor:rkIcop:NotConverged')
             Opts.rk='output';
             for i=1:length(testCase.sysCell)
                 sys=testCase.sysCell{i};
@@ -15,6 +17,8 @@ classdef testRkIcop < sssTest
                     end
                 end
             end
+            warning('on','sssMOR:rkIcop:sysrUnstable')
+            warning('on','sssMor:rkIcop:NotConverged')
         end
     end
 end
