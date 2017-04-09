@@ -109,7 +109,7 @@ end
 if isempty(varargin)
         error('sssMOR:irka:inputarguments','Not enough input arguments');
 elseif length(varargin)==1
-    if length(varargin{1}) == 1
+    if length(varargin{1}) == 1 && mod(varargin{1},1) == 0
         % Reduced order specified
         s0 = zeros(1,varargin{1});
     else
