@@ -10,8 +10,8 @@ classdef testCirka < sssTest
 %                     -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
-% Last Change:  22 Nov 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  09 Apr 2017
+% Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------ 
  
     methods(Test)
@@ -25,7 +25,7 @@ classdef testCirka < sssTest
                 sys=    testCase.sysCell{i};  
                 sys=    sys(1,1);
                 
-                [sysr, V, W, s0, kIrka, sysm, relH2err] = cirka(sys, s0);
+                [sysr, V, W, s0, ~, ~, ~, sysm,~, relH2err] = cirka(sys, s0);
                 
                 verifyClass(testCase,sysr,'ssRed')
                 verifyClass(testCase,sysm,'ssRed')
@@ -56,7 +56,7 @@ classdef testCirka < sssTest
                     sys=testCase.sysCell{i};  
                     sys= sys(1,1);
 
-                    [sysr, ~, ~, s0opt, kIrka, ~, ~] = cirka(sys, s0,Opts);
+                    [sysr, ~, ~, s0opt, ~,~,kIrka, ~, ~] = cirka(sys, s0,Opts);
                     if length(kIrka)< Opts.maxiter
                         if strcmp(crit{j},'s0')
                             verifyEqual(testCase,cplxpair(-s0opt'),cplxpair(eig(sysr)),'RelTol',Opts.tol)
@@ -64,6 +64,33 @@ classdef testCirka < sssTest
                         end
                     end
                 end
+            end
+            warning('on','sssMOR:irka:maxiter')
+        end
+        function callWithReducedOrder(testCase) 
+            warning('off','sssMOR:irka:maxiter')
+            
+            for i=1:length(testCase.sysCell)
+                %  test system
+                sys=    testCase.sysCell{i};  
+                sys=    sys(1,1);
+                n = round(10*rand(1));
+                
+                [sysr, V, W, s0, ~, ~, ~, sysm,s0m, relH2err] = cirka(sys, n);
+                
+                verifyClass(testCase,sysr,'ssRed')
+                verifyClass(testCase,sysm,'ssRed')
+                verifyGreaterThanOrEqual(testCase,relH2err,0);
+
+                verifySize(testCase,V,[sys.n,n])
+                verifySize(testCase,W,[sys.n,n])
+                verifySize(testCase,s0,[1,n])
+                verifySize(testCase,s0m,[1,sysm.n])
+                verifyTrue(testCase,isstable(sysm))
+                verifyGreaterThanOrEqual(testCase,size(sysm.A,1),n);
+                verifyEqual(testCase,norm(sysm-sysr)/norm(sysm),relH2err)    
+                
+                verifySize(testCase,sysr.reductionParameters,[1 1]);
             end
             warning('on','sssMOR:irka:maxiter')
         end

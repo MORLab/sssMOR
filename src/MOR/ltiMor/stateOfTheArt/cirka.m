@@ -1,13 +1,13 @@
-function [sysr, V, W, s0, kIrka, sysm, relH2err] = cirka(sys, s0, Opts) 
+function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, Opts) 
 % CIRKA - Confined Iterative Rational Krylov Algorithm
 %
 % Syntax:
-%       sysr                                    = CIRKA(sys, s0)
-%       sysr                                    = CIRKA(sys, s0)
-%       sysr                                    = CIRKA(sys, s0, Opts)
-%       [sysr, V, W]                            = CIRKA(sys, s0,... )
-%       [sysr, V, W, s0]                        = CIRKA(sys, s0,... )
-%       [sysr, V, W, s0, kIrka, sysm, relH2err] = CIRKA(sys, s0,... )
+%       sysr                    = CIRKA(sys, q)
+%       sysr                    = CIRKA(sys, s0)
+%       sysr                    = CIRKA(sys, s0, Opts)
+%       [sysr, V, W]            = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0, R, L]  = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = CIRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Confined Iterative Rational Krylov
@@ -29,6 +29,7 @@ function [sysr, V, W, s0, kIrka, sysm, relH2err] = cirka(sys, s0, Opts)
 %       *Required Input Arguments:*
 %       -sys:			full oder model (sss)
 %       -s0:			vector of initial shifts
+%       -q:             (alternatively) reduced order
 %
 %       *Optional Input Arguments:*
 %       -Opts:			structure with execution parameters
@@ -66,8 +67,10 @@ function [sysr, V, W, s0, kIrka, sysm, relH2err] = cirka(sys, s0, Opts)
 %       -sysr:              reduced order model (sss)
 %       -V,W:               resulting projection matrices (V = Vm*Virka)
 %       -s0:                final choice of shifts
+%       -R,L:               matrices of right/left tangential directions
 %       -kIrka:             vector of irka iterations
 %       -sysm:              resulting model function
+%       -s0mTot:               shifts for model function
 %       -relH2err:          estimate of the relative H2 error
 %
 % Examples:
@@ -119,13 +122,19 @@ function [sysr, V, W, s0, kIrka, sysm, relH2err] = cirka(sys, s0, Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  20 Jan 2017
+% Last Change:  09 Apr 2017
 % Copyright (c) 2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
 %%  Check inputs
 if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only for SISO models');end
 warning('off','Control:analysis:NormInfinite3')
+
+% check if input s0 is reduced order (q) or vector of frequencies
+if length(s0) == 1 && mod(s0,1) == 0
+    % Reduced order specified
+    s0 = zeros(1,s0);
+end
 
 %% Define execution options
     Def.qm0     = 2*length(s0); %default initial surrogate size
@@ -187,7 +196,7 @@ warning('off','Control:analysis:NormInfinite3')
         end
         
         % reduction of new model with new starting shifts
-        [sysr, Virka, Wirka, s0new, ~,~,~,~,~,~,~,~,kIrkaNew] = irka(sysm,s0,Opts.irka);
+        [sysr, Virka, Wirka, s0new, ~,~,~,~,R,~,~,L,kIrkaNew] = irka(sysm,s0,Opts.irka);
 
         if Opts.plot, 
             figure; bodemag(sysFrd,ss(sysm),sysr)
@@ -217,6 +226,9 @@ warning('off','Control:analysis:NormInfinite3')
     end
     
     %%  Terminate execution  
+    % make model function stable by removing ustable modes
+    if ~isstable(sysm), sysm = stabsep(sysm); end
+    
     % prepare outputs
     relH2err = norm(sysm-sysr)/norm(sysm);
     kIrka(kIter+1:end) = []; %remove preallocation
@@ -236,12 +248,6 @@ warning('off','Control:analysis:NormInfinite3')
     Opts.modelFctOrder  = sysm.n; 
     
     sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'cirka',Opts,sys);
-    
-    % make model function stable by removing ustable modes
-    if ~isstable(sysm)
-        n0 = sysm.n;
-        sysm = stabsep(sysm);
-    end
     
     % display warnings or text output
     if kIter >= Opts.maxiter;
