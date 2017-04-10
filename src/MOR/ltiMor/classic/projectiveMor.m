@@ -23,6 +23,10 @@ function sysr = projectiveMor(sys,V,varargin)
 %       However, if the optional parameter Opts.trans is set to 'H', then
 %       $$ W^T $$ is replaced by $$ W^H $$, i.e. the conjugate transpose of W.
 %
+%       If sys is a sso, then the reduced order model is obtained as
+%
+%       $$ M_r = W^TMV,\; D_r = W^TDV,\; K_r = W^TKV,\; B_r = W^TB,\; C_{p,r} = C_pV,\; C_{v,r} = C_vV,\; D_{f,r} = D $$
+%
 % Input Arguments:
 %		*Required Input Arguments:*
 %		-sys: 		n-dimensional model of dynamic system (sss)
@@ -79,8 +83,8 @@ function sysr = projectiveMor(sys,V,varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  06 Apr 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  10 Apr 2017
+% Copyright (c) 2016, 2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %%  Parsing
@@ -117,7 +121,17 @@ Opts.originalOrder = sys.n;
 %%  Projection
 switch Opts.trans
     case 'T'
-        sysr = ssRed(W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V,'projectiveMor',Opts,sys);
+        if isa(sys,'sss') || isa(sys,'ss')
+            sysr = ssRed(W.'*sys.A*V, W.'*sys.B, sys.C*V, sys.D, W.'*sys.E*V,'projectiveMor',Opts,sys);
+        else
+            sysr = sso(W.'*sys.M*V, W.'*sys.D*V, W.'*sys.K*V, W.'*sys.B,...
+                sys.Cp*V, sys.Cv*V, sys.Df);
+        end
     case 'H'
-        sysr = ssRed(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V,'projectiveMor',Opts,sys);
+        if isa(sys,'sss') || isa(sys,'ss')
+            sysr = ssRed(W'*sys.A*V, W'*sys.B, sys.C*V, sys.D, W'*sys.E*V,'projectiveMor',Opts,sys);
+        else
+            sysr = sso(W'*sys.M*V, W'*sys.D*V, W'*sys.K*V, W'*sys.B,...
+                sys.Cp*V, sys.Cv*V, sys.Df);
+        end
 end
