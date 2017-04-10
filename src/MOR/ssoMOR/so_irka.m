@@ -46,11 +46,6 @@ while kIter <=Opts.nmax && es > Opts.tol
     B_n = V'*B; 
     [s0,Rt]         = Neueptv(M_n,D_n,K_n,B_n);
     [sysr, V, R]    = so_rk(sys, s0, Rt);
-    es              = norm(s0-s0_prev)/norm(s0_prev); 
-    s0_prev         = s0;
-    kIter           = kIter+1;
-    fprintf('SO-IRKA step %03u - Convergence: %s \n', ...
-            kIter, sprintf('% 3.1e', es));
 end
 
 %% ================================================================
