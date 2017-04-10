@@ -1,4 +1,4 @@
-function [sysr, V, iter] = so_irka(sys,nr,Opts)
+function [sysr, V, s0, kIter] = so_irka(sys,nr,Opts)
 % Iterative-Rational-Krylov-Algorithmus f¨¹r
 % Systeme zweiter Ordnung (SO-IRKA)
 %
@@ -33,25 +33,25 @@ sysr        = projectiveMor(sys,V_ini);
 [M_ini,D_ini,K_ini,B_ini] = dssdata(sysr);
 
 %% Run SO-IRKA iteration
-numfree = size(B,1);
-n = 0;
-[EP,Lb_n] = Neueptv(full(M_ini),full(D_ini),full(K_ini),full(B_ini));
-V = Neuvr(EP,Lb_n);
-es = 1;
-while n <=Opts.nmax && es > Opts.tol
+numfree     = size(B,1);
+kIter       = 0;
+[s0,Rt]     = Neueptv(full(M_ini),full(D_ini),full(K_ini),full(B_ini));
+[~, V, ~]   = so_rk(sys, s0, Rt);
+es      = 1; 
+s0_prev = s0;
+while kIter <=Opts.nmax && es > Opts.tol
     M_n = V'*M*V;
     K_n = V'*K*V;
     D_n = V'*D*V;
     B_n = V'*B; 
-    [EP_n,Lb_n] = Neueptv(M_n,D_n,K_n,B_n);
-    V = Neuvr(EP_n,Lb_n);
-    es = norm(EP_n-EP)/norm(EP); 
-    EP = EP_n;
-    n = n+1;
+    [s0,Rt]         = Neueptv(M_n,D_n,K_n,B_n);
+    [sysr, V, ~]    = so_rk(sys, s0, Rt);
+    es              = norm(s0-s0_prev)/norm(s0_prev); 
+    s0_prev         = s0;
+    kIter           = kIter+1;
+    fprintf('SO-IRKA step %03u - Convergence: %s \n', ...
+            kIter, sprintf('% 3.1e', es));
 end
-
-iter = n;
-sysr = projectiveMor(sys,V);
 
 %% ================================================================
 %       AUXILIARY
@@ -79,7 +79,7 @@ sysr = projectiveMor(sys,V);
         EVr_sort = [EVr_sort(1:n0,:);g*EVr_sort(n0+1:2*n0,:)];
         EVl_sort = [(1/g)*EVl_sort(1:n0,:);d*EVl_sort(n0+1:2*n0,:)];
         Lambda_E = EVl_sort'*E_2*EVr_sort;
-        EP_n = - EW_sort(1:nr);
+        EP_n    = - EW_sort(1:nr).';
         lb = (Lambda_E\(EVl_sort'*([zeros(size(B_n));B_n]))).';
         Lb_n = lb*[eye(nr);zeros(2*n0-nr,nr)];
     end
