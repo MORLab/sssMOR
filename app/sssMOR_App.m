@@ -2691,7 +2691,6 @@ if get(hObject,'Value')==3
     
     if ~isempty(y)
        sys = evalin('base', y);
-       sys = convertToSss(sys);
        
        if sys.m > 1 || sys.p > 1    %MIMO
            
