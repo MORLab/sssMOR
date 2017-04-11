@@ -394,13 +394,15 @@ classdef ssRed < ss
                 end
                 
                 % default values
-                D = []; E = []; method = 'userDefined'; paramsList = [];
+                D = []; method = 'userDefined'; paramsList = [];
                 params = []; name = [];
                 
                 % system matrices
                 A = full(varargin{1});
                 B = full(varargin{2});
                 C = full(varargin{3});
+                E = eye(size(A,1));          % default value for sys.E
+                
                 iTemp = 4;          % next index in varargin
                 if nargin >= iTemp && isnumeric(varargin{4})
                    D = full(varargin{4});
