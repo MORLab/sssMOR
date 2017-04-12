@@ -1,4 +1,4 @@
-function [sysr, V, s0, kIter] = so_irka(sys,nr,Opts)
+function [sysr, V, R, s0, kIter] = so_irka(sys,nr,Opts)
 % Iterative-Rational-Krylov-Algorithmus f¨¹r
 % Systeme zweiter Ordnung (SO-IRKA)
 %
@@ -16,7 +16,7 @@ function [sysr, V, s0, kIter] = so_irka(sys,nr,Opts)
 %                iter:     Anzahl der Iterationen
 
 %%  Define optional execution parameters
-Def.tol     = 1e-3;
+Def.tol     = 1e-15;
 Def.nmax    = 50;
 
 % create the options structure
@@ -36,7 +36,7 @@ sysr        = projectiveMor(sys,V_ini);
 numfree     = size(B,1);
 kIter       = 0;
 [s0,Rt]     = Neueptv(full(M_ini),full(D_ini),full(K_ini),full(B_ini));
-[~, V, ~]   = so_rk(sys, s0, Rt);
+[~, V, R]   = so_rk(sys, s0, Rt);
 es      = 1; 
 s0_prev = s0;
 while kIter <=Opts.nmax && es > Opts.tol
@@ -45,7 +45,7 @@ while kIter <=Opts.nmax && es > Opts.tol
     D_n = V'*D*V;
     B_n = V'*B; 
     [s0,Rt]         = Neueptv(M_n,D_n,K_n,B_n);
-    [sysr, V, ~]    = so_rk(sys, s0, Rt);
+    [sysr, V, R]    = so_rk(sys, s0, Rt);
     es              = norm(s0-s0_prev)/norm(s0_prev); 
     s0_prev         = s0;
     kIter           = kIter+1;
