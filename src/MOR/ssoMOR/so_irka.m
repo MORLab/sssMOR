@@ -16,7 +16,7 @@ function [sysr, V, R, s0, kIter] = so_irka(sys,nr,Opts)
 %                iter:     Anzahl der Iterationen
 
 %%  Define optional execution parameters
-Def.tol     = 1e-15;
+Def.tol     = 1e-5;
 Def.nmax    = 50;
 
 % create the options structure
