@@ -89,14 +89,14 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  23 Nov 2016
-% Copyright (c) 2015,2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  03 May 2017
+% Copyright (c) 2015-2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 % Default execution parameters
 Def.type        = 'SM'; 
 Def.orth        = 'qr'; %orthogonalization (false,true,'qr')
-Def.real        = 'real'; %real reduced system (true, false)
+Def.real        = 'real'; %real reduced system (real, false)
 Def.tol         = 1e-6; % tolerance for SM/LM eigenspace
 Def.dominance   = 0; %dominance analysis ('0','analyze','2q','3q',..,'9q')
 Def.lse         = 'sparse'; % solveLse ('sparse', 'full')
@@ -188,6 +188,16 @@ function [V, W, rlambda] = eigenspace(q)
                     warning('sssMOR:modalMor:eigsConvergence',...
                         'Eigs did not converge to same eigenvalues for V and W. Consider setting Opts.subspaceW = ''exact''.')
                 end
+                % sorting eigenvalues, left and right eigenvectors
+                [rlambdaSort,rIndex] = sort(rlambda);
+                [llambdaSort,lIndex] = sort(llambda);
+                
+                rlambda = diag(rlambdaSort);
+                llambda = diag(llambdaSort);
+                
+                VSort = V(:,rIndex); V = VSort;
+                WSort = W(:,lIndex); W = WSort;
+                
             case '1by1'
                 W = zeros(size(V));
                 warning('off','MATLAB:nearlySingularMatrix');
