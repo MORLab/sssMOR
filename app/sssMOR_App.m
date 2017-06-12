@@ -1,3 +1,4 @@
+
 function varargout = sssMOR_App(varargin)
 % SSSMOR_APP - sssMOR toolbox App 
 %
@@ -265,14 +266,19 @@ function sssMOR_App_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
     
     if screensize(1,4) < position(1,4)+100    %Footer ausblenden
         
+        % get heigth of footer (in char)
         position = get(handles.logos_footer,'Position');
         diff = position(1,4);
+        
+        % height of app window in char is 58.1538
+        heightAppWindow = 58.1538;
+        position = get(handles.figure1,'Position');
+        position(1,4) = heightAppWindow - diff;
+        set(handles.figure1,'Position',position);
+        
+        position = get(handles.logos_footer,'Position');
         position(1,2) = position(1,2) - diff;
         set(handles.logos_footer,'Position',position);
-        
-        position = get(handles.figure1,'Position');
-        position(1,4) = position(1,4) - diff;
-        set(handles.figure1,'Position',position);
         
         position = get(handles.pb_loading,'Position');
         position(1,2) = position(1,2) - diff;
@@ -327,13 +333,13 @@ function sssMOR_App_OpeningFcn(hObject, eventdata, handles, varargin)  %#ok<*INU
         if screensize(1,4) < position(1,4)+50    %Header ausblenden
             
             position = get(handles.logo_tum,'Position');
-            diff = position(1,4);
+            diffHead = position(1,4);
             
             position = get(handles.pb_loading,'Position');
-            diff = diff - position(1,4);
+            diffHead = diffHead - position(1,4);
             
             position = get(handles.figure1,'Position');
-            position(1,4) = position(1,4) - diff;
+            position(1,4) = heightAppWindow - diffHead - diff;
             set(handles.figure1,'Position',position);
                   
         end       
