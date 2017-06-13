@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, Opts) 
+function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err, Vm, Wm] = cirka(sys, s0, Opts) 
 % CIRKA - Confined Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -7,7 +7,7 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %       sysr                    = CIRKA(sys, s0, Opts)
 %       [sysr, V, W]            = CIRKA(sys, s0,... )
 %       [sysr, V, W, s0, R, L]  = CIRKA(sys, s0,... )
-%       [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err, Vm, Wm] = CIRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Confined Iterative Rational Krylov
@@ -70,8 +70,10 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %       -R,L:               matrices of right/left tangential directions
 %       -kIrka:             vector of irka iterations
 %       -sysm:              resulting model function
-%       -s0mTot:               shifts for model function
+%       -s0mTot:            shifts for model function
 %       -relH2err:          estimate of the relative H2 error
+%       -Vm,Wm:             resulting projection matrices of the model
+%                           function
 %
 % Examples:
 %       This code computes an H2-optimal approximation of order 10 to
