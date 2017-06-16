@@ -53,6 +53,8 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err, Vm, Wm] = cirka(s
 %                       [{'new'},'all']
 %           -.clearInit: reset the model function after first iteration;
 %                       [{true}, false]
+%           -.stabsep:  make model function stable by removing ustable modes
+%                       [{true} / false]
 %           -.irka.stopcrit: stopping criterion used in irka;
 %                       [{'combAny'} / 's0' / 'sysr' /'combAll']
 %           -.irka.lse:  choose type of lse solver;
@@ -150,6 +152,7 @@ end
     Def.updateModel = 'new'; %shifts used for the model function update
     Def.modelTol = 1e-2; %shift tolerance for model function
     Def.clearInit = 0; %reset the model fct after initialization?
+    Def.stabsep = 1; %make model function stable by removing ustable modes
     
     Def.irka.suppressverbose = true;
     Def.irka.stopCrit        = 'combAny';
@@ -175,8 +178,17 @@ end
     sysrOld = ss([]);
     sysmOld = ss([]);
     
-    %   Generate the model function
-    s0m = Opts.s0m;    [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
+    if exist('Opts.algorithm','var')
+        if strcmp(Opts.algorithm,'pcirka') 
+            sysm = Opts.sysm;
+            s0mTot = Opts.s0m;
+            Vm = Opts.Vm;
+            Wm = Opts.Vm;
+        end
+    else
+        %   Generate the model function
+        s0m = Opts.s0m;    [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
+    end
 
     if Opts.verbose, fprintf('Starting model function MOR...\n'); end
     if Opts.plot, sysFrd = freqresp(sys,struct('frd',true)); end
@@ -229,7 +241,9 @@ end
     
     %%  Terminate execution  
     % make model function stable by removing ustable modes
-    if ~isstable(sysm), sysm = stabsep(sysm); end
+    if Opts.stabsep
+        if ~isstable(sysm), sysm = stabsep(sysm); end
+    end
     
     % prepare outputs
     relH2err = norm(sysm-sysr)/norm(sysm);
