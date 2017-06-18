@@ -179,7 +179,7 @@ end
     sysmOld = ss([]);
     
     if exist('Opts.algorithm','var')
-        if strcmp(Opts.algorithm,'pcirka') 
+        if strcmp(Opts.algorithm,'globalPmorPcirka') || strcmp(Opts.algorithm,'matrInterpPcirka') 
             sysm = Opts.sysm;
             s0mTot = Opts.s0m;
             Vm = Opts.Vm;
