@@ -1,0 +1,2 @@
+This placeholder is important for the versioning of the sssMORdoc repository.
+Please don't delete it.
