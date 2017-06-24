@@ -95,3 +95,10 @@ Temporary Items
 benchmarks/CURE.gif
 test/testScripts/CURE.gif
 CURE.gif
+
+# Files generated automatically by running publishHelp.m
+# =======================================================
+doc/html/helpsearch-v3/
+doc/html/*.html
+doc/html/*.png
+doc/source/functions/*.m
