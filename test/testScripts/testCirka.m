@@ -72,9 +72,9 @@ classdef testCirka < sssTest
             
             for i=1:length(testCase.sysCell)
                 %  test system
-                sys=    testCase.sysCell{i};  
-                sys=    sys(1,1);
-                n = round(10*rand(1));
+                sys =    testCase.sysCell{i};  
+                sys =    sys(1,1);
+                n   =    ceil(10*rand(1));
                 
                 [sysr, V, W, s0, ~, ~, ~, sysm,s0m, relH2err] = cirka(sys, n);
                 
