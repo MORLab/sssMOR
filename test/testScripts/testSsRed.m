@@ -401,31 +401,31 @@ classdef testSsRed < sssTest
                         'Test for the lyapchol-function failed!');
                     
             % test minus
-            sys_diff = sys1-sys3;
-            sysr_diff = sysr1-sysr3;
-            verifyEqual(testCase,sys_diff,sysr_diff, ...
+            sys_diff    = sys1-sys3;
+            sysr_diff   = sysr1-sysr3;
+            verifyLessThan(testCase,norm(sys_diff-sysr_diff), 1e-12, ...
                         'Test for the minus-function failed!')
                     
             % test mtimes
-            sys_prod = mtimes(sys1,sys3);
-            sysr_prod = mtimes(sysr1,sysr3);
-            verifyEqual(testCase,sys_prod,sysr_prod, ...
+            sys_prod    = mtimes(sys1,sys3);
+            sysr_prod   = mtimes(sysr1,sysr3);
+            verifyLessThan(testCase,norm(sys_prod-sysr_prod),1e-12, ...
                         'Test for the mtimes-function failed!')
                     
             % test norm
-            nrm = norm(sys1, 'inf');
-            nrmr = norm(sysr1,Inf);
+            nrm     = norm(sys1, 'inf');
+            nrmr    = norm(sysr1,Inf);
             verifyEqual(testCase,nrm,nrmr,'AbsTol',1e-3, ... 
                         'Test for the norm-function failed (inf-norm)!');                    
-            nrm = norm(sys1, 2);
-            nrmr = norm(sysr1,2);
+            nrm     = norm(sys1, 2);
+            nrmr    = norm(sysr1,2);
             verifyEqual(testCase,nrm,nrmr,'AbsTol',1e-3, ... 
                         'Test for the norm-function failed (2-norm)!');
                     
             % test plus
-            sys_add = sys1+sys3;
-            sysr_add = sysr1+sysr3;
-            verifyEqual(testCase,sys_add,sysr_add, ...
+            sys_add     = sys1+sys3;
+            sysr_add    = sysr1+sysr3;
+            verifyLessThan(testCase,norm(sys_add-sysr_add), 1e-12, ...
                         'Test for the plus-function failed!');
                     
             % test pole
