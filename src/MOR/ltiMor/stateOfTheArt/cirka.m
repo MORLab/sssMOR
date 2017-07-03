@@ -152,7 +152,7 @@ end
     Def.updateModel = 'new'; %shifts used for the model function update
     Def.modelTol = 1e-2; %shift tolerance for model function
     Def.clearInit = 0; %reset the model fct after initialization?
-    Def.stabsep = 1; %make model function stable by removing ustable modes
+    Def.stabsep = 'true'; %make model function stable by removing ustable modes
     
     Def.irka.suppressverbose = true;
     Def.irka.stopCrit        = 'combAny';
@@ -186,6 +186,7 @@ end
             Wm = Opts.Wm;
         elseif strcmp(Opts.algorithm,'matrInterpPcirka') && ~any(strcmp('Vm',fieldnames(Opts)))
             sysm = Opts.sysm;
+            s0mTot = [];
         end
     else
         %   Generate the model function
@@ -205,11 +206,9 @@ end
                 %reset the model function after the first step
                 s0m = [s0,s0m(1:length(s0m)-length(s0))];
                 [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
-            elseif kIter == 2 && any(strcmp('algorithm',fieldnames(Opts)))
-                if strcmp(Opts.algorithm,'matrInterpPcirka') && ~any(strcmp('Vm',fieldnames(Opts)))
+            elseif kIter == 2 && any(strcmp('algorithm',fieldnames(Opts))) && strcmp(Opts.algorithm,'matrInterpPcirka') && ~any(strcmp('Vm',fieldnames(Opts)))
                     s0m = shiftVec([s0;2*ones(1,length(s0))]);
-                    [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
-                end
+                    [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);      
             else
                 % update model
                 [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0,s0mTot,Vm,Wm,Opts);
