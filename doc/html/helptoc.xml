@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+SSSMOR Toolbox
+Copyright (c) 2017 Institute of Automatic Control,
+  Technische Universitaet Muenchen
+See doc/html/txts/LICENSE.txt for license information.
+web: https://www.rt.mw.tum.de/
+
+(This file has been generated automatically)
+-->
+<toc version="2.0">
+    <tocitem image="$toolbox/matlab/icons/book_mat.gif" target="product_page.html">sssMOR Toolbox
+        <tocitem image="HelpIcon.GETTING_STARTED" target="getting_started_index.html">Getting Started
+            <tocitem target="whatis_sssMOR.html">What is sssMOR?</tocitem>
+            <tocitem target="problemStatement_sssMOR.html">Why sssMOR?</tocitem>
+            <tocitem target="sssDoc.html">sss - Sparse State-Space Objects</tocitem>
+            <tocitem target="sssMORDoc.html">sssMOR - Model Order Reduction</tocitem><!--<tocitem target="setUp.html">Setting up the sssMOR toolbox</tocitem>-->
+        </tocitem>
+        <tocitem image="HelpIcon.EXAMPLES" target="examples_index.html">Examples
+            <tocitem target="sssMOR_App_doc.html">sssMOR_App</tocitem>
+        </tocitem>
+        <tocitem image="HelpIcon.FUNCTION" target="functions_index.html">Functions Reference
+            <tocitem target="functions_index.html">Reduced Order Models (ssRed)
+                <tocitem image="HelpIcon.FUNCTION" target="ssRedhelp.html">ssRed</tocitem>
+            </tocitem>
+            <tocitem target="functions_index.html">LTI MOR Classic
+                <tocitem image="HelpIcon.FUNCTION" target="arnoldihelp.html">arnoldi</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="modalMorhelp.html">modalMor</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="projectiveMorhelp.html">projectiveMor</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="rkhelp.html">rk</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="tbrhelp.html">tbr</tocitem>
+            </tocitem>
+            <tocitem target="functions_index.html">LTI MOR State-of-the-Art
+                <tocitem image="HelpIcon.FUNCTION" target="cirkahelp.html">cirka</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="curehelp.html">cure</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="irkahelp.html">irka</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="isrkhelp.html">isrk</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="modelFcthelp.html">modelFct</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="modelFctMorhelp.html">modelFctMor</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="porkVhelp.html">porkV</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="porkWhelp.html">porkW</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="rkIcophelp.html">rkIcop</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="rkOphelp.html">rkOp</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="sparkhelp.html">spark</tocitem>
+            </tocitem>
+            <tocitem target="functions_index.html">Extras
+                <tocitem image="HelpIcon.FUNCTION" target="getDesiredOutputhelp.html">getDesiredOutput</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="getSylvesterhelp.html">getSylvester</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="isH2opthelp.html">isH2opt</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="ismemberf2help.html">ismemberf2</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="momentshelp.html">moments</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="setdiffVechelp.html">setdiffVec</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="shiftVechelp.html">shiftVec</tocitem>
+            </tocitem>
+            <tocitem target="functions_index.html">Demos
+                <tocitem image="HelpIcon.FUNCTION" target="sssMOR_gettingStartedhelp.html">sssMOR_gettingStarted</tocitem>
+            </tocitem>
+        </tocitem>
+        <tocitem target="../../../sss/doc/html/product_page.html">Open sss Toolbox Documentation</tocitem>
+        <tocitem target="references_sssMOR.html">References</tocitem>
+        <tocitem target="acknowledgements_sssMOR.html">Acknowledgements</tocitem>
+        <tocitem image="HelpIcon.RELEASENOTES" target="txts/LICENSE.txt">License</tocitem>
+        <tocitem image="HelpIcon.RELEASENOTES" target="txts/RELEASE.txt">Release Notes</tocitem>
+    </tocitem>
+</toc>

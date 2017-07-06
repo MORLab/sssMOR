@@ -35,9 +35,9 @@ classdef testProjectiveMor < sssTest
             sysr3   = projectiveMor(sys,V,struct('trans','T'));
             sysr4   = projectiveMor(sys,V,[],struct('trans','T')); 
 
-            verifyEqual(testCase,sysr,sysr2,'Wrong parsing')
-            verifyEqual(testCase,sysr,sysr3,'Wrong parsing')
-            verifyEqual(testCase,sysr,sysr4,'Wrong parsing')
+            verifyEqual(testCase,{dssdata(sysr)},{dssdata(sysr2)},'AbsTol', 1e-10,'Wrong parsing')
+            verifyEqual(testCase,{dssdata(sysr)},{dssdata(sysr3)},'AbsTol', 1e-10,'Wrong parsing')
+            verifyEqual(testCase,{dssdata(sysr)},{dssdata(sysr4)},'AbsTol', 1e-10,'Wrong parsing')
          end 
          function GalerkinRealSingleT (testCase) 
               %Galerkin projection using real shifts

@@ -132,6 +132,14 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 % create the options structure
 Def.real = true; %keep the projection matrices real?       
 
+% use hess if sys is ssRed object
+if isa(sys,'ssRed'), 
+    Def.lse='hess'; 
+    if isempty(sys.E), sys.E = eye(size(sys.A)); end %ssRed robust compatibility
+else
+    Def.lse = 'sparse'; 
+end
+
 if ~isempty(varargin) && isstruct(varargin{end})
     Opts = varargin{end};
     varargin = varargin(1:end-1);
@@ -173,7 +181,7 @@ if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
 end
 
 if exist('s0_inp', 'var')
-    s0_inp = s0_vect(s0_inp);
+    s0_inp = shiftVec(s0_inp);
     % sort expansion points & tangential directions
     s0old = s0_inp;
     if Opts.real, 
@@ -194,7 +202,7 @@ else
     s0_inp = [];
 end
 if exist('s0_out', 'var')
-    s0_out = s0_vect(s0_out);
+    s0_out = shiftVec(s0_out);
         % sort expansion points & tangential directions
     s0old = s0_out;
     if Opts.real, 
@@ -235,7 +243,6 @@ if isempty(s0_out)
     [V, Sv, Rv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
     W = V;
     sysr = projectiveMor(sys,V,W);
-    sysr.Name = sprintf('%s_%i_rk_inp',sys.Name,sysr.n);
     if nargout>3
         B_ = sys.B - sys.E*V*(sysr.E\sysr.B);
         C_ = []; Lw = [];  Sw=[];
@@ -247,25 +254,27 @@ elseif isempty(s0_inp)
     [W, Sw, Lw] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
     V = W;
     sysr = projectiveMor(sys,V,W);
-    sysr.Name = sprintf('%s_%i_rk_out',sys.Name,sysr.n);
     if nargout>3
         C_ = sys.C - sysr.C/sysr.E*W.'*sys.E;
         B_ = []; Rv = []; Sv=[];
     end
 
 else
-    if all(s0_inp == s0_out) %use only 1 LU decomposition for V and W
+    if all(s0_inp == s0_out) % use only 1 LU decomposition for V and W
         [V, Sv, Rv, W, Sw, Lw] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
                             s0_inp,Rt, Lt, IP, Opts);
                         
         sysr = projectiveMor(sys,V,W);
-        sysr.Name = sprintf('%s_%i_rk_herm',sys.Name,sysr.n);
 
     else
         [V, Sv, Rv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
         [W, Sw, Lw] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
+        if size(V,2)<size(W,2)
+            V=[V,W(:,size(V,2)+1:size(W,2))];
+        elseif size(V,2)>size(W,2)
+            W=[W,V(:,size(W,2)+1:size(V,2))];
+        end
         sysr = projectiveMor(sys,V,W);
-        sysr.Name = sprintf('%s_%i_rk_2sided',sys.Name,sysr.n);
     end
 
     if nargout > 3
@@ -274,19 +283,24 @@ else
     end
 end
 
+%%  Storing additional parameters
+%Stroring additional information about thr reduction in the object 
+%containing the reduced model:
+%   1. Define a new field for the Opts struct and write the information
+%      that should be stored to this field
+%   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
+%      way that the new defined field passes the check
+Opts.originalOrder = sys.n;
+if ~isfield(Opts,'orth') Opts.orth = '2mgs'; end
+if ~isfield(Opts,'reorth') Opts.reorth = 0; end
+if ~isfield(Opts,'lse') Opts.lse = 'sparse'; end
+if ~isfield(Opts,'dgksTol') Opts.dgksTol = 1e-12; end
+if ~isfield(Opts,'krylov') Opts.krylov = 0; end
+Opts.IP = IP;
+if ~exist('Rt','var') Opts.Rt = []; else Opts.Rt = Rt; end
+if ~exist('Lt','var') Opts.Lt = []; else Opts.Lt = Lt; end
+if ~exist('s0_inp','var') Opts.s0_inp = []; else Opts.s0_inp = s0_inp; end
+if ~exist('s0_out','var') Opts.s0_out = []; else Opts.s0_out = s0_out; end
 
-%% ----------- AUXILIARY --------------
-function s0=s0_vect(s0)
-    % change two-row notation to vector notation
-    if size(s0,1)==2
-        temp=zeros(1,sum(s0(2,:)));
-        for j=1:size(s0,2)
-            k=sum(s0(2,1:(j-1))); k=(k+1):(k+s0(2,j));
-            temp(k)=s0(1,j)*ones(1,s0(2,j));
-        end
-        s0=temp;
-    end
-
-    if size(s0,1)>size(s0,2)
-        s0=transpose(s0);
-    end
+% Convert to ssRed-object
+sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'rk',Opts,sys);

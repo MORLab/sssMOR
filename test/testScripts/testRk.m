@@ -108,13 +108,14 @@ classdef testRk < sssTest
               verification(testCase, actSolution, expSolution, sysr);
               
          end 
-         function testRk4 (testCase) 
+         function SISOTwoSidedDescriptor (testCase) 
               %two-sided reduction with E-matrix SISO
               sys = loadSss('SpiralInductorPeec');
-
+                
+                Opts.stopCrit = 's0';
                 %  get good shifts
                 n = 6; r = ones(sys.m,n); l = ones(sys.p,n);
-                sysrIrka = irka(sys, zeros(1,n),r, l);
+                sysrIrka = irka(sys, zeros(1,n),r, l,Opts);
                 s0 = -eig(sysrIrka).'; s0moment = s0; n = 2;
             
               [sysr, V, W, B_, ~, Rv, C_, ~, Lw] = rk(sys,s0,s0);              
@@ -217,7 +218,9 @@ classdef testRk < sssTest
              Rt3D  = permute(Rt,[1,3,2]);
              MeR = mmat(Me,Rt3D);
              
-             verifyLessThanOrEqual(testCase,abs(MeR),1e-8,'MeR: Moments do not match')   
+             % NOTE due to bad conditioning of random shifts, the error
+             % tolerance should not be to tight here..
+             verifyLessThanOrEqual(testCase,abs(MeR),1e-3,'MeR: Moments do not match')   
              
              % Output
              Lt = 100*(rand(sys.m,n)+1i*randn(sys.m,n));
@@ -254,9 +257,9 @@ classdef testRk < sssTest
              MeR = mmat(Me,Rt3D);
              MeH = mmat(mmat(Lt3D,Me),Rt3D);
              
-             verifyLessThanOrEqual(testCase,abs(MeL),1e-8,'MeL: Moments do not match')
-             verifyLessThanOrEqual(testCase,abs(MeR),1e-8,'MeR: Moments do not match')
-             verifyLessThanOrEqual(testCase,abs(MeH),1e-8,'MeH: Moments do not match')
+             verifyLessThanOrEqual(testCase,abs(MeL),1e-6,'MeL: Moments do not match')
+             verifyLessThanOrEqual(testCase,abs(MeR),1e-6,'MeR: Moments do not match')
+             verifyLessThanOrEqual(testCase,abs(MeH),1e-6,'MeH: Moments do not match')
          end
          function MIMOtwoSidedComplexShiftsRealModel (testCase) 
              % test if sorting shifts/tangential directions messes up
@@ -315,18 +318,55 @@ classdef testRk < sssTest
 %              verifyLessThanOrEqual(testCase,abs(MeL),1e-8,'MeL: Moments do not match')
 %              verifyLessThanOrEqual(testCase,abs(MeR),1e-8,'MeR: Moments do not match')
 %              verifyLessThanOrEqual(testCase,abs(MeH),1e-8,'MeH: Moments do not match')
-  end
-         function benchmarksSweep2sided (testCase) 
+         end
+         function MISO_SIMO (testCase) 
+             % test if non-quadratic models are dealt with correctly
+             
+             sysMIMO = loadSss('CDplayer');
+                          
+             for idx = 1:2
+                 if idx == 1
+                     sys = sysMIMO(1:2,1);
+                 else
+                     sys = sysMIMO(1,1:2);
+                 end
+             
+                 n = 4; 
+                 %  Complex shifts and tangential directions
+                 Rt = 100*(rand(sys.m,n)+1i*randn(sys.m,n)); Rt(:,[2,4]) = conj(Rt(:,[1,3]));
+                 Lt = 100*(rand(sys.p,n)+1i*randn(sys.p,n)); Lt(:,[2,4]) = conj(Lt(:,[1,3]));
+                 s0 = 100*(rand(1,n)+1i*randn(1,n)); s0([2,4]) = conj(s0([1,3]));
+
+                 sysr = rk(sys,s0,s0,Rt,Lt);
+
+                 % verify moment matching
+                 Me2 = moments(sys-sysr,s0,2);
+                 Me = Me2(:,:,1:2:end); Me2(:,:,1:2:end) = [];
+
+                 Lt3D  = permute(Lt.',[3,2,1]);
+                 Rt3D  = permute(Rt,[1,3,2]);
+
+                 MeL = mmat(Lt3D,Me);
+                 MeR = mmat(Me,Rt3D);
+                 MeH = mmat(mmat(Lt3D,Me2),Rt3D);
+
+                 verifyLessThanOrEqual(testCase,abs(MeL),1e-5,'MeL: Moments do not match')
+                 verifyLessThanOrEqual(testCase,abs(MeR),1e-5,'MeR: Moments do not match')
+                 verifyLessThanOrEqual(testCase,abs(MeH),1e-5,'MeH: Moments do not match')
+             end
+             end
+
+         function benchmarksSweep2sided (testCase)
              %two-sided reduction for all benchmarks
              for i=1:length(testCase.sysCell)
                  %  test system
                  sys = testCase.sysCell{i};
                  %  get good shifts
-                 n = 4; r = ones(sys.m,n); l = ones(sys.p,n);
+                 n = 6; r = ones(sys.m,n); l = ones(sys.p,n);
                  sysrIrka = irka(sys, zeros(1,n),r, l);
                  Opts.rType = 'dir';
                  [r,p] = residue (sysrIrka,Opts);
-                 s0 = -(conj(p)); Lt = r{1}; Rt = r{2}.';
+                 s0 = -(conj(p)).'; Lt = r{1}; Rt = r{2}.';
                  % make sure real shifts have real directions
                  k = find(imag(s0)==0);
                  if max(imag(Rt(k))) > 1e-10

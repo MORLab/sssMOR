@@ -3,6 +3,7 @@ function varargout = porkW(W,Sw,Lw,B)
 %
 % Syntax: 
 %       [Ar,Br,Cr,Er] = porkW(W,Sw,Lw,B)
+%       sysrPO = porkW(W,Sw,Lw,B)
 %
 % Description:
 %       This function implements the pseudo-optimal rational Krylov
@@ -13,10 +14,13 @@ function varargout = porkW(W,Sw,Lw,B)
 %
 %       $A^T W - E^T W S_w^T - C^T L_w = 0$
 %
-%       this function computes the reduced order matrices corresponding to
+%       This function computes the reduced order matrices corresponding to
 %       the H2-pseudo-optimal reduced order model, i.e. a model
 %       interpolating the original according to (W,Sw,Lw) and having
 %       eigenvalues as mirror images of the shifts.
+%
+%       If only one output is specified, this function returns an ssRed
+%       object. Otherwise, the reduced system matrices are returned.
 %
 % Input Arguments:
 %       *Required Input  Arguments:* 
@@ -72,7 +76,16 @@ Er = eye(size(Ar));
 
 %% Preparing output
 if nargout == 1
-    varargout{1} = sss(Ar,Br,Cr,zeros(size(Cr,1),size(Br,2)),Er);
+    %%  Storing additional parameters
+    %Stroring additional information about thr reduction in the object 
+    %containing the reduced model:
+    %   1. Define a new field for the Opts struct and write the information
+    %      that should be stored to this field
+    %   2. Adapt the method "parseParamsStruct" of the class "ssRed" in such a
+    %      way that the new defined field passes the check
+    
+    Opts.originalOrder = size(W,1);
+    varargout{1} = ssRed(Ar,Br,Cr,zeros(size(Cr,1),size(Br,2)),Er,'porkW',Opts);
 else
     varargout{1} = Ar;
     varargout{2} = Br;

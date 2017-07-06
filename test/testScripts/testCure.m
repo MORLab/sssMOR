@@ -12,11 +12,9 @@ classdef testCure < sssTest
                 if ~sys.isSiso, sys = sys(1,1); end
                 
                 % run cure (default options)
-                warning off
-                cure(sys);
-                warning on 
+                warning off, sysr = cure(sys); warning on 
                 
-                % no verification available for this
+                verification(testCase, {}, {}, sysr, sys);
                 end
             end
         end
@@ -38,10 +36,11 @@ classdef testCure < sssTest
             Opts.warn =1;
             Opts.w = w;
 
-            warning off
-            cure(sys,Opts);
-            warning on
-            close all
+            warning off, sysr = cure(sys,Opts); warning on
+            close all, delete('CURE.gif')
+            
+            verification(testCase, {}, {}, sysr, sys);
+            verifyLessThanOrEqual(testCase, sysr.n,Opts.cure.maxIter*2);
         end
         function testCuredIrka(testCase)
             sys = loadSss('rail_1357');
@@ -51,19 +50,25 @@ classdef testCure < sssTest
             % run cured spark with non default values
             Opts.cure = struct('redfun','irka',...
                           'fact','V',...
-                          'init','slm',...
-                          'stopval',20,...
+                          'init','sm',...
+                          'stop','nmax',...
+                          'stopval',8,...
                           'nk', 4);
             warning off
-            cure(sys,Opts);
+            sysr = cure(sys,Opts);
+            verifyEqual(testCase, sysr.n, Opts.cure.stopval,'Stopcrit violated');
+
             
             Opts.cure = struct('redfun','irka',...
                           'fact','W',...
                           'init','slm',...
-                          'stopval',20,...
+                          'stop','nmax',...
+                          'stopval',8,...
                           'nk', 4);
-            cure(sys,Opts);
+            sysr = cure(sys,Opts);
             warning on
+            
+            verifyEqual(testCase, sysr.n, Opts.cure.stopval,'Stopcrit violated');
         end
         function testCuredRk(testCase)
             sys = loadSss('eady');
@@ -73,17 +78,20 @@ classdef testCure < sssTest
             % run cured spark with non default values
             Opts.cure = struct('redfun','rk+pork',...
                           'fact','V',...
-                          'init','slm',...
-                          'stopval',20,...
-                          'nk', 5);
+                          'init','slm');
             cure(sys,Opts);
             Opts.cure = struct('redfun','rk+pork',...
                           'fact','W',...
-                          'init','slm',...
-                          'stopval',20,...
-                          'nk', 5);
-            cure(sys,Opts);
+                          'init','slm');
+            sysr = cure(sys,Opts);
             warning on
+            
+            verification(testCase, {}, {}, sysr, sys);
         end
     end
+end
+
+function [] = verification(testCase, ~, ~, sysr, sys)
+       verifyLessThanOrEqual(testCase, sysr.n, sys.n,'ROM bigger than ROM'); 
+       verifyTrue(testCase,isstable(sysr),'ROM unstable');
 end

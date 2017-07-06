@@ -48,6 +48,41 @@ classdef testSpark < sssTest
 
             verification (testCase, actSolution);
         end
+        function testSparkSysr(testCase)
+            sys = loadSss('beam.mat');
+            disp(sys)
+            
+            s0 = rand(1,2);
+            
+            %Reduction with porkV           
+            Opts.spark.pork = 'V';
+            [sysr,V,Sv,Rv,~] = spark(sys,s0,Opts);
+            sysrPO = porkV(V,Sv,Rv,sys.c);
+            
+            verifyEqual(testCase,sysr.a,sysrPO.a,'AbsTol', 1e-8, ...
+                'Verification with porkV failed');
+            verifyEqual(testCase,sysr.b,sysrPO.b,'AbsTol', 1e-8, ...
+                'Verification with porkV failed');
+            verifyEqual(testCase,sysr.c,sysrPO.c,'AbsTol', 1e-8, ...
+                'Verification with porkV failed');
+            verifyEqual(testCase,sysr.e,sysrPO.e,'AbsTol', 1e-8, ...
+                'Verification with porkV failed');
+            
+            %Reduction with porkW
+            Opts.spark.pork = 'W';
+            [sysr,W,Sw,Rw,~] = spark(sys.',s0,Opts);
+            Sw = Sw';
+            sysrPO = porkW(W,Sw,Rw,sys.b);
+            
+            verifyEqual(testCase,sysr.a,sysrPO.a,'AbsTol', 1e-8, ...
+                'Verification with porkW failed');
+            verifyEqual(testCase,sysr.b,sysrPO.b,'AbsTol', 1e-8, ...
+                'Verification with porkW failed');
+            verifyEqual(testCase,sysr.c,sysrPO.c,'AbsTol', 1e-8, ...
+                'Verification with porkW failed');
+            verifyEqual(testCase,sysr.e,sysrPO.e,'AbsTol', 1e-8, ...
+                'Verification with porkW failed');
+        end
     end
 end
     
