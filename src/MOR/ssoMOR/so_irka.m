@@ -1,4 +1,4 @@
-function [sysr, V, R, s0, kIter] = so_irka(sys,nr,Opts)
+function [sysr, V, Rt, s0, kIter] = so_irka(sys,q,Opts)
 % Iterative-Rational-Krylov-Algorithmus f¨¹r
 % Systeme zweiter Ordnung (SO-IRKA)
 %
@@ -14,9 +14,29 @@ function [sysr, V, R, s0, kIter] = so_irka(sys,nr,Opts)
 % Output    -       V:     Rechte Projektionsmatrix
 %                sysr:     Reduziertes Modell
 %                iter:     Anzahl der Iterationen
+%
+%
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sss">sss</a>, a Sparse State-Space and System Analysis 
+% Toolbox developed at the Chair of Automatic Control in collaboration
+% with the Professur fuer Thermofluiddynamik, Technische Universitaet Muenchen. 
+% For updates and further information please visit <a href="https://www.rt.mw.tum.de/?sss">www.rt.mw.tum.de/?sss</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:sss@rt.mw.tum.de">sss@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sss">sss</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
+% Authors:      Xuwei Wu, Alessandro Castagnotto
+% Email:        <a href="mailto:sss@rt.mw.tum.de">sss@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/?sss">www.rt.mw.tum.de/?sss</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  07 Jul 2017
+% Copyright (c) 2017 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
 
 %%  Define optional execution parameters
-Def.tol     = 1e-5;
+Def.tol     = 1e-6;
 Def.nmax    = 50;
 
 % create the options structure
@@ -27,74 +47,32 @@ else
 end  
 
 %% Initialize
-[M,D,K,B]   = dssdata(sys);
-V_ini       = [speye(nr);sparse(sys.n-nr,nr)];
-sysr        = projectiveMor(sys,V_ini);
-[M_ini,D_ini,K_ini,B_ini] = dssdata(sysr);
+
+kIter       = 0;
+s0          = zeros(1,q);
+Rt          = ones(sys.m,q);
+
+es          = Inf; 
 
 %% Run SO-IRKA iteration
-numfree     = size(B,1);
-kIter       = 0;
-[s0,Rt]     = Neueptv(full(M_ini),full(D_ini),full(K_ini),full(B_ini));
-[~, V, R]   = so_rk(sys, s0, Rt);
-es      = 1; 
-s0_prev = s0;
+
 while kIter <=Opts.nmax && es > Opts.tol
-    M_n = V'*M*V;
-    K_n = V'*K*V;
-    D_n = V'*D*V;
-    B_n = V'*B; 
-    [s0,Rt]         = Neueptv(M_n,D_n,K_n,B_n);
-    [sysr, V, R]    = so_rk(sys, s0, Rt);
+    kIter = kIter+1;
+    
+    % reduction
+    [sysr, V]        = so_rk(sys,s0,Rt);
+
+    % new shifts
+    [X,e] = polyeig(full(sysr.K),full(sysr.D),full(sysr.M));   
+    %make a selection of q out of 2q eigenvalues -> smallest magnitude
+    [~,idx] = sort(e,'ascend');
+    
+    s0new = -e(idx(1:q)).'; 
+    Rt = (X(:,idx(1:q)).'*sysr.B).';
+        
+    es = norm(s0new-s0)/norm(s0); 
+    fprintf(1,'so_irka iteration %03i convergence:\t %4.3e\n',kIter,es)
+    s0 = s0new;
 end
 
-%% ================================================================
-%       AUXILIARY
-%  ================================================================
-
-    function [EP_n,Lb_n] = Neueptv(M_n,D_n,K_n,B_n)
-        n0 = size(M_n,1);  
-        g = sqrt(norm(K_n)/norm(M_n));
-        d = 2/(norm(K_n)+g*norm(D_n));
-        M_sc = g^2*d*M_n;
-        D_sc = g*d*D_n;
-        K_sc = d*K_n;
-        E_2 = [eye(n0) zeros(n0);
-            zeros(n0) M_n]; 
-        E_2sc = [eye(n0) zeros(n0);
-            zeros(n0) M_sc];
-        A_2sc = [zeros(n0) eye(n0);
-            -K_sc -D_sc];
-        [EVr,EW,EVl] = eig(A_2sc,E_2sc,'qz');
-        EW = g*diag(EW);
-        [~,Index]=sort(real(EW),'descend');
-        EW_sort = EW(Index,1);
-        EVr_sort = EVr(:,Index);
-        EVl_sort = EVl(:,Index);
-        EVr_sort = [EVr_sort(1:n0,:);g*EVr_sort(n0+1:2*n0,:)];
-        EVl_sort = [(1/g)*EVl_sort(1:n0,:);d*EVl_sort(n0+1:2*n0,:)];
-        Lambda_E = EVl_sort'*E_2*EVr_sort;
-        EP_n    = - EW_sort(1:nr).';
-        lb = (Lambda_E\(EVl_sort'*([zeros(size(B_n));B_n]))).';
-        Lb_n = lb*[eye(nr);zeros(2*n0-nr,nr)];
-    end
-
-    function V_n = Neuvr(EP_n,Lb_n)
-        V_n = zeros(numfree,nr);
-        i = 1;
-        while i <= nr
-            K_sigma = EP_n(i)^2*M+EP_n(i)*D+K;
-            [L,U,P,Q,R] = lu(K_sigma);
-            V_temp = Q*(U\(L\(P*(R\(B*Lb_n(:,i))))));
-            if ~isreal(EP_n(i))
-                V_n(:,i:i+1) = [real(V_temp) imag(V_temp)];
-                i = i + 2;
-            else
-                V_n(:,i) = V_temp;
-                i = i + 1;
-            end
-%             [V_rn(:,1:i-1),~] = qr(V_rn(:,1:i-1),0);
-        end
-        [V_n,~] = qr(V_n,0);
-    end
 end
