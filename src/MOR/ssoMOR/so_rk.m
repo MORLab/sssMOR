@@ -2,9 +2,9 @@ function [sysr, V, R] = so_rk(sys, s0, Rt, IP, Opts)
 % RK - Model Order Reduction by Rational Krylov
 %
 % Syntax:
-%       sysr        = RK(sys, s0_inp)
-%       sysr        = RK(sys, s0_inp, Rt, Opts)
-%       [sysr, V, R]= RK(sys,s0_inp,...)
+%       sysr        = SO_RK(sys, s0_inp)
+%       sysr        = SO_RK(sys, s0_inp, Rt, Opts)
+%       [sysr, V, R]= SO_RK(sys, s0_inp,...)
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
