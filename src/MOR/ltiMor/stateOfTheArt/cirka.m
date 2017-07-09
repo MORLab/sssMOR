@@ -207,7 +207,9 @@ end
                 s0m = [s0,s0m(1:length(s0m)-length(s0))];
                 [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
             elseif kIter == 2 && any(strcmp('algorithm',fieldnames(Opts))) && strcmp(Opts.algorithm,'matrInterpPcirka') && ~any(strcmp('Vm',fieldnames(Opts)))
-                    s0m = shiftVec([s0;2*ones(1,length(s0))]);
+                    %s0m = shiftVec([s0;2*ones(1,length(s0))]);
+                    p = floor(sysm.n/length(s0));
+                    s0m = shiftVec([s0;p*ones(1,length(s0))]);
                     [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);      
             else
                 % update model
