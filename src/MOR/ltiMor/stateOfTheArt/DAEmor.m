@@ -145,15 +145,15 @@ switch Opts.projSide
     case 'C'
         %partitioning by projection of input matrix B
         sysSP.C = SpecProjFinC(sysSP.C);
-        Bim = sys.B - SpecProjFinB(sys.B);
-        Cim = sys.C - sysSP.C;
+        Bim     = sys.B - SpecProjFinB(sys.B);
+        Cim     = sys.C - sysSP.C;
 end
 
 %% Processing of strictly proper subsystem
 switch Opts.redfun
     case 'cure'
         % run CUREd SPARK
-        [sysSPr,varargout{1}] = cure(sysSP,Opts);
+        [sysSPr,sysSPrAll] = cure(sysSP,Opts);
     case 'irka'
         sysSPr = irka(sysSP,Opts.irka.s0);
 end
@@ -163,7 +163,8 @@ end
 sysIMr = tbrDAEimproper(sys,nu,Bim,Cim,Opts);
 
 %% Obtain the reduced model from summing the subsystems
-sysr = sysSPr + sysIMr;
+sysr            = sysSPr + sysIMr;
+varargout{1}    = cellfun(@(sysSPr) sysSPr + sysIMr, sysSPrAll,'UniformOutput',false);
 
 
 function sysIMr = tbrDAEimproper(sys,nu,Bim,Cim,Opts)
