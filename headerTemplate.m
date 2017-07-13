@@ -1,5 +1,5 @@
 function [output1,output2] = headerTemplate(input1,varargin)
-% HEADERTEMPLATE - sssMOR toolbox header template
+% HEADERTEMPLATE - sssMOR toolbox header template (_only 1 line here!_)
 % 
 % Syntax:
 %		output1				= HEADERTEMPLATE(input1)
