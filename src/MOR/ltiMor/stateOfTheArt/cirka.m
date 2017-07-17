@@ -1,10 +1,13 @@
-function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err, Vm, Wm] = cirka(sys, s0, Opts) 
+function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err, Vm, Wm] = cirka(sys, s0, varargin) 
 % CIRKA - Confined Iterative Rational Krylov Algorithm
 %
 % Syntax:
 %       sysr                    = CIRKA(sys, q)
 %       sysr                    = CIRKA(sys, s0)
 %       sysr                    = CIRKA(sys, s0, Opts)
+%       sysr                    = CIRKA(sys, s0, sysm, Opts)
+%       sysr                    = CIRKA(sys, s0, Vm, Wm, Opts)
+%       sysr                    = CIRKA(sys, s0, sysm, Vm, Wm, Opts)
 %       [sysr, V, W]            = CIRKA(sys, s0,... )
 %       [sysr, V, W, s0, R, L]  = CIRKA(sys, s0,... )
 %       [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err, Vm, Wm] = CIRKA(sys, s0,... )
@@ -32,6 +35,9 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err, Vm, Wm] = cirka(s
 %       -q:             (alternatively) reduced order
 %
 %       *Optional Input Arguments:*
+%       -sysm:          initial model function
+%       -Vm:            initial projection matrix V of the model function
+%       -Wm:            initial projection matrix W of the model function
 %       -Opts:			structure with execution parameters
 %			-.qm0:     initial size of model function;
 %                       [{2*length(s0)} / positive integer]
@@ -140,7 +146,9 @@ if length(s0) == 1 && mod(s0,1) == 0
     s0 = zeros(1,s0);
 end
 
-%% Define execution options
+%% Parse the Opts-struct
+
+% Define execution options
     Def.qm0     = 2*length(s0); %default initial surrogate size
     Def.s0m     = shiftVec([s0;2*ones(1,length(s0))]); %default surrogate shifts
     Def.maxiter = 15;   %maximum number of CIRKA iterations
@@ -158,12 +166,30 @@ end
     Def.irka.stopCrit        = 'combAny';
     Def.irka.lse             = 'full';
     Def.irka.tol             = 1e-6;
-
-    if ~exist('Opts','var') || isempty(Opts)
-        Opts = Def;
-    else
+    
+    % create the options structure
+    if ~isempty(varargin) && isstruct(varargin{end})
+        Opts = varargin{end};
+        varargin = varargin(1:end-1);
         Opts = parseOpts(Opts,Def);
-    end 
+    else
+        Opts = Def;
+    end
+
+    % Save the input arguments
+    if ~isempty(varargin)
+        s0mTot = [];
+    end
+    if length(varargin) == 3
+        sysm  = varargin{1};
+    elseif length(varargin) == 4
+        Vm    = varargin{1};
+        Wm    = varargin{2};
+    elseif length(varargin) == 5
+        sysm  = varargin{1};
+        Vm    = varargin{2};
+        Wm    = varargin{3};
+    end
     
     if Opts.suppressWarn, warning('off','sssMOR:irka:maxiter'); end  
 %% run computations
@@ -177,18 +203,8 @@ end
     stopVal = zeros(Opts.maxiter,nStopVal);
     sysrOld = ss([]);
     sysmOld = ss([]);
-    
-    if any(strcmp('algorithm',fieldnames(Opts)))
-        if (strcmp(Opts.algorithm,'globalPmorPcirka') || strcmp(Opts.algorithm,'matrInterpPcirka')) &&  any(strcmp('Vm',fieldnames(Opts)))
-            sysm = Opts.sysm;
-            s0mTot = [];
-            Vm = Opts.Vm;
-            Wm = Opts.Wm;
-        elseif strcmp(Opts.algorithm,'matrInterpPcirka') && ~any(strcmp('Vm',fieldnames(Opts)))
-            sysm = Opts.sysm;
-            s0mTot = [];
-        end
-    else
+   
+    if ~exist('sysm','var')
         %   Generate the model function
         s0m = Opts.s0m;    [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
     end
@@ -206,7 +222,7 @@ end
                 %reset the model function after the first step
                 s0m = [s0,s0m(1:length(s0m)-length(s0))];
                 [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
-            elseif kIter == 2 && any(strcmp('algorithm',fieldnames(Opts))) && strcmp(Opts.algorithm,'matrInterpPcirka') && ~any(strcmp('Vm',fieldnames(Opts)))
+            elseif kIter == 2 && length(varargin) == 3
                     if strcmp(Opts.startshiftsimple,'2times')
                         s0m = shiftVec([s0;2*ones(1,length(s0))]);
                     else
