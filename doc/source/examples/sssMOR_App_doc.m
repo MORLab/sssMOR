@@ -89,7 +89,7 @@
 %%
 % <html>
 %   <hr>
-%   <p class="copy">&copy; 2016 RT Technische Universit&auml;t M&uuml;nchen
+%   <p class="copy">&copy; 2015-2017 RT Technische Universit&auml;t M&uuml;nchen
 %        <tt class="minicdot">&#149;</tt>
 %        <a href="https://www.rt.mw.tum.de/?sssMOR">Website</a>
 %        <tt class="minicdot">&#149;</tt>
