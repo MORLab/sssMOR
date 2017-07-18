@@ -180,12 +180,12 @@ end
     if ~isempty(varargin)
         s0mTot = [];
     end
-    if length(varargin) == 3
+    if length(varargin) == 1
         sysm  = varargin{1};
-    elseif length(varargin) == 4
+    elseif length(varargin) == 2
         Vm    = varargin{1};
         Wm    = varargin{2};
-    elseif length(varargin) == 5
+    elseif length(varargin) == 3
         sysm  = varargin{1};
         Vm    = varargin{2};
         Wm    = varargin{3};
@@ -222,7 +222,7 @@ end
                 %reset the model function after the first step
                 s0m = [s0,s0m(1:length(s0m)-length(s0))];
                 [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
-            elseif kIter == 2 && length(varargin) == 3
+            elseif kIter == 2 && length(varargin) == 1
                     if strcmp(Opts.startshiftsimple,'2times')
                         s0m = shiftVec([s0;2*ones(1,length(s0))]);
                     else
