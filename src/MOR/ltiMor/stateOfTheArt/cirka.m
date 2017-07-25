@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err, Vm, Wm] = cirka(sys, s0, varargin) 
+function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err, Vm, Wm, test] = cirka(sys, s0, varargin) 
 % CIRKA - Confined Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -167,6 +167,8 @@ end
     Def.irka.lse             = 'full';
     Def.irka.tol             = 1e-6;
     
+    Def.test.recycle.method  = 0;
+    
     % create the options structure
     if ~isempty(varargin) && isstruct(varargin{end})
         Opts = varargin{end};
@@ -234,6 +236,10 @@ end
                 % update model
                 [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0,s0mTot,Vm,Wm,Opts);
             end
+        end
+        
+        if kIter == 2 && Opts.test.recycle.method 
+            test.sysm = sysm;
         end
         
         % reduction of new model with new starting shifts
