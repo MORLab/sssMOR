@@ -240,8 +240,6 @@ end
         
         if kIter == 2 && Opts.test.recycle.method 
             test.sysm = sysm;
-        else 
-            test = {};
         end
         
         % reduction of new model with new starting shifts
@@ -310,7 +308,10 @@ end
     
     if Opts.suppressWarn,warning('on','sssMOR:irka:maxiter'); end
 
-     
+    if ~exist('test','var') 
+        test = {};
+    end
+    
 % ============== AUXILIARY ===============================
     function [stop,stopVal] = verifyStopCrit(varargin)
         % compute the stopping criterion for CIRKA
