@@ -537,7 +537,7 @@ classdef ssRed < ss
         function isSimo = get.isSimo(sys); isSimo=(sys.p>1)&&(sys.m==1); end
         function isMiso = get.isMiso(sys); isMiso=(sys.p==1)&&(sys.m>1); end
         function isMimo = get.isMimo(sys); isMimo=(sys.p>1)||(sys.m>1); end
-        function isBig = get.isBig(sys); isBig=(sys.n>5000);end
+        function isBig  = get.isBig(sys); isBig=(sys.n>5000);end
         
         function isDae = get.isDae(sys)
             if condest(sys.(sys.e_))==Inf
@@ -851,42 +851,7 @@ classdef ssRed < ss
         function  varargout = lyapchol(varargin)
             [varargout{1:nargout}] = sssFunc.lyapchol(varargin{:});
         end
-        
-        function varargout = stabsep(varargin)
-            [varargout{1:nargout}] = stabsep@ss(varargin{:});
-            % add an entry to the reduction history if the model order was
-            % changed
-            if nargout >= 1
-                if varargout{1}.n < varargin{1}.n
-                    sys = varargout{1};
-                    params.originalOrder = varargin{1}.n;
-                    params.reducedOrder = sys.n;
-                    varargout{1} = ssRed(sys.(sys.a_),sys.(sys.b_), ...
-                                         sys.(sys.c_),sys.(sys.d_), ...
-                                         sys.(sys.e_),'stabsep', ...
-                                         params, varargin{1});
-                    
-                    % make robust to computations with sys.e_
-                    if isempty(varargout{1}.(sys.e_))
-                        varargout{1}.(sys.e_) = eye(sys.n);
-                    end
-                        
-                    if nargout >= 2
-                        sys = varargout{2};
-                        params.originalOrder = varargin{1}.n;
-                        params.reducedOrder = sys.n;
-                        varargout{2} = ssRed(sys.(sys.a_),sys.(sys.b_), ...
-                                             sys.(sys.c_),sys.(sys.d_), ...
-                                             sys.(sys.e_),'stabsep', ...
-                                             params, varargin{1});
-                    end
-                    % make robust to computations with sys.e_
-                    if isempty(varargout{1}.(sys.e_))
-                        varargout{1}.(sys.e_) = eye(sys.n);
-                    end
-                end
-            end
-        end
+               
     end
     
     %%Private and static helper methods
