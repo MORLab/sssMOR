@@ -336,11 +336,10 @@ classdef ssRed < ss
 % Examples:
 %       This code creates an instance of the ssRed-class
 %
-%> A = rand(10);
-%> B = rand(10,1);
-%> C = rand(1,10);
+%> A = rand(10); B = rand(10,1); C = rand(1,10);
 %> params.originalOrder = 20;
 %> sysr = ssRed(A,B,C,'porkV',params);
+%> disp(sysr)
 %
 % See Also: 
 %        ss, dss, sss

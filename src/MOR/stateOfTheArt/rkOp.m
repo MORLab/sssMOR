@@ -40,8 +40,8 @@ function varargout = rkOp(varargin)
 %       This code computes the optimal expansion point and a reduced system
 %       of order q=10 for the benchmark model 'building'.
 %
-%> sys = loadSss('building')
-%> [sysr,V,W,sOpt] = rkOp(sys,10);
+%> sys              = sss('building');
+%> [sysr,V,W,sOpt]  = rkOp(sys,20);
 %> bode(sys,'-',sysr,'--r');
 %
 % See Also: 

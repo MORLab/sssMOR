@@ -27,10 +27,13 @@ function setdiffVec = setdiffVec(v1,v2)
 %
 % Example:
 %
-%> v1 = [38, 0.43-13.44i, 0.43+13.44i, 0.38-5.21i,0.38+5.21i]';
-%> v2 = [0.38-5.21i, 0.38+5.21i, 0.43-13.44i, 0.43+13.44i, 38]';
-%> diff1 = v1 - v2 %standard difference in MATLAB
-%> diff2 = setdiffVec(v1,v2)
+%> v1       = [38, 0.43-13.44i, 0.43+13.44i, 0.38-5.21i,0.38+5.21i]';
+%> v2       = [0.38-5.21i, 0.38+5.21i, 0.43-13.44i, 0.43+13.44i, 38]';
+%> % standard difference in MATLAB
+%> diff1    = v1 - v2 
+%> % difference using setdiffVec
+%> diff2    = setdiffVec(v1,v2)
+%> % comparison
 %> norm(diff1),norm(diff2)
 %
 % See Also:

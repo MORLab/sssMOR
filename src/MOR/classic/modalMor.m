@@ -56,8 +56,14 @@ function [sysr, V, W, D] = modalMor(sys, q, Opts)
 %		reduced model that preserves the 10 eigenvalues with smallest
 %		magnitude
 %
-%> sys = loadSss('CDplayer');
+%> sys  = sss('CDplayer');
 %> sysr = modalMor(sys,10);
+%> disp(sysr)
+%
+%       To verify the approximation quality, one can verify that the first
+%       eigenvalues with smallest magnitude or full and reduced model
+%       coincide:
+%
 %> norm(cplxpair(eig(sysr))-cplxpair(eigs(sys,10,'sm')))
 %
 % See Also: 

@@ -65,12 +65,15 @@ function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj,
 %
 % Examples:
 %       This code computes an H2-optimal approximation of order 8 to
-%       the benchmark model 'building'. One can use the function isH2opt to
-%       verify if the necessary conditions for optimality are satisfied.
+%       the benchmark model 'building'.
 %
-%> sys = loadSss('building')
-%> [sysr, ~, ~, s0opt] = irka(sys, -eigs(sys,8).');
+%> sys                  = sss('building')
+%> [sysr, ~, ~, s0opt]  = irka(sys, -eigs(sys,8).');
 %> bode(sys,'-',sysr,'--r');
+%
+%       One can use the function |isH2opt| to verify if the necessary 
+%       conditions for optimality are satisfied.
+%
 %> isH2opt(sys, sysr, s0opt)
 %
 % See Also: 

@@ -68,8 +68,8 @@ function [sysr, V, W, s0, Rt, B_, Ssylv, Rsylv, kIter, s0Traj, RtTraj, flag] = i
 %       This code computes an H2-pseudo-optimal approximation of order 8 to
 %       the benchmark model 'fom'. 
 %
-%> sys = loadSss('fom')
-%> [sysr, ~, ~, s0opt] = isrk(sys, -eigs(sys,8).');
+%> sys                  = sss('building');
+%> [sysr, ~, ~, s0opt]  = isrk(sys, -eigs(sys,8).');
 %> bode(sys,'-',sysr,'--r');
 %
 % See Also: 

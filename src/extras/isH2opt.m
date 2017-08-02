@@ -43,8 +43,8 @@ function isH2opt = isH2opt(sys,sysr,s0,Opts)
 %       the benchmark model 'building' and uses the function isH2opt to
 %       verify if the necessary conditions for optimality are satisfied.
 %
-%> sys = loadSss('building')
-%> [sysr, ~, ~, s0opt] = irka(sys, -eigs(sys,8).');
+%> sys                  = sss('building');
+%> [sysr, ~, ~, s0opt]  = irka(sys, -eigs(sys,8).');
 %> bode(sys,'-',sysr,'--r');
 %> isH2opt(sys, sysr, s0opt)
 %

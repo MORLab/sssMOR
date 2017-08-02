@@ -37,8 +37,8 @@ function [sysr, V, W, sOpt] = rkIcop(sys, s0, q, varargin)
 %       an initial starting point s0=1 and computes a reduced system of 
 %       order q=10 for the benchmark model 'building'.
 %
-%> sys = loadSss('building')
-%> [sysr,V,W,sOpt] = rkIcop(sys,1,10);
+%> sys              = sss('building');
+%> [sysr,V,W,sOpt]  = rkIcop(sys,1,20);
 %> bode(sys,'-',sysr,'--r');
 %
 % See Also: 
