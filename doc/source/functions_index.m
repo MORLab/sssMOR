@@ -4,6 +4,8 @@
 %% Reduced Order Models (ssRed)
 %
 % * <.\ssRedhelp.html |ssRed|>  --  Reduced state-space LTI system (ssRed) class
+% * <.\l2normhelp.html |l2norm|>  --  L2-norm of a dynamical system (ssRed)
+% * <.\stabsephelp.html |stabsep|>  --  Stable-unstable decomposition
 
 %% LTI MOR Classic
 %
@@ -36,6 +38,7 @@
 % * <.\momentshelp.html |moments|>  --  Returns the moments or Markov parameters of an LTI system
 % * <.\setdiffVechelp.html |setdiffVec|>  --  Computes the difference between two unsorted vectors
 % * <.\shiftVechelp.html |shiftVec|>  --  convert shift definition to single row notation
+% * <.\cplxpairAllhelp.html |cplxpairAll|>  --  Sort arrays of complex numbers into complex conjugate pairs
 
 %% Demos
 %
