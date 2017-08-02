@@ -45,6 +45,10 @@ function [output1,output2] = headerTemplate(input1,varargin)
 %       This generates a <https://www.rt.mw.tum.de URL>
 %
 %       This generates inline $LaTeX: x^2+e^{\pi i}$
+%
+%       For LaTeX in a separated line, use double dollar signs:
+%
+%       $$x^2+e^{\pi i}$$
 % 
 %       To insert a bulleted or numbered list, leave an empty line before
 %       the list:
