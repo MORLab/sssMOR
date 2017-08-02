@@ -14,7 +14,7 @@ function [sysr, V, W, sOpt] = rkIcop(sys, s0, q, varargin)
 % Input Arguments:  
 %       *Required Input Arguments:*
 %       -sys:			full oder model (ss or sss)
-%       -s0:            inital expansion point (scalar)
+%       -s0:            inital expansion point (scalar or sys.p x sys.m matrix)
 %       -q:             reduction order
 %       *Optional Input Arguments:*
 %       -Opts:			structure with execution parameters
@@ -92,8 +92,18 @@ else
     Opts = parseOpts(Opts,Def);
 end
 
-sOpt=s0*ones(sys.p,sys.m);
+% initiate optimal shift matrix
+if all(size(s0) == [sys.p,sys.m])
+    sOpt = s0;
+elseif isscalar(s0)
+    % only one frequency passed; use it for all input/output channels
+    sOpt=s0*ones(sys.p,sys.m);
+else
+    % wrong size passed
+    error('sssMOR:rkIcop:wrongShift','The size of s0 in rkIcop is incompatible with the system dimension. Type "help rkIcop" for more information');
+end
 
+% check specified reduced order
 if q<10
     warning('The results may be unprecise for small q.');
 end
@@ -103,14 +113,16 @@ for i=1:Opts.maxIter
     sOptOld=sOpt;
     
     % calculate reduced system
+    s0 = [sOpt(:).';q*ones(1,sys.m*sys.p)];
+    
     if sys.isSiso
         switch(Opts.rk)
             case 'twoSided'
-                [sysr, V, W] = rk(sys, [sOpt;q], [sOpt;q]);
+                [sysr, V, W] = rk(sys, s0, s0);
             case 'input'
-                [sysr, V, W] = rk(sys, [sOpt;q]);
+                [sysr, V, W] = rk(sys, s0);
             case 'output'
-                [sysr, V, W] = rk(sys, [], [sOpt;q]);
+                [sysr, V, W] = rk(sys, [], s0);
             otherwise
                 error('Wrong Opts.');
         end
@@ -134,7 +146,7 @@ for i=1:Opts.maxIter
                     Lt=[Lt,tempLt];
                 end
                 
-                [sysr,V,W] = rk(sys,[sOpt(:).';ones(1,sys.m*sys.p)*q],[sOpt(:).';ones(1,sys.m*sys.p)*q],Rt,Lt);
+                [sysr,V,W] = rk(sys,s0,s0,Rt,Lt);
             case 'input'
                 sOpt=sOpt.';
                 Rt=[];
@@ -143,7 +155,7 @@ for i=1:Opts.maxIter
                    Rt=blkdiag(Rt,ones(1,q*sys.p));
                 end
                 
-                [sysr,V,W] = rk(sys,[sOpt(:).';ones(1,sys.m*sys.p)*q],Rt);
+                [sysr,V,W] = rk(sys,s0,Rt);
             case 'output'
                 sOpt=sOpt.';
                 tempLt=[];
@@ -156,7 +168,7 @@ for i=1:Opts.maxIter
                 for j=1:sys.m
                     Lt=[Lt,tempLt];
                 end
-                [sysr,V,W] = rk(sys,[],[sOpt(:).';ones(1,sys.m*sys.p)*q],[],Lt);
+                [sysr,V,W] = rk(sys,[],s0,[],Lt);
             otherwise
                 error('Wrong Opts.');
         end
