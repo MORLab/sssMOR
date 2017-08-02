@@ -534,7 +534,7 @@ classdef testSsRed < sssTest
         end
         
         function testConversionToSsRed(testCase)
-            tol = 1e-10;
+            tol = 1e-6;
             
             % sss
             sys     = sss('building');
@@ -544,11 +544,11 @@ classdef testSsRed < sssTest
             verifyLessThanOrEqual(testCase,norm(sys-sys2),tol);
             
             % ss
-            sys     = rss(ceil(100*rand));
+            sys     = stabsep(rss(ceil(100*rand)));
             sys2    = ssRed(sys); 
             
             verifyClass(testCase,sys2,'ssRed')
-            verifyLessThanOrEqual(testCase,norm(sys-sys2),'AbsTol',tol);
+            verifyLessThanOrEqual(testCase,norm(sys-sys2),tol);
         end
       
         
