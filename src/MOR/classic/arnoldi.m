@@ -142,18 +142,18 @@ function [V, Sv, Rv, W, Sw, Lw] = arnoldi(E,A,B,varargin)
 %------------------------------------------------------------------
 
 %%  Define execution parameters
-if ~isempty(varargin) && isstruct(varargin{end});
+if ~isempty(varargin) && isstruct(varargin{end})
     %Options defined
     Opts = varargin{end};
     varargin = varargin(1:end-1);
 end
 
-Def.real = true; %keep the projection matrices real?
-Def.orth = '2mgs'; %orthogonalization after every direction {0,'dgks','mgs','2mgs'}
-Def.reorth = 0; %reorthogonaliation at the end {0, 'mgs', 'qr'}
-Def.lse = 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess'}
+Def.real    = true; %keep the projection matrices real?
+Def.orth    = '2mgs'; %orthogonalization after every direction {0,'dgks','mgs','2mgs'}
+Def.reorth  = 0; %reorthogonaliation at the end {0, 'mgs', 'qr'}
+Def.lse 	= 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess'}
 Def.dgksTol = 1e-12; %orthogonality tolerance: norm(V'*V-I,'fro')<tol
-Def.krylov = 'standardKrylov'; %standard or cascaded krylov basis (only for siso) {'standardKrylov','cascadedKrylov'}
+Def.krylov  = 'standardKrylov'; %standard or cascaded krylov basis (only for siso) {'standardKrylov','cascadedKrylov'}
         
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)

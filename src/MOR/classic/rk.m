@@ -133,7 +133,7 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 Def.real = true; %keep the projection matrices real?       
 
 % use hess if sys is ssRed object
-if isa(sys,'ssRed'), 
+if isa(sys,'ssRed')
     Def.lse='hess'; 
     if isempty(sys.E), sys.E = eye(size(sys.A)); end %ssRed robust compatibility
 else
