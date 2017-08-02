@@ -79,8 +79,8 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %       This code computes an H2-optimal approximation of order 10 to
 %       the benchmark model 'building' using Confined IRKA. 
 %
-%> sys = loadSss('building'); s0 = zeros(1,10);
-%> [sysr, ~, ~, s0opt, kIrka, sysm, relH2err] = cirka(sys, s0);
+%> sys = sss('building'); s0 = zeros(1,10);
+%> [sysr, ~, ~, s0opt, ~, ~, kIrka, sysm, ~, relH2err] = cirka(sys, s0);
 %> bode(sys,'-',sysm,'--r',sysr,'--g'); legend('sys','sysm','sysr')
 %
 %       //Note: The computational advantage of the model function framework
