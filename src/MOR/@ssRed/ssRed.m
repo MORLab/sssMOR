@@ -865,9 +865,45 @@ classdef ssRed < ss
             [varargout{1:nargout}] = sssFunc.lyapchol(varargin{:});
         end
                
+        function sobj = saveobj(obj)
+        % override save-method. This funciton is called everytime a 
+        % ssRed-object is saved. The function stores the properties of the 
+        % ssRed-object in a struct 
+        
+            sobj.A = obj.(obj.a_);
+            sobj.B = obj.(obj.b_);
+            sobj.C = obj.(obj.c_);
+            sobj.D = obj.(obj.d_);
+            sobj.E = obj.(obj.e_);
+            sobj.redParam = obj.redParam; 
+        end     
     end
     
-    %%Private and static helper methods
+    
+    %% Static class methods
+    methods (Static)
+        
+        function obj = loadobj(sobj)
+        % override load-method. This funciton is called everytime a 
+        % ssRed-object is loaded. It is important that this funciton is 
+        % defined as a static class method. The function creates a
+        % ssRed-object from the stored class properties. 
+        
+            if isempty(sobj.redParam)
+                obj = ssRed(sobj.A,sobj.B,sobj.C,sobj.D,sobj.E);
+            elseif length(sobj.redParam) == 1
+                obj = ssRed(sobj.A,sobj.B,sobj.C,sobj.D,sobj.E, ...
+                            sobj.redParam.method,sobj.redParam.params);
+            else
+                obj = ssRed(sobj.A,sobj.B,sobj.C,sobj.D,sobj.E, ...
+                            sobj.redParam(end).method, ...
+                            sobj.redParam(end).params, sobj.redParam(1:end-1));
+            end
+        end
+    end
+    
+    
+    %% Private and static helper methods
     methods(Hidden, Access = private, Static)
         
         function checkParamsList(paramsList)
