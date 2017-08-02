@@ -2,9 +2,9 @@ function isH2opt = isH2opt(sys,sysr,s0,Opts)
 % ISH2OPT - Evaluate Meier-Luenberger necessary conditions for H2-optimality
 %
 % Syntax:
-%       ISH2OPT(sys,sysr,s0)
-%       ISH2OPT(sys,sysr,s0,Opts)
-%       isH2opt = ISH2OPT(sys,sysr,s0)
+%                   ISH2OPT(sys,sysr,s0)
+%                   ISH2OPT(sys,sysr,s0,Opts)
+%       isH2opt =   ISH2OPT(sys,sysr,s0)
 %
 % Description:
 %       This function evaluates the Maier-Luenberger conditions for
@@ -46,7 +46,7 @@ function isH2opt = isH2opt(sys,sysr,s0,Opts)
 %> sys                  = sss('building');
 %> [sysr, ~, ~, s0opt]  = irka(sys, -eigs(sys,8).');
 %> bode(sys,'-',sysr,'--r');
-%> isH2opt(sys, sysr, s0opt)
+%> isH2opt(sys, sysr, s0opt);
 %
 % See Also: 
 %		moments, irka, spark, eig

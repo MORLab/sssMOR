@@ -74,7 +74,7 @@ function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj,
 %       One can use the function |isH2opt| to verify if the necessary 
 %       conditions for optimality are satisfied.
 %
-%> isH2opt(sys, sysr, s0opt)
+%> isH2opt(sys, sysr, s0opt);
 %
 % See Also: 
 %       arnoldi, rk, isH2opt

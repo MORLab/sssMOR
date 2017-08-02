@@ -33,7 +33,8 @@ function setdiffVec = setdiffVec(v1,v2)
 %> diff1    = v1 - v2 
 %> % difference using setdiffVec
 %> diff2    = setdiffVec(v1,v2)
-%> % comparison
+%
+%       A comparison between the two difference vectors reveals:s
 %> norm(diff1),norm(diff2)
 %
 % See Also:
