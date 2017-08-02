@@ -5,13 +5,16 @@ function n = l2norm(sys)
 %		n                   = L2NORM(sys)
 % 
 % Description:
-%       This function computes the L2 norm of a dynamical system defined as
-%       $|G|_{\mathcal{L}_2} := \sqrt(\frac{1}{2\pi}\int_{-\infty}^\infty)\text{tr}\left(G^H(j\omega)G(j\omega)\right)d\omega$
+%       This function computes the $\mathcal{L}_2$ norm of a dynamical system defined as
+% 
+%       $$\|G\|_{\mathcal{L}_2}=\sqrt{\frac{1}{2\pi}\int\limits_{-\infty}^\infty\mathrm{tr}\left[G^H(j\omega)G(j\omega)\right]\mathrm{d}\omega}.$$
 %
 %       For unstable models |sys|, the $\mathcal{H}_2$ norm is undefined.
 %       However, if the model has no poles on the imaginary axis, then the
-%       L2 norm can be computed. For stable models |sys|, the
-%       $\mathcal{H}_2$ and $\mathcal{L}_2$ norms coincide.
+%       $\mathcal{L}_2$ norm can be computed. 
+%
+%       For stable models |sys|, the $\mathcal{H}_2$ and $\mathcal{L}_2$ norms 
+%       coincide.
 %
 %       The algorithm is based on [2] and computes $\mathcal{H}_2$ norms of
 %       the stable and (time reverted) antistable subsystems.
