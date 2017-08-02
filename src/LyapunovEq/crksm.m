@@ -1,6 +1,5 @@
 function [S,R,output_data] = crksm(varargin)
-% My_rksm - Solve Laypunov equations with a cummulative rational Krylov
-% subspace method
+% CRKSM - Solve Laypunov equations with a cummulative rational Krylov subspace method
 % Info: Funktionen fuer neue shifts muessen ab Zeile 470 unter der 'mess'-Option eingebunden werden 
 %
 %              APE' + EPA' + BB' = 0 (I)
