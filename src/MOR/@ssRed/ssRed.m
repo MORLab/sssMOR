@@ -889,6 +889,23 @@ classdef ssRed < ss
         % defined as a static class method. The function creates a
         % ssRed-object from the stored class properties. 
         
+            % backward compatibitity
+            if ~isfield(sobj,'A')
+               temp = sobj.Data_;
+               if isfield(temp,'A')
+                  % in old matlab versions, the capital letters are used
+                  % for the dynamic matrices
+                  sobj.A = temp.A; sobj.B = temp.B; sobj.C = temp.C;
+                  sobj.D = temp.D; sobj.E = temp.E;
+               else
+                  % in newer matlab versions, the capital letters are used
+                  % for the dynamic matrices
+                  sobj.A = temp.a; sobj.B = temp.b; sobj.C = temp.c;
+                  sobj.D = temp.d; sobj.E = temp.e;
+               end
+            end
+        
+            % construct ssRed-object from stored data
             if isempty(sobj.redParam)
                 obj = ssRed(sobj.A,sobj.B,sobj.C,sobj.D,sobj.E);
             elseif length(sobj.redParam) == 1
