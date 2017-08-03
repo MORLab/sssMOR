@@ -59,8 +59,8 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err, Vm, Wm, test] = c
 %                       [{'new'},'all']
 %           -.clearInit: reset the model function after first iteration;
 %                       [{true}, false]
-%           -.stabsep:  make model function stable by removing ustable modes
-%                       [{true} / false]
+%           -.stableModelFct: return only the stable part of sysm;
+%                       [{true}, false]
 %           -.irka.stopcrit: stopping criterion used in irka;
 %                       [{'combAny'} / 's0' / 'sysr' /'combAll']
 %           -.irka.lse:  choose type of lse solver;
@@ -160,7 +160,7 @@ end
     Def.updateModel = 'new'; %shifts used for the model function update
     Def.modelTol = 1e-2; %shift tolerance for model function
     Def.clearInit = 0; %reset the model fct after initialization?
-    Def.stabsep = 'true'; %make model function stable by removing ustable modes
+    Def.stableModelFct = true; % make sysm stable
     
     Def.irka.suppressverbose = true;
     Def.irka.stopCrit        = 'combAny';
@@ -274,8 +274,13 @@ end
     
     %%  Terminate execution  
     % make model function stable by removing ustable modes
-    if Opts.stabsep
-        if ~isstable(sysm), sysm = stabsep(sysm); end
+    if ~isstable(sysm) && Opts.stableModelFct
+        [sysm, ~, Vs, Ws]   = stabsep(sysm);
+        Vm_stable           = Vm*Vs;            % auxiliary variable for output Vm and Wm
+        Wm_stable           = Wm*Ws;            % auxiliary variable for output Vm and Wm
+    else
+        Vm_stable = [];         % auxiliary variable for output Vm and Wm
+        Wm_stable = [];         % auxiliary variable for output Vm and Wm
     end
     
     % prepare outputs
@@ -283,6 +288,10 @@ end
     kIrka(kIter+1:end) = []; %remove preallocation
     V = Vm*Virka;
     W = Wm*Wirka;
+    if ~isempty(Vm_stable)
+        Vm = Vm_stable;
+        Wm = Wm_stable;
+    end
     
     %%  Storing additional parameters
     %Stroring additional information about thr reduction in the object 
