@@ -8,13 +8,19 @@ classdef ssRed < ss
 %       sysr = ssRed(A,B,C,D,E,method,params)
 %       sysr = ssRed(A,B,C,D,E,method,params,sys)
 %       sysr = ssRed(A,B,C,D,E,method,params,paramsList)
+%       sysr = ssRed(sys)
 %       
 %
 % Description:
 %       This class is derived from the ss-class. It is used to represent
 %       models which are the result of reducing the order of large models
 %       with specific algorithms. ssRed objects have all attributes that ss
-%       objects normally possess
+%       objects normally possess.
+%
+%       ssRed either defines a new dynamic system object in terms of the
+%       system matrices passed, or converts another object |sys| of class
+%       |sss| or |ss| to ssRed. This might be useful to use additional
+%       functionality of the ssRed class (stabsep, l2norm, ...).
 %
 % Input Arguments:
 %       -A: system matrix
@@ -24,7 +30,8 @@ classdef ssRed < ss
 %       -E: descriptor matrix
 %       -method: name of the used reduction algorithm;
 %                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'stabsep' / 'rkOp' / 'rkIcop' / 'modelFct' / 'cirka' / 'userDefined']
-%       -sys:   original state space system before reduction (class sss or ssRed)
+%       -sys:   either the original state space system before reduction (class sss or ssRed)
+%               or model to be converted to ssRed class.
 %       -paramsList:    Structure array. Each entry represents one 
 %                       reduction (without the current reduction).
 %           -.method:           name of the applied reduction algorithm (see above)                               
@@ -356,7 +363,7 @@ classdef ssRed < ss
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  20 Jan 2017
+% Last Change:  02 Aug 2017
 % Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
@@ -388,7 +395,7 @@ classdef ssRed < ss
         function obj = ssRed(varargin)
             
             % parse input arguments
-            if nargin~=1 && ~isempty(varargin{1})   % not an empty model            
+            if nargin > 1      %system matrices passed     
                 if nargin < 3 || nargin > 8
                     error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
                 end
@@ -432,9 +439,16 @@ classdef ssRed < ss
                             paramsList = varargin{iTemp+2};
                         end
                 end
-            else
+            elseif isempty(varargin{1})   %empty model
                % ensures that syntax "ssRed([])" gives back an empty model
                A=[];B=[];C=[];D=[];E=[];name=[];
+            else
+                if isa(varargin{1},'sss') || isa(varargin{1},'ss')
+                    [A,B,C,D,E] = dssdata(varargin{1});
+                    name = varargin{1}.Name;
+                else
+                    error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
+                end
             end
             
             % call the constructor of the superclass ss
@@ -537,7 +551,7 @@ classdef ssRed < ss
         function isSimo = get.isSimo(sys); isSimo=(sys.p>1)&&(sys.m==1); end
         function isMiso = get.isMiso(sys); isMiso=(sys.p==1)&&(sys.m>1); end
         function isMimo = get.isMimo(sys); isMimo=(sys.p>1)||(sys.m>1); end
-        function isBig = get.isBig(sys); isBig=(sys.n>5000);end
+        function isBig  = get.isBig(sys); isBig=(sys.n>5000);end
         
         function isDae = get.isDae(sys)
             if condest(sys.(sys.e_))==Inf
@@ -851,42 +865,7 @@ classdef ssRed < ss
         function  varargout = lyapchol(varargin)
             [varargout{1:nargout}] = sssFunc.lyapchol(varargin{:});
         end
-        
-        function varargout = stabsep(varargin)
-            [varargout{1:nargout}] = stabsep@ss(varargin{:});
-            % add an entry to the reduction history if the model order was
-            % changed
-            if nargout >= 1
-                if varargout{1}.n < varargin{1}.n
-                    sys = varargout{1};
-                    params.originalOrder = varargin{1}.n;
-                    params.reducedOrder = sys.n;
-                    varargout{1} = ssRed(sys.(sys.a_),sys.(sys.b_), ...
-                                         sys.(sys.c_),sys.(sys.d_), ...
-                                         sys.(sys.e_),'stabsep', ...
-                                         params, varargin{1});
-                    
-                    % make robust to computations with sys.e_
-                    if isempty(varargout{1}.(sys.e_))
-                        varargout{1}.(sys.e_) = eye(sys.n);
-                    end
-                        
-                    if nargout >= 2
-                        sys = varargout{2};
-                        params.originalOrder = varargin{1}.n;
-                        params.reducedOrder = sys.n;
-                        varargout{2} = ssRed(sys.(sys.a_),sys.(sys.b_), ...
-                                             sys.(sys.c_),sys.(sys.d_), ...
-                                             sys.(sys.e_),'stabsep', ...
-                                             params, varargin{1});
-                    end
-                    % make robust to computations with sys.e_
-                    if isempty(varargout{1}.(sys.e_))
-                        varargout{1}.(sys.e_) = eye(sys.n);
-                    end
-                end
-            end
-        end
+               
     end
     
     %%Private and static helper methods
