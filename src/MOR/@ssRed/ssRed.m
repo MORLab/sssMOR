@@ -389,6 +389,7 @@ classdef ssRed < ss
     properties(Hidden,Access = private)
         a_,b_,c_,d_,e_
     end
+
     
     methods
         function obj = ssRed(varargin)
@@ -870,12 +871,22 @@ classdef ssRed < ss
         % ssRed-object is saved. The function stores the properties of the 
         % ssRed-object in a struct 
         
+            % store basic class properties
             sobj.A = obj.(obj.a_);
             sobj.B = obj.(obj.b_);
             sobj.C = obj.(obj.c_);
             sobj.D = obj.(obj.d_);
             sobj.E = obj.(obj.e_);
             sobj.redParam = obj.redParam; 
+            
+            % store additional class properties
+            propertyList = {'issymmetric','x0','HankelSingularValues', ...
+                            'TBal','TBalInv','ConGram','ConGramChol', ...
+                            'ObsGram','ObsGramChol','residues'};
+            
+            for i = 1:length(propertyList)
+               sobj.(propertyList{i}) = obj.(propertyList{i}); 
+            end
         end     
     end
     
@@ -916,6 +927,18 @@ classdef ssRed < ss
                             sobj.redParam(end).method, ...
                             sobj.redParam(end).params, sobj.redParam(1:end-1));
             end
+            
+            % load additional class properties
+            propertyList = {'issymmetric','x0','HankelSingularValues', ...
+                            'TBal','TBalInv','ConGram','ConGramChol', ...
+                            'ObsGram','ObsGramChol','residues'};
+            
+            for i = 1:length(propertyList)
+                if isfield(sobj,propertyList{i})
+                    obj.(propertyList{i}) = sobj.(propertyList{i});
+                end
+            end
+            
         end
     end
     
