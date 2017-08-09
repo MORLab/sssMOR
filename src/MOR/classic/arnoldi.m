@@ -262,6 +262,10 @@ if hermite
     W   = zeros(length(B),q); 
     Lw  = zeros(size(C,1),q);
     Sw  = zeros(q);
+else %initialize outputs
+    W   = [];
+    Lw  = [];
+    Sw  = []; 
 end
 
 % Compute hess

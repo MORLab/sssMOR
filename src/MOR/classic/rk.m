@@ -239,7 +239,7 @@ if ~isempty(s0_inp) && ~isempty(s0_out)
     end
 end
 %%  Define execution variables
-if ~exist('IP', 'var'), 
+if ~exist('IP', 'var')
     IP=@(x,y) (x.'*y);
 end
 %%  Computation
