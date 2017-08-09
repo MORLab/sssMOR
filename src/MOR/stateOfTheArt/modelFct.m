@@ -1,4 +1,4 @@
-function [sysm, s0mTot, V, W,nLU] = modelFct(sys,s0m,s0mTot,V,W,Opts)
+function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,Rtm,Ltm,s0mTot,RtmTot,LtmTot,V,W,Opts)
 % MODELFCT - computes or updates the model function of an sss object
 %
 % Syntax:
@@ -78,11 +78,9 @@ function [sysm, s0mTot, V, W,nLU] = modelFct(sys,s0m,s0mTot,V,W,Opts)
 % Copyright (c) 2016-2017 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
-if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works only for SISO models');end
-
     %%  Define default execution parameters
     Def.updateModel = 'new'; % 'all','new','lean'
-    Def.modelTol    = 1e-2;
+    Def.modelTol    = 1e-3;
     Def.plot        = false;
 
     if ~exist('Opts','var') || isempty(Opts)
@@ -92,12 +90,16 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
     end  
 
     %% Parse input
-    if nargin < 3,  %new model function
+    if nargin < 5  %new model function
         s0mTot = s0m;
+        RtmTot = Rtm;
+        LtmTot = Ltm;
         V = []; W = []; 
     else %model function update
-        s0m = updateModelFctShifts(s0mTot,s0m,Opts);           
-        s0mTot = [s0mTot, s0m];
+        [s0m,Rtm,Ltm]   = updateModelFctShifts(s0mTot,s0m,Rtm,Ltm,Opts);           
+        s0mTot          = [s0mTot, s0m];
+        RtmTot          = [RtmTot, Rtm];
+        LtmTot          = [LtmTot, Ltm];
     end
     
     %% Initialize variables in nested functions
@@ -109,7 +111,7 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
     % Check model function is not larger than original
     if length(s0mTot)<size(sys.a,1)
         %   Update model function
-        [sysm,V,W,nLU] = updateModelFct(s0m,V,W);
+        [sysm,V,W,nLU] = updateModelFct(s0m,Rtm,Ltm,V,W);
     else
         warning('sssMOR:modelFct:sizeLimit',...
             ['Model function is already as big as the original.',...
@@ -117,22 +119,34 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
         sysm    = sys;
         V       = speye(sys.n);
         W       = V;
+        nLU     = 0;
     end
     
 %%  Auxiliary functions --------------------------------------------------
     %%  Shift and model function update
-    function s0m = updateModelFctShifts(s0mTot,s0new,Opts)
+    function [s0m,Rtm,Ltm] = updateModelFctShifts(s0mTot,s0new,RtmNew,LtmNew,Opts)
         switch Opts.updateModel
             case 'all'
                 s0m = s0new;
+                Rtm = RtmNew;
+                Ltm = LtmNew;
+                
+                % give robustness warning from MIMO
+                if size(Rtm,1)> 1 || size(Ltm,1)>1
+                    warning('sssMOR:modelFct:updateAllMimo',...
+                        'The update option ''all''for MIMO models is not robust enough to cover higher multiplicieties');
+                end
             case 'new'
+                % currently, new is only checking for shifts
                 idx = ismemberf2(s0new,s0mTot,Opts.modelTol); 
                 s0m = s0new(~idx);
+                Rtm = RtmNew(:,~idx);
+                Ltm = LtmNew(:,~idx);
                 if Opts.plot
                     fh = figure; lh(1) = plot(complex(s0mTot),'xb'); hold on
                     lh(2) = plot(complex(s0new),'or');
                     axis equal
-                    for iS = 1:length(s0mTot);
+                    for iS = 1:length(s0mTot)
                         [xp,yp] = circle(real(s0mTot(iS)),imag(s0mTot(iS)),Opts.modelTol*abs(s0mTot(iS)));
                         lh(3) = plot(xp,yp,'g');
                     end
@@ -151,30 +165,46 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
                 error('selected model function update is not valid');
         end
     end
-    function [sysm,V,W,nLU] = updateModelFct(s0,V,W)
+    function [sysm,V,W,nLU] = updateModelFct(s0,Rt,Lt,V,W)
         if isempty(V)
-            %first run
-            [sysm,V,W,~,~,~,~,~,~,nLU] = rk(sys,s0,s0);
+            %first run: use rk
+            [sysm,V,W,~,~,~,~,~,~,nLU] = rk(sys,s0,s0,Rt,Lt);
         else
-            idxComplex = find(imag(s0));
-            if ~isempty(idxComplex)
-                s0c = cplxpair(s0(idxComplex));
-                s0(idxComplex) = []; %real shifts
-                s0 = [s0 s0c(1:2:end)]; %add 1 complex shift per complex partner
-            end
-            nLU = 0;
-            for iShift = 1:length(s0)
-                if iShift > 1 && s0(iShift)==s0(iShift-1)
-                        %do nothing: no new LU decomposition needed
-                else %new LU needed
-                    computeLU(s0(iShift));
-                    nLU = nLU+1;
+            %update
+            if isempty(s0)
+                warning('sssMOR:modelFct:noUpdate',...
+                's0 is empty, so no update will be performed. Try a lower tolerance.');
+                
+                %Leave V,W as they are
+                nLU = 0;
+            else
+                if size(Rt,1)== 1 && size(Lt,1) == 1 
+                    %SISO    
+                    idxComplex = find(imag(s0));
+                    if ~isempty(idxComplex)
+                        s0c = cplxpair(s0(idxComplex));
+                        s0(idxComplex) = []; %real shifts
+                        s0 = [s0 s0c(1:2:end)]; %add 1 complex shift per complex partner
+                    end
+                    nLU = 0;
+                    for iShift = 1:length(s0)
+                        if iShift > 1 && s0(iShift)==s0(iShift-1)
+                                %do nothing: no new LU decomposition needed
+                        else %new LU needed
+                            computeLU(s0(iShift));
+                            nLU = nLU+1;
+                        end
+                        V = newColV(V);  W = newColW(W);
+                    end
+                else
+                    %MIMO
+                    [~,Vnew,Wnew,~,~,~,~,~,~,nLU] = rk(sys,s0,s0,Rt,Lt);
+                    V = [V,Vnew]; 
+                    W = [W,Wnew];
                 end
-                V = newColV(V);  W = newColW(W);
             end
+            
             [V,~] = qr(V,0); [W,~] = qr(W,0);
-%             sysm = sss(W'*sys.A*V,W'*sys.B,sys.C*V,...
-%                             zeros(size(sys.C,1),size(sys.B,2)),W'*sys.E*V);
             sysm = projectiveMor(sys,V,W);
         end   
         %%  Storing additional parameters

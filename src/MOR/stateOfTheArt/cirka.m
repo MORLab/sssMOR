@@ -1,14 +1,15 @@
-function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys, s0, Opts) 
+function [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys, s0,Rt,Lt,Opts) 
 % CIRKA - Confined Iterative Rational Krylov Algorithm
 %
 % Syntax:
 %       sysr                    = CIRKA(sys, q)
 %       sysr                    = CIRKA(sys, s0)
-%       sysr                    = CIRKA(sys, s0, Opts)
+%       sysr                    = CIRKA(sys, s0, Rt, Lt)
+%       sysr                    = CIRKA(sys, s0, ..., Opts)
 %       [sysr, V, W]            = CIRKA(sys, s0,... )
-%       [sysr, V, W, s0, R, L]  = CIRKA(sys, s0,... )
-%       [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err]       = CIRKA(sys, s0,... )
-%       [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err,nLU]   = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt]  = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err]       = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err,nLU]   = CIRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Confined Iterative Rational Krylov
@@ -23,14 +24,12 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys, 
 %       reduced model over the iterations. This behavior can be changed
 %       with the optional Opts structure.
 %
-%       //Note: In its current form, CIRKA supports only SISO models.
-%       An extension to MIMO will be given in a later release.
-%
 % Input Arguments:  
 %       *Required Input Arguments:*
 %       -sys:			full oder model (sss)
 %       -s0:			vector of initial shifts
 %       -q:             (alternatively) reduced order
+%       -Rt/Lt:         initial right/left tangential directions for MIMO
 %
 %       *Optional Input Arguments:*
 %       -Opts:			structure with execution parameters
@@ -70,7 +69,7 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys, 
 %       -sysr:              reduced order model (sss)
 %       -V,W:               resulting projection matrices (V = Vm*Virka)
 %       -s0:                final choice of shifts
-%       -R,L:               matrices of right/left tangential directions
+%       -Rt,Lt:             matrices of right/left tangential directions
 %       -kIrka:             vector of irka iterations
 %       -sysm:              resulting model function
 %       -s0mTot:            shifts for model function
@@ -88,7 +87,8 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys, 
 %       //Note: The computational advantage of the model function framework
 %       is given especially for truly large scale systems, where the
 %       solution of a sparse LSE becomes much more expensive than of a
-%       small dense LSE.
+%       small dense LSE. You can compare the advantage of CIRKA vs IRKA by
+%       comparing the nLU output for the same reduction task.
 %
 %       One can use the function |isH2opt| to verify if the necessary 
 %       conditions for optimality are satisfied.
@@ -131,7 +131,6 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys, 
 %------------------------------------------------------------------
     
 %%  Check inputs
-if ~sys.isSiso, error('sssMOR:cirka:notSiso','This function currently works only for SISO models');end
 warning('off','Control:analysis:NormInfinite3')
 
 % check if input s0 is reduced order (q) or vector of frequencies
@@ -140,20 +139,30 @@ if length(s0) == 1 && mod(s0,1) == 0
     s0 = zeros(1,s0);
 end
 
+% initialized Rt and Lt if not passed
+if ~exist('Rt','var') || isempty(Rt)
+   Rt = ones(sys.m,length(s0));
+end
+if ~exist('Lt','var') || isempty(Lt)
+    Lt = ones(sys.p,length(s0));
+end
+
 %% Define execution options
-    Def.qm0     = 2*length(s0); %default initial surrogate size
+    Def.qm0     = 2*length(s0);     %default initial surrogate size
     Def.s0m     = shiftVec([s0;2*ones(1,length(s0))]); %default surrogate shifts
-    Def.maxiter = 15;           %maximum number of CIRKA iterations
-    Def.tol     = 1e-3;         %tolerance for stopping criterion
-    Def.stopCrit= 'combAny';    %stopping criterion for CIRKA 
-                                %s0,sysr,sysm,combAny,combAll
+    Def.Rtm     = [Rt,Rt];          %default right tangential directions for surrogate
+    Def.Ltm     = [Lt,Lt];          %default left tangential directions for surrogate
+    Def.maxiter = 15;               %maximum number of CIRKA iterations
+    Def.tol     = 1e-3;             %tolerance for stopping criterion
+    Def.stopCrit= 'combAny';        %stopping criterion for CIRKA 
+                                    %s0,sysr,sysm,combAny,combAll
     Def.verbose         = 0; 
-    Def.plot            = 0;    %display text and plots
-    Def.suppressWarn    = 0;    %suppress warnings
-    Def.updateModel     = 'new';%shifts used for the model function update
-    Def.modelTol        = 1e-2; %shift tolerance for model function
-    Def.clearInit       = 0;    %reset the model fct after initialization?
-    Def.stableModelFct  = true; %make sysm stable
+    Def.plot            = 0;        %display text and plots
+    Def.suppressWarn    = 0;        %suppress warnings
+    Def.updateModel     = 'new';    %shifts used for the model function update
+    Def.modelTol        = Def.tol;  %shift tolerance for model function
+    Def.clearInit       = 0;        %reset the model fct after initialization?
+    Def.stableModelFct  = true;     %make sysm stable
     
     Def.irka.suppressverbose = true;
     Def.irka.stopCrit        = 'combAny';
@@ -180,7 +189,10 @@ end
     sysmOld = ss([]);
     
     %   Generate the model function
-    s0m = Opts.s0m;    [sysm, s0mTot, Vm, Wm,nLU] = modelFct(sys,s0m);
+    s0m = Opts.s0m;     
+    Rtm = Opts.Rtm;     
+    Ltm = Opts.Ltm;
+    [sysm, s0mTot, RtmTot,LtmTot, Vm, Wm,nLU] = modelFct(sys,s0m,Rtm,Ltm);
 
     if Opts.verbose, fprintf('Starting model function MOR...\n'); end
     if Opts.plot, sysFrd = freqresp(sys,struct('frd',true)); end
@@ -194,16 +206,18 @@ end
             if kIter == 2 && Opts.clearInit
                 %reset the model function after the first step
                 s0m = [s0,s0m(1:length(s0m)-length(s0))];
-                [sysm, s0mTot, Vm, Wm, nLUk] = modelFct(sys,s0m);
+                Rtm = [Rt,Rtm(:,1:length(s0m)-length(s0))];
+                Ltm = [Lt,Ltm(:,1:length(s0m)-length(s0))];
+                [sysm, s0mTot, RtmTot, LtmTot, Vm, Wm,nLUk]  = modelFct(sys,s0m,Rtm,Ltm);
             else
                 % update model
-                [sysm, s0mTot, Vm, Wm, nLUk] = modelFct(sys,s0,s0mTot,Vm,Wm,Opts);
+                [sysm, s0mTot, RtmTot, LtmTot, Vm, Wm, nLUk] = modelFct(sys,s0,Rt,Lt,s0mTot,RtmTot,LtmTot,Vm,Wm,Opts);
             end
             nLU = nLU + nLUk; %update count of LU decompositions
         end
         
         % reduction of new model with new starting shifts
-        [sysr, Virka, Wirka, s0new, ~,~,~,~,R,~,~,L,kIrkaNew] = irka(sysm,s0,Opts.irka);
+        [sysr, Virka, Wirka, s0new, ~,~,~,~,Rt,~,~,Lt,kIrkaNew] = irka(sysm,s0,Opts.irka);
 
         if Opts.plot
             figure; bodemag(sysFrd,ss(sysm),sysr)
@@ -217,7 +231,7 @@ end
         % computation of convergence
         [stop,stopVal(kIter,:)] = verifyStopCrit;
         %Detect STAGNATION
-        if ~stop && kIter > 1 && max(abs(stopVal(kIter-1,:)-stopVal(kIter,:))) < Opts.tol 
+        if ~stop && kIter > 1 && max(abs(stopVal(kIter-1,:)-stopVal(kIter,:))) < Opts.tol*1e-3 
             stop = true;
         end
         
@@ -226,9 +240,9 @@ end
         sysrOld = sysr;
             
         if Opts.verbose 
-            fprintf(1,'\tkIrka: %03i\n',kIrkaNew);
-            fprintf(1,'\tstopVal (%s): %s\n',Opts.stopCrit,sprintf('%3.2e\t',stopVal(kIter,:)));
-            fprintf(1,'\tModelFct size: %i \n',length(s0mTot));
+            fprintf(1,'\tkIrka: %03i\n',        kIrkaNew);
+            fprintf(1,'\tstopVal (%s): %s\n',   Opts.stopCrit,sprintf('%3.2e\t',stopVal(kIter,:)));
+            fprintf(1,'\tModelFct size: %i \n', length(s0mTot));
         end     
     end
     
@@ -259,7 +273,7 @@ end
     sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'cirka',Opts,sys);
     
     % display warnings or text output
-    if kIter >= Opts.maxiter;
+    if kIter >= Opts.maxiter
         warning('sssMOR:cirka:maxiter','modelFctMor did not converge within maxiter'); 
     elseif ~Opts.verbose
         fprintf('CIRKA step %03u - Convergence (%s): %s \n', ...
@@ -280,7 +294,7 @@ end
             stopCrit = varargin{1};
         end
         
-        if length(s0mTot)> sys.n,
+        if length(s0mTot)> sys.n
             % Full order achieved?
             stop = true; 
         else
