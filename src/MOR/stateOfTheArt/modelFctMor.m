@@ -75,8 +75,8 @@ function [sysr, s0, sysm, relH2err] = modelFctMor(sys,redFct,varargin)
 %       This code computes an H2-optimal approximation of order 10 to
 %       the benchmark model 'building' using Confined IRKA. 
 %
-%> sys = loadSss('building'); s0 = zeros(1,10);
-%> Opts = struct('tol',1e-6);
+%> sys      = sss('building'); s0 = zeros(1,10);
+%> Opts     = struct('tol',1e-6);
 %> redFct   = @(sys,s) irka(sys,s,Opts);
 %> redFctOut= @(sys,s) getDesiredOutput(redFct,[1,4],sys,s);
 %> [sysr, s0opt, sysm, relH2err] = modelFctMor(sys,redFctOut,s0);

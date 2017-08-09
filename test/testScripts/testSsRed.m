@@ -13,6 +13,7 @@ classdef testSsRed < sssTest
 %       - pole
 %       - zpk
 %       - tzero (only for MIMO-models)
+%    + Conversion from sss, ss and dss to ssRed
 % ------------------------------------------------------------------
 %   This file is part of sssMOR, a Sparse State Space, Model Order
 %   Reduction and System Analysis Toolbox developed at the Institute 
@@ -21,9 +22,9 @@ classdef testSsRed < sssTest
 %   For any suggestions, submission and/or bug reports, mail us at
 %                     -> sssMOR@rt.mw.tum.de <-
 % ------------------------------------------------------------------
-% Authors:      Niklas Kochdumper
-% Last Change:  21 Aug 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Authors:      Niklas Kochdumper, Alessandro Castagnotto
+% Last Change:  02 Aug 2017
+% Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------     
     
     methods(Test)
@@ -478,7 +479,7 @@ classdef testSsRed < sssTest
                         'Test for the size-function failed (input dimension)!'); 
                     
             % test spy
-            spy(sysr1,'test plot');
+            spy(sysr1,'test plot'); drawnow; close(gcf)
             
             % test ss (not implemented for ssRed-objects)
             
@@ -530,6 +531,24 @@ classdef testSsRed < sssTest
                         'Test for the zpk-function failed (invariant zeros)!');     
             
             
+        end
+        
+        function testConversionToSsRed(testCase)
+            tol = 1e-6;
+            
+            % sss
+            sys     = sss('building');
+            sys2    = ssRed(sys); 
+            
+            verifyClass(testCase,sys2,'ssRed')
+            verifyLessThanOrEqual(testCase,norm(sys-sys2),tol);
+            
+            % ss
+            sys     = stabsep(rss(ceil(100*rand)));
+            sys2    = ssRed(sys); 
+            
+            verifyClass(testCase,sys2,'ssRed')
+            verifyLessThanOrEqual(testCase,norm(sys-sys2),tol);
         end
       
         

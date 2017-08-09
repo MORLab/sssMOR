@@ -44,9 +44,10 @@ function sysr = projectiveMor(sys,V,varargin)
 %		This code loads a benchmark model included in the toolbox and
 %		performs Galerkin projection
 %
-%> sys = loadSss('building');
-%> s0 = 1; V = (sys.A-s0*sys.E)\sys.B;
-%> sysr = projectiveMor(sys,V)
+%> sys = sss('building');
+%> s0   = 1; V = (sys.A-s0*sys.E)\sys.B;
+%> sysr = projectiveMor(sys,V);
+%> disp(sysr)
 %
 %       To perform Petrov-Galerkin projection using *conjugate transposition*
 %       use
@@ -54,7 +55,8 @@ function sysr = projectiveMor(sys,V,varargin)
 %> s0 = 1i; 
 %> V = (sys.A-s0*sys.E)\sys.B; 
 %> W = (sys.A-s0*sys.E)'\sys.C'; 
-%> sysr = projectiveMor(sys,V,W,struct('trans','T'))
+%> sysr = projectiveMor(sys,V,W,struct('trans','T'));
+%> disp(sysr)
 %
 %
 % See Also: 

@@ -34,14 +34,14 @@ function M = moments(sys, s0, n, Opts)
 %      This code computes 3 moments of the transfer function of the
 %      benchmark model 'build' about the frequencies 1, 1+i and 1-i
 %
-%> sys = loadSss('building');
-%> M = moments(sys,[1,1+i,1-i], 3)
+%> sys  = sss('building');
+%> M    = moments(sys,[1,1+i,1-i], 2)
 %
 %      To compute different order moments for different frequencies,
 %      specify n as an array of te same length as s0
 %
-%> sys = loadSss('CDplayer');
-%> M = moments(sys,[1,1+i,1-i],[1,2,4])
+%> sys  = sss('CDplayer');
+%> M    = moments(sys,[1,1+i,1-i],[1,2,4])
 %
 % See Also:
 %       rk, lu

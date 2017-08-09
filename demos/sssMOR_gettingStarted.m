@@ -61,6 +61,9 @@ rule
 fprintf(['\tDeveloped at the Chair of Automatic Control, TUM\n']);
 fprintf(['\tNote: for academic use only.\n']);
 rule
+
+downloadSoftware;
+
 %%  Model Order Reduction
 clearvars -except Opts
 
@@ -321,4 +324,22 @@ function init_demo
     tbr(sys,1);
     irka(sys,1,struct('suppressverbose',true));
     clear sys ans;
+end
+
+function downloadSoftware
+    % check if the benchmarks and third-party software (MESS) are already
+    % installed
+    if ~exist('CDplayer.mat','file') || ~exist('mess_path.m','file')
+        fprintf('\n');
+        fprintf('The toolbox in general as well as this demonstration require\n');
+        fprintf('benchmark models and third-party software to be installed on\n');
+        fprintf('your machine.\n\n');
+        fprintf('Do you want to download the benchmark models and the third-party software?\nY/[N]: ');
+        inp = lower(strtrim(input('','s')));
+        fprintf('\n\n');
+        
+        if strcmp(inp , 'y')
+            downloadThirdParty;
+        end
+    end
 end

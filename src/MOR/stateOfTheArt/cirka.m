@@ -53,6 +53,8 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %                       [{'new'},'all']
 %           -.clearInit: reset the model function after first iteration;
 %                       [{true}, false]
+%           -.stableModelFct: return only the stable part of sysm;
+%                       [{true}, false]
 %           -.irka.stopcrit: stopping criterion used in irka;
 %                       [{'combAny'} / 's0' / 'sysr' /'combAll']
 %           -.irka.lse:  choose type of lse solver;
@@ -77,8 +79,8 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %       This code computes an H2-optimal approximation of order 10 to
 %       the benchmark model 'building' using Confined IRKA. 
 %
-%> sys = loadSss('building'); s0 = zeros(1,10);
-%> [sysr, ~, ~, s0opt, kIrka, sysm, relH2err] = cirka(sys, s0);
+%> sys = sss('building'); s0 = zeros(1,10);
+%> [sysr, ~, ~, s0opt, ~, ~, kIrka, sysm, ~, relH2err] = cirka(sys, s0);
 %> bode(sys,'-',sysm,'--r',sysr,'--g'); legend('sys','sysm','sysr')
 %
 %       //Note: The computational advantage of the model function framework
@@ -139,15 +141,17 @@ end
 %% Define execution options
     Def.qm0     = 2*length(s0); %default initial surrogate size
     Def.s0m     = shiftVec([s0;2*ones(1,length(s0))]); %default surrogate shifts
-    Def.maxiter = 15;   %maximum number of CIRKA iterations
-    Def.tol     = 1e-3; %tolerance for stopping criterion
-    Def.stopCrit= 'combAny'; %stopping criterion for CIRKA 
-                             %s0,sysr,sysm,combAny,combAll
-    Def.verbose = 0; Def.plot = 0; %display text and plots
-    Def.suppressWarn = 0; %suppress warnings
-    Def.updateModel = 'new'; %shifts used for the model function update
-    Def.modelTol = 1e-2; %shift tolerance for model function
-    Def.clearInit = 0; %reset the model fct after initialization?
+    Def.maxiter = 15;           %maximum number of CIRKA iterations
+    Def.tol     = 1e-3;         %tolerance for stopping criterion
+    Def.stopCrit= 'combAny';    %stopping criterion for CIRKA 
+                                %s0,sysr,sysm,combAny,combAll
+    Def.verbose         = 0; 
+    Def.plot            = 0;    %display text and plots
+    Def.suppressWarn    = 0;    %suppress warnings
+    Def.updateModel     = 'new';%shifts used for the model function update
+    Def.modelTol        = 1e-2; %shift tolerance for model function
+    Def.clearInit       = 0;    %reset the model fct after initialization?
+    Def.stableModelFct  = true; %make sysm stable
     
     Def.irka.suppressverbose = true;
     Def.irka.stopCrit        = 'combAny';
@@ -198,7 +202,7 @@ end
         % reduction of new model with new starting shifts
         [sysr, Virka, Wirka, s0new, ~,~,~,~,R,~,~,L,kIrkaNew] = irka(sysm,s0,Opts.irka);
 
-        if Opts.plot, 
+        if Opts.plot
             figure; bodemag(sysFrd,ss(sysm),sysr)
             legend('FOM','ModelFct','ROM');   
             title(sprintf('kIter=%i, nModel=%i',kIter,sysm.n));
@@ -218,7 +222,7 @@ end
         sysmOld = sysm;
         sysrOld = sysr;
             
-        if Opts.verbose, 
+        if Opts.verbose 
             fprintf(1,'\tkIrka: %03i\n',kIrkaNew);
             fprintf(1,'\tstopVal (%s): %s\n',Opts.stopCrit,sprintf('%3.2e\t',stopVal(kIter,:)));
             fprintf(1,'\tModelFct size: %i \n',length(s0mTot));
@@ -227,7 +231,9 @@ end
     
     %%  Terminate execution  
     % make model function stable by removing ustable modes
-    if ~isstable(sysm), sysm = stabsep(sysm); end
+    if ~isstable(sysm) && Opts.stableModelFct
+        sysm = stabsep(sysm); 
+    end
     
     % prepare outputs
     relH2err = norm(sysm-sysr)/norm(sysm);

@@ -8,13 +8,19 @@ classdef ssRed < ss
 %       sysr = ssRed(A,B,C,D,E,method,params)
 %       sysr = ssRed(A,B,C,D,E,method,params,sys)
 %       sysr = ssRed(A,B,C,D,E,method,params,paramsList)
+%       sysr = ssRed(sys)
 %       
 %
 % Description:
 %       This class is derived from the ss-class. It is used to represent
 %       models which are the result of reducing the order of large models
 %       with specific algorithms. ssRed objects have all attributes that ss
-%       objects normally possess
+%       objects normally possess.
+%
+%       ssRed either defines a new dynamic system object in terms of the
+%       system matrices passed, or converts another object |sys| of class
+%       |sss| or |ss| to ssRed. This might be useful to use additional
+%       functionality of the ssRed class (stabsep, l2norm, ...).
 %
 % Input Arguments:
 %       -A: system matrix
@@ -24,7 +30,8 @@ classdef ssRed < ss
 %       -E: descriptor matrix
 %       -method: name of the used reduction algorithm;
 %                ['tbr' / 'modalMor' / 'irka' / 'rk' / 'projectiveMor' / 'porkV' / 'porkW' / 'spark' / 'cure_spark' / 'cure_irka' / 'cure_rk+pork' / 'stabsep' / 'rkOp' / 'rkIcop' / 'modelFct' / 'cirka' / 'userDefined']
-%       -sys:   original state space system before reduction (class sss or ssRed)
+%       -sys:   either the original state space system before reduction (class sss or ssRed)
+%               or model to be converted to ssRed class.
 %       -paramsList:    Structure array. Each entry represents one 
 %                       reduction (without the current reduction).
 %           -.method:           name of the applied reduction algorithm (see above)                               
@@ -329,11 +336,10 @@ classdef ssRed < ss
 % Examples:
 %       This code creates an instance of the ssRed-class
 %
-%> A = rand(10);
-%> B = rand(10,1);
-%> C = rand(1,10);
+%> A = rand(10); B = rand(10,1); C = rand(1,10);
 %> params.originalOrder = 20;
 %> sysr = ssRed(A,B,C,'porkV',params);
+%> disp(sysr)
 %
 % See Also: 
 %        ss, dss, sss
@@ -356,7 +362,7 @@ classdef ssRed < ss
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  20 Jan 2017
+% Last Change:  02 Aug 2017
 % Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
@@ -388,7 +394,7 @@ classdef ssRed < ss
         function obj = ssRed(varargin)
             
             % parse input arguments
-            if nargin~=1 && ~isempty(varargin{1})   % not an empty model            
+            if nargin > 1      %system matrices passed     
                 if nargin < 3 || nargin > 8
                     error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
                 end
@@ -432,9 +438,16 @@ classdef ssRed < ss
                             paramsList = varargin{iTemp+2};
                         end
                 end
-            else
+            elseif isempty(varargin{1})   %empty model
                % ensures that syntax "ssRed([])" gives back an empty model
                A=[];B=[];C=[];D=[];E=[];name=[];
+            else
+                if isa(varargin{1},'sss') || isa(varargin{1},'ss')
+                    [A,B,C,D,E] = dssdata(varargin{1});
+                    name = varargin{1}.Name;
+                else
+                    error('Invalid syntax for the "ssRed" command. Type "help ssRed" for more information.');
+                end
             end
             
             % call the constructor of the superclass ss
@@ -537,7 +550,7 @@ classdef ssRed < ss
         function isSimo = get.isSimo(sys); isSimo=(sys.p>1)&&(sys.m==1); end
         function isMiso = get.isMiso(sys); isMiso=(sys.p==1)&&(sys.m>1); end
         function isMimo = get.isMimo(sys); isMimo=(sys.p>1)||(sys.m>1); end
-        function isBig = get.isBig(sys); isBig=(sys.n>5000);end
+        function isBig  = get.isBig(sys); isBig=(sys.n>5000);end
         
         function isDae = get.isDae(sys)
             if condest(sys.(sys.e_))==Inf
@@ -851,45 +864,63 @@ classdef ssRed < ss
         function  varargout = lyapchol(varargin)
             [varargout{1:nargout}] = sssFunc.lyapchol(varargin{:});
         end
+               
+        function sobj = saveobj(obj)
+        % override save-method. This funciton is called everytime a 
+        % ssRed-object is saved. The function stores the properties of the 
+        % ssRed-object in a struct 
         
-        function varargout = stabsep(varargin)
-            [varargout{1:nargout}] = stabsep@ss(varargin{:});
-            % add an entry to the reduction history if the model order was
-            % changed
-            if nargout >= 1
-                if varargout{1}.n < varargin{1}.n
-                    sys = varargout{1};
-                    params.originalOrder = varargin{1}.n;
-                    params.reducedOrder = sys.n;
-                    varargout{1} = ssRed(sys.(sys.a_),sys.(sys.b_), ...
-                                         sys.(sys.c_),sys.(sys.d_), ...
-                                         sys.(sys.e_),'stabsep', ...
-                                         params, varargin{1});
-                    
-                    % make robust to computations with sys.e_
-                    if isempty(varargout{1}.(sys.e_))
-                        varargout{1}.(sys.e_) = eye(sys.n);
-                    end
-                        
-                    if nargout >= 2
-                        sys = varargout{2};
-                        params.originalOrder = varargin{1}.n;
-                        params.reducedOrder = sys.n;
-                        varargout{2} = ssRed(sys.(sys.a_),sys.(sys.b_), ...
-                                             sys.(sys.c_),sys.(sys.d_), ...
-                                             sys.(sys.e_),'stabsep', ...
-                                             params, varargin{1});
-                    end
-                    % make robust to computations with sys.e_
-                    if isempty(varargout{1}.(sys.e_))
-                        varargout{1}.(sys.e_) = eye(sys.n);
-                    end
-                end
+            sobj.A = obj.(obj.a_);
+            sobj.B = obj.(obj.b_);
+            sobj.C = obj.(obj.c_);
+            sobj.D = obj.(obj.d_);
+            sobj.E = obj.(obj.e_);
+            sobj.redParam = obj.redParam; 
+        end     
+    end
+    
+    
+    %% Static class methods
+    methods (Static)
+        
+        function obj = loadobj(sobj)
+        % override load-method. This funciton is called everytime a 
+        % ssRed-object is loaded. It is important that this funciton is 
+        % defined as a static class method. The function creates a
+        % ssRed-object from the stored class properties. 
+        
+            % backward compatibitity
+            if ~isfield(sobj,'A')
+               temp = sobj.Data_;
+               if isfield(temp,'A')
+                  % in old matlab versions, the capital letters are used
+                  % for the dynamic matrices
+                  sobj.A = temp.A; sobj.B = temp.B; sobj.C = temp.C;
+                  sobj.D = temp.D; sobj.E = temp.E;
+               else
+                  % in newer matlab versions, the capital letters are used
+                  % for the dynamic matrices
+                  sobj.A = temp.a; sobj.B = temp.b; sobj.C = temp.c;
+                  sobj.D = temp.d; sobj.E = temp.e;
+               end
+            end
+        
+            % construct ssRed-object from stored data
+            if isempty(sobj.redParam)
+                obj = ssRed(sobj.A,sobj.B,sobj.C,sobj.D,sobj.E);
+            elseif length(sobj.redParam) == 1
+                obj = ssRed(sobj.A,sobj.B,sobj.C,sobj.D,sobj.E, ...
+                            sobj.redParam.method,sobj.redParam.params);
+            else
+                obj = ssRed(sobj.A,sobj.B,sobj.C,sobj.D,sobj.E, ...
+                            sobj.redParam(end).method, ...
+                            sobj.redParam(end).params, sobj.redParam(1:end-1));
             end
         end
     end
     
-    %%Private and static helper methods
+    
+    %% Private and static helper methods
     methods(Hidden, Access = private, Static)
         
         function checkParamsList(paramsList)

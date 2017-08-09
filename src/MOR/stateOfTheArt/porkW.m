@@ -34,11 +34,12 @@ function varargout = porkW(W,Sw,Lw,B)
 % Examples:
 %       Following code computes an H2-pseudo-optimal reduced order model
 %       with an output Krylov subspace
-%> sys = loadSss('building');
-%> s0 = -eigs(sys,4,'sm').';
+%> sys          = sss('building');
+%> s0           = -eigs(sys,4,'sm').';
 %> [sysr, ~, W] = rk(sys,[],s0);
-%> [Lw, ~, Sw] = getSylvester(sys, sysr, W, 'W');
-%> sysrPO = porkW(W,Sw,Lw,sys.B)
+%> [Lw, ~, Sw]  = getSylvester(sys, sysr, W, 'W');
+%> sysrPO       = porkW(W,Sw,Lw,sys.B);
+%> disp(sysrPO)
 % 
 % See Also: 
 %       porkV, spark, rk, getSylvester

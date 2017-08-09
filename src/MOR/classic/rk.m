@@ -65,15 +65,17 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 %       shifts s0 = [1 1 2 2 2] (i.e. matching two moments about 1 and
 %       three moments about 2)
 %
-%> sys = loadSss('building');
+%> sys = sss('building');
 %> s0  = [1 1 2 2 2];
 %> sysr = rk(sys,s0);
+%> disp(sysr);
 %
 %       The same result can be achieved by specyfing the shifts as a matrix
 %       with two rows:
 %
 %> s0 = [1 2; 2 3];
 %> sysr = rk(sys,s0);
+%> disp(sysr)
 %
 %       For two-sided reduction, specify shifts for the output Krylov
 %       subspace
@@ -87,14 +89,16 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 %
 %       For MIMO systems, specify tangential directions
 %
-%> sys = loadSss('CDplayer'); n = 5;
-%> s0 = rand(1,n); Rt = rand(sys.m,n); Lt = rand(sys.p,n);
+%> sys  = sss('CDplayer'); n = 5;
+%> s0   = rand(1,n); Rt = rand(sys.m,n); Lt = rand(sys.p,n);
 %> sysr = rk(sys, s0, s0, Rt, Lt);
+%> disp(sysr)
 %
 %       If no tangential directions are specified, block Krylov reduction
 %       is conducted.
 %
 %> sysr = rk(sys, s0, s0); 
+%> disp(sysr)
 %
 %//Note: In the block Krylov case, the reduced order is in general higher
 %       than the lenght of s0.
@@ -133,7 +137,7 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 Def.real = true; %keep the projection matrices real?       
 
 % use hess if sys is ssRed object
-if isa(sys,'ssRed'), 
+if isa(sys,'ssRed')
     Def.lse='hess'; 
     if isempty(sys.E), sys.E = eye(size(sys.A)); end %ssRed robust compatibility
 else

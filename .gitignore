@@ -101,4 +101,5 @@ CURE.gif
 doc/html/helpsearch-v3/
 doc/html/*.html
 doc/html/*.png
+doc/html/txts/
 doc/source/functions/*.m

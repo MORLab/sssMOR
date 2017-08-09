@@ -44,9 +44,12 @@ function [R, B_, S] = getSylvester(sys,sysr,V,type)
 %       and reconstructs the matrices of the corresponding Sylvester
 %       equation
 %
-%> sys = loadSss('building');
-%> [sysr, V] = rk(sys,-eigs(sys,4).');
+%> sys          = sss('building');
+%> [sysr, V]    = rk(sys,-eigs(sys,4).');
 %> [Rv, B_, Sv] = getSylvester(sys, sysr, V);
+%
+%       One can verify the solution by looking at the norm of the residual:
+%> norm(sys.A*V-sys.E*V*Sv-sys.B*Rv)
 %
 %//Note: RK can return some matrices of the Sylvester equation directly.
 % 

@@ -75,7 +75,10 @@ suiteStateOfTheArt = [TestSuite.fromFile(fullfile(testPathSssMor,'testSylvester.
                       TestSuite.fromFile(fullfile(testPathSssMor,'testModelFctMor.m'))];
                   
 % ssRed class
-suiteSsRed = [TestSuite.fromFile(fullfile(testPathSssMor,'testSsRed.m'))];
+suiteSsRed = [TestSuite.fromFile(fullfile(testPathSssMor,'testSsRed.m')),...
+              TestSuite.fromFile(fullfile(testPathSssMor,'testStabsep.m')),...
+              TestSuite.fromFile(fullfile(testPathSssMor,'testL2norm.m'))  ];
+
 
 suiteAll=[suiteClassic, suiteStateOfTheArt, suiteSsRed];
 

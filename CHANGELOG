@@ -1,17 +1,35 @@
 sssMOR - Changelog
 ==================
 
-A list of (major) changes between releases. Sometimes we add also changes to come to our **roadmap**.
+A list of (major) changes between releases, as well as information about MATLAB versions used and toolbox dependencies. Sometimes we add also changes to come to our **roadmap**.
 ***
 
 Roadmap (changes to come)
 -------------------------
-- pMOR: parametric model reduction
 - Second order models: direct reduction
 ***
 
+v1.09 [tbd]
+-----------------------
+
+|                 |    |
+|:----------------|:---|
+| Dependencies    |    |
+| Programmed with |    |
+| Tested with     |    |
+| on              |    |
+
+
 v1.08 [02 Frebruary 2017]
 -----------------------
+
+|                 |                               |
+|:----------------|:------------------------------|
+| Dependencies    | sss Toolbox                   |
+| Programmed with | MATLAB R2015b                 |
+| Tested with     | MATLAB R2014b, R2015b, R2016b |
+| on              | Windows 7, Ubuntu 16.04.1 LTS |
+
 ### Changes
 - TBR
   * changed the definition of the Cholesky (like) factors of the Gramians to unify the notation with the low-rank method. They are now lower triangular matrices (A=LL') as opposed to MATLAB's built-in notation.
@@ -35,6 +53,14 @@ v1.08 [02 Frebruary 2017]
 
 v1.07 [05 October 2016]
 -----------------------
+
+|                 |                               |
+|:----------------|:------------------------------|
+| Dependencies    | sss Toolbox                   |
+| Programmed with | MATLAB R2015b                 |
+| Tested with     | MATLAB R2014b, R2015b, R2016b |
+| on              | Windows 7, Ubuntu 16.04.1 LTS |
+
 ### Changes
 - minor improvements in MODALMOR, TBR, CURE, SPARK
 - SSS toolbox: using v1.02
@@ -46,6 +72,14 @@ v1.07 [05 October 2016]
 
 v1.06 [16 September 2016]
 -------------------------
+
+|                 |                               |
+|:----------------|:------------------------------|
+| Dependencies    | sss Toolbox                   |
+| Programmed with | MATLAB R2015b                 |
+| Tested with     | MATLAB R2014b, R2015b, R2016b |
+| on              | Windows 7, Ubuntu 16.04.1 LTS |
+
 ### Changes
 - APP
  	- new functionality: plotting of impulse- and step-response
@@ -68,6 +102,13 @@ v1.06 [16 September 2016]
 
 v1.05 [9 May 2016]
 ------------------
+|                 |                               |
+|:----------------|:------------------------------|
+| Dependencies    | sss Toolbox                   |
+| Programmed with | MATLAB R2015b                 |
+| Tested with     | MATLAB R2014b, R2015b, R2016b |
+| on              | Windows 7, Ubuntu 16.04.1 LTS |
+
 ### Changes
 - APP
  - **New sssMOR app added**
@@ -102,3 +143,10 @@ v1.05 [9 May 2016]
 
 v1.00 - First Release [16 November 2015]
 -----------------------------------------
+
+|                 |                               |
+|:----------------|:------------------------------|
+| Dependencies    | sss Toolbox                   |
+| Programmed with | MATLAB R2015b                 |
+| Tested with     | MATLAB R2014b, R2015b, R2016b |
+| on              | Windows 7, Ubuntu 16.04.1 LTS |
