@@ -64,7 +64,7 @@ classdef testArnoldi < sssTest
         
         function testArnoldi2(testCase) 
             %s0: only imag (multiple value)
-            sys = loadSss('iss.mat');
+            sys = sss('iss.mat');
             sys = sys(1,1);
 
             [V] = arnoldi(speye(size(sys.A)),sys.A,sys.B,[1-1i, 1-1i, 1-1i, 1+1i, 1+1i, 1+1i]);
@@ -148,7 +148,7 @@ classdef testArnoldi < sssTest
         end
         function testArnoldi5(testCase) 
             %s0=Inf, real, imag, zero with E-matrix
-            sys = loadSss('rail_1357.mat');
+            sys = sss('rail_1357.mat');
             sys = sys(1,1); E = sys.E; A = sys.A; B = sys.B;
             
             [V] = arnoldi(E,A,B,[Inf, 0, 100, 4+13i, 4-13i], @(x,y) (x'*y));
@@ -301,7 +301,7 @@ classdef testArnoldi < sssTest
         end
         function testArnoldiMIMORail(testCase) 
             %test Hermite arnoldi for rail system
-            sys = loadSss('rail_1357');
+            sys = sss('rail_1357');
             sysCell{1} = sys;
             sysCell{2} = sys(1:sys.p,1);
             sysCell{3} = sys(1,1:sys.m);

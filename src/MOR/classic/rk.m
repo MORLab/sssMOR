@@ -1,4 +1,4 @@
-function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
+function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw, nLU] = rk(sys, s0_inp, varargin)
 % RK - Model Order Reduction by Rational Krylov
 %
 % Syntax:
@@ -11,10 +11,12 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 %       sysr = RK(sys, s0_inp, s0_out, Rt, Lt)
 %       sysr = RK(sys, s0_inp, s0_out, Rt, Lt, IP)
 %
-%       [sysr, V, W]                         = RK(sys,s0_inp,...)
-%		[sysr, V, W, B_, Sv, Rv]             = RK(sys,s0_inp,...)
-%       [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = RK(sys,s0_inp, s0_out, ...)
-%		[sysr,...]                           = RK(sys, s0_inp, ..., Opts)
+%       [sysr, V, W]                            = RK(sys,s0_inp,...)
+%		[sysr, V, W, B_, Sv, Rv]                = RK(sys,s0_inp,...)
+%       [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw]    = RK(sys,s0_inp, s0_out, ...)
+%       [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw,nLU]= RK(sys,s0_inp, s0_out, ...)
+%
+%		[sysr,...]                              = RK(sys, s0_inp, ..., Opts)
 %
 % Description:
 %       Reduction by Rational Krylov subspace methods. 
@@ -58,6 +60,7 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 %                           equation (Rv is a (mxq) matrix, where q is the reduced order)
 %       -C_,Sw,Lw:          resulting matrices of the output Sylvester
 %                           equation (Lw is a (pxq) matrix, where q is the reduced order)
+%       -nLU:               number of LU decompositions required
 %
 % Examples:
 %       This code reduces the benchmark model build by orthogonal
@@ -127,8 +130,8 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  06 Apr 2016
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  09 Aug 2017
+% Copyright (c) 2015-2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %%  Parsing
@@ -236,7 +239,7 @@ if ~isempty(s0_inp) && ~isempty(s0_out)
     end
 end
 %%  Define execution variables
-if ~exist('IP', 'var'), 
+if ~exist('IP', 'var')
     IP=@(x,y) (x.'*y);
 end
 %%  Computation
@@ -244,7 +247,7 @@ if isempty(s0_out)
     % input Krylov subspace
     
     % SISO Arnoldi
-    [V, Sv, Rv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
+    [V, Sv, Rv, ~,~,~, nLU] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
     W = V;
     sysr = projectiveMor(sys,V,W);
     if nargout>3
@@ -255,7 +258,7 @@ elseif isempty(s0_inp)
     % output Krylov subspace
     
     % SISO Arnoldi
-    [W, Sw, Lw] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
+    [W, Sw, Lw, ~,~,~, nLU] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
     V = W;
     sysr = projectiveMor(sys,V,W);
     if nargout>3
@@ -265,14 +268,15 @@ elseif isempty(s0_inp)
 
 else
     if all(s0_inp == s0_out) % use only 1 LU decomposition for V and W
-        [V, Sv, Rv, W, Sw, Lw] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
+        [V, Sv, Rv, W, Sw, Lw,nLU] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
                             s0_inp,Rt, Lt, IP, Opts);
                         
         sysr = projectiveMor(sys,V,W);
 
     else
-        [V, Sv, Rv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
-        [W, Sw, Lw] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
+        [V, Sv, Rv,~,~,~,nLUv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
+        [W, Sw, Lw,~,~,~,nLUw] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
+        nLU = nLUv + nLUw;
         if size(V,2)<size(W,2)
             V=[V,W(:,size(V,2)+1:size(W,2))];
         elseif size(V,2)>size(W,2)
