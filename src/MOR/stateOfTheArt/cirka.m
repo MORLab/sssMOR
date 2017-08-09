@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, Opts) 
+function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys, s0, Opts) 
 % CIRKA - Confined Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -7,7 +7,8 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %       sysr                    = CIRKA(sys, s0, Opts)
 %       [sysr, V, W]            = CIRKA(sys, s0,... )
 %       [sysr, V, W, s0, R, L]  = CIRKA(sys, s0,... )
-%       [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err]       = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err,nLU]   = CIRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Confined Iterative Rational Krylov
@@ -41,7 +42,7 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %						[{15} / positive integer]
 %           -.tol:		convergence tolerance;
 %						[{1e-3} / positive float]
-%           -.stopcrit:convergence criterion for CIRKA;
+%           -.stopCrit:convergence criterion for CIRKA;
 %                       ['s0' / 'sysr' / 'sysm' / {'combAny'} / 'combAll']
 %           -.verbose:	show text output during iterations;
 %						[{false} / true]
@@ -55,7 +56,7 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %                       [{true}, false]
 %           -.stableModelFct: return only the stable part of sysm;
 %                       [{true}, false]
-%           -.irka.stopcrit: stopping criterion used in irka;
+%           -.irka.stopCrit: stopping criterion used in irka;
 %                       [{'combAny'} / 's0' / 'sysr' /'combAll']
 %           -.irka.lse:  choose type of lse solver;
 %                       ['sparse' / {'full'} / 'hess']
@@ -72,8 +73,9 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %       -R,L:               matrices of right/left tangential directions
 %       -kIrka:             vector of irka iterations
 %       -sysm:              resulting model function
-%       -s0mTot:               shifts for model function
+%       -s0mTot:            shifts for model function
 %       -relH2err:          estimate of the relative H2 error
+%       -nLU:               number of (high-dimensional) LU decompositions
 %
 % Examples:
 %       This code computes an H2-optimal approximation of order 10 to
@@ -124,7 +126,7 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  09 Apr 2017
+% Last Change:  09 Aug 2017
 % Copyright (c) 2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
@@ -168,7 +170,7 @@ end
 %% run computations
     kIter   = 0;
     kIrka   = zeros(1,Opts.maxiter);
-    if any(strcmp(Opts.stopCrit,{'combAny','combAll'})),
+    if any(strcmp(Opts.stopCrit,{'combAny','combAll'}))
         nStopVal = 3;
     else
         nStopVal = 1;
@@ -178,7 +180,7 @@ end
     sysmOld = ss([]);
     
     %   Generate the model function
-    s0m = Opts.s0m;    [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
+    s0m = Opts.s0m;    [sysm, s0mTot, Vm, Wm,nLU] = modelFct(sys,s0m);
 
     if Opts.verbose, fprintf('Starting model function MOR...\n'); end
     if Opts.plot, sysFrd = freqresp(sys,struct('frd',true)); end
@@ -192,11 +194,12 @@ end
             if kIter == 2 && Opts.clearInit
                 %reset the model function after the first step
                 s0m = [s0,s0m(1:length(s0m)-length(s0))];
-                [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
+                [sysm, s0mTot, Vm, Wm, nLUk] = modelFct(sys,s0m);
             else
                 % update model
-                [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0,s0mTot,Vm,Wm,Opts);
+                [sysm, s0mTot, Vm, Wm, nLUk] = modelFct(sys,s0,s0mTot,Vm,Wm,Opts);
             end
+            nLU = nLU + nLUk; %update count of LU decompositions
         end
         
         % reduction of new model with new starting shifts
