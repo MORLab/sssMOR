@@ -6149,8 +6149,7 @@ function x = listClassesInWorkspace(class)
     x(cellfun(@isempty,x)) = []; 
     
 function success = loadSystemWithLoadSss(filename,path)
-% create a system from the matrices in a .mat file by using the function
-% loadSss
+% create a system from the matrices in a .mat file 
    try
        lastwarn('');
        success = 1;
@@ -6174,8 +6173,8 @@ function success = loadSystemWithLoadSss(filename,path)
        % contain "-"
        name = strrep(name,'-','_');
 
-       % create system using loadSss
-       sys = loadSss(strcat(path,filename));         
+       % create system using sss-Konstructor
+       sys = sss(strcat(path,filename));         
        assignin('base',name,sys);
 
        % check whether the system is DAE and warn the user if the case
@@ -6193,7 +6192,7 @@ function success = loadSystemWithLoadSss(filename,path)
                 uiwait
             end
         else
-            msgbox({strcat(filename,': '),'Error while evaluating function loadSss.', ...
+            msgbox({strcat(filename,': '),'Error while loading the selected model.', ...
                     'Try to load the matrices and then compose the model.'},'Error','error');
             success = 0;
         end            
