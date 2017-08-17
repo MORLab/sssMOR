@@ -1616,9 +1616,9 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 for i = 1:size(systemList,1)
                    if isa(systemList{i,2},'sss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
-                            systemList{i,5} = freqresp(systemList{i,2},systemList{i,6},struct('frd',1));
+                            systemList{i,5} = frd(systemList{i,2},systemList{i,6});
                        else
-                            systemList{i,5} = freqresp(systemList{i,2},struct('frd',1));
+                            systemList{i,5} = frd(systemList{i,2});
                        end
                    elseif isa(systemList{i,2},'ss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
