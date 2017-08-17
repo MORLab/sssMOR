@@ -3400,15 +3400,9 @@ function updateTBR(hObject, eventdata, handles)
         end
 
         % make callback react to click on red HSV line
-
         set(h,'HitTest','off');
 
-        % legend
-
-        legend(handles.axes_mor_hsv, regexprep(sysname, '_', ' '));
-
         % set scale
-
         if get(handles.rb_mor_tbr_log,'Value')==1 || ...
            get(handles.rb_mor_tbr_norm,'Value')==1
             set(handles.axes_mor_hsv,'YScale','log')
@@ -3416,8 +3410,7 @@ function updateTBR(hObject, eventdata, handles)
             set(handles.axes_mor_hsv,'YScale','linear')                
         end
         
-        %Plot the red line
-            
+        %Plot the red line            
         if ishandle(hr)
             set(hr,'XData',[q,q])
             set(hr,'YData',get(handles.axes_mor_hsv,'YLim'));
@@ -3425,6 +3418,9 @@ function updateTBR(hObject, eventdata, handles)
             hr=plot(handles.axes_mor_hsv,[q,q], get(handles.axes_mor_hsv,'YLim'),'r');
             set(handles.axes_mor_hsv,'UserData',hr)
         end
+           
+        % legend
+        legend(h, regexprep(sysname, '_', ' '));
     end
     
     %Set cursor back to arrow
