@@ -124,7 +124,7 @@ function mimoKrylov_OpeningFcn(hObject, eventdata, handles, varargin)
             set(handles.uitable_input,'Visible','on');
             set(handles.uitable_output,'Visible','off');
 
-            set(handles.uitable_input,'ColumnWidth',{round(pIn/3),round(pIn/3),round(pIn/3),0});
+            set(handles.uitable_input,'ColumnWidth',{round(pIn(3)/3),round(pIn(3)/3),round(pIn(3)/3),0});
 
         elseif strcmp(parameter.side,'output')
 
@@ -152,7 +152,7 @@ function mimoKrylov_OpeningFcn(hObject, eventdata, handles, varargin)
     countMatchedMoments(handles);
     
     %Prevent running the output function
-    
+    set(hObject,'Visible','on');
     uiwait;
 
 function varargout = mimoKrylov_OutputFcn(hObject, eventdata, handles)
