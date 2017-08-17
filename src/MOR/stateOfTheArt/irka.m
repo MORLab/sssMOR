@@ -119,13 +119,13 @@ elseif length(varargin)==1
         s0 = zeros(1,varargin{1});
     else
         % Shifts specified
-        s0 = varargin{1};
+        s0 = s0_vect(varargin{1});
     end
     Rt = ones(sys.m,length(s0));
     Lt = ones(sys.p,length(s0));
 else %MIMO
         %usage irka(sys,s0,Rt,Lt)
-        s0 = varargin{1};
+        s0 = s0_vect(varargin{1});
         Rt = varargin{2};
         Lt = varargin{3};
 end
@@ -151,7 +151,6 @@ if Opts.tol<=0 || ~isreal(Opts.tol)
     error('tol must be a real positive number.');
 end
 
-s0 = s0_vect(s0);
 r = length(s0);
 
 % sort expansion points & tangential directions
