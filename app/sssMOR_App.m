@@ -6178,7 +6178,12 @@ function success = loadSystemWithLoadSss(filename,path)
            msgbox(strcat(filename,': System is DAE. This User-Interface does not fully support systems in DAE-format'),'Warning','Warn');
            uiwait
        end    
-
+      
+       % suppress the warning that the function "loadSss" is depreciated
+       if strcmp(lastwarn,'loadSss is deprecated and will be removed in later releases of sss. Use ''sss(fname)'' instead.')
+          lastwarn(''); 
+       end
+    
        error('loadSss:WarningOccured',lastwarn);
 
     catch ex
