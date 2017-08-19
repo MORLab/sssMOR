@@ -61,7 +61,7 @@ if isempty(sysA)
     n = norm(sys,2);
 else
     %revert time for untistable model
-    sysA.A = -sysA.A; 
-    sysA.B = -sysA.B;
+    sysA.(sysA.a_) = -sysA.(sysA.a_); 
+    sysA.(sysA.b_) = -sysA.(sysA.b_);
     n = sqrt(norm(sysS,2)^2+norm(sysA,2)^2);
 end
