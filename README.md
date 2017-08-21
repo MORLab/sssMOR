@@ -53,4 +53,4 @@ The folder structure of the toolbox is as follows
 
 
 ### Documentation
-To automatically generated the documentation for the toolbox from the function headers, type `publishDoc('sssMOR')` in the command window. Make sure to format the function headers according to the ``headerTemplate.m`` provided.
+To automatically generated the documentation for the toolbox from the function headers, type `publishDoc('sssMOR')` in the command window. Make sure to format the function headers according to the ``headerTemplate.m`` provided. To publish the documentation for a single function, use syntax `publishFunction('function name')`.
