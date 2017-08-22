@@ -242,10 +242,10 @@ end
 %% ---------------------------- CODE -------------------------------
 % Real reduced system
 if Opts.real
-    s0 = updateS0(s0);
+    s0  = updateS0(s0);
     nLU = length(unique(s0)); %get number of LU decompositions required
 else
-    nLU = length(unique(updateS0(s0)));
+    nLU = length(unique(s0));
 end
 
 
