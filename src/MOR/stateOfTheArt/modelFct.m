@@ -1,11 +1,13 @@
-function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,Rtm,Ltm,s0mTot,RtmTot,LtmTot,V,W,Opts)
+function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,varargin)
 % MODELFCT - computes or updates the model function of an sss object
 %
 % Syntax:
 %       sysm = MODELFCT(sys,s0m)
 %       [sysm, s0mTot, V, W]        = MODELFCT(sys,s0m)
+%       [sysm, ...]                 = MODELFCT(sys,s0m,Rtm,Ltm)
 %       [sysm, s0mTot, V, W]        = MODELFCT(sys,s0m,s0mTot,V,W)
-%       [sysm, s0mTot, V, W]        = MODELFCT(sys,s0m,s0mTot,V,W,Opts)
+%       [sysm, ...]                 = MODELFCT(sys,s0m,Rtm,Ltm,s0mTot,RtmTot,LtmTot,V,W)
+%       [sysm, ...]                 = MODELFCT(sys,...,Opts)
 %       [sysm, s0mTot, V, W, nLU]   = MODELFCT(sys,s0m,...)
 %
 % Description:
@@ -78,19 +80,40 @@ function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,Rtm,Ltm,s0mTot,R
 % Copyright (c) 2016-2017 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
-    %%  Define default execution parameters
-    Def.updateModel = 'new'; % 'all','new','lean'
-    Def.modelTol    = 1e-3;
-    Def.plot        = false;
-
-    if ~exist('Opts','var') || isempty(Opts)
-        Opts = Def;
+    %% Input parsing
+    narginchk(2,10)
+    
+    if ~isempty(varargin) && isstruct(varargin{end})
+        Opts        = varargin{end};
+        varargin    = varargin(1:end-1);
     else
-        Opts = parseOpts(Opts,Def);
-    end  
-
-    %% Parse input
-    if nargin < 5  %new model function
+        Opts = struct();
+    end
+        
+    if ~isempty(varargin)
+        switch length(varargin)
+            case 2
+                Rtm = varargin{1};
+                Ltm = varargin{2};
+            case 3
+                s0mTot  = varargin{1};
+                V       = varargin{2};
+                W       = varargin{3};
+            case 7
+                Rtm     = varargin{1};
+                Ltm     = varargin{2};
+                s0mTot  = varargin{3};
+                RtmTot  = varargin{4};
+                LtmTot  = varargin{5};
+                V       = varargin{6};
+                W       = varargin{7};
+            otherwise
+                error('sssMOR:modelFct:nargin','Wrong number of input arguments')
+        end
+    end
+    
+    % New model function or update?
+    if ~exist('s0mTot','var') || isempty(s0mTot)  %new model function
         s0mTot = s0m;
         RtmTot = Rtm;
         LtmTot = Ltm;
@@ -102,6 +125,19 @@ function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,Rtm,Ltm,s0mTot,R
         LtmTot          = [LtmTot, Ltm];
     end
     
+
+
+    %%  Define default execution parameters
+    Def.updateModel = 'new'; % 'all','new','lean'
+    Def.modelTol    = 1e-3;
+    Def.plot        = false;
+
+    if ~exist('Opts','var') || isempty(Opts)
+        Opts = Def;
+    else
+        Opts = parseOpts(Opts,Def);
+    end  
+
     %% Initialize variables in nested functions
     N   = size(sys.A,1);
     L1  = sparse(N,N);U1=L1;P1=L1;Q1=L1; 

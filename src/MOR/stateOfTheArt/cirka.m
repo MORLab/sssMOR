@@ -51,6 +51,8 @@ function [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys
 %                       [{false} / true]
 %           -.updateModel: type of model function update;
 %                       [{'new'},'all']
+%           -.modelTol: tolerance for shifts in model function update;
+%                       [{Opts.tol} /positive float]
 %           -.clearInit: reset the model function after first iteration;
 %                       [{true}, false]
 %           -.stableModelFct: return only the stable part of sysm;
@@ -192,7 +194,7 @@ end
     s0m = Opts.s0m;     
     Rtm = Opts.Rtm;     
     Ltm = Opts.Ltm;
-    [sysm, s0mTot, RtmTot,LtmTot, Vm, Wm,nLU] = modelFct(sys,s0m,Rtm,Ltm);
+    [sysm, s0mTot, RtmTot,LtmTot, Vm, Wm,nLU] = modelFct(sys,s0m,Rtm,Ltm,Opts);
 
     if Opts.verbose, fprintf('Starting model function MOR...\n'); end
     if Opts.plot, sysFrd = freqresp(sys,struct('frd',true)); end
@@ -208,7 +210,7 @@ end
                 s0m = [s0,s0m(1:length(s0m)-length(s0))];
                 Rtm = [Rt,Rtm(:,1:length(s0m)-length(s0))];
                 Ltm = [Lt,Ltm(:,1:length(s0m)-length(s0))];
-                [sysm, s0mTot, RtmTot, LtmTot, Vm, Wm,nLUk]  = modelFct(sys,s0m,Rtm,Ltm);
+                [sysm, s0mTot, RtmTot, LtmTot, Vm, Wm,nLUk]  = modelFct(sys,s0m,Rtm,Ltm,Opts);
             else
                 % update model
                 [sysm, s0mTot, RtmTot, LtmTot, Vm, Wm, nLUk] = modelFct(sys,s0,Rt,Lt,s0mTot,RtmTot,LtmTot,Vm,Wm,Opts);
