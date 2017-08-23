@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj, LtTraj] = irka(sys, varargin) 
+function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj, LtTraj, nLU] = irka(sys, varargin) 
 % IRKA - Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -11,6 +11,7 @@ function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj,
 %       [sysr, V, W, s0, Rt, Lt]        = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter] = IRKA(sys, s0,... )
 %       [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter,  s0Traj, RtTraj, LtTraj] = IRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter,  s0Traj, RtTraj, LtTraj, nLU] = IRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Iterative Rational Krylov
@@ -62,6 +63,7 @@ function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj,
 %       -C_,Sw,Lw:          matrices of the output Sylvester equation
 %       -kIter:             number of iterations
 %		-s0Traj,RtTraj,..:  trajectory of all shifst and tangential directions for all iterations
+%       -nLU:               number of LU decompositions required
 %
 % Examples:
 %       This code computes an H2-optimal approximation of order 8 to
@@ -95,8 +97,8 @@ function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj,
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  29 Mar 2017
-% Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
+% Last Change:  09 Aug 2017
+% Copyright (c) 2015-2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %% Parse input and load default parameters
@@ -171,14 +173,16 @@ LtTraj(:,:,1) = Lt;
 
 %% IRKA iteration
 kIter=0;
+nLU  =0;
 while true
     kIter=kIter+1; sysr_old = sysr;
     %   Reduction
     if sys.isSiso
-        [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0, s0,Opts);
+        [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw, nLUk] = rk(sys, s0, s0,Opts);
     else
-        [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0, s0, Rt, Lt,Opts);
+        [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw, nLUk] = rk(sys, s0, s0, Rt, Lt,Opts);
     end 
+    nLU = nLU + nLUk;   % update count of LU decompositions
     
     %   Update of the reduction parameters
     s0_old=s0; if ~sys.isSiso, Rt_old = Rt; Lt_old = Lt; end
