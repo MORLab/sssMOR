@@ -211,6 +211,8 @@ end
     if ~exist('sysm','var')
         %   Generate the model function
         s0m = Opts.s0m;    [sysm, s0mTot, Vm, Wm, nLU] = modelFct(sys,s0m);
+    else
+        nLU = 0;
     end
 
     if Opts.verbose, fprintf('Starting model function MOR...\n'); end
