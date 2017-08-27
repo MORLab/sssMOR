@@ -233,7 +233,7 @@ end
                         s0m = shiftVec([s0;2*ones(1,length(s0))]);
                     else
                         p = floor(sysm.n/length(s0));
-                        r = mod(sysm.n/length(s0));
+                        r = mod(sysm.n,length(s0));
                         s0m = makecomplexpair([shiftVec([s0;p*ones(1,length(s0))]),s0(1:r)]);    % length of s0m = size of sysm_interpolated!
                     end
                     [sysm, s0mTot, Vm, Wm, nLUk] = modelFct(sys,s0m);      
@@ -249,8 +249,9 @@ end
         end
         
         % reduction of new model with new starting shifts
-        [sysr, Virka, Wirka, s0new, ~,~,~,~,R,~,~,L,kIrkaNew] = irka(sysm,s0,Opts.irka);
-
+        [sysr, Virka, Wirka, s0new, ~,~,~,~,R,~,~,L,kIrkaNew,~,~,~,nLUk] = irka(sysm,s0,Opts.irka);
+        nLU = nLU + nLUk;           % update count of LU decompositions
+        
         if Opts.plot 
             figure; bodemag(sysFrd,ss(sysm),sysr)
             legend('FOM','ModelFct','ROM');   
