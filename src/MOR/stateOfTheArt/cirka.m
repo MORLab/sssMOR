@@ -42,7 +42,9 @@ function [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys
 %           -.tol:		convergence tolerance;
 %						[{1e-3} / positive float]
 %           -.stopCrit:convergence criterion for CIRKA;
-%                       ['s0' / 'sysr' / 'sysm' / {'combAny'} / 'combAll']
+%                       ['s0' / 'sysr' / 'sysm' / {'combAny'} / 'combAll' / 's0+tanDir']
+%           -.degTol:	convergence tolerance for subspace angles (deg);
+%						[{5} / positive float]
 %           -.verbose:	show text output during iterations;
 %						[{false} / true]
 %           -.plot:     plot results;
@@ -156,8 +158,9 @@ end
     Def.Ltm     = [Lt,Lt];          %default left tangential directions for surrogate
     Def.maxiter = 15;               %maximum number of CIRKA iterations
     Def.tol     = 1e-3;             %tolerance for stopping criterion
+    Def.degTol  = 5;                %telerance for angles between directions
     Def.stopCrit= 'combAny';        %stopping criterion for CIRKA 
-                                    %s0,sysr,sysm,combAny,combAll
+                                    %s0,s0+tanDir, sysr,sysm,combAny,combAll
     Def.verbose         = 0; 
     Def.plot            = 0;        %display text and plots
     Def.suppressWarn    = 0;        %suppress warnings
@@ -167,7 +170,7 @@ end
     Def.stableModelFct  = true;     %make sysm stable
     
     Def.irka.suppressverbose = true;
-    Def.irka.stopCrit        = 'combAny';
+    Def.irka.stopCrit        = 's0';
     Def.irka.lse             = 'full';
     Def.irka.tol             = 1e-6;
 
@@ -181,7 +184,7 @@ end
 %% run computations
     kIter   = 0;
     kIrka   = zeros(1,Opts.maxiter);
-    if any(strcmp(Opts.stopCrit,{'combAny','combAll'}))
+    if any(strcmp(Opts.stopCrit,{'combAny','combAll','s0+tanDir'}))
         nStopVal = 3;
     else
         nStopVal = 1;
@@ -219,7 +222,7 @@ end
         end
         
         % reduction of new model with new starting shifts
-        [sysr, Virka, Wirka, s0new, ~,~,~,~,Rt,~,~,Lt,kIrkaNew] = irka(sysm,s0,Opts.irka);
+        [sysr, Virka, Wirka, s0new, Rtnew, Ltnew, ~,~,~,~,~,~, kIrkaNew] = irka(sysm,s0,Rt,Lt,Opts.irka);
 
         if Opts.plot
             figure; bodemag(sysFrd,ss(sysm),sysr)
@@ -237,7 +240,9 @@ end
             stop = true;
         end
         
-        s0      = s0new;    
+        s0      = s0new;  
+        Rt      = Rtnew;
+        Lt      = Ltnew;
         sysmOld = sysm;
         sysrOld = sysr;
             
@@ -255,10 +260,10 @@ end
     end
     
     % prepare outputs
-    relH2err = norm(sysm-sysr)/norm(sysm);
-    kIrka(kIter+1:end) = []; %remove preallocation
-    V = Vm*Virka;
-    W = Wm*Wirka;
+    relH2err            = norm(sysm-sysr)/norm(sysm);
+    kIrka(kIter+1:end)  = []; %remove preallocation
+    V                   = Vm*Virka;
+    W                   = Wm*Wirka;
     
     %%  Storing additional parameters
     %Stroring additional information about thr reduction in the object 
@@ -309,8 +314,28 @@ end
                     else
                         stopVal = norm((s0-s0new)./s0, 1)/sysr.n;
                     end
-                    stop = (stopVal <= Opts.tol);
                     
+                    %tangential direction convergence
+                    
+                    stop = (stopVal <= Opts.tol);     
+                case 's0+tanDir' 
+                    %shift convergence
+                    [stop(1),stopVal(1)] = verifyStopCrit('s0');
+                                        
+                    %tangential directions
+                    angleRt = zeros(1,sysr.n); %initialization
+                    angleLt = zeros(1,sysr.n); 
+                    for iDir = 1:sysr.n
+                        angleRt(iDir) = abs(rad2deg(subspace(Rt(:,iDir),Rtnew(:,iDir))));
+                        angleLt(iDir) = abs(rad2deg(subspace(Lt(:,iDir),Ltnew(:,iDir))));
+                    end
+                    stopVal(2) = max(angleRt); stopVal(3) = max(angleLt);
+                    
+                    stop(2) = stopVal(2)<=Opts.degTol;
+                    stop(3) = stopVal(3)<=Opts.degTol;
+
+                    %tangential direction convergence
+                    stop = all(stop);  
                 case 'sysr' 
                     %reduced model convergence
 %                     stopVal = inf; %initialize in case the reduced model is unstable
