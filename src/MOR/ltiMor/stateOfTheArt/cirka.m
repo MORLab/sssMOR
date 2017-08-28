@@ -211,6 +211,9 @@ end
     if ~exist('sysm','var')
         %   Generate the model function
         s0m = Opts.s0m;    [sysm, s0mTot, Vm, Wm, nLU] = modelFct(sys,s0m);
+        if Opts.test.recycle.method 
+            test.sysm_initial = sysm;
+        end
     else
         nLU = 0;
     end
