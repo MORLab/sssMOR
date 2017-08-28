@@ -134,9 +134,9 @@ end
 %   Default execution parameters
 Def.maxiter = 50; 
 Def.tol     = 1e-3; 
-Def.type    = ''; %'stab', 'newton', 'restarted'
-Def.verbose = 0; % text output durint iteration?
-Def.stopCrit= 'combAny'; %'s0', 'sysr', 'combAll', 'combAny'
+Def.type    = '';           %'stab', 'newton', 'restarted'
+Def.verbose = 0;            % text output durint iteration?
+Def.stopCrit= 'combAny';    %'s0', 'sysr', 'combAll', 'combAny'
 Def.suppressverbose = 0;
 
 % create the options structure
@@ -284,7 +284,7 @@ function [stop,stopCrit] = stoppingCriterion(s0,s0_old,sysr,sysr_old,Opts)
 switch Opts.stopCrit
     case 's0' %shift convergence
         if any(abs(s0))<1e-3
-             stopCrit = norm((s0-s0_old), 1)/sysr.n;
+            stopCrit = norm((s0-s0_old), 1)/sysr.n;
         else
             stopCrit = norm((s0-s0_old)./s0, 1)/sysr.n;
         end      
