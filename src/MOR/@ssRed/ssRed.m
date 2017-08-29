@@ -452,6 +452,7 @@ classdef ssRed < ss
             
             % call the constructor of the superclass ss
             obj@ss(A,B,C,D,'e',E);
+
             
             % set the name property of the model
             obj.Name = name;
@@ -460,16 +461,17 @@ classdef ssRed < ss
             % system matrices. This is a compatibility fix because the
             % property names changed from lower to upper case in Matlab
             % R2016a. To access the system matrices, use "obj.(obj.a_)"
+            list = ltipack.allprops(obj);
             obj.a_ = ltipack.matchProperty('a',...
-                            ltipack.allprops(obj),class(obj));
+                            list,class(obj));
             obj.b_ = ltipack.matchProperty('b',...
-                            ltipack.allprops(obj),class(obj));
+                            list,class(obj));
             obj.c_ = ltipack.matchProperty('c',...
-                            ltipack.allprops(obj),class(obj));
+                            list,class(obj));
             obj.d_ = ltipack.matchProperty('d',...
-                            ltipack.allprops(obj),class(obj));
+                            list,class(obj));
             obj.e_ = ltipack.matchProperty('e',...
-                            ltipack.allprops(obj),class(obj));
+                            list,class(obj));
             
             % verify correctness of input parameters
             if nargin~=1 && ~isempty(varargin{1})   % not an empty model
@@ -610,10 +612,24 @@ classdef ssRed < ss
                   % make sure system matrices have the right (lower/upper)
                   % case
                   if any(strcmp(arg(1).subs,{'a','b','c','d','e','A','B','C','D','E'}))
-                        arg(1).subs = ltipack.matchProperty(arg(1).subs,...
-                            ltipack.allprops(sys),class(sys));
+                      % previous code:
+%                         arg(1).subs = ltipack.matchProperty(arg(1).subs,...
+%                             ltipack.allprops(ss()),class(sys));
+                      % the proble is that allprops is highly inefficient..
+                      %lower or upper case usage is alredy stored in sys
+                        switch sys.a_
+                            case 'a'
+                                arg(1).subs = ltipack.matchProperty(arg(1).subs,...
+                                    {'a','b','c','d','e'},class(sys));
+                            case 'A'
+                                arg(1).subs = ltipack.matchProperty(arg(1).subs,...
+                                    {'A','B','C','D','E'},class(sys));
+                            otherwise
+                                error('sssMOR:ssRed:subsError','Something is wrong...')
+                        end
                   end
-                 result = builtin('subsref',sys,arg(1));
+                  result = sys.(arg(1).subs);
+%                 result = builtin('subsref',sys,arg(1));
               case '()'
                  result = subparen(sys,arg(1).subs);
               case '{}'
@@ -628,7 +644,7 @@ classdef ssRed < ss
     end
         %% Override operators and build-in-functions
         
-        function infostr = disp(sys)
+        function infostr   = disp(sys)
         % Displays information about a reduced state-space model (Similar
         % to sss/disp, but with additional information)
             if isempty(sys)
@@ -689,7 +705,7 @@ classdef ssRed < ss
             end
         end
         
-        function sys = clear(sys)
+        function sys       = clear(sys)
             sys = ssRed([]);
         end
         
@@ -740,7 +756,7 @@ classdef ssRed < ss
             [varargout{1:nargout}] = sssFunc.eigs(varargin{:});
         end
         
-        function syst = truncate(sys, idxOut, idxIn)
+        function syst      = truncate(sys, idxOut, idxIn)
             args.type = '()';
             args.subs{1} = idxOut;
             args.subs{2} = idxIn;
