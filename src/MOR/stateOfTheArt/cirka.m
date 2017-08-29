@@ -33,8 +33,6 @@ function [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys
 %
 %       *Optional Input Arguments:*
 %       -Opts:			structure with execution parameters
-%			-.qm0:     initial size of model function;
-%                       [{2*length(s0)} / positive integer]
 %           -.sm0:     initial shifts for surrogate;
 %                       [{[s0,s0]} / vector ]
 %           -.maxiter: maximum number of iterations;
@@ -151,8 +149,7 @@ if ~exist('Lt','var') || isempty(Lt)
     Lt = ones(sys.p,length(s0));
 end
 %% Define execution options
-    Def.qm0     = 2*length(s0);     %default initial surrogate size
-    Def.s0m     = shiftVec([s0;2*ones(1,length(s0))]); %default surrogate shifts
+    Def.s0m     = [s0,s0];          %default surrogate shifts
     Def.Rtm     = [Rt,Rt];          %default right tangential directions for surrogate
     Def.Ltm     = [Lt,Lt];          %default left tangential directions for surrogate
     Def.maxiter = 15;               %maximum number of CIRKA iterations

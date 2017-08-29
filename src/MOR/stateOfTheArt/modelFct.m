@@ -192,9 +192,9 @@ function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,varargin)
                         angL = abs(rad2deg(subspace(LtmNew(:,idxOld(iO)),LtmTot(:,idxTot(iO)))));
                         if any([angR,angL] > Opts.degTol) %new tangential direction
                             fprintf(2,'A new tangential direction to old shift found\n');
-                            s0m = [s0m, s0new(idx(iO))];
-                            Rtm = [Rtm, RtmNew(:,idx(iO))];
-                            Ltm = [Ltm, LtmNew(:,idx(iO))];
+                            s0m = [s0m, s0new(idxOld(iO))];
+                            Rtm = [Rtm, RtmNew(:,idxOld(iO))];
+                            Ltm = [Ltm, LtmNew(:,idxOld(iO))];
 %                             if ~isReal(s0new(idx(iO)))
 %                                 %make sure the cplx conjugate partner is
 %                                 %taken as well

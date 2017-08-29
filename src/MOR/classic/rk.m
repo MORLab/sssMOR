@@ -50,6 +50,8 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw, nLU] = rk(sys, s0_inp, varargin)
 %       -Opts:              a structure containing following options
 %           -.real:         keep the projection matrices real
 %                           [{true} / false]
+%           -.cplxTol:      tolerance passed to cplxpair;
+%                           [{1e-3} / float]
 %           -.(refer to help arnoldi for other options)
 %           
 %
@@ -130,14 +132,15 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw, nLU] = rk(sys, s0_inp, varargin)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  09 Aug 2017
+% Last Change:  29 Aug 2017
 % Copyright (c) 2015-2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %%  Parsing
 
 % create the options structure
-Def.real = true; %keep the projection matrices real?       
+Def.real    = true; %keep the projection matrices real?       
+Def.cplxTol = 1e-3; %tolerance passed to cplxpair
 
 % use hess if sys is ssRed object
 if isa(sys,'ssRed')
@@ -191,8 +194,8 @@ if exist('s0_inp', 'var')
     s0_inp = shiftVec(s0_inp);
     % sort expansion points & tangential directions
     s0old = s0_inp;
-    if Opts.real, 
-        s0_inp = cplxpair(s0_inp); %make sure shifts can be paired 
+    if Opts.real 
+        s0_inp = cplxpair(s0_inp,Opts.cplxTol); %make sure shifts can be paired 
     else
         s0_inp = sort(s0_inp);
     end
@@ -212,8 +215,8 @@ if exist('s0_out', 'var')
     s0_out = shiftVec(s0_out);
         % sort expansion points & tangential directions
     s0old = s0_out;
-    if Opts.real, 
-        s0_out = cplxpair(s0_out); %make sure shifts can be paired 
+    if Opts.real
+        s0_out = cplxpair(s0_out,Opts.cplxTol); %make sure shifts can be paired 
     else
         s0_out = sort(s0_out);
     end
