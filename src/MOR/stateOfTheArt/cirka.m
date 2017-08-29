@@ -150,7 +150,6 @@ end
 if ~exist('Lt','var') || isempty(Lt)
     Lt = ones(sys.p,length(s0));
 end
-
 %% Define execution options
     Def.qm0     = 2*length(s0);     %default initial surrogate size
     Def.s0m     = shiftVec([s0;2*ones(1,length(s0))]); %default surrogate shifts
@@ -253,7 +252,7 @@ end
         end     
     end
     
-    %%  Terminate execution  
+%%  Terminate execution  
     % make model function stable by removing ustable modes
     if ~isstable(sysm) && Opts.stableModelFct
         sysm = stabsep(sysm); 
@@ -265,7 +264,7 @@ end
     V                   = Vm*Virka;
     W                   = Wm*Wirka;
     
-    %%  Storing additional parameters
+%%  Storing additional parameters
     %Stroring additional information about thr reduction in the object 
     %containing the reduced model:
     %   1. Define a new field for the Opts struct and write the information
@@ -290,7 +289,7 @@ end
     if Opts.suppressWarn,warning('on','sssMOR:irka:maxiter'); end
 
      
-% ============== AUXILIARY ===============================
+%% ============== AUXILIARY ===============================
     function [stop,stopVal] = verifyStopCrit(varargin)
         % compute the stopping criterion for CIRKA
         

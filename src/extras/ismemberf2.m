@@ -1,8 +1,8 @@
-function idx = ismemberf2(sNew,sOld,tol)
+function [idx, idxOld] = ismemberf2(sNew,sOld,tol)
 % ISMEMBERF2 - determine which elements are within a radius
 %
 % Syntax:
-%       idx = ISMEMBERF2(sNew,sOld,tol)
+%       [idx, idxOld] = ISMEMBERF2(sNew,sOld,tol)
 %
 % Description:
 %       Determine which elements of a vector sNew are already included (within
@@ -13,6 +13,10 @@ function idx = ismemberf2(sNew,sOld,tol)
 %       -sNew:			new set
 %       -sOld:			old set as comparison basis
 %       -tol:           tolerance radius (relative to values)
+%
+% Output Arguments:
+%       - idx:          indices of entries in sNew
+%       - idxOld:       respective indices in sOld
 %
 %
 % See also:
@@ -33,18 +37,23 @@ function idx = ismemberf2(sNew,sOld,tol)
 % Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  22 Nov 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  29 Aug 2017
+% Copyright (c) 2016-2017 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
 %   doing it with loops, there might be a faster version
 
-idx = zeros(1,length(sNew));
+idx     = zeros(1,length(sNew));
+idxOld  = zeros(1,length(sNew));
 if true
     %implementation 1: for loop
     for iS = 1:length(sNew)
-        dist = abs(sOld-sNew(iS));
-        idx(iS) = any(dist<abs(sOld)*tol);
+        dist    = abs(sOld-sNew(iS));
+        [mD,iD] = min(dist);
+        if mD <= abs(sOld(iD))*tol
+            idx(iS)     = true;
+            idxOld(iS)  = iD;
+        end
     end
 else
 %     %implementation 2: vectorized

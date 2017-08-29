@@ -41,6 +41,8 @@ function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,varargin)
 %                       [{'new'} / 'all' / 'lean' ]
 %            -.modelTol:tolerance for identifying new shifts;
 %                       [{1e-2} / positive float ]
+%            -.degTol:	convergence tolerance for subspace angles (deg);
+%						[{5} / positive float]
 %            -.plot     : generate analysis plots;
 %						[{false} / true]
 %            -.tol:		convergence tolerance;
@@ -119,7 +121,7 @@ function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,varargin)
         LtmTot = Ltm;
         V = []; W = []; 
     else %model function update
-        [s0m,Rtm,Ltm]   = updateModelFctShifts(s0mTot,s0m,Rtm,Ltm,Opts);           
+        [s0m,Rtm,Ltm]   = updateModelFctShifts(s0mTot,s0m,RtmTot,Rtm,LtmTot,Ltm,Opts);           
         s0mTot          = [s0mTot, s0m];
         RtmTot          = [RtmTot, Rtm];
         LtmTot          = [LtmTot, Ltm];
@@ -130,6 +132,7 @@ function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,varargin)
     %%  Define default execution parameters
     Def.updateModel = 'new'; % 'all','new','lean'
     Def.modelTol    = 1e-3;
+    Def.degTol      = 5;    %deg
     Def.plot        = false;
 
     if ~exist('Opts','var') || isempty(Opts)
@@ -160,7 +163,7 @@ function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,varargin)
     
 %%  Auxiliary functions --------------------------------------------------
     %%  Shift and model function update
-    function [s0m,Rtm,Ltm] = updateModelFctShifts(s0mTot,s0new,RtmNew,LtmNew,Opts)
+    function [s0m,Rtm,Ltm] = updateModelFctShifts(s0mTot,s0new,RtmTot,RtmNew,LtmTot,LtmNew,Opts)
         switch Opts.updateModel
             case 'all'
                 s0m = s0new;
@@ -170,14 +173,32 @@ function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,varargin)
                 % give robustness warning from MIMO
                 if size(Rtm,1)> 1 || size(Ltm,1)>1
                     warning('sssMOR:modelFct:updateAllMimo',...
-                        'The update option ''all''for MIMO models is not robust enough to cover higher multiplicieties');
+                        'The update option ''all''for MIMO models is not robust enough to cover higher multiplicities');
                 end
             case 'new'
-                % currently, new is only checking for shifts
-                idx = ismemberf2(s0new,s0mTot,Opts.modelTol); 
+                % a) find shifts alredy used
+                [idx,idxTot] = ismemberf2(s0new,s0mTot,Opts.modelTol); 
+                % add new shifts and respective tangential directions
                 s0m = s0new(~idx);
                 Rtm = RtmNew(:,~idx);
                 Ltm = LtmNew(:,~idx);
+                
+                % b) find old shifts with different tangential directions
+                if any(idx) && (size(Rtm,1) > 1 || size(Ltm,1) > 1) %only for MIMO
+                    idxOld   = find(idx);
+                    idxTot   = idxTot(idxOld);
+                    for iO = 1:length(idxOld)
+                        angR = abs(rad2deg(subspace(RtmNew(:,idxOld(iO)),RtmTot(:,idxTot(iO)))));
+                        angL = abs(rad2deg(subspace(LtmNew(:,idxOld(iO)),LtmTot(:,idxTot(iO)))));
+                        if any([angR,angL] > Opts.degTol) %new tangential direction
+                            fprintf(2,'A new tangential direction to old shift found\n');
+                            s0m = [s0m, s0new(idx(iNew))];
+                            Rtm = [Rtm, RtmNew(:,idx(iNew))];
+                            Ltm = [Ltm, LtmNew(:,idx(iNew))];
+                        end
+                    end
+                end
+                
                 if Opts.plot
                     fh = figure; lh(1) = plot(complex(s0mTot),'xb'); hold on
                     lh(2) = plot(complex(s0new),'or');
