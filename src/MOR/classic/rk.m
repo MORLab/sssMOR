@@ -197,7 +197,7 @@ if exist('s0_inp', 'var')
         s0_inp = sort(s0_inp);
     end
     if exist('Rt','var') && ~isempty(Rt)
-        if size(Rt,2) ~= length(s0_inp),error('Inconsistent size of Rt');end
+        if size(Rt,2) ~= length(s0_inp),error('sssMOR:rk:sizeOfRt','Inconsistent size of Rt');end
         
         [~,cplxSorting] = ismember(s0_inp,s0old); 
         Rt = Rt(:,cplxSorting);
