@@ -192,13 +192,22 @@ function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,varargin)
                         angL = abs(rad2deg(subspace(LtmNew(:,idxOld(iO)),LtmTot(:,idxTot(iO)))));
                         if any([angR,angL] > Opts.degTol) %new tangential direction
                             fprintf(2,'A new tangential direction to old shift found\n');
-                            s0m = [s0m, s0new(idx(iNew))];
-                            Rtm = [Rtm, RtmNew(:,idx(iNew))];
-                            Ltm = [Ltm, LtmNew(:,idx(iNew))];
+                            s0m = [s0m, s0new(idx(iO))];
+                            Rtm = [Rtm, RtmNew(:,idx(iO))];
+                            Ltm = [Ltm, LtmNew(:,idx(iO))];
+%                             if ~isReal(s0new(idx(iO)))
+%                                 %make sure the cplx conjugate partner is
+%                                 %taken as well
+%                                 iO  = iO+1;
+%                                 s0m = [s0m, s0new(idx(iO))];
+%                                 Rtm = [Rtm, RtmNew(:,idx(iO))];
+%                                 Ltm = [Ltm, LtmNew(:,idx(iO))];
+%                             end
                         end
                     end
                 end
                 
+                % Plot shifts
                 if Opts.plot
                     fh = figure; lh(1) = plot(complex(s0mTot),'xb'); hold on
                     lh(2) = plot(complex(s0new),'or');
@@ -239,9 +248,9 @@ function [sysm,s0mTot,RtmTot,LtmTot,V,W,nLU] = modelFct(sys,s0m,varargin)
                     %SISO    
                     idxComplex = find(imag(s0));
                     if ~isempty(idxComplex)
-                        s0c = cplxpair(s0(idxComplex));
-                        s0(idxComplex) = []; %real shifts
-                        s0 = [s0 s0c(1:2:end)]; %add 1 complex shift per complex partner
+                        s0c             = cplxpair(s0(idxComplex));
+                        s0(idxComplex)  = []; %real shifts
+                        s0              = [s0 s0c(1:2:end)]; %add 1 complex shift per complex partner
                     end
                     nLU = 0;
                     for iShift = 1:length(s0)
