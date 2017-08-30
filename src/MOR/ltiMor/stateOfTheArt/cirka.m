@@ -252,9 +252,8 @@ end
         end
         
         % reduction of new model with new starting shifts
-        [sysr, Virka, Wirka, s0new, ~,~,~,~,R,~,~,L,kIrkaNew,~,~,~,nLUk] = irka(sysm,s0,Opts.irka);
-        nLU = nLU + nLUk;           % update count of LU decompositions
-        
+        [sysr, Virka, Wirka, s0new, ~,~,~,~,R,~,~,L,kIrkaNew] = irka(sysm,s0,Opts.irka);
+ 
         if Opts.plot 
             figure; bodemag(sysFrd,ss(sysm),sysr)
             legend('FOM','ModelFct','ROM');   
