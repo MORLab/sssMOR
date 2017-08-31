@@ -249,6 +249,8 @@ end
         
         if kIter == 2 && Opts.test.recycle.method 
             test.sysm = sysm;
+            test.Vm   = Vm;
+            test.Wm   = Wm;
         end
         
         % reduction of new model with new starting shifts
