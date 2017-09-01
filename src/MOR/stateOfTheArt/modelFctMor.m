@@ -1,5 +1,5 @@
 function [sysr, s0, sysm, relH2err] = modelFctMor(sys,redFct,varargin)
-% MODELFCTMOR - model function-based model order reduction
+% MODELFCTMOR - Model function-based model order reduction
 %
 % Syntax:
 %       MODELFCTMOR(sys,redFct)

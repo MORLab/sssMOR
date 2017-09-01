@@ -1,5 +1,5 @@
 function [sysm, s0mTot, V, W,nLU] = modelFct(sys,s0m,s0mTot,V,W,Opts)
-% MODELFCT - computes or updates the model function of an sss object
+% MODELFCT - Computes or updates the model function of an sss object
 %
 % Syntax:
 %       sysm = MODELFCT(sys,s0m)

@@ -1,5 +1,5 @@
 function idx = ismemberf2(sNew,sOld,tol)
-% ISMEMBERF2 - determine which elements are within a radius
+% ISMEMBERF2 - Determine which elements are within a radius
 %
 % Syntax:
 %       idx = ISMEMBERF2(sNew,sOld,tol)

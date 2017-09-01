@@ -1,5 +1,5 @@
 function varargout = getDesiredOutput(func,outputNo,varargin)
-% GETDESIREDOUTPUT - get only the desired output from a function
+% GETDESIREDOUTPUT - Get only the desired output from a function
 %
 % Syntax:
 %       GETDESIREDOUTPUT(func,outputNo)
