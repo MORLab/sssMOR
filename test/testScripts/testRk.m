@@ -110,7 +110,7 @@ classdef testRk < sssTest
          end 
          function SISOTwoSidedDescriptor (testCase) 
               %two-sided reduction with E-matrix SISO
-              sys = loadSss('SpiralInductorPeec');
+              sys = sss('SpiralInductorPeec');
                 
                 Opts.stopCrit = 's0';
                 %  get good shifts
@@ -143,7 +143,7 @@ classdef testRk < sssTest
               verification(testCase, actSolution, expSolution, sysr);
          end 
          function MIMOoneSidedRealShifts (testCase)
-             sys = loadSss('CDplayer');
+             sys = sss('CDplayer');
              
              n = 4; s0 = 100*rand(1,n);
              
@@ -172,7 +172,7 @@ classdef testRk < sssTest
              verifyLessThanOrEqual(testCase,abs(MeL),1e-8,'MeL: Moments do not match') 
          end
          function MIMOoneSidedComplexShiftsRealModel (testCase)
-             sys = loadSss('CDplayer');
+             sys = sss('CDplayer');
              
              n = 4; 
              s0 = 100*(rand(1,n)+1i*randn(1,n)); s0([2,4]) = conj(s0([1,3]));
@@ -202,7 +202,7 @@ classdef testRk < sssTest
              verifyLessThanOrEqual(testCase,abs(MeL),1e-8,'MeL: Moments do not match') 
          end
          function MIMOoneSidedComplexShiftsComplexModel (testCase)
-             sys = loadSss('CDplayer');
+             sys = sss('CDplayer');
              
              n = 4; Opts.real = false;
              
@@ -235,7 +235,7 @@ classdef testRk < sssTest
              verifyLessThanOrEqual(testCase,abs(MeL),1e-8,'MeL: Moments do not match') 
          end
          function MIMOtwoSidedComplexShiftsComplexModel (testCase) 
-             sys = loadSss('CDplayer');
+             sys = sss('CDplayer');
              
              n = 4; 
              %  Complex shifts and tangential directions
@@ -265,7 +265,7 @@ classdef testRk < sssTest
              % test if sorting shifts/tangential directions messes up
              % something
              
-             sys = loadSss('CDplayer');
+             sys = sss('CDplayer');
              
              n = 4; 
              %  Complex shifts and tangential directions
@@ -322,7 +322,7 @@ classdef testRk < sssTest
          function MISO_SIMO (testCase) 
              % test if non-quadratic models are dealt with correctly
              
-             sysMIMO = loadSss('CDplayer');
+             sysMIMO = sss('CDplayer');
                           
              for idx = 1:2
                  if idx == 1
