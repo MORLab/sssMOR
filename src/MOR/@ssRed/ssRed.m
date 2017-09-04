@@ -652,7 +652,7 @@ classdef ssRed < ss
                 elseif sys.isMimo;   str = [str '(MIMO)'];
                 end
 
-                str = [str  char(10), num2str(sys.n) ' states, ' num2str(sys.m) ...
+                str = [str  char(10), num2str(sys.n) ' state variables, ' num2str(sys.m) ...
                     ' inputs, ' num2str(sys.p) ' outputs'];
 
                 if sys.Ts==0
