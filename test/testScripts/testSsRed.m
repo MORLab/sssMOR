@@ -56,7 +56,7 @@ classdef testSsRed < sssTest
             bode(sysr);
             impulse(sysr);
             pole(sysr);
-            zero(sysr);
+            tzero(sysr);
             zpk(sysr);
             tzero(sysr);
             

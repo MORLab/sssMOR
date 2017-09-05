@@ -56,7 +56,7 @@ classdef testModal < sssTest
         end
         function descriptorSymmetric(testCase) 
             %with E-matrix, symmetric
-            sys = loadSss('rail_1357');
+            sys = sss('rail_1357');
             
             q = 10;
             Opts.type='SM';
