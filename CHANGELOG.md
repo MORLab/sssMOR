@@ -25,8 +25,6 @@ v2.00 [06 September 2017]
   * added p-Functions publishDoc.p and publishFunction.p to be able to update the documentation whenever headers are changed.
 - CPLXPAIRALL
   * added function to sort several arrays with respect to the sorting of the first input argument as of cplxpair
-- CRKSM
-  * added a function to solve Lyapunov equations by means of cumulative rational Krylov subspace method
 - STABSEP
   * added an own function to separate an ustable model into a stable and antistable part. In addition to the built-in function, it returns also the projection matrices resulting in the submodels.
 - L2NORM
