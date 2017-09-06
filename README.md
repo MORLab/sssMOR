@@ -13,8 +13,7 @@ For more information, type `doc` in the command window or visit http://www.rt.mw
 
 *Some functions require:* Control System Toolbox, Optimization Toolbox.
 
-> Note: The Gitlab repositories hosting the sss and sssMOR projects will become public soon, making it even easier for you to contribute to the sssMOR project.
->Sign up for our newsletter under https://lists.lrz.de/mailman/listinfo/sssmor to stay up to date.
+> Note: Sign up for our newsletter under https://lists.lrz.de/mailman/listinfo/morlab to stay up to date.
 
 ***
 Copyright
@@ -32,7 +31,7 @@ The team of [Morembs](http://www.itm.uni-stuttgart.de/research/model_reduction/M
 Developing guidelines
 ----------------------
 
-We hope that you enjoy the the toolbox and would like to contribute by extending its capability.
+We hope that you enjoy the toolbox and would like to contribute by extending its capability.
 To make sure that the developing does not get out of hand, we prepared a few guidelines that we ask you to follow.
 
 
@@ -44,7 +43,6 @@ The folder structure of the toolbox is as follows
  	- **doc**
 	- **src** (source code)
 		- **extras**
-		- **LyapunovEq** 
 		- **MOR** (reduction algorithms)
 		    - **@ssRed** (class definition for reduced objects)
 		    - **classic**
@@ -53,4 +51,4 @@ The folder structure of the toolbox is as follows
 
 
 ### Documentation
-To automatically generated the documentation for the toolbox from the function headers, type `publishDoc('sssMOR')` in the command window. Make sure to format the function headers according to the ``headerTemplate.m`` provided. To publish the documentation for a single function, use syntax `publishFunction('function name')`.
+To automatically generate the documentation for the toolbox from the function headers, type `publishDoc('sssMOR')` in the command window. Make sure to format the function headers according to the ``headerTemplate.m`` provided. To publish the documentation for a single function, use syntax `publishFunction('function name')`.
