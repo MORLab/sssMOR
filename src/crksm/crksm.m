@@ -5,27 +5,29 @@ function [S,R,output_data] = crksm(varargin)
 %              APE' + EPA' + BB' = 0 (I)
 %              AQE' + EQA' + C'C = 0 (II)
 %
-% Synthax MY_RKSM
-%       [S,R,output_data]         = MY_RKSM(sys, s0_inp)
-%       [S,R,output_data]         = MY_RKSM(sys, s0_inp, Rt)
-%       [S,R,output_data]         = MY_RKSM(sys, [], s0_out)
-%       [S,R,output_data]         = MY_RKSM(sys, [], s0_out, [], Lt)
-%       [S,R,output_data]         = MY_RKSM(sys, s0_inp, s0_out)
-%       [S,R,output_data]         = MY_RKSM(sys, s0_inp, s0_out, Rt, Lt)
-%       [S,R,output_data]         = MY_RKSM(sys,...,Opts_rksm)
+% Synthax CRKSM
+%       [S,R,output_data]         = CRKSM(sys, s0_inp)
+%       [S,R,output_data]         = CRKSM(sys, s0_inp, Rt)
+%       [S,R,output_data]         = CRKSM(sys, [], s0_out)
+%       [S,R,output_data]         = CRKSM(sys, [], s0_out, [], Lt)
+%       [S,R,output_data]         = CRKSM(sys, s0_inp, s0_out)
+%       [S,R,output_data]         = CRKSM(sys, s0_inp, s0_out, Rt, Lt)
+%       [S,R,output_data]         = CRKSM(sys,...,Opts_rksm)
 %
-%       [S,output_data]           = MY_RKSM(A,B,[],[],s0_inp) 
-%       [S,output_data]           = MY_RKSM(A,B,[],[],s0_inp,Rt) 
-%       [S,R,output_data]         = MY_RKSM(A,B,C, [],s0_inp)
-%       [S,R,output_data]         = MY_RKSM(A,B,C, [],s0_inp,s0_out) 
-%       [S,R,output_data]         = MY_RKSM(A,[],C, [],[],s0_out,[],Lt) 
-%       [S,R,output_data]         = MY_RKSM(A,B,C, [],s_inp,s_out,Rt,Lt) 
-%       [S,output_data]           = MY_RKSM(A,B,[] ,E,s0_inp) 
-%       [S,output_data]           = MY_RKSM(A,B,[] ,E,s0_inp,Rt) 
-%       [S,R,output_data]         = MY_RKSM(A,B,C,E,s0_inp) 
-%       [S,R,output_data]         = MY_RKSM(A,B,C,E,s0_inp,s0_out) 
-%       [S,R,output_data]         = MY_RKSM(A,B,C,E,s0_inp,s0_out,Rt,Lt) 
-%       [S,R,output_data]         = MY_RKSM(A,B,...,s_inp,...,Opts_rksm) 
+%       [S,output_data]           = CRKSM(A,B,[],[],s0_inp) 
+%       [S,output_data]           = CRKSM(A,B,[],[],s0_inp,Rt) 
+%       [S,R,output_data]         = CRKSM(A,B,C, [],s0_inp)
+%       [S,R,output_data]         = CRKSM(A,B,C, [],s0_inp,s0_out) 
+%       [S,R,output_data]         = CRKSM(A,B,C, [],[],s0_out) 
+%       [S,R,output_data]         = CRKSM(A,[],C,[],[],s0_out,[],Lt) 
+%       [S,R,output_data]         = CRKSM(A,B,C, [],s_inp,s_out,Rt,Lt) 
+%       [S,output_data]           = CRKSM(A,B,[] ,E,s0_inp) 
+%       [S,output_data]           = CRKSM(A,B,[] ,E,s0_inp,Rt) 
+%       [S,R,output_data]         = CRKSM(A,B,C,E,s0_inp) 
+%       [S,R,output_data]         = CRKSM(A,B,C,E,s0_inp,s0_out) 
+%       [S,R,output_data]         = CRKSM(A,B,C,E,[],s0_out) 
+%       [S,R,output_data]         = CRKSM(A,B,C,E,s0_inp,s0_out,Rt,Lt) 
+%       [S,R,output_data]         = CRKSM(A,B,...,s_inp,...,Opts_rksm) 
 %
 % Input:
 %       - system matrices A, B, C, and E or a sys-object
@@ -76,22 +78,26 @@ function [S,R,output_data] = crksm(varargin)
 
 %% Still To Come
 % - extended case nach moeglichkeit aufloesen
-% pointer bei matrizen input machen
 
 %% Create Def-struct containing default values and make global settings
 % Note: there may be no point named Def.reuseLU, otherwise one gets a conflict with solveLse/lyapchol/bilyapchol
 
+% general default option settings for MOR and Lyapunov
+Def.crksmUsage           = 'lyapunov';         % ['lyapunov' / 'MOR']
 Def.crksmMethod          = 'rational';         % ['rational' / 'extended']
 Def.shifts               = 'cyclic';           % ['cyclic' / 'adaptive' / 'mess']
+Def.orth                 = '2mgs';             % for Gramschmidt
+Def.maxiter_rksm         =  200;               % default number of iterations
+Def.info_crksm           =  0;                 % show programme status information, [0 / 1]
+
+% default option settings for MOR
+Def.real                 = true;               % [true / false], true means to keep the subspace real
+
+% default option settings for Lyapunov
 Def.residual             = 'residual_lyap';    % ['residual_lyap' / 'norm_chol']
+Def.rctol                =  1e-12;             % default tolerance
 Def.rksmnorm             = 'H2';               % ['H2' / 'fro']
 Def.lowrank              =  0;                 % [0 / 1]
-Def.orth                 = '2mgs';             % for Gramschmidt
-Def.rctol                =  1e-12;             % default tolerance
-Def.maxiter_rksm         =  200;               % default number of iterations
-Def.info_rksm            =  0;                 % show programme status information, [0 / 1]
-Def.lse                  = 'sparse';           % for solveLse function
-Def.real                 = true;
 
 % global variables
 global hermite_gram_sch  
@@ -131,27 +137,35 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
 
     % check usage and inputs
     if length(varargin) == 2                            % usage: CRKSM(sys, s0_inp)
-        s0_inp = varargin{2};                s0_out = [];            pointer = @blockV;      input = 1;
-        Rt     = [];                         Lt     = [];
+        s0_inp = varargin{2};                s0_out  = [];        
+        Rt     = [];                         Lt      = [];
+        input  = 1;                          pointer = @blockV;
     elseif length(varargin) == 3       
-        if size(varargin{3},1) == m && size(varargin{3},2) == size(varargin{2},2)   % usage: CRKSM(sys, s0_inp, Rt)
-            s0_inp = varargin{2};            s0_out = [];            pointer = @tangentialV;  input = 2;
-            Rt     = varargin{3};            Lt     = [];
+        if size(varargin{3},1) == m &&...
+           size(varargin{3},2) == size(varargin{2},2)   % usage: CRKSM(sys, s0_inp, Rt)
+            s0_inp = varargin{2};            s0_out  = [];           
+            Rt     = varargin{3};            Lt      = [];
+            input  = 2;                      pointer = @tangentialV;
         elseif isempty(varargin{2})                     % usage: CRKSM(sys, [], s0_out)
-            s0_inp = [];                     s0_out = varargin{3};   pointer = @blockW;       input = 3;
-            Rt     = [];                     Lt     = [];
+            s0_inp = [];                     s0_out  = varargin{3};  
+            Rt     = [];                     Lt      = [];
+            input  = 3;                      pointer = @blockW;
         else                                            % usage: CRKSM(sys, s0_inp, s0_out)
-            s0_inp = varargin{2};            s0_out = varargin{3};   pointerV = @blockV;      input = 4;
-            Rt     = [];                     Lt     = [];            pointerW = @blockW;
-
+            s0_inp = varargin{2};            s0_out  = varargin{3};      
+            Rt     = [];                     Lt      = [];           
+            input  = 4;                      pointerV = @blockV;
+                                             pointerW = @blockW;
         end 
     elseif length(varargin) == 5
         if isempty(varargin{2})                         % usage: CRKSM(sys, [], s0_out, [], Lt)
-            s0_inp = [];                     s0_out = varargin{3};   pointer = @tangentialW;  input = 5;
-            Rt     = [];                     Lt     = varargin{5};
+            s0_inp = [];                     s0_out  = varargin{3};  
+            Rt     = [];                     Lt      = varargin{5};
+            input  = 5;                      pointer = @tangentialW;
         else                                            % usage: CRKSM(sys, s0_inp, s0_out, Rt, Lt)
-            s0_inp = varargin{2};            s0_out = varargin{3};   pointerV = @tangentialV; input = 6;
-            Rt     = varargin{4};            Lt     = varargin{5};   pointerW = @tangentialW;
+            s0_inp = varargin{2};            s0_out  = varargin{3};  
+            Rt     = varargin{4};            Lt      = varargin{5};   
+            input  = 6;                      pointerV = @tangentialV;
+                                             pointerW = @tangentialW;
         end  
     else
         error('Input not compatible with current crksm implementation');
@@ -166,27 +180,43 @@ elseif length(varargin) > 1
 
     % set other inputs
     if nargin == 5
-        C      = varargin{3};      E      = varargin{4};
-        s0_inp = varargin{5};      s0_out = [];
-        Rt     = [];               Lt     = [];
+        C      = varargin{3};              E       = varargin{4};  
+        s0_inp = varargin{5};              s0_out  = [];
+        Rt     = [];                       Lt      = [];
+        input  = 1;                        pointer = @blockV;
         if isempty(E),  E = speye(size(A)); end
     elseif nargin == 6
         if isempty(varargin{3})                                   
-            C      = [];               E      = varargin{4};
-            s0_inp = varargin{5};      s0_out = [];
-            Rt     = varargin{6};      Lt     = []; 
+            C      = [];                   E       = varargin{4};
+            s0_inp = varargin{5};          s0_out  = [];
+            Rt     = varargin{6};          Lt      = []; 
+            input  = 2;                    pointer = @tangentialV;
             if isempty(E),  E = speye(size(A)); end
         elseif isempty(varargin{4}) && size(varargin{6,1}) ~= m    
-            C      = varargin{3};      E      = varargin{4};
-            s0_inp = varargin{5};      s0_out = varargin{6};
-            Rt     = [];               Lt     = []; 
+            C      = varargin{3};          E      = varargin{4};
+            s0_inp = varargin{5};          s0_out = varargin{6};
+            Rt     = [];                   Lt     = []; 
+            input  = 4;                    pointerV = @blockV;
+                                           pointerW = @blockW; 
             if isempty(E),  E = speye(size(A)); end
+            if isempty(s0_inp)
+                input  = 3;  
+                pointer = @blockW;     
+                clear pointerV pointerW
+            end
         end
     elseif nargin == 8
-            C      = varargin{3};      E      = varargin{4};
-            s0_inp = varargin{5};      s0_out = varargin{6};
-            Rt     = varargin{7};      Lt     = varargin{8}; 
-            if isempty(E),  E = speye(size(A)); end
+            C      = varargin{3};          E      = varargin{4};
+            s0_inp = varargin{5};          s0_out = varargin{6};
+            Rt     = varargin{7};          Lt     = varargin{8}; 
+            input  = 6;                    pointerV = @tangentialV;
+                                           pointerW = @tangentialW;
+            if isempty(E),       E = speye(size(A));                  end
+            if isempty(s0_inp)
+                input  = 5;  
+                pointer = @tangentialW;     
+                clear pointerV pointerW
+            end                      
     else
         if length(varargin) > 8 || length(varargin) < 3
             error('Wrong input');
@@ -197,9 +227,17 @@ end
 % check settings 
 if ~isempty(s0_out) && ~exist('p','var'),         p = size(C,1);   end
 
-% check shifts and tangential directions, make column vectors, check if extended or rational krylov
+% check shifts and tangential directions, check Opts-field OPts.crksmUsage, check if extended or rational krylov
 [s0_inp,s0_out,Rt,Lt] = parseShifts(s0_inp,s0_out,Rt,Lt,n,m,p,Opts);
+if strcmp(Opts.crksmUsage,'lyapunov')
+    usage = @crksmLyap;
+else
+    usage = @crksmSysr;
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% bug
 if s0_inp(1,1) == 0 && s0_inp(1,2) == inf,   Opts.shifts = 'cyclic'; end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % clear arguements
 clear Def sys varargin p m
@@ -216,7 +254,7 @@ switch Opts.crksmMethod
                 case 3
                     [basis2] = arnoldi(E',A',C',s0_out(1,1:2));
                 case 4
-                    [basis1] = arnoldi(E,A,B,s0_inp(1:2,1));
+                    [basis1] = arnoldi(E,A,B,s0_inp(1,1:2));
                     [basis2] = arnoldi(E',A',C',s0_out(1,1:2));
                 case 5
                     [basis2] = arnoldi(E',A',C',s0_out(1,1:2),Lt(:,1:2));
@@ -259,7 +297,7 @@ switch Opts.crksmMethod
             if exist('S','var')
                 if size(basis1,2) == (ii-1)*size(newdir1,2)
                     
-                    % start again with the first shift in s0_inp/s0_out
+                    % get shifts and tangetial directions
                     if ii > size(s0_inp,2)
                         % get new shifts
                         if strcmp(Opts.shifts,'cyclic')
@@ -270,7 +308,7 @@ switch Opts.crksmMethod
                             if ~isempty(Lt),        Lt     = repmat(Lt,1,2);     end
                         elseif strcmp(Opts.shifts,'adaptive')
                         % hier adaptive shifts
-                        elseif strcmp(Opts.shifts,'mess')
+                        else
                         % hier irgendeine andere Funktion um shifts zu berechnen
                         end
                     end
@@ -309,69 +347,11 @@ switch Opts.crksmMethod
                end
            end % end of if ii> size(basis1,2)
                     
-           % save last Cholesky factor of solution for norm_chol
-           if strcmp(Opts.residual,'norm_chol') && ii > 2,  S_last = S;  end
-                   
-           % try to solve Lyapunov equation first with lyapchol or second with lyap
-           try
-               S = lyapchol(Ar,Br,Er);
-               if nargout >= 2 && ~isempty(basis2)
-                   R = lyapchol(Ar',Cr',Er');
-               end
-           catch
-               S = lyap(Ar,Br*Br',[],Er);
-               if nargout >= 2 && ~isempty(basis2)
-                   R = lyap(Ar',Cr'*Cr,[],Er');
-               end
-           end
-                      
-           % choose computation of norm/stopping criteria
-           if strcmp(Opts.residual,'residual_lyap') || ii <= 2
-               % test determination (computation of residual after Panzer/Wolff)
-               % compute Er^-1*Br and Er^-1*Ar and other factors
-               Er_inv_Br = solveLse(Er,Br);
-               Opts.reuseLU = 1;
-               Er_inv_Ar = solveLse(Er,Ar,Opts);
-               AV = A*basis1;        EV = E*basis1;
-               %Pr = S'*S;
-
-               % compute factors from residual
-               Borth = B-EV*Er_inv_Br;
-               %B_s     = B-EV*(Er\Br);
-
-               Borth2 = Borth'*Borth;
-               %BstBs   = B_s'*B_s;
-               
-               Cr_hat_rhs = Borth'*(AV-EV*Er_inv_Ar);
-               Cr_hat = solveLse(Borth2,Cr_hat_rhs);
-               %F = E*V*(Er_inv_Br+(S*S')*Cr_hat');
-               F = E*basis1*(Er_inv_Br+(S'*S)*Cr_hat');
- 
-               % compute residual norm (Euclidean Norm)
-               if strcmp(Opts.rksmnorm, 'H2')
-                   res0  = norm(Br' * Br,2);
-                   output_data.res0(1,ii) = res0;
-                   Rnorm = max(abs(eig(full([Borth2+Borth'*F, Borth2; F'*Borth+F'*F, F'*Borth])))) / res0; 
-               else
-                   % Frobenius Norm
-                   res0  = norm(Br' * Br,'fro');
-                   output_data.res0(1,ii) = res0;
-                   Rnorm = sqrt(sum(eig(full([Borth2+Borth'*F, Borth2; F'*Borth+F'*F, F'*Borth])))^2) / res0;
-               end
-           else
-               if strcmp(Opts.rksmnorm, 'H2')
-                   %X_lastnorm = norm(S_last);
-                   X_lastnorm = NormFrobEfficient(1,S_last);
-                   %X_norm = norm(S);
-                   X_norm = NormFrobEfficient(1,S);
-               else
-                   X_lastnorm = NormFrobEfficient(0,S_last);
-                   X_norm = NormFrobEfficient(0,S);
-               end
-               output_data.lastnorm(1,ii)=X_norm;  
-               output_data.lastnorm(2,ii)=X_lastnorm ;
-               Rnorm = abs(X_norm-X_lastnorm);
-           end
+           % call usage function
+           %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            
+           %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+           
            output_data.norm_val(1,ii) = Rnorm;
            
            % show status information
@@ -435,7 +415,10 @@ switch Opts.crksmMethod
                    end
                end
                % make newdir of basis1 and/or basis 2 real again
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % bug
                newdir1 = zeros(n,size(newdir1,2));
+               %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
            end
         end  % end of for loop
         if ii == Opts.maxiter_rksm  && Rnorm > Opts.rctol
@@ -925,8 +908,8 @@ end
 function [wnew] = blockW(A,~,~,E,~,W,~,s0_out,~,~,iter,colIndex)
     persistent Anew_W
     rhsC = E'*W(:,size(W,2)-(colIndex-1):size(W,2));
-    if s0_out(1,iter) ~= sLast && s ~= conj(s0_out(1,iter-1))
-        Anew_W = (A-s_out(1,iter)*E)'; 
+    if s0_out(1,iter) ~= s0_out(1,iter-1) && s0_out(1,iter) ~= conj(s0_out(1,iter-1))
+        Anew_W = (A-s0_out(1,iter)*E)'; 
         [wnew] = solveLse(Anew_W,rhsC);
     else
         Opts.reuseLU = 1;
@@ -956,6 +939,77 @@ function [wnew] = tangentialW(A,~,C,E,~,W,~,s0_out,~,Lt,iter,colIndex)
         Opts.reuseLU = 1;
         [wnew] = solveLse(Anew_W,C'*Lt(:,iter),Opts);
     end
+end
+
+function [] = crksmLyap()
+% save last Cholesky factor of solution for norm_chol
+           if strcmp(Opts.residual,'norm_chol') && ii > 2,  S_last = S;  end
+                   
+           % try to solve Lyapunov equation first with lyapchol or second with lyap
+           try
+               S = lyapchol(Ar,Br,Er);
+               if nargout >= 2 && ~isempty(basis2)
+                   R = lyapchol(Ar',Cr',Er');
+               end
+           catch
+               S = lyap(Ar,Br*Br',[],Er);
+               if nargout >= 2 && ~isempty(basis2)
+                   R = lyap(Ar',Cr'*Cr,[],Er');
+               end
+           end
+                      
+           % choose computation of norm/stopping criteria
+           if strcmp(Opts.residual,'residual_lyap') || ii <= 2
+               % test determination (computation of residual after Panzer/Wolff)
+               % compute Er^-1*Br and Er^-1*Ar and other factors
+               Er_inv_Br = solveLse(Er,Br);
+               Opts.reuseLU = 1;
+               Er_inv_Ar = solveLse(Er,Ar,Opts);
+               AV = A*basis1;        EV = E*basis1;
+               %Pr = S'*S;
+
+               % compute factors from residual
+               Borth = B-EV*Er_inv_Br;
+               %B_s     = B-EV*(Er\Br);
+
+               Borth2 = Borth'*Borth;
+               %BstBs   = B_s'*B_s;
+               
+               Cr_hat_rhs = Borth'*(AV-EV*Er_inv_Ar);
+               Cr_hat = solveLse(Borth2,Cr_hat_rhs);
+               %F = E*V*(Er_inv_Br+(S*S')*Cr_hat');
+               F = E*basis1*(Er_inv_Br+(S'*S)*Cr_hat');
+ 
+               % compute residual norm (Euclidean Norm)
+               if strcmp(Opts.rksmnorm, 'H2')
+                   res0  = norm(Br' * Br,2);
+                   output_data.res0(1,ii) = res0;
+                   Rnorm = max(abs(eig(full([Borth2+Borth'*F, Borth2; F'*Borth+F'*F, F'*Borth])))) / res0; 
+               else
+                   % Frobenius Norm
+                   res0  = norm(Br' * Br,'fro');
+                   output_data.res0(1,ii) = res0;
+                   Rnorm = sqrt(sum(eig(full([Borth2+Borth'*F, Borth2; F'*Borth+F'*F, F'*Borth])))^2) / res0;
+               end
+           else
+               if strcmp(Opts.rksmnorm, 'H2')
+                   %X_lastnorm = norm(S_last);
+                   X_lastnorm = NormFrobEfficient(1,S_last);
+                   %X_norm = norm(S);
+                   X_norm = NormFrobEfficient(1,S);
+               else
+                   X_lastnorm = NormFrobEfficient(0,S_last);
+                   X_norm = NormFrobEfficient(0,S);
+               end
+               output_data.lastnorm(1,ii)=X_norm;  
+               output_data.lastnorm(2,ii)=X_lastnorm ;
+               Rnorm = abs(X_norm-X_lastnorm);
+           end
+
+end
+
+function [] = crksmSysr()
+
 end
 
 
