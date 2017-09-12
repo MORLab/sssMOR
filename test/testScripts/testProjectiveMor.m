@@ -15,7 +15,7 @@ classdef testProjectiveMor < sssTest
 %   of Automatic Control, Technische Universitaet Muenchen.
 %   For updates and further information please visit www.rt.mw.tum.de
 %   For any suggestions, submission and/or bug reports, mail us at
-%                     -> sssMOR@rt.mw.tum.de <-
+%                     -> morlab@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto, Lisa Jeschek
 % Last Change:  06 Apr 2016

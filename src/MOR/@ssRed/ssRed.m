@@ -353,13 +353,13 @@ classdef ssRed < ss
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Niklas Kochdumper, Alessandro Castagnotto
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  02 Aug 2017
@@ -389,6 +389,7 @@ classdef ssRed < ss
     properties(Hidden,Access = private)
         a_,b_,c_,d_,e_
     end
+
     
     methods
         function obj = ssRed(varargin)
@@ -667,7 +668,7 @@ classdef ssRed < ss
                 elseif sys.isMimo;   str = [str '(MIMO)'];
                 end
 
-                str = [str  char(10), num2str(sys.n) ' states, ' num2str(sys.m) ...
+                str = [str  char(10), num2str(sys.n) ' state variables, ' num2str(sys.m) ...
                     ' inputs, ' num2str(sys.p) ' outputs'];
 
                 if sys.Ts==0
@@ -886,12 +887,22 @@ classdef ssRed < ss
         % ssRed-object is saved. The function stores the properties of the 
         % ssRed-object in a struct 
         
+            % store basic class properties
             sobj.A = obj.(obj.a_);
             sobj.B = obj.(obj.b_);
             sobj.C = obj.(obj.c_);
             sobj.D = obj.(obj.d_);
             sobj.E = obj.(obj.e_);
             sobj.redParam = obj.redParam; 
+            
+            % store additional class properties
+            propertyList = {'issymmetric','x0','HankelSingularValues', ...
+                            'TBal','TBalInv','ConGram','ConGramChol', ...
+                            'ObsGram','ObsGramChol','residues'};
+            
+            for i = 1:length(propertyList)
+               sobj.(propertyList{i}) = obj.(propertyList{i}); 
+            end
         end     
     end
     
@@ -932,6 +943,18 @@ classdef ssRed < ss
                             sobj.redParam(end).method, ...
                             sobj.redParam(end).params, sobj.redParam(1:end-1));
             end
+            
+            % load additional class properties
+            propertyList = {'issymmetric','x0','HankelSingularValues', ...
+                            'TBal','TBalInv','ConGram','ConGramChol', ...
+                            'ObsGram','ObsGramChol','residues'};
+            
+            for i = 1:length(propertyList)
+                if isfield(sobj,propertyList{i})
+                    obj.(propertyList{i}) = sobj.(propertyList{i});
+                end
+            end
+            
         end
     end
     

@@ -9,15 +9,49 @@ Roadmap (changes to come)
 - Second order models: direct reduction
 ***
 
-v1.09 [tbd]
+v2.00 [06 September 2017]
 -----------------------
 
-|                 |    |
-|:----------------|:---|
-| Dependencies    |    |
-| Programmed with |    |
-| Tested with     |    |
-| on              |    |
+|                 |                                       |
+|:----------------|:--------------------------------------|
+| Dependencies    | sss Toolbox                           |
+| Programmed with | MATLAB R2016b, R2015b, R2015a         |
+| Tested with     | MATLAB R2014a, R2015b, R2016b, R2017a |
+| on              | Windows 7                             |
+
+### New Features
+- DOCUMENTATION
+  * added documentation files to a folder doc/ inside sssMOR. In this way, everybody can profit from the doc documentation of sssMOR, not just those who download the release version.
+  * added p-Functions publishDoc.p and publishFunction.p to be able to update the documentation whenever headers are changed.
+- CPLXPAIRALL
+  * added function to sort several arrays with respect to the sorting of the first input argument as of cplxpair
+- CRKSM
+  * added a function to solve Lyapunov equations by means of cumulative rational Krylov subspace method
+- STABSEP
+  * added an own function to separate an ustable model into a stable and antistable part. In addition to the built-in function, it returns also the projection matrices resulting in the submodels.
+- L2NORM
+  * added function to compute the L2 norm of a dynamical system. This is especially interesting when dealing with unstable models where the H2-norm is undefined.
+
+### Changes
+- SSS
+  * updated to v2.00
+  * SSS is no more a submodule of sssMOR, hence it is not anymore in src/ folder. Instead, sss and sssMOR are now distributed independently and have to be both in the path for sssMOR to work.
+- SSRED
+  * added load and save functions to the ssRed class
+  * allowing conversion from sss or ss to ssRed objectsf
+  * made the definition of ssRed objects easier, allowing also the definition of "userDefined" ssRed objects and the definition of arbitrary reduction parameters to be stored in the ssRed object
+- IRKA
+  * allowing to call irka with a reduced order q instead of initial shifts and/or tangential directions
+- ARNOLDI, RK, IRKA, CIRKA, ...
+  * added nLU as output argument to count the number of LU decompositions required by the reduction algorithms
+- CIRKA
+  * added option to take only the stable subsystem of the model function
+- RKICOP
+  * allowing matrix valued shifts as input (for MIMO models)
+- CURE
+  * added as output argument a cell array of all reduced models at each step of the cumulative framework
+
+***
 
 
 v1.08 [02 Frebruary 2017]

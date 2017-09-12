@@ -16,7 +16,7 @@ classdef testTbr < sssTest
 %   of Automatic Control, Technische Universitaet Muenchen.
 %   For updates and further information please visit www.rt.mw.tum.de
 %   For any suggestions, submission and/or bug reports, mail us at
-%                     -> sssMOR@rt.mw.tum.de <-
+%                     -> morlab@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 %               Lisa Jeschek
@@ -26,7 +26,7 @@ classdef testTbr < sssTest
     
     methods(Test)
         function testTbr1(testCase) %q=5
-            sys = loadSss('building.mat');      
+            sys = sss('building.mat');      
             q=5;
             
             [sysr, V, W, hsv, S, R] = tbr(sys,q);            
@@ -34,13 +34,13 @@ classdef testTbr < sssTest
         end
         
         function testBalancedRealizationExplicit(testCase)
-            sys = loadSss('building.mat');      
+            sys = sss('building.mat');      
             
             [sysr, V, W, hsv, S, R] = tbr(sys,sys.n);        
             verification(testCase,sys, sysr, V, W, hsv, S, R);
         end
         function testBalancedRealizationImplicit(testCase)
-            sys = loadSss('building.mat');    
+            sys = sss('building.mat');    
             sys = rk(sys,zeros(1,10),zeros(1,10)); %create model with E~=I
             
             [sysr, V, W, hsv, S, R] = tbr(sys,sys.n);        
@@ -48,7 +48,7 @@ classdef testTbr < sssTest
         end
         
         function testTbr2(testCase) %q=15
-            sys = loadSss('beam.mat');
+            sys = sss('beam.mat');
             q=15;
             
             [sysr, V, W, hsv, S, R] = tbr(sys,q);
@@ -57,7 +57,7 @@ classdef testTbr < sssTest
 
         end        
         function testTbr3(testCase) %q=25
-            sys = loadSss('fom.mat');
+            sys = sss('fom.mat');
             q=25;
             Opts.type='tbr';
             
@@ -79,7 +79,7 @@ classdef testTbr < sssTest
             verification(testCase,sys, sysr, V, W, hsv, S, R);
         end
         function testTbr6(testCase) %adi
-            sys = loadSss('rail_1357');
+            sys = sss('rail_1357');
             q=50;
             opts.type='adi';
             [sysr,V,W,hsv,S,R]=tbr(sys,q,opts);
