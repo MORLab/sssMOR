@@ -91,13 +91,13 @@ function [sysr, V, W, s0, Rt, Lt, B_, Sv, Rv, C_, Sw, Lw, kIter, s0Traj, RtTraj,
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  09 Aug 2017
@@ -119,13 +119,13 @@ elseif length(varargin)==1
         s0 = zeros(1,varargin{1});
     else
         % Shifts specified
-        s0 = varargin{1};
+        s0 = s0_vect(varargin{1});
     end
     Rt = ones(sys.m,length(s0));
     Lt = ones(sys.p,length(s0));
 else %MIMO
         %usage irka(sys,s0,Rt,Lt)
-        s0 = varargin{1};
+        s0 = s0_vect(varargin{1});
         Rt = varargin{2};
         Lt = varargin{3};
 end
@@ -151,7 +151,6 @@ if Opts.tol<=0 || ~isreal(Opts.tol)
     error('tol must be a real positive number.');
 end
 
-s0 = s0_vect(s0);
 r = length(s0);
 
 % sort expansion points & tangential directions
