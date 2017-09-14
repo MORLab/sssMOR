@@ -358,11 +358,12 @@ classdef ssRed < ss
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
-% Authors:      Niklas Kochdumper, Alessandro Castagnotto
+% Authors:      Niklas Kochdumper, Alessandro Castagnotto, 
+%               Maria Cruz Varona
 % Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  02 Aug 2017
+% Last Change:  14 Sep 2017
 % Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
@@ -748,6 +749,15 @@ classdef ssRed < ss
             syst = subsref(sys,args);
         end
         
+        function varargout = frd(varargin)
+            if nargin == 1
+                [G,w] = freqresp(varargin{:});
+                varargout = {frd(G,w)};
+            else
+                varargout = {frd@ss(varargin{:})};
+            end
+        end
+        
         function varargout = freqresp(varargin)
             % check if Options are specified
             if ~isempty(varargin) && isstruct(varargin{end})
@@ -762,12 +772,8 @@ classdef ssRed < ss
                 if isfield(Opts,'lse')
                     warning('Value for option "lse" remains ineffective for ssRed-objects'); 
                 end
-                if isfield(Opts,'frd') && Opts.frd == 1 && nargout == 1
-                    [G,w] = freqresp@ss(varargin{:});
-                    varargout{1} = frd(G,w);
-                else
-                    [varargout{1:nargout}] = freqresp@ss(varargin{:});
-                end
+
+                [varargout{1:nargout}] = freqresp@ss(varargin{:});
             else
                 [varargout{1:nargout}] = freqresp@ss(varargin{:});
             end
