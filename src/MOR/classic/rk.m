@@ -191,7 +191,7 @@ if exist('s0_inp', 'var')
     s0_inp = shiftVec(s0_inp);
     % sort expansion points & tangential directions
     s0old = s0_inp;
-    if Opts.real, 
+    if Opts.real 
         s0_inp = cplxpair(s0_inp); %make sure shifts can be paired 
     else
         s0_inp = sort(s0_inp);
@@ -212,7 +212,7 @@ if exist('s0_out', 'var')
     s0_out = shiftVec(s0_out);
         % sort expansion points & tangential directions
     s0old = s0_out;
-    if Opts.real, 
+    if Opts.real
         s0_out = cplxpair(s0_out); %make sure shifts can be paired 
     else
         s0_out = sort(s0_out);
