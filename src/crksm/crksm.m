@@ -1,4 +1,4 @@
-function [data] = crksm(varargin)
+function [sysr,data] = crksm(varargin)
 % CRKSM - Solve Laypunov equations with a cummulative rational Krylov subspace method
 % Info: Funktionen fuer neue shifts muessen ab Zeile 470 unter der 'mess'-Option eingebunden werden 
 %
@@ -6,28 +6,28 @@ function [data] = crksm(varargin)
 %              AQE' + EQA' + C'C = 0 (II)
 %
 % Synthax CRKSM
-%       [data]         = CRKSM(sys, s0_inp)
-%       [data]         = CRKSM(sys, s0_inp, Rt)
-%       [data]         = CRKSM(sys, [], s0_out)
-%       [data]         = CRKSM(sys, [], s0_out, [], Lt)
-%       [data]         = CRKSM(sys, s0_inp, s0_out)
-%       [data]         = CRKSM(sys, s0_inp, s0_out, Rt, Lt)
-%       [data]         = CRKSM(sys,...,Opts_rksm)
+%       [sysr,data]         = CRKSM(sys, s0_inp)
+%       [sysr,data]         = CRKSM(sys, s0_inp, Rt)
+%       [sysr,data]         = CRKSM(sys, [], s0_out)
+%       [sysr,data]         = CRKSM(sys, [], s0_out, [], Lt)
+%       [sysr,data]         = CRKSM(sys, s0_inp, s0_out)
+%       [sysr,data]         = CRKSM(sys, s0_inp, s0_out, Rt, Lt)
+%       [sysr,data]         = CRKSM(sys,...,Opts_rksm)
 %
-%       [data]         = CRKSM(A,B,[],[],s0_inp) 
-%       [data]         = CRKSM(A,B,[],[],s0_inp,Rt) 
-%       [data]         = CRKSM(A,B,C, [],s0_inp)
-%       [data]         = CRKSM(A,B,C, [],s0_inp,s0_out) 
-%       [data]         = CRKSM(A,B,C, [],[],s0_out) 
-%       [data]         = CRKSM(A,[],C,[],[],s0_out,[],Lt) 
-%       [data]         = CRKSM(A,B,C, [],s_inp,s_out,Rt,Lt) 
-%       [data]         = CRKSM(A,B,[] ,E,s0_inp) 
-%       [data]         = CRKSM(A,B,[] ,E,s0_inp,Rt) 
-%       [data]         = CRKSM(A,B,C,E,s0_inp) 
-%       [data]         = CRKSM(A,B,C,E,s0_inp,s0_out) 
-%       [data]         = CRKSM(A,B,C,E,[],s0_out) 
-%       [data]         = CRKSM(A,B,C,E,s0_inp,s0_out,Rt,Lt) 
-%       [data]         = CRKSM(A,B,...,s_inp,...,Opts_rksm) 
+%       [sysr,data]         = CRKSM(A,B,[],[],s0_inp) 
+%       [sysr,data]         = CRKSM(A,B,[],[],s0_inp,Rt) 
+%       [sysr,data]         = CRKSM(A,B,C, [],s0_inp)
+%       [sysr,data]         = CRKSM(A,B,C, [],s0_inp,s0_out) 
+%       [sysr,data]         = CRKSM(A,B,C, [],[],s0_out) 
+%       [sysr,data]         = CRKSM(A,[],C,[],[],s0_out,[],Lt) 
+%       [sysr,data]         = CRKSM(A,B,C, [],s_inp,s_out,Rt,Lt) 
+%       [sysr,data]         = CRKSM(A,B,[] ,E,s0_inp) 
+%       [sysr,data]         = CRKSM(A,B,[] ,E,s0_inp,Rt) 
+%       [sysr,data]         = CRKSM(A,B,C,E,s0_inp) 
+%       [sysr,data]         = CRKSM(A,B,C,E,s0_inp,s0_out) 
+%       [sysr,data]         = CRKSM(A,B,C,E,[],s0_out) 
+%       [sysr,data]         = CRKSM(A,B,C,E,s0_inp,s0_out,Rt,Lt) 
+%       [sysr,data]         = CRKSM(A,B,...,s_inp,...,Opts_rksm) 
 %
 % Input:
 %       - system matrices A, B, C, and E or a sys-object
@@ -80,10 +80,14 @@ function [data] = crksm(varargin)
 % Note: there may be no point named Def.reuseLU, otherwise one gets a conflict with solveLse/lyapchol/bilyapchol
 
 % general default option settings for MOR and Lyapunov
-Def.crksmUsage           = 'lyapunov';         % ['lyapunov' / 'MOR']
-Def.shifts               = 'cyclic';           % ['cyclic' / 'adaptive' / 'mess']
+Def.purpose              = 'lyapunov';         % ['lyapunov' / 'MOR']
+Def.shifts               = 'fixedCyclic';      % ['fixedCyclic' / 'dynamical']
+Def.shiftTol             =  0.1;               % default value for new shifts
+Def.strategy             = 'ADI';              % ['ADI' / 'adaptive' / '' / '' / '']
 Def.orth                 = '2mgs';             % for Gramschmidt
+Def.lse                  = 'sparse';           % for solving a LTI-system
 Def.maxiter_rksm         =  200;               % default number of iterations
+Def.shiftsTol            =  0.1;               % default value for new shifts
 
 % default option settings for MOR
 Def.real                 = true;               % [true / false], true means to keep the subspace real
@@ -123,17 +127,13 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
         if isempty(sys.E), sys.E = eye(size(sys.A)); end %ssRed robust compatibility
     end
 
-    % set system matrices
-    A = sys.A;       B = sys.B;       D = sys.D;   
-    C = sys.C;       E = sys.E; 
-
     % check usage and inputs
     if length(varargin) == 2                            % usage: CRKSM(sys, s0_inp)
         s0_inp = varargin{2};                s0_out  = [];        
         Rt     = [];                         Lt      = [];
         input  = 1;                          pointer = @blockV;
     elseif length(varargin) == 3       
-        if size(varargin{3},1) == size(B,2) &&...
+        if size(varargin{3},1) == size(sys.B,2) && sys.isSiso == 0 &&...
            size(varargin{3},2) == size(varargin{2},2)   % usage: CRKSM(sys, s0_inp, Rt)
             s0_inp = varargin{2};            s0_out  = [];           
             Rt     = varargin{3};            Lt      = [];
@@ -179,7 +179,7 @@ elseif length(varargin) > 1
         if isempty(E),  E = speye(size(A)); end
     elseif nargin == 6
         if isempty(varargin{3})                                   
-            C      = [];                   E       = varargin{4};
+            C      = zeros(1,size(A,1));   E       = varargin{4};
             s0_inp = varargin{5};          s0_out  = [];
             Rt     = varargin{6};          Lt      = []; 
             input  = 2;                    pointer = @tangentialV;
@@ -214,6 +214,7 @@ elseif length(varargin) > 1
             error('Wrong input');
         end   
     end
+    sys = sss(A,B,C,D,E);       % build sys-object
 end
 
 % check shifts and tangential directions, check Opts-field OPts.crksmUsage, check if extended or rational krylov
@@ -225,7 +226,7 @@ end
 % check extended case
 if (input == 1 && s0_inp(1,1) == 0 && s0_inp(1,2) == inf) || ...
    (input == 3 && s0_out(1,1) == 0 && s0_out(1,2) == inf) 
-    Opts.shifts = 'cyclic';
+    Opts.shifts = 'fixedCyclic';
 else
     % sort expansion points & tangential directions
     s0_inp = shiftVec(s0_inp);
@@ -238,17 +239,16 @@ else
 
     if ~isempty(Rt)
         if size(Rt,2) ~= length(s0_inp),         error('Inconsistent size of Rt');end
-        if size(Rt,1) ~= size(B,2),              error('Inconsistent size of Lt');end
+        if size(Rt,1) ~= size(sys.B,2),          error('Inconsistent size of Lt');end
         [~,cplxSorting] = ismember(s0_inp,s0old); 
         Rt = Rt(:,cplxSorting);
         % hiermit wird gepueft, ob tang. richtungen konjugiert komplex sind, unabh?ngig von den shifts  
-        %if sum(sum(imag(Rt),2)) ~= 0, error('wrong input'); end
-        % hier wird gepr?ft, ob ein kompl. konjugierter shift auch eine komplex conjugierte tang. Richtung hat
+        %if sum(sum(imag(Rt),2)) ~= 0, error('wrong input'); end 
+        %hier wird gepr?ft, ob ein kompl. konjugierter shift auch eine komplex conjugierte tang. Richtung hat
         if size(find(imag(s0_inp)),2) ~= size(find(imag(Rt(1,:))),2)
             error('wrong input');
         end
     end
-    clear s0old
 
     if ~isempty(s0_out)
         % sort expansion points & tangential directions
@@ -261,19 +261,18 @@ else
         end
         if ~isempty(Lt)
             if size(Lt,2) ~= length(s0_out),   error('Inconsistent size of Lt');end
-            if size(Lt,1) ~= size(C,1),        error('Inconsistent size of Lt');end
+            if size(Lt,1) ~= size(sys.C,1),    error('Inconsistent size of Lt');end
             [~,cplxSorting] = ismember(s0_out,s0old); 
             Lt = Lt(:,cplxSorting);
             % hiermit wird gepueft, ob tang. richtungen konjugiert komplex sind, unabh?ngig von den shifts  
             %if sum(sum(imag(Lt),2)) ~= 0, error('wrong input'); end
-            % hier wird gepr?ft, ob ein kompl. konjugierter shift auch eine
-            % komplex conjugierte tang. Richtung hat
+            % hier wird gepr?ft, ob ein kompl. konjugierter shift auch eine komplex conjugierte tang. Richtung hat
             if size(find(imag(s0_out)),2) ~= size(find(imag(Lt(1,:))),2)
                 error('wrong input');
             end
         end
     end
-    if length(s0_inp) > size(A,1) || length(s0_out) > size(A,1)
+    if length(s0_inp) > size(sys.A,1) || length(s0_out) > size(sys.A,1)
         error('sssMOR:arnoldi:reducedOrderExceedsOriginal','The desired reduced order exceeds the original order');
     end
 
@@ -286,67 +285,50 @@ else
 end
 
 % check usage of crksm-function
-if strcmp(Opts.crksmUsage,'lyapunov')
+if strcmp(Opts.purpose,'lyapunov')
     usage = @crksmLyap;     
 else
     usage = @crksmSysr;
 end
 
 % clear arguements
-clear Def sys varargin m
+clear Def varargin s0old A B C D E 
    
 %% RKSM Method
-if (~isempty(s0_inp) && s0_inp(1,1) == conj(s0_inp(1,2))) || (~isempty(s0_inp) && s0_out(1,1) == conj(s0_out(1,2)));
-    switch input
-        case 1
-            [basis1] = arnoldi(E,A,B,s0_inp(1,1:2));
-        case 2
-            [basis1] = arnoldi(E,A,B,s0_inp(1,1:2),Rt(:,1:2));
-        case 3
-            [basis2] = arnoldi(E',A',C',s0_out(1,1:2));
-        case 4
-            [basis1] = arnoldi(E,A,B,s0_inp(1,1:2));
-            [basis2] = arnoldi(E',A',C',s0_out(1,1:2));
-        case 5
-            [basis2] = arnoldi(E',A',C',s0_out(1,1:2),Lt(:,1:2));
-        case 6
-            [basis1] = arnoldi(E,A,B,s0_inp(1,1:2),Rt(:,1:2));
-            [basis2] = arnoldi(E',A',C',s0_out(1,1:2),Lt(:,1:2));
-    end
-    newdir1 = zeros(size(A,1),size(basis1,2)/2); % declare newdir-variable
-    newdir2 = newdir1;
-else
-    switch input
-        case 1
-            [basis1] = arnoldi(E,A,B,s0_inp(1,1));
-        case 2
-            [basis1] = arnoldi(E,A,B,s0_inp(1,1),Rt(:,1));
-        case 3
-            [basis2] = arnoldi(E',A',C',s0_out(1,1));
-        case 4
-            [basis1] = arnoldi(E,A,B,s0_inp(1,1));
-            [basis2] = arnoldi(E',A',C',s0_out(1,1));
-        case 5
-            [basis2] = arnoldi(E',A',C',s0_out(1,1),Lt(:,1));
-        case 6
-            [basis1] = arnoldi(E,A,B,s0_inp(1,1),Rt(:,1));
-            [basis2] = arnoldi(E',A',C',s0_out(1,1),Lt(:,1));
-    end
-    newdir1 = zeros(size(A,1),size(basis1,2)); % declare newdir-Variable
-    newdir2 = newdir1;
+% built first subspace (two columns in case of cplx. conj. shifts) with arnoldi
+switch input
+    case 1
+        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts);
+    case 2
+        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts);
+    case 3
+        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts);
+    case 4
+        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts);
+        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts);
+    case 5
+        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts);
+    case 6
+        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts);
+        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts);
 end
+newdir1 = zeros(size(sys.A,1),size(basis1,2)/2); % declare newdir-variable
+newdir2 = newdir1;
+
 clear input
 
 % reduction step
 if  ~exist('basis2','var')  
-    Ar = basis1'*A*basis1;   Br = basis1'*B;   Er = basis1'*E*basis1;   Cr = [];
+    Ar = basis1'*sys.A*basis1;   Br = basis1'*sys.B;   Er = basis1'*sys.E*basis1;   Cr = sys.C*basis1;
     basis2 = [];
 else
-    Ar = basis2'*A*basis1;   Br = basis2'*B;   Er = basis2'*E*basis1;   Cr = C*basis1;
+    Ar = basis2'*sys.A*basis1;   Br = basis2'*sys.B;   Er = basis2'*sys.E*basis1;   Cr = sys.C*basis1;
 end
+% build ssRed object
+sysr = ssRed(Ar,Br,Cr,sys.D,Er);
 
 % call usage handle function for the first solving step
-[data] = usage(A,B,E,Ar,Br,Cr,Er,D,basis1,1,Opts);
+[sysr,data] = usage(sys,sysr,basis1,1,Opts);
 
 % start iteration
 if ~exist('data.out2','var')
@@ -355,25 +337,31 @@ if ~exist('data.out2','var')
 
             % get new shifts and tangetial directions
             if (~isempty(s0_inp) && ii > size(s0_inp,2)) || (~isempty(s0_out) && ii > size(s0_out,2))
-                if strcmp(Opts.shifts,'cyclic') 
+                if strcmp(Opts.shifts,'cyclic') ||  strcmp(Opts.shifts,'fixedCyclic')
                     s0_inp = repmat(s0_inp,1,2);        Rt = repmat(Rt,1,2); 
                     s0_out = repmat(s0_out,1,2);        Lt = repmat(Lt,1,2); 
-                elseif strcmp(Opts.shifts,'adaptive')
-                % hier adaptive shifts
                 else
-                % hier irgendeine andere Funktion um shifts zu berechnen
                 end
             end
 
             % get new direction, enlarge basis
             if isempty(basis2) || isempty(basis1)
-                newdir1 = pointer(A,B,C,E,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
-                basis1 = [basis1 real(newdir1)];       % basis1 is either V or W
+                newdir1 = pointer(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
+                if Opts.real == 1
+                    basis1 = [basis1 real(newdir1)];       % basis1 is either V or W 
+                else
+                    basis1 = [basis1 newdir1];
+                end
             else
-                newdir1 = pointerV(A,B,C,E,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
-                newdir2 = pointerW(A,B,C,E,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
-                basis1 = [basis1 real(newdir1)];    % basis1 is V  
-                basis2 = [basis2 real(newdir2)];    % basis2 is W
+                newdir1 = pointerV(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
+                newdir2 = pointerW(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
+                if Opts.real == 1
+                    basis1 = [basis1 real(newdir1)];    % basis1 is V  
+                    basis2 = [basis2 real(newdir2)];    % basis2 is W
+                else
+                    basis1 = [basis1 newdir1];    % basis1 is V  
+                    basis2 = [basis2 newdir2];    % basis2 is W
+                end       
             end                   
        end % end of complex wait-sequence (if isreal(vnew))
 
@@ -391,29 +379,37 @@ if ~exist('data.out2','var')
        % reduction step
        jnew = size(basis1,2)-(size(newdir1,2)-1);    jnew_last = size(basis1,2);  
        if ~isempty(basis2)
-          Ar(1:jnew-1,jnew:jnew_last)    = basis2(:,1:jnew-1)'*A*basis1(:,jnew:jnew_last);              % 1. step: new columns to the existing matrix Ar      
-          Ar(jnew:jnew_last,1:jnew_last) = basis2(:,jnew:jnew_last)'*A*basis1(:,1:jnew_last);           % 2. step: rows are filled up so that a reduced square matrix results
-          Er(1:jnew-1,jnew:jnew_last)    = basis2(:,1:jnew-1)'*E*basis1(:,jnew:jnew_last);
-          Er(jnew:jnew_last,1:jnew_last) = basis2(:,jnew:jnew_last)'*E*basis1(:,1:jnew_last);
-          Br(jnew:jnew_last,:)           = basis2(:,jnew:jnew_last)'*B;
-          Cr(:,jnew:jnew_last)           = C*basis1(:,jnew:jnew_last);
+           Ar(1:jnew-1,jnew:jnew_last)     = basis2(:,1:jnew-1)'*sys.A*basis1(:,jnew:jnew_last);              % 1. step: new columns to the existing matrix Ar      
+           Ar(jnew:jnew_last,1:jnew_last)  = basis2(:,jnew:jnew_last)'*sys.A*basis1(:,1:jnew_last);           % 2. step: rows are filled up so that a reduced square matrix results
+           Er(1:jnew-1,jnew:jnew_last)     = basis2(:,1:jnew-1)'*sys.E*basis1(:,jnew:jnew_last);
+           Er(jnew:jnew_last,1:jnew_last)  = basis2(:,jnew:jnew_last)'*sys.E*basis1(:,1:jnew_last);
+           Br(jnew:jnew_last,:)            = basis2(:,jnew:jnew_last)'*sys.B;
+           Cr(:,jnew:jnew_last)            = sys.C*basis1(:,jnew:jnew_last);
        else
-           Ar(1:jnew-1,jnew:jnew_last)    = basis1(:,1:jnew-1)'*A*basis1(:,jnew:jnew_last);        
-           Ar(jnew:jnew_last,1:jnew_last) = basis1(:,jnew:jnew_last)'*A*basis1(:,1:jnew_last);   
-           Er(1:jnew-1,jnew:jnew_last)    = basis1(:,1:jnew-1)'*E*basis1(:,jnew:jnew_last);
-           Er(jnew:jnew_last,1:jnew_last) = basis1(:,jnew:jnew_last)'*E*basis1(:,1:jnew_last);
-           Br(jnew:jnew_last,:)           = basis1(:,jnew:jnew_last)'*B;
-           Cr                             = [];
+           Ar(1:jnew-1,jnew:jnew_last)     = basis1(:,1:jnew-1)'*sys.A*basis1(:,jnew:jnew_last);        
+           Ar(jnew:jnew_last,1:jnew_last)  = basis1(:,jnew:jnew_last)'*sys.A*basis1(:,1:jnew_last);   
+           Er(1:jnew-1,jnew:jnew_last)     = basis1(:,1:jnew-1)'*sys.E*basis1(:,jnew:jnew_last);
+           Er(jnew:jnew_last,1:jnew_last)  = basis1(:,jnew:jnew_last)'*sys.E*basis1(:,1:jnew_last);
+           Br(jnew:jnew_last,:)            = basis1(:,jnew:jnew_last)'*sys.B;
+           Cr(:,jnew:jnew_last)            = sys.C*basis1(:,jnew:jnew_last);
        end
+       sysr = ssRed(Ar,Br,Cr,sys.D,Er);     % ssRed-object
 
        % call usage handle function for Lyapunov/sysr
-       [data] = usage(A,B,E,Ar,Br,Cr,Er,D,basis1,ii,Opts);
+       [sysr,data] = usage(sys,sysr,basis1,ii,Opts);
+       
+       % check shift capacity
+       if mod(iter,10) == 1 && strcmp(Opts.shifts,'dynamical') && (data.out1(iter,1)-data.out1(iter-10,1)>Opts.shiftTol)
+           Opts.shifts = 'cyclic';
+       else
+           Opts.shifts = 'dynamical';   
+       end
 
        % quit for loop, show information
-       if exist('data.out2','var'), break;   end
+       if ~isempty(data.out2), break;   end
 
        % enlarge subspace with the imaginary part of the direction and eventually calculate new real directions
-       if ~isreal(newdir1) || ~isreal(newdir2)
+       if Opts.real == 1 && (~isreal(newdir1) || ~isreal(newdir2))
            if isempty(basis2) || isempty(basis1)
                basis1 = [basis1 imag(newdir1)];
            else
@@ -424,29 +420,27 @@ if ~exist('data.out2','var')
                    basis1 = [basis1 imag(newdir1)];
 
                    % calculate new real direction, if last vnew is real and last wnew is complex 
-                   newdir2 = pointerW(A,B,C,E,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
+                   newdir2 = pointerW(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
                    basis2 = [basis2 real(newdir2)];
 
                elseif isreal(newdir1) && ~isreal(newdir2)
                    basis2 = [basis2 imag(newdir2)];
 
                    % calculate new real direction, if last vnew is real and last wnew is complex
-                   newdir1 = pointerV(A,B,C,E,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
+                   newdir1 = pointerV(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
                    basis1 = [basis1 real(newdir1)];
                end
            end
            % empty newdir of basis1 and/or basis2 
-           newdir1 = zeros(size(A,1),size(newdir1,2));
+           newdir1 = zeros(size(sys.A,1),size(newdir1,2));
            newdir2 = newdir1;
        end
     end  % end of for loop
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % kommt noch weg
-    Rnorm = 10;
+
+    % create output
     data.out4 = basis1;
     data.out5 = basis2;
-     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if ii == Opts.maxiter_rksm  && Rnorm > Opts.rctol
+    if ii == Opts.maxiter_rksm
         warning('\n maximum number of iterations is reached without converging!' )
     end
 end % end of: "if ~exist('data.out2','var')"
@@ -600,11 +594,11 @@ else
 end
 end
 
-function [vnew] = blockV(A,~,~,E,V,~,s0_inp,~,~,~,iter,colIndex)
+function [vnew] = blockV(sys,V,~,s0_inp,~,~,~,iter,colIndex)
     persistent Anew_V
-    rhsB = E*V(:,size(V,2)-(colIndex-1):size(V,2));
+    rhsB = sys.E*V(:,size(V,2)-(colIndex-1):size(V,2));
     if s0_inp(1,iter) ~= s0_inp(1,iter-1) && s0_inp(1,iter) ~= conj(s0_inp(1,iter-1))
-        Anew_V = (A-s0_inp(1,iter)*E);
+        Anew_V = (sys.A-s0_inp(1,iter)*sys.E);
         [vnew] = solveLse(Anew_V,rhsB);
     else
         Opts.reuseLU = 1;
@@ -612,11 +606,11 @@ function [vnew] = blockV(A,~,~,E,V,~,s0_inp,~,~,~,iter,colIndex)
     end
 end
 
-function [wnew] = blockW(A,~,~,E,~,W,~,s0_out,~,~,iter,colIndex)
+function [wnew] = blockW(sys,~,W,~,s0_out,~,~,iter,colIndex)
     persistent Anew_W
-    rhsC = E'*W(:,size(W,2)-(colIndex-1):size(W,2));
+    rhsC = sys.E'*W(:,size(W,2)-(colIndex-1):size(W,2));
     if s0_out(1,iter) ~= s0_out(1,iter-1) && s0_out(1,iter) ~= conj(s0_out(1,iter-1))
-        Anew_W = (A-s0_out(1,iter)*E)'; 
+        Anew_W = (sys.A-s0_out(1,iter)*sys.E)'; 
         [wnew] = solveLse(Anew_W,rhsC);
     else
         Opts.reuseLU = 1;
@@ -624,46 +618,46 @@ function [wnew] = blockW(A,~,~,E,~,W,~,s0_out,~,~,iter,colIndex)
     end
 end
 
-function [vnew] = tangentialV(A,B,~,E,V,~,s0_inp,~,Rt,~,iter,colIndex)
+function [vnew] = tangentialV(sys,V,~,s0_inp,~,Rt,~,iter,colIndex)
     persistent Anew_V
     %rhsB = E*V(:,size(V,2)-(colIndex-1):size(V,2))*rt;
     if s0_inp(1,iter) ~= s0_inp(1,iter-1) && s0_inp(1,iter) ~= conj(s0_inp(1,iter-1))
-        Anew_V = (A-s0_inp(1,iter)*E);
-        [vnew] = solveLse(Anew_V,B*Rt(:,iter));
+        Anew_V = (sys.A-s0_inp(1,iter)*sys.E);
+        [vnew] = solveLse(Anew_V,sys.B*Rt(:,iter));
     else
          Opts.reuseLU = 1;
-        [vnew] = solveLse(Anew_V,B*Rt(:,iter),Opts);
+        [vnew] = solveLse(Anew_V,sys.B*Rt(:,iter),Opts);
     end
 end
 
-function [wnew] = tangentialW(A,~,C,E,~,W,~,s0_out,~,Lt,iter,colIndex)
+function [wnew] = tangentialW(sys,~,W,~,s0_out,~,Lt,iter,colIndex)
     persistent Anew_W
     %rhsC = E'*W(:,size(W,2)-(colIndex-1):size(W,2))*lt; 
     if s0_out(1,iter) ~= s0_out(1,iter-1) && s0_out(1,iter) ~= conj(s0_out(1,iter-1))
-        Anew_W = (A-s0_out(1,iter)*E)'; 
-        [wnew] = solveLse(Anew_W,C'*Lt(:,iter));
+        Anew_W = (sys.A-s0_out(1,iter)*sys.E)'; 
+        [wnew] = solveLse(Anew_W,sys.C'*Lt(:,iter));
     else
         Opts.reuseLU = 1;
-        [wnew] = solveLse(Anew_W,C'*Lt(:,iter),Opts);
+        [wnew] = solveLse(Anew_W,sys.C'*Lt(:,iter),Opts);
     end
 end
 
-function [data] = crksmLyap(A,B,E,Ar,Br,Cr,Er,~,basis1,iter,Opts)
+function [sysr,data] = crksmLyap(sys,sysr,basis1,iter,Opts)
     % set persistent variables 
     persistent S Rnorm
     if exist('S','var'), S_last = S; else S_last = []; end
     % try to solve Lyapunov equation first with lyapchol or second with lyap
     try
-       S = lyapchol(Ar,Br,Er);
-       if ~isempty(Cr)
-           R = lyapchol(Ar',Cr',Er');
+       S = lyapchol(sysr.A,sysr.B,sysr.E);
+       if nnz(sysr.C) ~= 0
+           R = lyapchol(sysr.A',sysr.C',sysr.E');
        else
            R = [];
        end
     catch
-       S = lyap(Ar,Br*Br',[],Er);
-       if ~isempty(Cr)
-           R = lyap(Ar',Cr'*Cr,[],Er');
+       S = lyap(sysr.A,sysr.B*sysr.B',[],sysr.E);
+       if nnz(sysr.C) ~= 0
+           R = lyap(sysr.A',sysr.C'*sysr.C,[],sysr.E');
        else
            R = [];
        end
@@ -672,26 +666,26 @@ function [data] = crksmLyap(A,B,E,Ar,Br,Cr,Er,~,basis1,iter,Opts)
     % choose computation of norm/stopping criteria
     if strcmp(Opts.residual,'residual_lyap')
        % test determination (computation of residual after Panzer/Wolff), compute Er^-1*Br and Er^-1*Ar and other factors
-       Er_inv_Br = solveLse(Er,Br);
+       Er_inv_Br = solveLse(sysr.E,sysr.B);
        Opts.reuseLU = 1;
-       Er_inv_Ar = solveLse(Er,Ar,Opts);
-       AV = A*basis1;        EV = E*basis1;
+       Er_inv_Ar = solveLse(sysr.E,sysr.A,Opts);
+       AV = sys.A*basis1;        EV = sys.E*basis1;
 
        % compute factors from residual
-       Borth = B-EV*Er_inv_Br;
+       Borth = sys.B-EV*Er_inv_Br;
        Borth2 = Borth'*Borth;
        Cr_hat_rhs = Borth'*(AV-EV*Er_inv_Ar);
        Cr_hat = solveLse(Borth2,Cr_hat_rhs);
        %F = E*basis1*(Er_inv_Br+(S*S')*Cr_hat');
-       F = E*basis1*(Er_inv_Br+(S'*S)*Cr_hat');
+       F = sys.E*basis1*(Er_inv_Br+(S'*S)*Cr_hat');
 
        % compute residual norm (Euclidean Norm)
        if strcmp(Opts.rksmnorm, 'H2')
-           res0  = norm(Br' * Br,2);
+           res0  = norm(sysr.B' * sysr.B,2);
            Rnorm(iter,1) = max(abs(eig(full([Borth2+Borth'*F, Borth2; F'*Borth+F'*F, F'*Borth])))) / res0; 
        else
            % Frobenius Norm
-           res0  = norm(Br' * Br,'fro');
+           res0  = norm(sysr.B' * sysr.B,'fro');
            Rnorm(iter,1) = sqrt(sum(eig(full([Borth2+Borth'*F, Borth2; F'*Borth+F'*F, F'*Borth])))^2) / res0;
        end
     else
@@ -705,30 +699,44 @@ function [data] = crksmLyap(A,B,E,Ar,Br,Cr,Er,~,basis1,iter,Opts)
        end
        Rnorm(iter,1) = abs(X_norm-X_lastnorm);
      end
-    data.out1 = Rnorm;
+    data.out1 = Rnorm; data.out2 = []; data.out3 = [];
     
     % stop program
-   if Rnorm < Opts.rctol
+   if Rnorm(iter,1) < Opts.rctol
        if Opts.lowrank == 1            % compute low rank factor of solution
            S = basis1*S;    
            if ~isempty('R','var'),  R = basis1*R;  end
        end
-       data.out2 = S;  data.out2 = R;  % wirte output in info-struct
+       data.out2 = S;  data.out3 = R;  % wirte output in info-struct
        % show information of programme
        if ~exist('R','var')
-           fprintf('\n RKSM step: %d \t Convergence\n last residual norm: %d, tolerance: %d,\n' ,iter,Rnorm,Opts.rctol);
+           fprintf('\n RKSM, usage Lyapunov, step: %d \t Convergence\n last residual norm: %d, tolerance: %d,\n' ,iter,Rnorm(iter,1),Opts.rctol);
        else
-           fprintf('\n RKSM step \t %d \t Convergence, last residual: \t %d, tolerance: \t %d,\n',iter,Rnorm,Opts.rctol);
+           fprintf('\n RKSM, usage Lyapunov, step \t %d \t Convergence, last residual: \t %d, tolerance: \t %d,\n',iter,Rnorm(iter,1),Opts.rctol);
        end
-   elseif size(S,2) == size(A,2)
+   elseif size(S,2) == size(sys.A,2)
        disp('\n V has reached the dimension of the original System without converging!');
    end
 end
 
-function [data] = crksmSysr(~,~,~,Ar,Br,Cr,Er,D,~,iter,Opts)
-    % create a ssRed system
-     sysr = ssRed(Ar,Br,Cr,D,Er,'projectiveMor',Opts);
-
+function [sysr,data] = crksmSysr(~,sysr,~,iter,Opts)
+    persistent stopCrit sysr_last
+    if iter == 1, sysr_last = sss([],[],[]);  end
+    % stopping criteria
+    if all(real(eig(sysr))<0) && all(real(eig(sysr_last))<0)
+       stopCrit(iter,1)=norm(sysr-sysr_last)/norm(sysr);
+    else
+       stopCrit(iter,1) = inf; %initialize in case the reduced model is unstable 
+    end
+    
+    data.out1 = stopCrit; data.out2 = [];
+    
+    if stopCrit(iter,1) < Opts.rctol
+       data.out1(2,1) = data.out1(1,1);
+       data.out2 = 1;
+       fprintf('\n RKSM, usage MOR, step: %d \t Convergence\n last system norm: %d, tolerance: %d,\n' ,iter,stopCrit(iter,1),Opts.rctol);
+    end
+    sysr_last = sysr;
 end
 
 
