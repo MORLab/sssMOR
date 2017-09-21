@@ -8,16 +8,16 @@ function [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys
 %       sysr                    = CIRKA(sys, s0, ..., Opts)
 %       [sysr, V, W]            = CIRKA(sys, s0,... )
 %       [sysr, V, W, s0, Rt, Lt]  = CIRKA(sys, s0,... )
-%       [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err]       = CIRKA(sys, s0,... )
-%       [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err,nLU]   = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err]       = CIRKA(sys, ... )
+%       [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err,nLU]   = CIRKA(sys, ... )
 %
 % Description:
 %       This function executes the Confined Iterative Rational Krylov
-%       Algorithm (CIRKA) as proposed by Castagnotto et al. in [1].
+%       Algorithm (CIRKA) as proposed by Castagnotto et al. in [1,2].
 % 
 %       The algorithm is based on constructing a model function, i.e. a
 %       surrogate representing the full oder model locally about some
-%       frequencies, and running IRKA [2] with respect to the surrogate model.
+%       frequencies, and running IRKA [3] with respect to the surrogate model.
 %       The model function is updated until convergence.
 %
 %       Convergence is determined by observing the shifts and norm of the
@@ -110,8 +110,10 @@ function [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys
 % References:
 %       * *[1] Castagnotto et al. (2016)*, Fast H2 optimal model order
 %              reduction exploiting the local nature of Krylov-Subspace...
-%       * *[2] Gugercin et al. (2008)*, H2 model reduction for large-scale linear dynamical systems
-%       * *[3] Beattie et al. (2014)*, Model reduction by rational interpolation
+%       * *[2] Castagnotto and Lohmann (tbd)* A new framework for
+%               H2-optimal model reduction
+%       * *[3] Gugercin et al. (2008)*, H2 model reduction for large-scale linear dynamical systems
+%       * *[4] Beattie et al. (2014)*, Model reduction by rational interpolation
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
@@ -128,7 +130,7 @@ function [sysr, V, W, s0, Rt, Lt, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys
 % Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  09 Aug 2017
+% Last Change:  21 Sep 2017
 % Copyright (c) 2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
