@@ -1,0 +1,12 @@
+stages:
+ - build
+ - test
+before_script
+ stage: build
+ matlab 
+job1:
+ stage: test
+ script: "test.m"
+job2
+ stage: test
+ script: "test2.m" 
