@@ -1,11 +1,11 @@
-clear
+clear all
 clc
 clearvars -global
 
 %% testdaten My_rksm
 
 % load any benchmark system
-sys = loadSss('fom');
+sys = loadSss('rail_5177');
 % other models: rail_1357, rail_5177, iss, gyro, building, CDplayer, beam,
 %               eady, heat-cont, LF10, random, bips98_606,
 %               SpiralInductorPeec, fom
@@ -15,6 +15,10 @@ A = sys.A;
 B = sys.B;
 C = sys.C;
 E = sys.E;
+D = sys.D;
+
+sys_new = sss(A,B,C,D,E);
+
 
 m = size(B,2);
 p = size(C,1);
@@ -35,39 +39,57 @@ method = 1; % 1 for standard rksm cyclic, reusing shifts, onesided, hermite
 % choose computation of residual norm and other options
 Opts.residual  = 'residual_lyap';  
 %Opts.residual  = 'norm_chol';
-Opts.maxiter_rksm = 60;
+Opts.maxiter_rksm = 20;
 
-Opts.maxiter = Opts.maxiter_rksm;
-Opts.rctol = 1e-7; 
+%Opts.maxiter = Opts.maxiter_rksm;
+Opts.rctol = 1e-8; 
 
             
 switch method
     case 1
         % set Opts for rksm 
-        Opts.method = 'rksm';
-        Opts.shifts = 'cyclic';
+        %Opts.crksmUsage = 'MOR';
+        %Opts.shifts = 'adaptive';
         %Opts.rksmnorm = 'fro';
-        Opts.reduction = 'onesided';
+        Opts.stopCrit = 'sysr';
+        Opts.strategy = 'ADI';
+        Opts.nShifts = 2;
+        
         
         % compute shifts using irka
         shifts = zeros(1,10);
         Rt = ones(m,size(shifts,10));
         %Rt = rand(m,size(shifts,10));
         Lt = ones(p,size(shifts,10));
-        %[~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
-        sout =ones(3,size(shifts,10));
-
-       % s0 = [0 inf 0 inf 0 inf 0 inf 0 inf];
-
+        tic
+        %[~ , ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt,Opts);
+        time_irka = toc;
+        %s0 = s0(1,1:4);
+        s0 = My_initializeShifts(sys,Opts);
+        s0 = reshape(s0,[1,20]);
+        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0,Opts);
         
-    % sysr = rk(sys,s0);
         
+        % call rk
+        tic
+        [~,V_rk,W_rk] = rk(sys,s0);
+        time_rk = toc;
         
         % call function crksm
         tic
-        [S,R,data_out] = crksm(sys,Opts);
-        toc
-        %[S,R,data_out] = lyapchol(sys,s0,Opts);
+        [sysr,data_out] = crksm(sys,s0,Opts);
+        time_crksm=toc;
+        
+%         tic
+%         [V_tan_cas,W_tan_cas] = test1(sys,s0,Rt,Opts);
+%         time_test1 = toc;
+        
+       alpha1 = subspace(data_out.out4,V_rk);
+       alpha2 = subspace(data_out.out4,basis1);
+       alpha3 = subspace(basis1,V_rk);
+       
+%         alpha2 = subspace(V_tan_cas,V_rk);
+%         alpha3 = subspace(data_out.out4,V_tan_cas);
         
     case 2
         % set Opts for rksm 
@@ -77,9 +99,9 @@ switch method
         Opts.reduction = 'twosided';
         
         % compute shifts using irka
-        shifts = zeros(1,10);
-        Rt = ones(m,size(shifts,2));
-        Lt = ones(p,size(shifts,2));
+        shifts = zeros(1,20);
+        Rt = ones(m,size(shifts,20));
+        Lt = ones(p,size(shifts,20));
         [~, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt);
         
          % call function crksm
@@ -184,20 +206,19 @@ end
 
 
 % testing quality of solution (when dimension is high, comment out n>1500)
-V = data_out.V_basis;
-%W = data_out.W_basis;
-alpha=subspace(V,Vrk);
-if isempty(W)
-    Pr = S'*S;
-    P = V*Pr*V';
-   % P  = Pr'*Pr;
-else
-    Pr = W*S*V';
-    P  = Pr*Pr';
-end
- 
-Y = A*P*E' + E*P*A' + B*B';
-Y_norm = norm(Y);
+% V = data_out.V_basis;
+% %W = data_out.W_basis;
+% if isempty(W)
+%     Pr = S'*S;
+%     P = V*Pr*V';
+%    % P  = Pr'*Pr;
+% else
+%     Pr = W*S*V';
+%     P  = Pr*Pr';
+% end
+%  
+% Y = A*P*E' + E*P*A' + B*B';
+% Y_norm = norm(Y);
 
 
 % comparing with other hammarling-method
@@ -213,13 +234,13 @@ Y_norm = norm(Y);
 Opts.method = 'adi';
 Opts.messPara = 'heur';    % only for MESS
 Opts.rctol = 0;
-Opts.restol = 1e-12;
+Opts.restol = 1e-5;
 Opts.norm = 2;
 
 % call 
 tic
 [Sadi,Radi] = lyapchol(sys,Opts);
-toc
+time_adi = toc;
 
 % testing quality of solution (when dimension is high, comment out n>1500)
 Padi = Sadi*Sadi';
