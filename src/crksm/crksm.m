@@ -438,10 +438,10 @@ if ~exist('data.out2','var')
        
        % check shift capacity
        if mod(ii,10) == 1 && strcmp(Opts.shifts,'dynamical') && (data.out1(ii,1)-data.out1(ii-10,1)>Opts.shiftTol)...
-          && (data.out1(ii,1)) ~= inf % reuse old shifts
+          && isinf(data.out1(ii,1)) % reuse old shifts
            Opts.shifts = 'cyclic';
        elseif mod(ii,10) == 1 && ~strcmp(Opts.shifts,'fixedCyclic') && (data.out1(ii,1)-data.out1(ii-10,1)<Opts.shiftTol)... 
-              && (data.out1(ii,1)) ~= inf % get new shifts
+              && isinf(data.out1(ii,1)) % get new shifts
            Opts.shifts = 'dynamical';   
        end
 
