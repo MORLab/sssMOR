@@ -5,7 +5,7 @@ clearvars -global
 %% testdaten My_rksm
 
 % load any benchmark system
-sys = loadSss('fom');
+sys = sss('fom');
 % other models: rail_1357, rail_5177, iss, gyro, building, CDplayer, beam,
 %               eady, heat-cont, LF10, random, bips98_606,
 %               SpiralInductorPeec, fom
