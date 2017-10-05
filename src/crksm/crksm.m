@@ -1,11 +1,7 @@
 function [sysr,data] = crksm(varargin)
-% CRKSM - Solve Laypunov equations with a cummulative rational Krylov subspace method
-% Info: Funktionen fuer neue shifts muessen ab Zeile 470 unter der 'mess'-Option eingebunden werden 
+% CRKSM - Cumulative Rational Krylov Subspace Method for cumulative reduction and/or approximately solving Lyapunov equations 
 %
-%              APE' + EPA' + BB' = 0 (I)
-%              AQE' + EQA' + C'C = 0 (II)
-%
-% Synthax CRKSM
+% Syntax:
 %       [sysr,data]         = CRKSM(sys, s0_inp)
 %       [sysr,data]         = CRKSM(sys, s0_inp, Rt)
 %       [sysr,data]         = CRKSM(sys, [], s0_out)
@@ -13,7 +9,6 @@ function [sysr,data] = crksm(varargin)
 %       [sysr,data]         = CRKSM(sys, s0_inp, s0_out)
 %       [sysr,data]         = CRKSM(sys, s0_inp, s0_out, Rt, Lt)
 %       [sysr,data]         = CRKSM(sys,...,Opts_rksm)
-%
 %       [sysr,data]         = CRKSM(A,B,[],[],s0_inp) 
 %       [sysr,data]         = CRKSM(A,B,[],[],s0_inp,Rt) 
 %       [sysr,data]         = CRKSM(A,B,C, [],s0_inp)
@@ -29,73 +24,123 @@ function [sysr,data] = crksm(varargin)
 %       [sysr,data]         = CRKSM(A,B,C,E,s0_inp,s0_out,Rt,Lt) 
 %       [sysr,data]         = CRKSM(A,B,...,s_inp,...,Opts_rksm) 
 %
-% Input:
-%       - system matrices A, B, C, and E or a sys-object
-%       - intial shift vector s_inp (must have at least two entries)
-%       - tangential directions Rt and Lt in the MIMO case
-%       - Opts-struct
+% Description:
 %
-% Output:
-%       - Cholseky factors S, R of the solutions P, Q of the linear
-%         Lyapunov equations
-%       - data-Struct output_data containing:
-%         V_basis, W_basis, norm values of the iterations norm_val,
-%         additional shifts, last reduced system Ar, Br, ...
-%         last rhs, reference residual norm res0, last norm value
+%              $$    A X E^T + E X A^T + B B^T = 0 \quad   (1)    $$
 %
+%              $$    A^T Y E + E^T Y A + C^T C = 0 \quad   (2)    $$
 %
-% possible Options:
-% - Opts.shifts:      choose which shifts and how they should be used
-%                     - cyclic: use the same shifts for the whole iteration
-%                     - adaptive: a new shift is computed online for every
-%                       single iteration (only for SISO-systems)
-%                     - mess: use a function to generate shifts out of the
-%                       mess-toolbox
-%                       ['cyclic' / 'adaptive' / 'mess']
+% Input Arguments:
+%		*Required Input Arguments:*
+%       -sys:                   sss-object containing LTI system 
+%       -A/B/C/E:               system matrices
+%       -s0_inp:                initial expansion points for input Krylov subspace (must have at least two entries)
 %
-% - Opts.residual:    specify determination criteria
-%                     - residual_lyap: compute residual of Lyapunov equation
-%                     - norm_chol: compare  the norm of the two last Cholesky
-%                       factors
-%                       ['residual_lyap' / 'norm_chol']
+%		*Optional Input Arguments:*
+%       -s0_out:                expansion points for output Krylov subspace
+%       -Rt/Lt:                 right/left tangential directions (MIMO case)
+%       -Opts:                  a structure containing following options
+%           -.purpose:          purpose of using CRKSM [{'lyapunov'} / 'MOR']
+%                -'lyapunov':       use CRKSM for approximately solving Lyapunov equations
+%                -'MOR':            use CRKSM for cumulative and adaptive model order reduction
+%           -.shifts:           choose which shifts and how they should be used
+%                -'cyclic':         use the same shifts for the whole iteration
+%                -'adaptive':       a new shift is computed online for every single iteration
+%                -'mess':           use a function to generate shifts out of the mess-toolbox
 %
-% - Opts.rksmnorm:    specify norm
-%                     - 'H2': use 2-norm (Euclidian Norm)
-%                     - 'fro': use Frobenius Norm
+%           -.residual:         specify determination criteria [{'residual_lyap'} / 'norm_chol']
+%                -'residual_lyap':  compute residual of Lyapunov equation
+%                -'norm_chol':      compare  the norm of the two last Cholesky factors
 %
-% - Opts.lowrank:     compute the low rank factor of the final solution
-%                     [0 / 1]
+%           -.rksmnorm:         specify norm [{'H2'} / 'fro']
+%                -'H2':             use 2-norm (Euclidian Norm)
+%                -'fro':            use Frobenius Norm
 %
-% - Opts.orth:        specify orhtogonalization method in Gram-Schmidt
-%                     ['2mgs' / 'dgks' / 'mgs']
+%           -.lowrank:          compute the low-rank factor of the final solution 
+%                               [{0} / 1]
 %
-% - Opts.tol:         specify tolerance
+%           -.orth:             specify orhtogonalization method in Gram-Schmidt
+%                               [{'2mgs'} / 'dgks' / 'mgs']
 %
-% - Opts.maxiter:     specify maximal number of iterations
+%           -.tol:              specify tolerance
+%
+%           -.maxiter:          specify maximal number of iterations
+%
+% Output Arguments:
+%       -sysr:                  reduced system
+%       -S:                     Cholesky factor X=S*S' of Lyapunov equation A*X*E'+E*X*A'+B*B'=0
+%       -R:                     Cholesky factor Y=R*R' of lyapunov equation A'*Y*E+E'*Y*A+C'*C=0
+%       -data:                  struct containing the following data
+%           -V/W:               V_basis, W_basis
+%           -norm_val:          norm values of the iterations
+%           -TODO:              additional shifts, 
+%           -Ar/Br/Cr:          reduced system matrices of last iteration
+%           -rhs:               last rhs
+%           -res0:              reference residual norm
+%           -TODO:              last norm value
+%
+% Examples:
+%       This code computes ....
+%
+%> sys = sss('fom');
+%> Opts.purpose = 'MOR';
+%> sysr = crksm(sys, -eigs(sys,8).');
+%> bode(sys,'-',sysr,'--r');
+%
+% See Also: 
+%       rk, arnoldi, solveLse, sss/lyapchol, mess_lradi, getShifts
+%
+% References:
+%       * *[1] Druskin, Simoncini (2011)*, Adaptive Rational Krylov Subspaces
+%       for large-scale dynamical systems
+%       * *[2] Druskin, Simoncini, Zaslavsky (2014)*, Adaptive Tangential
+%       Interpolation in Rational Krylov Subspaces for MIMO Dynamical Systems
+%       * *[3] Kürschner (2016)*, Efficient Low-Rank Solution of Large-Scale Matrix Equations
+%       * *[4] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
+%
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
+% Authors:      Paul Heidenreich, Maria Cruz Varona
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  05 Oct 2017
+% Copyright (c) 2016-2017 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
 
 %% Still To Come
+% Info: Funktionen fuer neue shifts muessen ab Zeile 470 unter der 'mess'-Option eingebunden werden 
 
 %% Create Def-struct containing default values
 % Note: there may be no point named Def.reuseLU, otherwise one gets a conflict with solveLse/lyapchol/bilyapchol
 
 % general default option settings for MOR and Lyapunov
-Def.purpose              = 'lyapunov';         % ['lyapunov' / 'MOR']
-Def.shifts               = 'fixedCyclic';      % ['fixedCyclic' / 'dynamical']
+Def.purpose              = 'lyapunov';         % [{'lyapunov'} / 'MOR']
+Def.shifts               = 'fixedCyclic';      % [{'fixedCyclic'} / 'dynamical']
 Def.shiftTol             =  0.1;               % default value for new shifts
-Def.strategy             = 'ADI';              % ['ADI' / 'adaptive' / '' / '' / '']
-Def.orth                 = '2mgs';             % for Gramschmidt
+Def.strategy             = 'ADI';              % [{'ADI'} / 'adaptive' / '' / '' / '']
+Def.orth                 = '2mgs';             % for Gram-Schmidt
 Def.lse                  = 'sparse';           % for solving a LTI-system
 Def.maxiter_rksm         =  200;               % default number of iterations
 Def.shiftsTol            =  0.1;               % default value for new shifts
 
 % default option settings for MOR
-Def.real                 = true;               % [true / false], true means to keep the subspace real
+Def.real                 = true;               % [{true} / false], true means to keep the subspace real
 
 % default option settings for Lyapunov
-Def.residual             = 'residual_lyap';    % ['residual_lyap' / 'norm_chol']
+Def.residual             = 'residual_lyap';    % [{'residual_lyap'} / 'norm_chol']
 Def.rctol                =  1e-12;             % default tolerance
-Def.rksmnorm             = 'H2';               % ['H2' / 'fro']
-Def.lowrank              =  0;                 % [0 / 1] 
+Def.rksmnorm             = 'H2';               % [{'H2'} / 'fro']
+Def.lowrank              =  0;                 % [{0} / 1] 
 
 %% Parsing of Inputs
 
