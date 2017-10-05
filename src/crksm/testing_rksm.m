@@ -5,7 +5,7 @@ clearvars -global
 %% testdaten My_rksm
 
 % load any benchmark system
-sys = loadSss('rail_5177');
+sys = loadSss('fom');
 % other models: rail_1357, rail_5177, iss, gyro, building, CDplayer, beam,
 %               eady, heat-cont, LF10, random, bips98_606,
 %               SpiralInductorPeec, fom
@@ -39,20 +39,20 @@ method = 1; % 1 for standard rksm cyclic, reusing shifts, onesided, hermite
 % choose computation of residual norm and other options
 Opts.residual  = 'residual_lyap';  
 %Opts.residual  = 'norm_chol';
-Opts.maxiter_rksm = 20;
+Opts.maxiter_rksm = 50;
 
 %Opts.maxiter = Opts.maxiter_rksm;
-Opts.rctol = 1e-8; 
+Opts.rctol = 1e-3; 
 
             
 switch method
     case 1
         % set Opts for rksm 
-        %Opts.crksmUsage = 'MOR';
-        %Opts.shifts = 'adaptive';
+        %Opts.purpose = 'MOR';
+        Opts.shifts = 'dynamical';
         %Opts.rksmnorm = 'fro';
         Opts.stopCrit = 'sysr';
-        Opts.strategy = 'ADI';
+        Opts.strategy = 'adaptive';
         Opts.nShifts = 2;
         
         
@@ -62,12 +62,13 @@ switch method
         %Rt = rand(m,size(shifts,10));
         Lt = ones(p,size(shifts,10));
         tic
-        %[~ , ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt,Opts);
+        [~ , ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt,Opts);
         time_irka = toc;
-        %s0 = s0(1,1:4);
-        s0 = My_initializeShifts(sys,Opts);
-        s0 = reshape(s0,[1,20]);
+%         s0 = s0(1,1:4);
+%         s0 = My_initializeShifts(sys,Opts);
+%         s0 = reshape(s0,[1,20]);
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0,Opts);
+        %s0 = [0 inf 0 inf 0 inf 0 inf 0 inf 0 inf];
         
         
         % call rk

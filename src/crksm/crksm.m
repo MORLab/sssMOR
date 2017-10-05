@@ -74,9 +74,8 @@ function [sysr,data] = crksm(varargin)
 % - Opts.maxiter:     specify maximal number of iterations
 
 %% Still To Come
-% - extended case testen
 
-%% Create Def-struct containing default values and make global settings
+%% Create Def-struct containing default values
 % Note: there may be no point named Def.reuseLU, otherwise one gets a conflict with solveLse/lyapchol/bilyapchol
 
 % general default option settings for MOR and Lyapunov
@@ -96,10 +95,7 @@ Def.real                 = true;               % [true / false], true means to k
 Def.residual             = 'residual_lyap';    % ['residual_lyap' / 'norm_chol']
 Def.rctol                =  1e-12;             % default tolerance
 Def.rksmnorm             = 'H2';               % ['H2' / 'fro']
-Def.lowrank              =  0;                 % [0 / 1]
-
-% global variables
-global hermite_gram_sch  
+Def.lowrank              =  0;                 % [0 / 1] 
 
 %% Parsing of Inputs
 
@@ -231,7 +227,7 @@ else
     % sort expansion points & tangential directions
     s0_inp = shiftVec(s0_inp);
     s0old = s0_inp;
-    if Opts.real, 
+    if Opts.real
         s0_inp = cplxpair(s0_inp);  %make sure shifts can be paired 
     else
         s0_inp = sort(s0_inp);
@@ -254,7 +250,7 @@ else
         % sort expansion points & tangential directions
         s0_out = shiftVec(s0_out);
         s0old = s0_out;
-        if Opts.real, 
+        if Opts.real 
             s0_out = cplxpair(s0_out); %make sure shifts can be paired 
         else
             s0_out = sort(s0_out);
@@ -283,16 +279,6 @@ else
         end
     end
 end
-
-% check usage of crksm-function
-if strcmp(Opts.purpose,'lyapunov')
-    usage = @crksmLyap;     
-else
-    usage = @crksmSysr;
-end
-
-% clear arguements
-clear Def varargin s0old A B C D E 
    
 %% RKSM Method
 % built first subspace (two columns in case of cplx. conj. shifts) with arnoldi
@@ -302,12 +288,12 @@ switch input
     case 2
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts);
     case 3
-        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts);
+        [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts);
     case 4
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts);
         [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts);
     case 5
-        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts);
+        [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts);
     case 6
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts);
         [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts);
@@ -315,7 +301,14 @@ end
 newdir1 = zeros(size(sys.A,1),size(basis1,2)/2); % declare newdir-variable
 newdir2 = newdir1;
 
-clear input
+% check usage of crksm-function
+if strcmp(Opts.purpose,'lyapunov')
+    usage = @crksmLyap;  
+else
+    usage = @crksmSysr;
+end
+
+clear input Def varargin s0old A B C D E 
 
 % reduction step
 if  ~exist('basis2','var')  
@@ -328,7 +321,7 @@ end
 sysr = ssRed(Ar,Br,Cr,sys.D,Er);
 
 % call usage handle function for the first solving step
-[sysr,data] = usage(sys,sysr,basis1,1,Opts);
+[sysr,data,Opts] = usage(sys,sysr,basis1,1,Opts);
 
 % start iteration
 if ~exist('data.out2','var')
@@ -341,6 +334,7 @@ if ~exist('data.out2','var')
                     s0_inp = repmat(s0_inp,1,2);        Rt = repmat(Rt,1,2); 
                     s0_out = repmat(s0_out,1,2);        Lt = repmat(Lt,1,2); 
                 else
+                    [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,s0_inp,s0_out,Rt,Lt,basis1,basis2,Opts);
                 end
             end
 
@@ -367,13 +361,14 @@ if ~exist('data.out2','var')
 
        % orthogonalize new basis; note: for loop is neccessary for block
        if isempty(basis2) || isempty(basis1)
+           hermite_gram_sch = 0;
            for jj=size(basis1,2)-(size(newdir1,2)-1):1:size(basis1,2)
-                basis1 = gramSchmidt(jj,basis1,Opts);
+                basis1 = gramSchmidt(jj,basis1,hermite_gram_sch,Opts);
            end
        else
            if s0_inp == s0_out, hermite_gram_sch = 1; end
            for jj=size(basis1,2)-(size(newdir1,2)-1):1:size(basis1,2)
-               [basis1,~,basis2] = gramSchmidt(jj,basis1,basis2,Opts);
+               [basis1,~,basis2] = gramSchmidt(jj,basis1,basis2,hermite_gram_sch,Opts);
            end
        end
        % reduction step
@@ -396,12 +391,12 @@ if ~exist('data.out2','var')
        sysr = ssRed(Ar,Br,Cr,sys.D,Er);     % ssRed-object
 
        % call usage handle function for Lyapunov/sysr
-       [sysr,data] = usage(sys,sysr,basis1,ii,Opts);
+       [sysr,data,Opts] = usage(sys,sysr,basis1,ii,Opts);
        
        % check shift capacity
-       if mod(iter,10) == 1 && strcmp(Opts.shifts,'dynamical') && (data.out1(iter,1)-data.out1(iter-10,1)>Opts.shiftTol)
+       if mod(ii,10) == 1 && strcmp(Opts.shifts,'dynamical') && (data.out1(ii,1)-data.out1(ii-10,1)>Opts.shiftTol) % reuse old shifts
            Opts.shifts = 'cyclic';
-       else
+       elseif mod(ii,10) == 1 && ~strcmp(Opts.shifts,'fixedCyclic') && (data.out1(ii,1)-data.out1(ii-10,1)<Opts.shiftTol) % get new shifts
            Opts.shifts = 'dynamical';   
        end
 
@@ -450,18 +445,13 @@ clear global hermite_gram_sch
 end
 
 
-% *************************************************************************
 %% ***************************** AUXILIARY ********************************
-% *************************************************************************
-function [V, TRv, W, TLw] = gramSchmidt(jCol, V, varargin)
+function [V, TRv, W, TLw] = gramSchmidt(jCol,V,varargin)
 %   Gram-Schmidt orthonormalization
 %   Input:  jCol:  Column to be treated
 %           V, W:  Krylov-Subspaces
 %   Output: V, W:  orthonormal basis of Krylov-Subspaces
 %           TRv, TLw: Transformation matrices
-
-% persistent variable hermite
-global hermite_gram_sch
 
 % input
 if isa(varargin{end},'struct')
@@ -470,9 +460,11 @@ if isa(varargin{end},'struct')
 end
 
 if length(varargin) == 1
-    W = varargin{1};
-else
+    hermite_gram_sch = varargin{1};
     W = eye(size(V));
+elseif length(varargin) == 2
+    W = varargin{1};
+    hermite_gram_sch = varargin{2};
 end
     
 % hier muss ich jetzt noch das IP standardm??ig definieren
@@ -595,57 +587,50 @@ end
 end
 
 function [vnew] = blockV(sys,V,~,s0_inp,~,~,~,iter,colIndex)
-    persistent Anew_V
-    rhsB = sys.E*V(:,size(V,2)-(colIndex-1):size(V,2));
+    rhsB = V(:,size(V,2)-(colIndex-1):size(V,2));
     if s0_inp(1,iter) ~= s0_inp(1,iter-1) && s0_inp(1,iter) ~= conj(s0_inp(1,iter-1))
-        Anew_V = (sys.A-s0_inp(1,iter)*sys.E);
-        [vnew] = solveLse(Anew_V,rhsB);
+       vnew = solveLse(sys.A,rhsB,sys.E,s0_inp(1,iter));
     else
-        Opts.reuseLU = 1;
-        [vnew] = solveLse(Anew_V,rhsB,Opts);
+       Opts.reuseLU = 1;
+       vnew = solveLse(sys.A,rhsB,sys.E,s0_inp(1,iter),Opts);
     end
+    vnew = vnew(:,size(rhsB,2)); % because solution of solveLse comes sometimes with one zero-column  
 end
 
 function [wnew] = blockW(sys,~,W,~,s0_out,~,~,iter,colIndex)
-    persistent Anew_W
-    rhsC = sys.E'*W(:,size(W,2)-(colIndex-1):size(W,2));
+    rhsC = W(:,size(W,2)-(colIndex-1):size(W,2));
     if s0_out(1,iter) ~= s0_out(1,iter-1) && s0_out(1,iter) ~= conj(s0_out(1,iter-1))
-        Anew_W = (sys.A-s0_out(1,iter)*sys.E)'; 
-        [wnew] = solveLse(Anew_W,rhsC);
+        wnew(:,size(W,2)) = solveLse(sys.A,rhsC,sys.E,s0_out(1,iter)); 
     else
         Opts.reuseLU = 1;
-        [wnew] = solveLse(Anew_W,rhsC,Opts);
+        wnew(:,size(W,2)) = solveLse(sys.A,rhsC,sys.E,s0_out(1,iter),Opts);
     end
 end
 
 function [vnew] = tangentialV(sys,V,~,s0_inp,~,Rt,~,iter,colIndex)
-    persistent Anew_V
     %rhsB = E*V(:,size(V,2)-(colIndex-1):size(V,2))*rt;
     if s0_inp(1,iter) ~= s0_inp(1,iter-1) && s0_inp(1,iter) ~= conj(s0_inp(1,iter-1))
-        Anew_V = (sys.A-s0_inp(1,iter)*sys.E);
-        [vnew] = solveLse(Anew_V,sys.B*Rt(:,iter));
+        vnew(:,size(V,2)) = solveLse(sys.A,sys.B*Rt(:,iter),sys.E,s0_inp(1,iter));
     else
-         Opts.reuseLU = 1;
-        [vnew] = solveLse(Anew_V,sys.B*Rt(:,iter),Opts);
+        Opts.reuseLU = 1;
+        vnew(:,size(V,2)) = solveLse(sys.A,sys.B*Rt(:,iter),sys.E,s0_inp(1,iter),Opts);
     end
 end
 
 function [wnew] = tangentialW(sys,~,W,~,s0_out,~,Lt,iter,colIndex)
-    persistent Anew_W
     %rhsC = E'*W(:,size(W,2)-(colIndex-1):size(W,2))*lt; 
     if s0_out(1,iter) ~= s0_out(1,iter-1) && s0_out(1,iter) ~= conj(s0_out(1,iter-1))
-        Anew_W = (sys.A-s0_out(1,iter)*sys.E)'; 
-        [wnew] = solveLse(Anew_W,sys.C'*Lt(:,iter));
+        wnew(:,size(W,2)) = solveLse(sys.A,sys.C'*Lt(:,iter),sys.E,s0_out(1,iter));
     else
         Opts.reuseLU = 1;
-        [wnew] = solveLse(Anew_W,sys.C'*Lt(:,iter),Opts);
+        wnew(:,size(W,2)) = solveLse(sys.A,sys.C'*Lt(:,iter),sys.E,s0_out(1,iter),Opts);
     end
 end
 
-function [sysr,data] = crksmLyap(sys,sysr,basis1,iter,Opts)
+function [sysr,data,Opts] = crksmLyap(sys,sysr,basis1,iter,Opts)
     % set persistent variables 
     persistent S Rnorm
-    if exist('S','var'), S_last = S; else S_last = []; end
+    if exist('S','var'), S_last = S; else,  S_last = []; end
     % try to solve Lyapunov equation first with lyapchol or second with lyap
     try
        S = lyapchol(sysr.A,sysr.B,sysr.E);
@@ -668,25 +653,21 @@ function [sysr,data] = crksmLyap(sys,sysr,basis1,iter,Opts)
        % test determination (computation of residual after Panzer/Wolff), compute Er^-1*Br and Er^-1*Ar and other factors
        Er_inv_Br = solveLse(sysr.E,sysr.B);
        Opts.reuseLU = 1;
-       Er_inv_Ar = solveLse(sysr.E,sysr.A,Opts);
-       AV = sys.A*basis1;        EV = sys.E*basis1;
+       Er_inv_Ar = solveLse(sysr.E,sysr.A,Opts);   
 
        % compute factors from residual
-       Borth = sys.B-EV*Er_inv_Br;
-       Borth2 = Borth'*Borth;
-       Cr_hat_rhs = Borth'*(AV-EV*Er_inv_Ar);
-       Cr_hat = solveLse(Borth2,Cr_hat_rhs);
-       %F = E*basis1*(Er_inv_Br+(S*S')*Cr_hat');
+       Opts.Bbot = sys.B-(sys.E*basis1)*Er_inv_Br;
+       Cr_hat = solveLse(Opts.Bbot'*Opts.Bbot,Opts.Bbot'*((sys.A*basis1)-(sys.E*basis1)*Er_inv_Ar));
        F = sys.E*basis1*(Er_inv_Br+(S'*S)*Cr_hat');
 
        % compute residual norm (Euclidean Norm)
        if strcmp(Opts.rksmnorm, 'H2')
            res0  = norm(sysr.B' * sysr.B,2);
-           Rnorm(iter,1) = max(abs(eig(full([Borth2+Borth'*F, Borth2; F'*Borth+F'*F, F'*Borth])))) / res0; 
+           Rnorm(iter,1) = max(abs(eig(full([Opts.Bbot'*Opts.Bbot+Opts.Bbot'*F, Opts.Bbot'*Opts.Bbot; F'*Opts.Bbot+F'*F, F'*Opts.Bbot])))) / res0; 
        else
            % Frobenius Norm
            res0  = norm(sysr.B' * sysr.B,'fro');
-           Rnorm(iter,1) = sqrt(sum(eig(full([Borth2+Borth'*F, Borth2; F'*Borth+F'*F, F'*Borth])))^2) / res0;
+           Rnorm(iter,1) = sqrt(sum(eig(full([Opts.Bbot'*Opts.Bbot+Opts.Bbot'*F, Opts.Bbot'*Opts.Bbot; F'*Opts.Bbot+F'*F, F'*Opts.Bbot])))^2) / res0;
        end
     else
         
@@ -719,7 +700,7 @@ function [sysr,data] = crksmLyap(sys,sysr,basis1,iter,Opts)
    end
 end
 
-function [sysr,data] = crksmSysr(~,sysr,~,iter,Opts)
+function [sysr,data,Opts] = crksmSysr(~,sysr,~,iter,Opts)
     persistent stopCrit sysr_last
     if iter == 1, sysr_last = sss([],[],[]);  end
     % stopping criteria
