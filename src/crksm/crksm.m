@@ -117,9 +117,6 @@ function [sysr,data] = crksm(varargin)
 % Copyright (c) 2016-2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
-%% Still To Come
-% Info: Funktionen fuer neue shifts muessen ab Zeile 470 unter der 'mess'-Option eingebunden werden 
-
 %% Create Def-struct containing default values
 % Note: there may be no point named Def.reuseLU, otherwise one gets a conflict with solveLse/lyapchol/bilyapchol
 
@@ -345,6 +342,7 @@ switch input
 end
 newdir1 = zeros(size(sys.A,1),size(basis1,2)/2); % declare newdir-variable
 newdir2 = newdir1;
+basis1_no = basis1;
 
 % check usage of crksm-function
 if strcmp(Opts.purpose,'lyapunov')
@@ -379,7 +377,7 @@ if ~exist('data.out2','var')
                     s0_inp = repmat(s0_inp,1,2);        Rt = repmat(Rt,1,2); 
                     s0_out = repmat(s0_out,1,2);        Lt = repmat(Lt,1,2); 
                 else
-                    [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,s0_inp,s0_out,Rt,Lt,basis1,basis2,Opts);
+                    [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,s0_inp,s0_out,Rt,Lt,basis1,basis2,basis1_no,Opts);
                 end
             end
 
@@ -393,7 +391,7 @@ if ~exist('data.out2','var')
                 end
             else
                 newdir1 = pointerV(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
-                newdir2 = pointerW(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
+                newdir2 = pointerW(sys,basis2,basis1,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
                 if Opts.real == 1
                     basis1 = [basis1 real(newdir1)];    % basis1 is V  
                     basis2 = [basis2 real(newdir2)];    % basis2 is W
@@ -439,9 +437,11 @@ if ~exist('data.out2','var')
        [sysr,data,Opts] = usage(sys,sysr,basis1,ii,Opts);
        
        % check shift capacity
-       if mod(ii,10) == 1 && strcmp(Opts.shifts,'dynamical') && (data.out1(ii,1)-data.out1(ii-10,1)>Opts.shiftTol) % reuse old shifts
+       if mod(ii,10) == 1 && strcmp(Opts.shifts,'dynamical') && (data.out1(ii,1)-data.out1(ii-10,1)>Opts.shiftTol)...
+          && (data.out1(ii,1)) ~= inf % reuse old shifts
            Opts.shifts = 'cyclic';
-       elseif mod(ii,10) == 1 && ~strcmp(Opts.shifts,'fixedCyclic') && (data.out1(ii,1)-data.out1(ii-10,1)<Opts.shiftTol) % get new shifts
+       elseif mod(ii,10) == 1 && ~strcmp(Opts.shifts,'fixedCyclic') && (data.out1(ii,1)-data.out1(ii-10,1)<Opts.shiftTol)... 
+              && (data.out1(ii,1)) ~= inf % get new shifts
            Opts.shifts = 'dynamical';   
        end
 
@@ -460,7 +460,7 @@ if ~exist('data.out2','var')
                    basis1 = [basis1 imag(newdir1)];
 
                    % calculate new real direction, if last vnew is real and last wnew is complex 
-                   newdir2 = pointerW(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
+                   newdir2 = pointerW(sys,basis2,basis1,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
                    basis2 = [basis2 real(newdir2)];
 
                elseif isreal(newdir1) && ~isreal(newdir2)
@@ -480,6 +480,7 @@ if ~exist('data.out2','var')
     % create output
     data.out4 = basis1;
     data.out5 = basis2;
+    data.out6 = s0_inp;
     if ii == Opts.maxiter_rksm
         warning('\n maximum number of iterations is reached without converging!' )
     end
@@ -642,7 +643,7 @@ function [vnew] = blockV(sys,V,~,s0_inp,~,~,~,iter,colIndex)
     vnew = vnew(:,size(rhsB,2)); % because solution of solveLse comes sometimes with one zero-column  
 end
 
-function [wnew] = blockW(sys,~,W,~,s0_out,~,~,iter,colIndex)
+function [wnew] = blockW(sys,W,~,~,s0_out,~,~,iter,colIndex)
     rhsC = W(:,size(W,2)-(colIndex-1):size(W,2));
     if s0_out(1,iter) ~= s0_out(1,iter-1) && s0_out(1,iter) ~= conj(s0_out(1,iter-1))
         wnew(:,size(W,2)) = solveLse(sys.A,rhsC,sys.E,s0_out(1,iter)); 
