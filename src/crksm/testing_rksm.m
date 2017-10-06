@@ -5,7 +5,8 @@ clearvars -global
 %% testdaten My_rksm
 
 % load any benchmark system
-sys = sss('fom');
+sys = loadSss('rail_1357');
+
 % other models: rail_1357, rail_5177, iss, gyro, building, CDplayer, beam,
 %               eady, heat-cont, LF10, random, bips98_606,
 %               SpiralInductorPeec, fom
@@ -39,20 +40,21 @@ method = 1; % 1 for standard rksm cyclic, reusing shifts, onesided, hermite
 % choose computation of residual norm and other options
 Opts.residual  = 'residual_lyap';  
 %Opts.residual  = 'norm_chol';
-Opts.maxiter_rksm = 50;
+Opts.maxiter_rksm =80;
 
 %Opts.maxiter = Opts.maxiter_rksm;
-Opts.rctol = 1e-3; 
+Opts.rctol = 1e-6; 
 
             
 switch method
     case 1
         % set Opts for rksm 
-        %Opts.purpose = 'MOR';
+        Opts.purpose = 'MOR';
         Opts.shifts = 'dynamical';
+        Opts.shifts = 'fixedCyclic';
         %Opts.rksmnorm = 'fro';
         Opts.stopCrit = 'sysr';
-        Opts.strategy = 'adaptive';
+        Opts.strategy = 'eigs';
         Opts.nShifts = 2;
         
         
@@ -62,14 +64,14 @@ switch method
         %Rt = rand(m,size(shifts,10));
         Lt = ones(p,size(shifts,10));
         tic
-        [~ , ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt,Opts);
+        [sysr_irka, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt,Opts);
         time_irka = toc;
-%         s0 = s0(1,1:4);
+        %s0 = s0(1,1:4);
 %         s0 = My_initializeShifts(sys,Opts);
 %         s0 = reshape(s0,[1,20]);
-        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0,Opts);
+        %[Varnoldi] = arnoldi(sys.E,sys.A,sys.B,s0,Opts);
         %s0 = [0 inf 0 inf 0 inf 0 inf 0 inf 0 inf];
-        
+        Opts.strategy = 'adaptive';
         
         % call rk
         tic
@@ -86,8 +88,8 @@ switch method
 %         time_test1 = toc;
         
        alpha1 = subspace(data_out.out4,V_rk);
-       alpha2 = subspace(data_out.out4,basis1);
-       alpha3 = subspace(basis1,V_rk);
+       alpha2 = subspace(data_out.out4,Varnoldi);
+       alpha3 = subspace(Varnoldi,V_rk);
        
 %         alpha2 = subspace(V_tan_cas,V_rk);
 %         alpha3 = subspace(data_out.out4,V_tan_cas);
