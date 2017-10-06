@@ -321,6 +321,9 @@ else
         end
     end
 end
+if isempty(Rt)
+    Rt = repmat(speye(size(sys.B,2)),1,size(s0_inp,2));
+end
    
 %% RKSM Method
 % built first subspace (two columns in case of cplx. conj. shifts) with arnoldi
@@ -377,7 +380,7 @@ if ~exist('data.out2','var')
                     s0_inp = repmat(s0_inp,1,2);        Rt = repmat(Rt,1,2); 
                     s0_out = repmat(s0_out,1,2);        Lt = repmat(Lt,1,2); 
                 else
-                    [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,s0_inp,s0_out,Rt,Lt,basis1,basis2,basis1_no,Opts);
+                    [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,s0_inp,s0_out,Rt,Lt,basis1,basis2,Opts);
                 end
             end
 
@@ -437,11 +440,11 @@ if ~exist('data.out2','var')
        [sysr,data,Opts] = usage(sys,sysr,basis1,ii,Opts);
        
        % check shift capacity
-       if mod(ii,10) == 1 && strcmp(Opts.shifts,'dynamical') && (data.out1(ii,1)-data.out1(ii-10,1)>Opts.shiftTol)...
-          && isinf(data.out1(ii,1)) % reuse old shifts
+       if mod(ii,10) == 0 && strcmp(Opts.shifts,'dynamical') && ((data.out1(ii,1)-data.out1(ii-9,1)>Opts.shiftTol)...
+          || isinf(data.out1(ii,1))) % reuse old shifts
            Opts.shifts = 'cyclic';
-       elseif mod(ii,10) == 1 && ~strcmp(Opts.shifts,'fixedCyclic') && (data.out1(ii,1)-data.out1(ii-10,1)<Opts.shiftTol)... 
-              && isinf(data.out1(ii,1)) % get new shifts
+       elseif mod(ii,10) == 0 && ~strcmp(Opts.shifts,'fixedCyclic') && ((data.out1(ii,1)-data.out1(ii-9,1)<Opts.shiftTol)... 
+              || isinf(data.out1(ii,1))) % get new shifts
            Opts.shifts = 'dynamical';   
        end
 
@@ -635,12 +638,21 @@ end
 function [vnew] = blockV(sys,V,~,s0_inp,~,~,~,iter,colIndex)
     rhsB = V(:,size(V,2)-(colIndex-1):size(V,2));
     if s0_inp(1,iter) ~= s0_inp(1,iter-1) && s0_inp(1,iter) ~= conj(s0_inp(1,iter-1))
-       vnew = solveLse(sys.A,rhsB,sys.E,s0_inp(1,iter));
+        % preallocate memory, set unity matrix for tangential directions, set options
+        Rt = eye(size(sys.B,2)); 
+        vnew = zeros(size(sys.A,1),size(sys.b,2));
+        Opts.reuseLU = 1;
+        Opts.krylov = 0;
+        % make SISO-system and calculate b-block column wise
+        for ii = 1:1:size(sys.B,2)
+            rhsB_ii = sys.E*rhsB*Rt(:,ii);
+            [v_ii] = solveLse(sys.A,rhsB_ii,sys.E,s0_inp(1,iter),Opts);
+            vnew(:,ii) = v_ii; 
+        end
     else
        Opts.reuseLU = 1;
-       vnew = solveLse(sys.A,rhsB,sys.E,s0_inp(1,iter),Opts);
-    end
-    vnew = vnew(:,size(rhsB,2)); % because solution of solveLse comes sometimes with one zero-column  
+       vnew = solveLse(iter, V, sys.A, rhsB, sys.E, s0_inp, Rt,Opts);
+    end 
 end
 
 function [wnew] = blockW(sys,W,~,~,s0_out,~,~,iter,colIndex)
