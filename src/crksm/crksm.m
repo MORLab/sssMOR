@@ -261,6 +261,11 @@ if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
     error('sssMOR:rk:NoExpansionPoints','No expansion points assigned.');
 end
 
+% in hermite case, m must be equal to p (m = p)!!
+if  ~isempty(s0_inp) && ~isempty(s0_out) && ~all((s0_inp == s0_out)') && isempty(Rt) && size(sys.B,2) ~=size(sys.C,1)
+    error('Block Krylov for m~=p is not supported in crksm');
+end
+
 % check extended case
 if (input == 1 && s0_inp(1,1) == 0 && s0_inp(1,2) == inf) || ...
    (input == 3 && s0_out(1,1) == 0 && s0_out(1,2) == inf) 
@@ -345,7 +350,6 @@ switch input
 end
 newdir1 = zeros(size(sys.A,1),size(basis1,2)/2); % declare newdir-variable
 newdir2 = newdir1;
-basis1_no = basis1;
 
 % check usage of crksm-function
 if strcmp(Opts.purpose,'lyapunov')
@@ -412,7 +416,11 @@ if ~exist('data.out2','var')
                 basis1 = gramSchmidt(jj,basis1,hermite_gram_sch,Opts);
            end
        else
-           if s0_inp == s0_out, hermite_gram_sch = 1; end
+           if s0_inp == s0_out
+               hermite_gram_sch = 1; 
+           else
+               hermite_gram_sch = 0;
+           end
            for jj=size(basis1,2)-(size(newdir1,2)-1):1:size(basis1,2)
                [basis1,~,basis2] = gramSchmidt(jj,basis1,basis2,hermite_gram_sch,Opts);
            end
@@ -637,32 +645,39 @@ end
 
 function [vnew] = blockV(sys,V,~,s0_inp,~,~,~,iter,colIndex)
     rhsB = V(:,size(V,2)-(colIndex-1):size(V,2));
-    if s0_inp(1,iter) ~= s0_inp(1,iter-1) && s0_inp(1,iter) ~= conj(s0_inp(1,iter-1))
-        % preallocate memory, set unity matrix for tangential directions, set options
-        Rt = eye(size(sys.B,2)); 
-        vnew = zeros(size(sys.A,1),size(sys.b,2));
-        Opts.reuseLU = 1;
-        Opts.krylov = 0;
-        % make SISO-system and calculate b-block column wise
-        for ii = 1:1:size(sys.B,2)
-            rhsB_ii = sys.E*rhsB*Rt(:,ii);
-            [v_ii] = solveLse(sys.A,rhsB_ii,sys.E,s0_inp(1,iter),Opts);
-            vnew(:,ii) = v_ii; 
-        end
-    else
-       Opts.reuseLU = 1;
-       vnew = solveLse(iter, V, sys.A, rhsB, sys.E, s0_inp, Rt,Opts);
+    % preallocate memory, set unity matrix for tangential directions, set options
+    Rt = eye(size(sys.B,2)); 
+    vnew = zeros(size(sys.A,1),size(sys.B,2));
+    Opts.reuseLU = 1;
+    Opts.krylov = 0;
+    % make SISO-system and calculate b-block column wise
+    for ii = 1:1:size(sys.B,2)
+        rhsB_ii = sys.E*rhsB*Rt(:,ii);
+        [v_ii] = solveLse(sys.A,rhsB_ii,sys.E,s0_inp(1,iter),Opts);
+        if size(v_ii) > 1,  v_ii = v_ii(:,1);   end
+        vnew(:,ii) = v_ii; 
     end 
 end
 
 function [wnew] = blockW(sys,W,~,~,s0_out,~,~,iter,colIndex)
     rhsC = W(:,size(W,2)-(colIndex-1):size(W,2));
-    if s0_out(1,iter) ~= s0_out(1,iter-1) && s0_out(1,iter) ~= conj(s0_out(1,iter-1))
-        wnew(:,size(W,2)) = solveLse(sys.A,rhsC,sys.E,s0_out(1,iter)); 
-    else
-        Opts.reuseLU = 1;
-        wnew(:,size(W,2)) = solveLse(sys.A,rhsC,sys.E,s0_out(1,iter),Opts);
-    end
+    %if s0_out(1,iter) ~= s0_out(1,iter-1) && s0_out(1,iter) ~= conj(s0_out(1,iter-1))
+    % preallocate memory, set unity matrix for tangential directions, set options
+    Lt = eye(size(sys.C,1)); 
+    wnew = zeros(size(sys.A,1),size(sys.C,1));
+    Opts.reuseLU = 1;
+    Opts.krylov = 0;
+    % make SISO-system and calculate b-block column wise
+    for ii = 1:1:size(sys.C,1)
+        rhsC_ii = sys.E*rhsC*Lt(:,ii);
+        [w_ii] = solveLse(sys.A,rhsC_ii,sys.E,s0_out(1,iter),Opts);
+        if size(w_ii) > 1,  w_ii = w_ii(:,1);   end
+        wnew(:,ii) = w_ii; 
+    end 
+    %else
+        %Opts.reuseLU = 1;
+        %wnew(:,size(W,2)) = solveLse(sys.A,rhsC,sys.E,s0_out(1,iter),Opts);
+    %end
 end
 
 function [vnew] = tangentialV(sys,V,~,s0_inp,~,Rt,~,iter,colIndex)
