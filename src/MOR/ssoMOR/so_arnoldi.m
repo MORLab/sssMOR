@@ -181,7 +181,7 @@ else %MIMO -> fill up s0 and define tangential blocks
         s0=[];
         for i=1:length(us0)
             tempRt=[];
-            for j=1:size(B,2)
+            for j=1:size(sys.B,2)
                tempRt=blkdiag(tempRt,ones(1,ns0(i)));
                s0=[s0,us0(i)*ones(1,ns0(i))];
             end
