@@ -40,7 +40,7 @@ method = 1; % 1 for standard rksm cyclic, reusing shifts, onesided, hermite
 % choose computation of residual norm and other options
 Opts.residual  = 'residual_lyap';  
 %Opts.residual  = 'norm_chol';
-Opts.maxiter_rksm =80;
+Opts.maxiter_rksm =40;
 
 %Opts.maxiter = Opts.maxiter_rksm;
 Opts.rctol = 1e-6; 
@@ -49,9 +49,9 @@ Opts.rctol = 1e-6;
 switch method
     case 1
         % set Opts for rksm 
-        Opts.purpose = 'MOR';
+        %Opts.purpose = 'MOR';
         Opts.shifts = 'dynamical';
-        Opts.shifts = 'fixedCyclic';
+        %Opts.shifts = 'fixedCyclic';
         %Opts.rksmnorm = 'fro';
         Opts.stopCrit = 'sysr';
         Opts.strategy = 'eigs';
@@ -59,23 +59,24 @@ switch method
         
         
         % compute shifts using irka
-        shifts = zeros(1,10);
-        Rt = ones(m,size(shifts,10));
+        shifts = zeros(1,20);
+        Rt = ones(m,size(shifts,20));
         %Rt = rand(m,size(shifts,10));
-        Lt = ones(p,size(shifts,10));
+        Lt = ones(p,size(shifts,20));
         tic
-        [sysr_irka, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt,Opts);
+        %[sysr_irka, ~, ~, s0, Rt, Lt] = irka(sys, shifts,Rt,Lt,Opts);
         time_irka = toc;
-        %s0 = s0(1,1:4);
-%         s0 = My_initializeShifts(sys,Opts);
-%         s0 = reshape(s0,[1,20]);
+
+        s0 = My_initializeShifts(sys,[],[],Opts);
+        %s0 = reshape(s0,[1,20]);
         %[Varnoldi] = arnoldi(sys.E,sys.A,sys.B,s0,Opts);
         %s0 = [0 inf 0 inf 0 inf 0 inf 0 inf 0 inf];
+        sout = ones(1,size(s0,2));
         Opts.strategy = 'adaptive';
         
         % call rk
         tic
-        [~,V_rk,W_rk] = rk(sys,s0);
+        [~,V_rk,W_rk] = rk(sys,[],s0);
         time_rk = toc;
         
         % call function crksm

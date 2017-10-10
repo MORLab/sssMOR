@@ -326,27 +326,24 @@ else
         end
     end
 end
-if isempty(Rt)
-    Rt = repmat(speye(size(sys.B,2)),1,size(s0_inp,2));
-end
    
 %% RKSM Method
 % built first subspace (two columns in case of cplx. conj. shifts) with arnoldi
 switch input
     case 1
-        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts);
+        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts); % basis1 is V 
     case 2
-        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts);
+        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 V
     case 3
-        [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts);
+        [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 W
     case 4
-        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts);
-        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts);
+        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts); % basis1 is V 
+        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 W
     case 5
-        [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts);
+        [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 W
     case 6
-        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts);
-        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts);
+        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 is V 
+        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 W
 end
 newdir1 = zeros(size(sys.A,1),size(basis1,2)/2); % declare newdir-variable
 newdir2 = newdir1;
@@ -471,14 +468,14 @@ if ~exist('data.out2','var')
                    basis1 = [basis1 imag(newdir1)];
 
                    % calculate new real direction, if last vnew is real and last wnew is complex 
-                   newdir2 = pointerW(sys,basis2,basis1,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
+                   newdir2 = pointerW(sys,basis2,basis1,s0_inp,s0_out,Rt,Lt,ii+1,size(newdir1,2));
                    basis2 = [basis2 real(newdir2)];
 
                elseif isreal(newdir1) && ~isreal(newdir2)
                    basis2 = [basis2 imag(newdir2)];
 
                    % calculate new real direction, if last vnew is real and last wnew is complex
-                   newdir1 = pointerV(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2));
+                   newdir1 = pointerV(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii+1,size(newdir1,2));
                    basis1 = [basis1 real(newdir1)];
                end
            end
@@ -661,7 +658,6 @@ end
 
 function [wnew] = blockW(sys,W,~,~,s0_out,~,~,iter,colIndex)
     rhsC = W(:,size(W,2)-(colIndex-1):size(W,2));
-    %if s0_out(1,iter) ~= s0_out(1,iter-1) && s0_out(1,iter) ~= conj(s0_out(1,iter-1))
     % preallocate memory, set unity matrix for tangential directions, set options
     Lt = eye(size(sys.C,1)); 
     wnew = zeros(size(sys.A,1),size(sys.C,1));
@@ -674,30 +670,30 @@ function [wnew] = blockW(sys,W,~,~,s0_out,~,~,iter,colIndex)
         if size(w_ii) > 1,  w_ii = w_ii(:,1);   end
         wnew(:,ii) = w_ii; 
     end 
-    %else
-        %Opts.reuseLU = 1;
-        %wnew(:,size(W,2)) = solveLse(sys.A,rhsC,sys.E,s0_out(1,iter),Opts);
-    %end
 end
 
 function [vnew] = tangentialV(sys,V,~,s0_inp,~,Rt,~,iter,colIndex)
     %rhsB = E*V(:,size(V,2)-(colIndex-1):size(V,2))*rt;
     if s0_inp(1,iter) ~= s0_inp(1,iter-1) && s0_inp(1,iter) ~= conj(s0_inp(1,iter-1))
-        vnew(:,size(V,2)) = solveLse(sys.A,sys.B*Rt(:,iter),sys.E,s0_inp(1,iter));
+        Opts.reuseLU = 0;
+        vnew = solveLse(sys.A,sys.B,sys.E,s0_inp(1,iter),Rt(:,iter),Opts);
     else
         Opts.reuseLU = 1;
-        vnew(:,size(V,2)) = solveLse(sys.A,sys.B*Rt(:,iter),sys.E,s0_inp(1,iter),Opts);
+        vnew = solveLse(sys.A,sys.B,sys.E,s0_inp(1,iter),Rt(:,iter),Opts);
     end
+    if size(vnew) > 1,  vnew = vnew(:,1);   end
 end
 
 function [wnew] = tangentialW(sys,~,W,~,s0_out,~,Lt,iter,colIndex)
     %rhsC = E'*W(:,size(W,2)-(colIndex-1):size(W,2))*lt; 
     if s0_out(1,iter) ~= s0_out(1,iter-1) && s0_out(1,iter) ~= conj(s0_out(1,iter-1))
-        wnew(:,size(W,2)) = solveLse(sys.A,sys.C'*Lt(:,iter),sys.E,s0_out(1,iter));
+        Opts.reuseLU = 0;
+        wnew = solveLse(sys.A,sys.C',sys.E,s0_out(1,iter),Lt(:,iter),Opts);
     else
         Opts.reuseLU = 1;
-        wnew(:,size(W,2)) = solveLse(sys.A,sys.C'*Lt(:,iter),sys.E,s0_out(1,iter),Opts);
+        wnew = solveLse(sys.A,sys.C',sys.E,s0_out(1,iter),Lt(:,iter),Opts);
     end
+    if size(wnew) > 1,  wnew = wnew(:,1);   end
 end
 
 function [sysr,data,Opts] = crksmLyap(sys,sysr,basis1,iter,Opts)
@@ -713,6 +709,9 @@ function [sysr,data,Opts] = crksmLyap(sys,sysr,basis1,iter,Opts)
            R = [];
        end
     catch
+%        if isstable(sysr) == 0
+%            warning('Reduced system is not stable anymore!');
+%        end
        S = lyap(sysr.A,sysr.B*sysr.B',[],sysr.E);
        if nnz(sysr.C) ~= 0
            R = lyap(sysr.A',sysr.C'*sysr.C,[],sysr.E');
@@ -726,11 +725,11 @@ function [sysr,data,Opts] = crksmLyap(sys,sysr,basis1,iter,Opts)
        % test determination (computation of residual after Panzer/Wolff), compute Er^-1*Br and Er^-1*Ar and other factors
        Er_inv_Br = solveLse(sysr.E,sysr.B);
        Opts.reuseLU = 1;
-       Er_inv_Ar = solveLse(sysr.E,sysr.A,Opts);   
+       Opts.Er_inv_Ar = solveLse(sysr.E,sysr.A,Opts);   
 
        % compute factors from residual
        Opts.Bbot = sys.B-(sys.E*basis1)*Er_inv_Br;
-       Cr_hat = solveLse(Opts.Bbot'*Opts.Bbot,Opts.Bbot'*((sys.A*basis1)-(sys.E*basis1)*Er_inv_Ar));
+       Cr_hat = solveLse(Opts.Bbot'*Opts.Bbot,Opts.Bbot'*((sys.A*basis1)-(sys.E*basis1)*Opts.Er_inv_Ar));
        F = sys.E*basis1*(Er_inv_Br+(S'*S)*Cr_hat');
 
        % compute residual norm (Euclidean Norm)
