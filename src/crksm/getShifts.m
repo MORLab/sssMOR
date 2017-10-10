@@ -63,8 +63,8 @@ end % end of getShifts
 %% ***************************** AUXILIARY ********************************
 
 function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
-    ritzVal = eigs(sysr.A);  % compute Ritz-Values of reduced system 
-    resNorm_last = 0;       % Initialize and set variables
+    ritzVal = eig(sysr);  % compute Ritz-Values of reduced system 
+    resNorm_last = 0;     % Initialize and set variables
 
     % build spectral Set
     if ~isreal(s0_inp)
@@ -125,7 +125,7 @@ function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
 end
  
 function [s0_out,Lt] = newParaOut(sys,sysr,W,s0_out,Lt,Opts)
-    ritzVal = eig(sysr.A);  % compute Ritz-Values of reduced system 
+    ritzVal = eig(sysr);  % compute Ritz-Values of reduced system 
     resNorm_last = 0;       % Initialize and set variables
 
     % build spectral Set
