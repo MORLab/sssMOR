@@ -753,6 +753,10 @@ classdef ssRed < ss
             if nargin == 1
                 [G,w] = freqresp(varargin{:});
                 varargout = {frd(G,w)};
+            elseif iscell(varargin{2})
+                [~,~,w]     = bode(varargin{:}); %get frequency vector
+                varargin{2} = w;
+                varargout   = {frd(varargin{:})}; %call again with different input
             else
                 varargout = {frd@ss(varargin{:})};
             end
