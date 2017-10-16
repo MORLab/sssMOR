@@ -12,6 +12,8 @@ Def.shiftNotation   = 'row';            % select output of shifts as row- or col
 Def.Bbot            = [];               % recycle Bbot if it is already available
 Def.Er_inv_Ar       = [];               % recycle Er^-1*Ar if it is already available
 
+% persitent variables
+persistent SizeShiftSet
 %% Parsing of Inputs
 
 % create the options structure and check tangential directions
@@ -47,9 +49,15 @@ elseif strcmp(Opts.strategy,'adaptive')
         [s0_out,Lt] = newParaOut(sys,sysr,W,s0_out,Lt,Opts);
     end
 else 
-    snew = initializeShifts(sys,Opts);
-    snew = reshape(snew,[1,20]);
-    s0_inp = [s0_inp snew];
+    if size(V,2)/size(s0_inp,2) == 1 && isempty(SizeShiftSet)
+        SizeShiftSet = size(s0_inp,2); % define SizeShiftSet
+    end   
+    [snewInp,Rtnew,snewOut,Ltnew] = initializeShifts(sysr,SizeShiftSet,1,Opts);
+    
+    s0_inp = [s0_inp snewInp];
+    s0_out = [s0_out snewOut];
+    Rt = [Rt Rtnew];
+    Lt = [Lt Ltnew];
 end
 
 % change shift vector to column notation
@@ -73,14 +81,14 @@ function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts)
 %     Er = V_i'*sysr.E*V_i;
 %     
 %     
-%   ritzVal = eig(Ar,Er);  % compute Ritz-Values of reduced system 
     ritzVal = eig(sysr);   % compute Ritz-Values of reduced system 
-%    ritzVal = ritzVal(1:14,:);
+    ritzVal = ritzVal(1:10,:);
     resNorm_last = 0;       % Initialize and set variables
+    specSet = sort([s0_inp'; -ritzVal]);  
 
 
     % build spectral Set
-    if ~isreal(s0_inp)
+    if ~isreal(specSet)
         specSet = sort([s0_inp'; -ritzVal]);               % complex sectrum -> Mayer-Luenberger conditions
         chull = convhull(real(specSet),imag(specSet));     % bulid convex hull of spectral set
         specSet = specSet(chull);
@@ -89,17 +97,17 @@ function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts)
     end
 
     % qr-decompositons, residual matrices
-    if isempty(Opts.Bbot)
+    if isempty(Opts.B_)
         Er_inv_Br = solveLse(sysr.E,sysr.B);
-        Opts.Bbot = sys.B-(sys.E*V)*Er_inv_Br;
+        Opts.B_ = sys.B-(sys.E*V)*Er_inv_Br;
         Opts.Er_inv_Ar = solveLse(sysr.E,sysr.A,Opts);   
     end
-    res0 = norm(Opts.Bbot);
+    res0 = norm(Opts.B_);
 
     % solve max-problem for new shift
     for ii = 1:1:size(specSet,1)
         Y = solveLse((sysr.A-specSet(ii,1)*sysr.E)*sysr.E,sysr.B);
-        resNorm = norm(((sys.A*V-sys.E*V*Opts.Er_inv_Ar)*Y-Opts.Bbot))/res0;
+        resNorm = norm(((sys.A*V-sys.E*V*Opts.Er_inv_Ar)*Y-Opts.B_))/res0;
         if isempty(resNorm_last) || (resNorm > resNorm_last && ~any(ismember(s0_inp,specSet(ii,1))))
             resNorm_last = resNorm;
             snew = specSet(ii,1);
