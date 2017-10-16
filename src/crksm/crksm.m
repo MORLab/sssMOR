@@ -259,6 +259,7 @@ elseif length(varargin) > 1
         end   
     end
     sys = sss(A,B,C,D,E);       % build sys-object
+    Opts.isSiso = sys.isSiso;
 end
 
 % check shifts and tangential directions, check Opts-field OPts.crksmUsage, check if extended or rational krylov
@@ -364,9 +365,13 @@ if strcmp(Opts.purpose,'lyapunov')
     else
        pointerLyap = []; 
     end
+    clearFields = {'rctolMOR','stopCrit','equation'};
+    Opts = rmfield(Opts,clearFields);
 else
     usage = @crksmSysr;
     S = [];     R = [];
+    clearFields = {'rctolLyap','equation','residual'};
+    Opts = rmfield(Opts,clearFields);
 end
 
 clear input Def varargin s0old A B C D E 
