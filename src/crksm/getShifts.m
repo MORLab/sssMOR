@@ -1,4 +1,4 @@
-function [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,s0_inp,s0_out,Rt,Lt,V,W,Opts)
+function [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,s0_inp,s0_out,Rt,Lt,V,W,S,R,Opts)
 
 %% Still  to come
 % - input output der funktionen machen
@@ -31,23 +31,23 @@ elseif strcmp(Opts.strategy,'adaptive')
     % choose case
     if isempty(s0_out)
         if isempty(Rt),     Rt = 1;   end
-        [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts);
+        [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts);
     elseif isempty(s0_inp)
         if isempty(Lt),     Lt = 1;   end
-        [s0_out,Lt] = newParaOut(sys,sysr,W,s0_out,Lt,Opts);
+        [s0_out,Lt] = newParaOut(sys,sysr,W,s0_out,Lt,S,R,Opts);
     elseif s0_inp == s0_out
         if isempty(Rt),     Rt = eye(size(s0_inp,2));   end
-        [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts);
+        [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts);
         s0_out = s0_inp;
         %******************************* hier kommt noch was fuer die tangential direction Lt
     else
         if isempty(Rt),     Rt = eye(size(s0_inp,2));   end
         if isempty(Lt),     Lt = eye(size(s0_out,2));   end
-        [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts);
+        [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts);
         [s0_out,Lt] = newParaOut(sys,sysr,W,s0_out,Lt,Opts);
     end
 else 
-    snew =  My_initializeShifts(sys,Opts);
+    snew = initializeShifts(sys,Opts);
     snew = reshape(snew,[1,20]);
     s0_inp = [s0_inp snew];
 end
@@ -62,8 +62,20 @@ end % end of getShifts
 
 %% ***************************** AUXILIARY ********************************
 
-function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
-    ritzVal = eigs(sysr.A);  % compute Ritz-Values of reduced system 
+function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts)
+    %[sysr_new] = tbr(sysr,10);
+%     ritzVal = [];
+%     [U,sigma,X] = svd(S*R');
+%     sigma_new = sigma(size(sysr.A,1)-10:end,size(sysr.A,1)-10:end);
+%     U = U(:,size(sysr.A,1)-size(sigma_new,2)+1:end);
+%     V_i = S'*U*(sigma_new^(-0.5));
+%     Ar = V_i'*sysr.A*V_i;
+%     Er = V_i'*sysr.E*V_i;
+%     
+%     
+%   ritzVal = eig(Ar,Er);  % compute Ritz-Values of reduced system 
+    ritzVal = eig(sysr);   % compute Ritz-Values of reduced system 
+%    ritzVal = ritzVal(1:14,:);
     resNorm_last = 0;       % Initialize and set variables
 
     % build spectral Set
@@ -87,7 +99,7 @@ function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
     for ii = 1:1:size(specSet,1)
         Y = solveLse((sysr.A-specSet(ii,1)*sysr.E)*sysr.E,sysr.B);
         resNorm = norm(((sys.A*V-sys.E*V*Opts.Er_inv_Ar)*Y-Opts.Bbot))/res0;
-        if resNorm > resNorm_last && ~any(ismember(s0_inp,specSet(ii,1)))
+        if isempty(resNorm_last) || (resNorm > resNorm_last && ~any(ismember(s0_inp,specSet(ii,1))))
             resNorm_last = resNorm;
             snew = specSet(ii,1);
             Ypic = Y;
@@ -95,7 +107,7 @@ function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
     end
     
     % compute (multiple) tangential directions
-    if size(Rt,1) == size(sys.B,2)
+    if size(Rt,1) == size(sys.B,2) && ~isscalar(Rt)
         Rinv = solveLse(V,Vhat);
         res = R_Bbot*(Rt*Rinv*Ypic-eye(size(sys.B,2)));
         [~,S,rSingVec] = svd(res); 
