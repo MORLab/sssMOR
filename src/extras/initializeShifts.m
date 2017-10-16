@@ -1,8 +1,8 @@
-function s0 = initializeShifts(sys,nShifts,nSets,Opts)
+function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 % initializeShifts - initialize Shifts for global and consecutive MOR
 % 
 % Syntax:
-%		s0                  = initializeShifts(sys,Opts)
+%		[s0_inp,Rt,s0_out,Lt]         = initializeShifts(sys,Opts)
 % 
 % Description:
 %       
@@ -88,16 +88,18 @@ function s0 = initializeShifts(sys,nShifts,nSets,Opts)
 
 
 %% Execution parameters
-Def.strategy    ='eigs';                %initialisation strategy
-Def.constValue  =0;                     %constant shift
-Def.wmin        =abs(eigs(sys,1,'sm')); %lower bound  
-Def.wmax        =abs(eigs(sys,1));      %upper bound
-Def.kp          =40;                    %number of Arnoldi steps
-Def.km          =25;                    %number of Arnoldi steps
-Def.eigsType    ='sm';                  %eigs parameter
-Def.shiftTyp    ='conj';                %plain imaginary shifts
-Def.offset      =0;                     %global offset for shifts
-Def.format      ='complex';             %output format
+Def.strategy       = 'eigs';                % initialisation strategy
+Def.constValueInp  = 0;                     % constant shift for input space
+Def.constValueOut  = 0;                     % constant shift for output space
+Def.wmin           = abs(eigs(sys,1,'sm')); % lower bound  
+Def.wmax           = abs(eigs(sys,1));      % upper bound
+Def.kp             = 40;                    % number of Arnoldi steps
+Def.km             = 25;                    % number of Arnoldi steps
+Def.eigsType       = 'sm';                  % eigs parameter
+Def.shiftTyp       = 'conj';                % plain imaginary shifts
+Def.offset         = 0;                     % global offset for shifts
+Def.format         = 'complex';             % output format
+Def.isSiso         = sys.isSiso;
 
 %create the options structure                 %aus CURE übernommen
 if ~exist('Opts','var') || isempty(Opts)
@@ -133,17 +135,50 @@ end
 %% Initialize shifts
 switch Opts.strategy{1}
     case 'constant'
-        s0  =   Opts.constValue*ones(1,nSets,nShifts);       
-    case 'eigs'
-        s0=-(eigs(sys,nShifts*nSets,Opts.eigsType))';
-        idxUnstable=real(s0)<0;   %Spiegeln,falls instabile eigs
-        s0(idxUnstable)=-s0(idxUnstable);
-        try
-            cplxpair(s0);
-        catch
-            s0(end)=real(s0(end));
+        s0_inp = Opts.constValueInp*ones(1,nSets,nShifts);  
+        if nargout == 2 
+            Rt = [];
+            warning('No tangential directions can be specified in case "Opts.strategy = constant" ');
+        elseif nargout > 2
+            s0_out = Opts.constValueOut*ones(1,nSets,nShifts);  
+            Rt = [];   Lt = [];
+            warning('No tangential directions can be specified in case "Opts.strategy = constant" ');
         end
-        s0 = reshape(s0,nShifts,nSets)';
+    case 'eigs'
+        s0_inp = single(-(eigs(sys,nShifts*nSets,Opts.eigsType))');
+        idxUnstable = real(s0_inp)<0;   %Spiegeln,falls instabile eigs
+        s0_inp(idxUnstable) = -s0_inp(idxUnstable);
+        try
+            cplxpair(s0_inp);
+        catch
+            s0_inp(end)=real(s0_inp(end));
+        end
+        % get s0_out and right tangential directions
+        if nargout == 3
+            s0_inp = s0_inp';
+        else
+            if nargout > 1 && Opts.isSiso == 0
+                [Lt, D, Rt] = eig(sys);
+                idx = ismember(single(diag(D)),-s0_inp);
+                Rt = full((Rt(:,idx').'*sys.B).');
+                s0_inp = s0_inp';
+                Rt = double(reshape(Rt,nSets*size(sys.B,2),nShifts));
+                if nargout > 2 
+                    % get s0_out and left tangential directions
+                    s0_out = double(s0_inp);
+                    Lt = full(sys.C*(Lt(:,idx')));
+                    Lt = double(reshape(Lt,nSets*size(sys.C,1),nShifts));
+                end
+            elseif nargout > 1
+                Rt = [];  Lt = []; s0_out = [];
+            end
+        end
+        if iscolumn(s0_inp)
+            s0_inp = reshape(s0_inp,nShifts,nSets)';
+        else
+            s0_inp = reshape(s0_inp,nSets,nShifts);
+        end
+        s0_inp = double(s0_inp);
         
     case 'ADI'
         Opts.method='heur';
@@ -178,28 +213,35 @@ switch Opts.strategy{1}
             end
         end
         
-        
         % get adi shifts
         [messOpts.adi.shifts.p, ~]=mess_para(eqn,messOpts,oper);
-        
-        s0=messOpts.adi.shifts.p;
-        
+        s0_inp=messOpts.adi.shifts.p;
         
         %Spiegeln
-        idxUnstable = real(s0)<0;
-        s0(idxUnstable) = - s0(idxUnstable);
+        idxUnstable = real(s0_inp)<0;
+        s0_inp(idxUnstable) = - s0_inp(idxUnstable);
         
         %Abschneiden (des letzten rein reellen shifts falls  s0 zu lang)
-        if(length(s0)>nSets*nShifts)
-            reals0=find((imag(s0)==0));
+        if(length(s0_inp)>nSets*nShifts)
+            reals0=find((imag(s0_inp)==0));
             if(~isempty(reals0))
-                s0(reals0(end))=[];
+                s0_inp(reals0(end))=[];
             else
                 error('Abschneiden funktioniert nicht, s0 zu lang')
             end
         end
         
-        s0 = reshape(s0,nSets,nShifts)';
+        s0_inp = reshape(s0_inp,nSets,nShifts)';
+        
+        % define output
+        if nargout == 2
+            Rt = [];  
+            warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
+        elseif nargout > 2
+            s0_out = s0_inp;
+            Rt = [];    Lt = [];
+            warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
+        end
         
     case 'ROM'
         
@@ -209,29 +251,29 @@ switch Opts.strategy{1}
             
             multip = ceil(nSets*nShifts/2);
             sysr = rk(sys,[mineig,conj(mineig);multip, multip],[mineig,conj(mineig);multip,multip]);
-            s0 = -eig(sysr).';
-            if length(s0)> nSets*nShifts
-                idx = find(imag(s0)==0);
+            s0_inp = -eig(sysr).';
+            if length(s0_inp)> nSets*nShifts
+                idx = find(imag(s0_inp)==0);
                 if isempty(idx)
-                    s0=sort(s0);
+                    s0_inp=sort(s0_inp);
 %                     s0(end) = [];
 %                     if imag(s0(end))~=0
 %                         s0(end) = real(s0(end));
 %                     end
                 else
-                    [~,idx2] = sort(abs(s0(idx))); %ascend
-                    s0(idx(idx2(end))) = [];
+                    [~,idx2] = sort(abs(s0_inp(idx))); %ascend
+                    s0_inp(idx(idx2(end))) = [];
                 end
             end
             
         else
             sysr = rk(sys,[mineig;nShifts],[mineig;nShifts]);
-            s0 = eig(sysr).';
+            s0_inp = eig(sysr).';
         end
         
-        idxUnstable=real(s0)<0;   %Spiegeln,falls instabile eigs
-        s0(idxUnstable)=-s0(idxUnstable);
-        s0 = reshape(s0,nShifts,nSets)';
+        idxUnstable=real(s0_inp)<0;   %Spiegeln,falls instabile eigs
+        s0_inp(idxUnstable)=-s0_inp(idxUnstable);
+        s0_inp = reshape(s0_inp,nShifts,nSets)';
     
     
     otherwise
@@ -300,33 +342,33 @@ switch Opts.strategy{1}
             else
                 s0_imag = repelem(s0_parts{end},2).*repmat([1,-1],1,NoS)*1i;
             end
-            s0 = s0_real + s0_imag;
+            s0_inp = s0_real + s0_imag;
         else
             if Opts.offset ~= 0
-                s0 = repelem(s0_parts{:},2)+Opts.offset*repmat([1,-1],1,NoS)*1i;
+                s0_inp = repelem(s0_parts{:},2)+Opts.offset*repmat([1,-1],1,NoS)*1i;
             else
-                s0 = s0_parts{:};
+                s0_inp = s0_parts{:};
             end
         end
         
-        s0 = reshape(s0,nShifts,nSets)';
+        s0_inp = reshape(s0_inp,nShifts,nSets)';
 end
 
 % plain real shifts at the end, when the number of shifts is odd
 if oddOrder
-    s0(:,end) = [];
-    s0(:,end) = real(s0(:,end));
+    s0_inp(:,end) = [];
+    s0_inp(:,end) = real(s0_inp(:,end));
 end
 
 % change output format to ab
 if strcmp(Opts.format,'ab')
-    s0 = s2p(s0(:,1),s0(:,2));
+    s0_inp = s2p(s0_inp(:,1),s0_inp(:,2));
 end
 
 % Change s0 from matrix to cell if several sets were computed
 if nSets > 1
-    s0 = reshape(s0.',1,nShifts*nSets);
-    s0 = mat2cell(s0,1,nShifts*ones(1,nSets));
+    s0_inp = reshape(s0_inp.',1,nShifts*nSets);
+    s0_inp = mat2cell(s0_inp,1,nShifts*ones(1,nSets));
 end
 
 end
