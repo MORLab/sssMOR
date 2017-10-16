@@ -78,6 +78,7 @@ function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts)
 %    ritzVal = ritzVal(1:14,:);
     resNorm_last = 0;       % Initialize and set variables
 
+
     % build spectral Set
     if ~isreal(s0_inp)
         specSet = sort([s0_inp'; -ritzVal]);               % complex sectrum -> Mayer-Luenberger conditions
@@ -137,7 +138,7 @@ function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts)
 end
  
 function [s0_out,Lt] = newParaOut(sys,sysr,W,s0_out,Lt,Opts)
-    ritzVal = eig(sysr.A);  % compute Ritz-Values of reduced system 
+    ritzVal = eig(sysr);  % compute Ritz-Values of reduced system 
     resNorm_last = 0;       % Initialize and set variables
 
     % build spectral Set
