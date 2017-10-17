@@ -11,6 +11,7 @@ Def.strategy        = 'eigs';           % strategy for shift generation: ['ADI' 
 Def.shiftNotation   = 'row';            % select output of shifts as row- or column-vector
 Def.Bbot            = [];               % recycle Bbot if it is already available
 Def.Er_inv_Ar       = [];               % recycle Er^-1*Ar if it is already available
+Def.multDir        = 0;                % choose strategy for tangential dierections [0 / 1] 
 
 % persitent variables
 persistent SizeShiftSet
@@ -53,11 +54,12 @@ else
         SizeShiftSet = size(s0_inp,2); % define SizeShiftSet
     end   
     [snewInp,Rtnew,snewOut,Ltnew] = initializeShifts(sysr,SizeShiftSet,1,Opts);
-    
     s0_inp = [s0_inp snewInp];
-    s0_out = [s0_out snewOut];
     Rt = [Rt Rtnew];
-    Lt = [Lt Ltnew];
+    if ~isempty(s0_out)
+        s0_out = [s0_out snewOut];
+        Lt = [Lt Ltnew];
+    end
 end
 
 % change shift vector to column notation
@@ -81,19 +83,21 @@ function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts)
 %     Er = V_i'*sysr.E*V_i;
 %     
 %     
-    ritzVal = eig(sysr);   % compute Ritz-Values of reduced system 
-    ritzVal = ritzVal(1:10,:);
-    resNorm_last = 0;       % Initialize and set variables
-    specSet = sort([s0_inp'; -ritzVal]);  
-
-
-    % build spectral Set
-    if ~isreal(specSet)
-        specSet = sort([s0_inp'; -ritzVal]);               % complex sectrum -> Mayer-Luenberger conditions
-        chull = convhull(real(specSet),imag(specSet));     % bulid convex hull of spectral set
-        specSet = specSet(chull);
+    [~,ritzVal,setRt] = eig(sysr);   % compute Ritz-Values of reduced system 
+    ritzVal = diag(ritzVal);
+    if size(sysr.A,2) < 85
+        ritzVal = ritzVal(1:10,:);
     else
-        specSet = sort([s0_inp'; -ritzVal]);  
+        ritzVal = ritzVal(50:60,:);
+    end
+    setRt = setRt(:,4:10);
+    resNorm_last = 0;       % Initialize and set variables
+    specSet = sort([s0_inp'; -ritzVal]);    % complex spectrum -> Mayer-Luenberger conditions 
+
+    % build convex hull
+    if ~isreal(specSet)
+        chull = convhull(real(specSet),imag(specSet));     % bulid convex hull of spectral set
+        specSet = specSet(chull); 
     end
 
     % qr-decompositons, residual matrices
@@ -117,12 +121,11 @@ function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts)
     
     % compute (multiple) tangential directions
     if size(Rt,1) == size(sys.B,2) && ~isscalar(Rt)
-        Rinv = solveLse(V,Vhat);
-        res = R_Bbot*(Rt*Rinv*Ypic-eye(size(sys.B,2)));
+        res = (sys.A*V-sys.E*V*Opts.Er_inv_Ar)*Ypic-Opts.B_;
         [~,S,rSingVec] = svd(res); 
         for ii = 1:1:size(S,2)
             if Opts.multDir == false
-                resNorm(ii,1) = norm((R_Bbot*(rRt*Rinv*Y-eye(size(sys.B,2))))*rSingVec(:,ii));
+                resNorm(ii,1) = norm(res*rSingVec(:,ii));
                 [~,index] = max(resNorm);
                 rt_new = rSingVec(:,index);
             else              
