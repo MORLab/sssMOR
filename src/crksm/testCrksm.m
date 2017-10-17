@@ -31,7 +31,7 @@ methods(Test)
 %% SISO
     function SISO_Vsided(testCase) 
         Opts.rctol = 1e-3;
-%         Opts.shifts = 'dynamical';
+        Opts.shifts = 'dynamical';
         
         SISObenchmarksSysCell = getSISObenchmarks();
         for i=1:length(SISObenchmarksSysCell)
@@ -180,6 +180,10 @@ methods(Test)
 % 
 %     function MIMO_Tangential_Vsided(testCase) 
 %         MIMObenchmarksSysCell = getMIMObenchmarks();
+% [s0,Rt,s0,Lt] = initiali,....
+%     
+% norm(V_rk - V_crksm); subspace(V_rk,V_crksm); norm(sysr_Rk - sysr_Crksm); 
+
 %     end
 % 
 %     function MIMO_Tangential_Wsided(testCase)
