@@ -159,8 +159,8 @@ switch Opts.strategy{1}
         else
             if nargout > 1 && Opts.isSiso == 0
                 [Lt, D, Rt] = eig(sys);
-                idx = ismember(single(diag(D)),-s0_inp);
-                Rt = full((Rt(:,idx').'*sys.B).');
+                [~,idx] = ismember(single(diag(D)),-s0_inp);
+                Rt = full((Rt(:,idx(idx~=0))'*sys.B))';
                 s0_inp = s0_inp';
                 Rt = double(reshape(Rt,nSets*size(sys.B,2),nShifts));
                 if nargout > 2 
