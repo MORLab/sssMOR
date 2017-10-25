@@ -84,9 +84,9 @@ function [V, Sv, Rv, W, Sw, Lw, nLU] = arnoldi(E,A,B,varargin)
 %           -.real:         keep the projection matrices real
 %                           [{true} / false]
 %           -.orth:         orthogonalization of new projection direction
-%                           [{'2mgs'} / 0 / 'dgks' / 'mgs']
+%                           [{'2mgs'} / 'dgks' / 'mgs' / false]
 %           -.reorth:       reorthogonalization
-%                           [{'gs'} / 0 / 'qr']
+%                           [{false} / 'mgs' / 'qr' ]
 %           -.lse:          use LU or hessenberg decomposition
 %                           [{'sparse'} / 'full' / 'hess' /'iterative']
 %           -.dgksTol:      tolerance for dgks orthogonalization
@@ -150,11 +150,11 @@ if ~isempty(varargin) && isstruct(varargin{end})
     varargin = varargin(1:end-1);
 end
 
-Def.real    = true; %keep the projection matrices real?
-Def.orth    = '2mgs'; %orthogonalization after every direction {0,'dgks','mgs','2mgs'}
-Def.reorth  = 0; %reorthogonaliation at the end {0, 'mgs', 'qr'}
+Def.real    = true;     %keep the projection matrices real?
+Def.orth    = '2mgs';   %orthogonalization after every direction {0,'dgks','mgs','2mgs'}
+Def.reorth  = false;    %reorthogonaliation at the end {0, 'mgs', 'qr'}
 Def.lse 	= 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess'}
-Def.dgksTol = 1e-12; %orthogonality tolerance: norm(V'*V-I,'fro')<tol
+Def.dgksTol = 1e-12;    %orthogonality tolerance: norm(V'*V-I,'fro')<tol
 Def.krylov  = 'standardKrylov'; %standard or cascaded krylov basis (only for siso) {'standardKrylov','cascadedKrylov'}
         
 % create the options structure
@@ -382,7 +382,7 @@ switch Opts.reorth
        end  
     case 0
     otherwise
-        error('The orthogonalization chosen is incorrect or not implemented')
+        error('The reorthogonalization chosen is incorrect or not implemented')
 end
 
 function [s0] = tangentialDirection(s0)
