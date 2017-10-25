@@ -18,11 +18,11 @@ classdef testAllOpts < sssTest
             %runSsRed(testCase)
 
             % Classic
-            %runArnoldi(testCase)           % ?
+            runArnoldi(testCase)           % ?
             %runModalMor(testCase)          % OK
             %runProjectiveMor(testCase)     % OK
             %runRk(testCase)                % OK
-            runTbr(testCase)                % ?
+%             runTbr(testCase)                % ?
 
             % State Of The Art
             %runCirka(testCase)
@@ -56,8 +56,8 @@ end
 function runArnoldi(testCase)
     % Define possible opts combinations
     OptsStuct.real        = {true, false};
-    OptsStuct.orth        = {'2mgs', false, 'dgks', 'mgs'};
-    OptsStuct.reorth      = {'gs', false, 'qr'};
+    OptsStuct.orth        = {false, 'dgks', 'mgs'};
+    OptsStuct.reorth      = {'mgs', false, 'qr'};
     OptsStuct.lse         = {'sparse','full','hess','iterative'};
     OptsStuct.dgksTol     = {1e-12};
     OptsStuct.krylov      = {'standardKrylov','cascadedKrylov'};
@@ -68,6 +68,8 @@ function runArnoldi(testCase)
     OptsStuct.force       = {true, false};
             
     [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+    
+%     verifyError(testCase,arnoldi(),'sss:solveLse:cascadeSiso')
 
     h = waitbar(0,'arnodi: testing all combinations for Opts...');
     try
@@ -77,7 +79,7 @@ function runArnoldi(testCase)
         for i=1:length(testCase.sysCell)
             %  test system
             sys = testCase.sysCell{i};
-            sysr = arnoldi(speye(size(sys.A)),sys.A,sys.B,[1-1i, 1-1i, 1-1i, 1+1i, 1+1i, 1+1i], sys);
+            sysr = arnoldi(speye(size(sys.A)),sys.A,sys.B,[1-1i, 1-1i, 1-1i, 1+1i, 1+1i, 1+1i], Opts);
         end
     end
     close(h)
@@ -190,16 +192,16 @@ function runTbr(testCase)
     % Define possible opts combinations
     OptsStuct.type        = {'tbr', 'adi', 'matchDcGain'};
     OptsStuct.redErr      = {'0', 1};
-    OptsStuct.hsvTol      = {1e-15, 1};
+    OptsStuct.hsvTol      = {1e-15};
     OptsStuct.warnOrError = {'warn','error', 0};
-    OptsStuct.lse         = {'gauss', 'luChol'};
+    OptsStuct.lse         = {'sparse', 'full','iterative', 'gauss'}; 
     OptsStuct.rctol       = {1e-15};
     OptsStuct.forceOrder  = {true, false};
     
     
     [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
-    h = waitbar(0,'projectiveMor: testing all combinations for Opts...');
+    h = waitbar(0,'tbr: testing all combinations for Opts...');
     try
     for kOpts = 1:nCases
         waitbar(kOpts/nCases,h);
@@ -207,7 +209,7 @@ function runTbr(testCase)
         for i=1:length(testCase.sysCell)
             %  test system
             sys = testCase.sysCell{1};
-            q=25;
+            q   = 2;
             [sysr, ~] = tbr(sys,q, Opts);
         end
     end
