@@ -22,16 +22,16 @@ classdef testLoopThroughOptions < sssTest
             AllOpts.lse         = {'sparse','full'};
             AllOpts.subspaceW   = {'eigs','1by1'};
             
-            [AllOpts,nCases]    = generateAllOpts(AllOpts);
+            [AllOptsCell,nCases]    = generateAllOpts(AllOpts);
             
             h = waitbar(0,'modalMor: testing all combinations for Opts...');
             try
             for kOpts = 1:nCases
                 waitbar(kOpts/nCases,h);
-                Opts = AllOpts{kOpts};
+                Opts = AllOptsCell{kOpts};
                 for i=1:length(testCase.sysCell)
                     %  test system
-                    sys     = testCase.sysCell{i};
+                    sys = testCase.sysCell{i};
                     if strcmp(Opts.dominance,'2q') && strcmp(testCase.sysCell{i}.Name,'iss')
                         % Option dominance = '2q' produces a numerical error
                         % for the benchmark "iss", because only 2 of the 
