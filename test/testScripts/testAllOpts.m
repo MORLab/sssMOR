@@ -11,17 +11,94 @@ classdef testAllOpts < sssTest
  
     methods(Test)
         % Extras
-        function runInitializeShigts(testCase)
+        function runInitializeShifts(testCase)
+            % Define possible opts combinations
+            OptsStuct.strategy   = {'eigs','ADI','const', 'ROM', 'linspaced', 'logspaced', 'random', 'lognrnd'};
+            OptsStuct.shiftType  = {'conj','real', 'imag'};
+            OptsStuct.wmin       = {abs(eigs(sys,1,'sm'))}; %TODO any way of predefining the wmin, wmax params without sys?
+            OptsStuct.wmax       = {abs(eigs(sys,1))};
+            OptsStuct.kp         = {40};
+            OptsStuct.km         = {25};
+            OptsStuct.eigsType   = {'sm', 'lm', 'li', 'si', 'lr', 'sr', 'la','sa'};
+            OptsStuct.constValue = {0};
+            OptsStuct.offset     = {0};
+            OptsStuct.format     = {'complex','ab'};
 
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+
+            h = waitbar(0,'initializeShifts: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOptsCell{kOpts};
+                for i=1:length(testCase.sysCell)
+                    % Run test
+                    sys = testCase.sysCell{i};
+                    initializeShifts(sys,Opts);
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
         function runIsH2opt(testCase)
+            % Define possible opts combinations
+            OptsStuct.tol   = {1e-3};
+            
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
+            h = waitbar(0,'isH2opt: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOptsCell{kOpts};
+                for i=1:length(testCase.sysCell)
+                    % Run test
+                    sys = testCase.sysCell{i};
+                    [sysr, ~, ~, s0opt]  = irka(sys, -eigs(sys,8).');
+                    isH2opt(sys, sysr, s0opt);
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
         function runMoments(testCase)
+            % Define possible opts combinations
+            OptsStuct.refine      = {0};
+            OptsStuct.refTol      = {1e-6};
+            OptsStuct.refMaxiter  = {1e2};
+            OptsStuct.lse         = {'sparse'};
+            
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
-        end
-        function runSsRed(testCase)
-
+            h = waitbar(0,'moments: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOptsCell{kOpts};
+                for i=1:length(testCase.sysCell)
+                    % Run test
+                    sys = testCase.sysCell{i};
+                    s0=5;
+                    moments(sys, s0, 4, Opts);
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
 
         % Classic
@@ -49,7 +126,7 @@ classdef testAllOpts < sssTest
                 waitbar(kOpts/nCases,h);
                 Opts = AllOptsCell{kOpts};
                 for i=1:length(testCase.sysCell)
-                    %  test system
+                    % Run test
                     sys = testCase.sysCell{i};
                     sysr = arnoldi(speye(size(sys.A)),sys.A,sys.B,[1-1i, 1-1i, 1-1i, 1+1i, 1+1i, 1+1i], Opts);
                 end
@@ -80,7 +157,7 @@ classdef testAllOpts < sssTest
                 waitbar(kOpts/nCases,h);
                 Opts = AllOptsCell{kOpts};
                 for i=1:length(testCase.sysCell)
-                    %  test system
+                    % Run test
                     sys = testCase.sysCell{i};
                     if strcmp(Opts.dominance,'2q') && strcmp(testCase.sysCell{i}.Name,'iss')
                         % Option dominance = '2q' produces a numerical error
@@ -117,7 +194,7 @@ classdef testAllOpts < sssTest
                 waitbar(kOpts/nCases,h);
                 Opts = AllOptsCell{kOpts};
                 for i=1:length(testCase.sysCell)
-                    %  test system
+                    % Run test
 
                     sys = testCase.sysCell{1};
                     s0 = 1; r = ones(sys.m,length(s0));
@@ -140,13 +217,13 @@ classdef testAllOpts < sssTest
 
             [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
-            h = waitbar(0,'projectiveMor: testing all combinations for Opts...');
+            h = waitbar(0,'rk: testing all combinations for Opts...');
             try
             for kOpts = 1:nCases
                 waitbar(kOpts/nCases,h);
                 Opts = AllOptsCell{kOpts};
                 for i=1:length(testCase.sysCell)
-                    %  test system
+                    % Run test
                     sys = testCase.sysCell{1};
                     n = 5; s0val = 100; s0 = [ones(1,n)*s0val*1i,-ones(1,n)*s0val*1i]; 
                     [sysr, ~] = rk(sys, [], s0, Opts);
@@ -179,7 +256,7 @@ classdef testAllOpts < sssTest
                 waitbar(kOpts/nCases,h);
                 Opts = AllOptsCell{kOpts};
                 for i=1:length(testCase.sysCell)
-                    %  test system
+                    % Run test
                     sys = testCase.sysCell{1};
                     q   = 2;
                     [sysr, ~] = tbr(sys,q, Opts);
@@ -196,31 +273,256 @@ classdef testAllOpts < sssTest
 
         % State Of The Art
         function runCirka(testCase)
+            % Define possible opts combinations
+            OptsStuct.refine      = {0};
+            OptsStuct.refTol      = {1e-6};
+            OptsStuct.refMaxiter  = {1e2};
+            OptsStuct.lse         = {'sparse'};
+            
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
+            h = waitbar(0,'circa: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOptsCell{kOpts};
+                for i=1:length(testCase.sysCell)
+                    % Run test
+                    sys = testCase.sysCell{i};
+
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
         function runCure(testCase)
+            % Define possible opts combinations
+            OptsStuct.refine      = {0};
+            OptsStuct.refTol      = {1e-6};
+            OptsStuct.refMaxiter  = {1e2};
+            OptsStuct.lse         = {'sparse'};
+            
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
+            h = waitbar(0,'cure: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOptsCell{kOpts};
+                for i=1:length(testCase.sysCell)
+                    % Run test
+                    sys = testCase.sysCell{i};
+
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
         function runIrka(testCase)
+            % Define possible opts combinations
+            OptsStuct.refine      = {0};
+            OptsStuct.refTol      = {1e-6};
+            OptsStuct.refMaxiter  = {1e2};
+            OptsStuct.lse         = {'sparse'};
+            
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
+            h = waitbar(0,'irka: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOptsCell{kOpts};
+                for i=1:length(testCase.sysCell)
+                    % Run test
+                    sys = testCase.sysCell{i};
+
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
         function runIsrk(testCase)
+            % Define possible opts combinations
+            OptsStuct.refine      = {0};
+            OptsStuct.refTol      = {1e-6};
+            OptsStuct.refMaxiter  = {1e2};
+            OptsStuct.lse         = {'sparse'};
+            
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
+            h = waitbar(0,'isrk: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOptsCell{kOpts};
+                for i=1:length(testCase.sysCell)
+                    % Run test
+                    sys = testCase.sysCell{i};
+
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
         function runModelFct(testCase)
+            % Define possible opts combinations
+            OptsStuct.refine      = {0};
+            OptsStuct.refTol      = {1e-6};
+            OptsStuct.refMaxiter  = {1e2};
+            OptsStuct.lse         = {'sparse'};
+            
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
+            h = waitbar(0,'modelFct: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOptsCell{kOpts};
+                for i=1:length(testCase.sysCell)
+                    % Run test
+                    sys = testCase.sysCell{i};
+
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
         function runModelFctMor(testCase)
+            % Define possible opts combinations
+            OptsStuct.refine      = {0};
+            OptsStuct.refTol      = {1e-6};
+            OptsStuct.refMaxiter  = {1e2};
+            OptsStuct.lse         = {'sparse'};
+            
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
+            h = waitbar(0,'modelFctMor: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOptsCell{kOpts};
+                for i=1:length(testCase.sysCell)
+                    % Run test
+                    sys = testCase.sysCell{i};
+
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
         function runRkIcop(testCase)
+            % Define possible opts combinations
+            OptsStuct.refine      = {0};
+            OptsStuct.refTol      = {1e-6};
+            OptsStuct.refMaxiter  = {1e2};
+            OptsStuct.lse         = {'sparse'};
+            
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
+            h = waitbar(0,'rkIcop: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOptsCell{kOpts};
+                for i=1:length(testCase.sysCell)
+                    % Run test
+                    sys = testCase.sysCell{i};
+
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
         function runRkOp(testCase)
+            % Define possible opts combinations
+            OptsStuct.refine      = {0};
+            OptsStuct.refTol      = {1e-6};
+            OptsStuct.refMaxiter  = {1e2};
+            OptsStuct.lse         = {'sparse'};
+            
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
+            h = waitbar(0,'rkOp: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOptsCell{kOpts};
+                for i=1:length(testCase.sysCell)
+                    % Run test
+                    sys = testCase.sysCell{i};
+
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
         function runSpark(testCase)
+            % Define possible opts combinations
+            OptsStuct.refine      = {0};
+            OptsStuct.refTol      = {1e-6};
+            OptsStuct.refMaxiter  = {1e2};
+            OptsStuct.lse         = {'sparse'};
+            
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
+            h = waitbar(0,'spark: testing all combinations for Opts...');
+            try
+            for kOpts = 1:nCases
+                waitbar(kOpts/nCases,h);
+                Opts = AllOptsCell{kOpts};
+                for i=1:length(testCase.sysCell)
+                    % Run test
+                    sys = testCase.sysCell{i};
+
+                end
+            end
+            close(h)
+            catch err
+                close(h)
+                sys, Opts
+                fprintf(2,'Following error occurred with the options above:\n');
+                rethrow(err)                    
+            end
         end
     end
 end
