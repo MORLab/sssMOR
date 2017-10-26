@@ -143,7 +143,7 @@ warning('off','Control:analysis:NormInfinite3')
     end
 
     Def.qm0     = 2*length(s0); %default initial surrogate size
-    Def.s0m     = shiftVec([s0;2*ones(1,length(s0))]); %default surrogate shifts
+    Def.sm0     = shiftVec([s0;2*ones(1,length(s0))]); %default surrogate shifts
     Def.maxiter = 15;   %maximum number of CIRKA iterations
     Def.tol     = 1e-3; %tolerance for stopping criterion
     Def.stopcrit= 'combAny'; %stopping criterion for CIRKA 
@@ -179,7 +179,7 @@ warning('off','Control:analysis:NormInfinite3')
     sysmOld = ss([]);
     
     %   Generate the model function
-    s0m = Opts.s0m;    [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
+    sm0 = Opts.sm0;    [sysm, s0mTot, Vm, Wm] = modelFct(sys,sm0);
 
     if Opts.verbose, fprintf('Starting model function MOR...\n'); end
     if Opts.plot, sysFrd = freqresp(sys,struct('frd',true)); end
@@ -191,8 +191,8 @@ warning('off','Control:analysis:NormInfinite3')
         if kIter > 1
             if kIter == 2 && Opts.clearInit
                 %reset the model function after the first step
-                s0m = [s0,s0m(1:length(s0m)-length(s0))];
-                [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
+                sm0 = [s0,sm0(1:length(sm0)-length(s0))];
+                [sysm, s0mTot, Vm, Wm] = modelFct(sys,sm0);
             else
                 % update model
                 [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0,s0mTot,Vm,Wm,Opts);

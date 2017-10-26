@@ -95,7 +95,7 @@ Def.wmax        =abs(eigs(sys,1));      %upper bound
 Def.kp          =40;                    %number of Arnoldi steps
 Def.km          =25;                    %number of Arnoldi steps
 Def.eigsType    ='sm';                  %eigs parameter
-Def.shiftTyp    ='conj';                %plain imaginary shifts
+Def.shiftType   ='conj';                %plain imaginary shifts
 Def.offset      =0;                     %global offset for shifts
 Def.format      ='complex';             %output format
 
@@ -117,7 +117,7 @@ if ~iscell(Opts.strategy)
 else
     if (any(strcmp(Opts.strategy{1},{'ADI','eigs','ROM','const'}))...
             ||any(strcmp(Opts.strategy{end},{'ADI','eigs','ROM','const'})))...
-            && (length(Opts.strategy) > 1 || ~strcmp(Opts.shiftTyp,'conj'))
+            && (length(Opts.strategy) > 1 || ~strcmp(Opts.shiftType,'conj'))
         error('invalid choice of strategy');
     end
 end
@@ -238,17 +238,17 @@ switch Opts.strategy{1}
         % grid and random based strategies
         
         % check for valid combination of strategeis
-        if length(Opts.strategy)==1 && strcmp(Opts.shiftTyp,'conj')
+        if length(Opts.strategy)==1 && strcmp(Opts.shiftType,'conj')
             Opts.strategy = [Opts.strategy; Opts.strategy];
-        elseif ~strcmp(Opts.shiftTyp,'conj') && length(Opts.strategy)>1
+        elseif ~strcmp(Opts.shiftType,'conj') && length(Opts.strategy)>1
             error('invalid choice of strategy');
         end
         
         % compute grid size and grid parameters
-        if strcmp(Opts.shiftTyp,'conj')
+        if strcmp(Opts.shiftType,'conj')
             iSplit = ceil(sqrt(nShifts*nSets/2));
             NoS = nShifts*nSets/2;
-        elseif strcmp(Opts.shiftTyp,'imag')
+        elseif strcmp(Opts.shiftType,'imag')
             iSplit = nShifts*nSets/2;
             NoS = iSplit;
         else
@@ -283,8 +283,8 @@ switch Opts.strategy{1}
         end
         
         %generate final s0 matrix
-        if ~strcmp(Opts.shiftTyp,'real')
-            if strcmp(Opts.shiftTyp,'conj')
+        if ~strcmp(Opts.shiftType,'real')
+            if strcmp(Opts.shiftType,'conj')
                 if  ~isempty(strfind(Opts.strategy{1},'spaced'))
                     s0_real = repelem(s0_parts{1},2*iSplit);
                     s0_real = s0_real(1:nShifts*nSets);
