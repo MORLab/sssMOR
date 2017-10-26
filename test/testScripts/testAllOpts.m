@@ -273,11 +273,28 @@ classdef testAllOpts < sssTest
 
         % State Of The Art
         function runCirka(testCase)
+            % Presets
+            n = 2;
+            s0 = zeros(1,n);
             % Define possible opts combinations
-            OptsStuct.refine      = {0};
-            OptsStuct.refTol      = {1e-6};
-            OptsStuct.refMaxiter  = {1e2};
-            OptsStuct.lse         = {'sparse'};
+            OptsStuct.qm0     = {2*length(s0)};
+            OptsStuct.s0m     = {[s0,s0]};
+            OptsStuct.maxiter = {15};
+            OptsStuct.tol     = {1e-3};
+            OptsStuct.stopCrit= {'s0', 'sysr', 'sysm', 'combAny', 'combAll'};
+
+            OptsStuct.verbose         = {true, false};
+            OptsStuct.plot            = {true, false};
+            OptsStuct.suppressWarn    = {true, false};
+            OptsStuct.updateModel     = {'new', 'all'};
+            OptsStuct.modelTol        = {1e-2};
+            OptsStuct.clearInit       = {true, false};
+            OptsStuct.stableModelFct  = {true, false};
+
+            OptsStuct.irka.suppressverbose = {true, false};
+            OptsStuct.irka.stopCrit        = {'combAny', 's0', 'sysr', 'combAll'};
+            OptsStuct.lse                  = {'sparse', 'full', 'hess'};
+            OptsStuct.irka.tol             = {1e-6};
             
             [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
@@ -289,7 +306,8 @@ classdef testAllOpts < sssTest
                 for i=1:length(testCase.sysCell)
                     % Run test
                     sys = testCase.sysCell{i};
-
+                    sys = sys(1,1);
+                    sysr = cirka(sys, s0, Opts);
                 end
             end
             close(h)
@@ -301,11 +319,29 @@ classdef testAllOpts < sssTest
             end
         end
         function runCure(testCase)
+
+%           -.cure.maxIter: [{'20'} / positive integer]
+
             % Define possible opts combinations
-            OptsStuct.refine      = {0};
-            OptsStuct.refTol      = {1e-6};
-            OptsStuct.refMaxiter  = {1e2};
-            OptsStuct.lse         = {'sparse'};
+            OptsStuct.warn            = {true, false};
+            OptsStuct.w               = {[]}; % [{''} / '{wmin,wmax}' / vector of frequencies]
+            OptsStuct.zeroThres       = {1e-4};
+            OptsStuct.cure.verbose    = {true, false};
+            OptsStuct.cure.redfun     = {'spark', 'irka', 'rk+pork'};
+            OptsStuct.cure.fact       = {'V', 'W'};
+            OptsStuct.cure.nk         = {2};
+            OptsStuct.cure.stop       = {'normROM', 'nmax', 'h2Error'};
+            OptsStuct.cure.stopval    = {1e-6};
+            OptsStuct.cure.initMode   = {'zero', 'sm', 'lm', 'slm'};
+            OptsStuct.cure.initN      = {5*2};
+            OptsStuct.cure.fact       = {'V'};
+            
+            OptsStuct.cure.test       = {true, false};
+            OptsStuct.cure.gif        = {true, false};
+            
+            OptsStuct.cure.maxIter    = {20};
+            OptsStuct.cure.checkEVB   = {true};
+            OptsStuct.cure.sEVBTol    = {1e-16};
             
             [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
@@ -317,7 +353,7 @@ classdef testAllOpts < sssTest
                 for i=1:length(testCase.sysCell)
                     % Run test
                     sys = testCase.sysCell{i};
-
+                    sysr = cure(sys,Opts);
                 end
             end
             close(h)
@@ -358,10 +394,12 @@ classdef testAllOpts < sssTest
         end
         function runIsrk(testCase)
             % Define possible opts combinations
-            OptsStuct.refine      = {0};
-            OptsStuct.refTol      = {1e-6};
-            OptsStuct.refMaxiter  = {1e2};
-            OptsStuct.lse         = {'sparse'};
+            OptsStuct.maxiter     = {50}; 
+            OptsStuct.tol         = {1e-3}; 
+            OptsStuct.verbose     = {true, false};
+            OptsStuct.stopCrit    = {'combAny', 's0', 'sysr', 'combAll'};
+            OptsStuct.suppressverbose = {true, false};
+            OptsStuct.lyapchol    = {'', 'adi', 'builtIn'};
             
             [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
@@ -373,7 +411,8 @@ classdef testAllOpts < sssTest
                 for i=1:length(testCase.sysCell)
                     % Run test
                     sys = testCase.sysCell{i};
-
+                    s0=[0,0,100,1+5i,1-5i,14-0.2i,14+0.2i, Inf, Inf];
+                    sysr= isrk(sys, s0, Opts);
                 end
             end
             close(h)
@@ -386,11 +425,11 @@ classdef testAllOpts < sssTest
         end
         function runModelFct(testCase)
             % Define possible opts combinations
-            OptsStuct.refine      = {0};
-            OptsStuct.refTol      = {1e-6};
-            OptsStuct.refMaxiter  = {1e2};
-            OptsStuct.lse         = {'sparse'};
-            
+            OptsStuct.updateModel = {'new', 'all', 'new', 'lean'};
+            OptsStuct.modelTol    = {1e-2};
+            OptsStuct.plot        = {true, false};
+            OptsStuct.tol         = {1e-2};
+
             [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
             h = waitbar(0,'modelFct: testing all combinations for Opts...');
@@ -401,7 +440,7 @@ classdef testAllOpts < sssTest
                 for i=1:length(testCase.sysCell)
                     % Run test
                     sys = testCase.sysCell{i};
-
+%       [sysm, s0mTot, V, W] = MODELFCT(sys,s0m,s0mTot,V,W,Opts)
                 end
             end
             close(h)
@@ -413,11 +452,22 @@ classdef testAllOpts < sssTest
             end
         end
         function runModelFctMor(testCase)
+            % Preset
+            n = 2;
+            s0 = zeros(1,n);
+            
             % Define possible opts combinations
-            OptsStuct.refine      = {0};
-            OptsStuct.refTol      = {1e-6};
-            OptsStuct.refMaxiter  = {1e2};
-            OptsStuct.lse         = {'sparse'};
+            OptsStuct.qm0           = {2*length(s0)};
+            OptsStuct.s0m           = {[s0,s0]};
+            OptsStuct.maxiter       = {15};
+            OptsStuct.tol           = {1e-3};
+            OptsStuct.stopcrit      = {'combAny', 's0', 'sysr', 'sysm', 'combAny', 'combAll'};
+            OptsStuct.verbose       = {true, false};
+            OptsStuct.plot          = {true, false};
+            OptsStuct.suppressWarn  = {true, false};
+            OptsStuct.updateModel   = {'new', 'all'};
+            OptsStuct.modelTol      = {1e-2};
+            OptsStuct.clearInit     = {true, false};
             
             [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
@@ -429,7 +479,9 @@ classdef testAllOpts < sssTest
                 for i=1:length(testCase.sysCell)
                     % Run test
                     sys = testCase.sysCell{i};
-
+                    redFct   = @(sys,s) irka(sys,s);
+                    redFctOut= @(sys,s) getDesiredOutput(redFct,[1,4],sys,s);
+                    sysr = modelFctMor(sys,redFctOut,s0,Opts);  
                 end
             end
             close(h)
@@ -442,10 +494,10 @@ classdef testAllOpts < sssTest
         end
         function runRkIcop(testCase)
             % Define possible opts combinations
-            OptsStuct.refine      = {0};
-            OptsStuct.refTol      = {1e-6};
-            OptsStuct.refMaxiter  = {1e2};
-            OptsStuct.lse         = {'sparse'};
+            OptsStuct.rk      = {'twoSided', 'input', 'output'}
+            OptsStuct.tol     = {1e-2};
+            OptsStuct.maxIter = {100};
+            OptsStuct.lse     = {'sparse', 'full', 'hess', 'gauss', 'iterative'};
             
             [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
@@ -457,7 +509,10 @@ classdef testAllOpts < sssTest
                 for i=1:length(testCase.sysCell)
                     % Run test
                     sys = testCase.sysCell{i};
-
+                    s0 = 1;
+                    %s0 = rkOp(sys);
+                    q = 20;
+                    sysr = rkIcop(sys,s0,q,Opts);
                 end
             end
             close(h)
@@ -470,10 +525,8 @@ classdef testAllOpts < sssTest
         end
         function runRkOp(testCase)
             % Define possible opts combinations
-            OptsStuct.refine      = {0};
-            OptsStuct.refTol      = {1e-6};
-            OptsStuct.refMaxiter  = {1e2};
-            OptsStuct.lse         = {'sparse'};
+            OptsStuct.rk = {'twoSided', 'input', 'output'};
+            OptsStuct.lse = {'sparse', 'full', 'hess', 'gauss', 'iterative'};
             
             [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
 
@@ -485,7 +538,8 @@ classdef testAllOpts < sssTest
                 for i=1:length(testCase.sysCell)
                     % Run test
                     sys = testCase.sysCell{i};
-
+                    q = 20;
+                    sysr = rkOp(sys, q, Opts);
                 end
             end
             close(h)
@@ -498,12 +552,23 @@ classdef testAllOpts < sssTest
         end
         function runSpark(testCase)
             % Define possible opts combinations
-            OptsStuct.refine      = {0};
-            OptsStuct.refTol      = {1e-6};
-            OptsStuct.refMaxiter  = {1e2};
-            OptsStuct.lse         = {'sparse'};
-            
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            OptsStuct.zeroThres  = {1e-6}; 
+
+            OptsStuct.spark.type        = {'model', 'standard'};
+            OptsStuct.spark.test        = {true, false};
+            OptsStuct.spark.verbose     = {true, false};
+            OptsStuct.spark.mfe         = {5e3};
+            OptsStuct.spark.mi          = {5e3};
+            OptsStuct.spark.xTol        = {1e-10};
+            OptsStuct.spark.fTol        = {1e-10};
+            OptsStuct.spark.modelTol    = {1e-5};
+            OptsStuct.spark.pork        = {'V', 'W'};
+
+            OptsStuct.mespark.ritz      = {true, false};
+            OptsStuct.mespark.pertIter  = {5};
+            OptsStuct.mespark.maxIter   = {20};
+
+            [AllOptsCell,nCases]        = generateAllOpts(OptsStuct);
 
             h = waitbar(0,'spark: testing all combinations for Opts...');
             try
@@ -513,7 +578,8 @@ classdef testAllOpts < sssTest
                 for i=1:length(testCase.sysCell)
                     % Run test
                     sys = testCase.sysCell{i};
-
+                    s0 = rand(1,2);
+                    [V,Sv,Rv,k] = spark(sys,s0,Opts);
                 end
             end
             close(h)
