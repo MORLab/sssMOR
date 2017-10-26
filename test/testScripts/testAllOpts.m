@@ -13,18 +13,18 @@ classdef testAllOpts < sssTest
         % Extras
         function runInitializeShifts(testCase)
             % Define possible opts combinations
-            OptsStuct.strategy   = {'eigs','ADI','const', 'ROM', 'linspaced', 'logspaced', 'random', 'lognrnd'};
-            OptsStuct.shiftType  = {'conj','real', 'imag'};
-            OptsStuct.wmin       = {abs(eigs(sys,1,'sm'))}; %TODO any way of predefining the wmin, wmax params without sys?
-            OptsStuct.wmax       = {abs(eigs(sys,1))};
-            OptsStuct.kp         = {40};
-            OptsStuct.km         = {25};
-            OptsStuct.eigsType   = {'sm', 'lm', 'li', 'si', 'lr', 'sr', 'la','sa'};
-            OptsStuct.constValue = {0};
-            OptsStuct.offset     = {0};
-            OptsStuct.format     = {'complex','ab'};
+            OptsStruct.strategy   = {'eigs','ADI','const', 'ROM', 'linspaced', 'logspaced', 'random', 'lognrnd'};
+            OptsStruct.shiftType  = {'conj','real', 'imag'};
+            OptsStruct.wmin       = {abs(eigs(sys,1,'sm'))}; %TODO any way of predefining the wmin, wmax params without sys?
+            OptsStruct.wmax       = {abs(eigs(sys,1))};
+            OptsStruct.kp         = {40};
+            OptsStruct.km         = {25};
+            OptsStruct.eigsType   = {'sm', 'lm', 'li', 'si', 'lr', 'sr', 'la','sa'};
+            OptsStruct.constValue = {0};
+            OptsStruct.offset     = {0};
+            OptsStruct.format     = {'complex','ab'};
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'initializeShifts: testing all combinations for Opts...');
             try
@@ -47,9 +47,9 @@ classdef testAllOpts < sssTest
         end
         function runIsH2opt(testCase)
             % Define possible opts combinations
-            OptsStuct.tol   = {1e-3};
+            OptsStruct.tol   = {1e-3};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'isH2opt: testing all combinations for Opts...');
             try
@@ -73,12 +73,12 @@ classdef testAllOpts < sssTest
         end
         function runMoments(testCase)
             % Define possible opts combinations
-            OptsStuct.refine      = {0};
-            OptsStuct.refTol      = {1e-6};
-            OptsStuct.refMaxiter  = {1e2};
-            OptsStuct.lse         = {'sparse'};
+            OptsStruct.refine      = {0};
+            OptsStruct.refTol      = {1e-6};
+            OptsStruct.refMaxiter  = {1e2};
+            OptsStruct.lse         = {'sparse'};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'moments: testing all combinations for Opts...');
             try
@@ -104,19 +104,19 @@ classdef testAllOpts < sssTest
         % Classic
         function runArnoldi(testCase)
             % Define possible opts combinations
-            OptsStuct.real        = {true, false};
-            OptsStuct.orth        = {false, 'dgks', 'mgs'};
-            OptsStuct.reorth      = {'mgs', false, 'qr'};
-            OptsStuct.lse         = {'sparse','full','hess','iterative'};
-            OptsStuct.dgksTol     = {1e-12};
-            OptsStuct.krylov      = {'standardKrylov','cascadedKrylov'};
-            OptsStuct.dgksTol     = {1e3};
-            OptsStuct.tollse      = {1e-6};
-            OptsStuct.solver      = {'cgs','bicgstab','bicg'};
-            OptsStuct.verbose     = {true, false};
-            OptsStuct.force       = {true, false};
+            OptsStruct.real        = {true, false};
+            OptsStruct.orth        = {false, 'dgks', 'mgs'};
+            OptsStruct.reorth      = {'mgs', false, 'qr'};
+            OptsStruct.lse         = {'sparse','full','hess','iterative'};
+            OptsStruct.dgksTol     = {1e-12};
+            OptsStruct.krylov      = {'standardKrylov','cascadedKrylov'};
+            OptsStruct.dgksTol     = {1e3};
+            OptsStruct.tollse      = {1e-6};
+            OptsStruct.solver      = {'cgs','bicgstab','bicg'};
+            OptsStruct.verbose     = {true, false};
+            OptsStruct.force       = {true, false};
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
         %     verifyError(testCase,arnoldi(),'sss:solveLse:cascadeSiso')
 
@@ -141,15 +141,15 @@ classdef testAllOpts < sssTest
         end
         function runModalMor(testCase)
             % Define possible opts combinations
-            OptsStuct.type        = {'SM','LM',1};
-            OptsStuct.orth        = {true, false,'qr'};
-            OptsStuct.real        = {true, false,'real'};
-            OptsStuct.tol         = {1e-6};
-            OptsStuct.dominance   = {0,'analyze','2q','3q'};
-            OptsStuct.lse         = {'sparse','full'};
-            OptsStuct.subspaceW   = {'eigs','1by1'};
+            OptsStruct.type        = {'SM','LM',1};
+            OptsStruct.orth        = {true, false,'qr'};
+            OptsStruct.real        = {true, false,'real'};
+            OptsStruct.tol         = {1e-6};
+            OptsStruct.dominance   = {0,'analyze','2q','3q'};
+            OptsStruct.lse         = {'sparse','full'};
+            OptsStruct.subspaceW   = {'eigs','1by1'};
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'modalMor: testing all combinations for Opts...');
             try
@@ -184,9 +184,9 @@ classdef testAllOpts < sssTest
         end
         function runProjectiveMor(testCase)
             % Define possible opts combinations
-            OptsStuct.trans       = {'T','H'};
+            OptsStruct.trans       = {'T','H'};
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'projectiveMor: testing all combinations for Opts...');
             try
@@ -213,9 +213,9 @@ classdef testAllOpts < sssTest
         end
         function runRk(testCase)
             % Define possible opts combinations
-            OptsStuct.real       = {true,false};
+            OptsStruct.real       = {true,false};
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'rk: testing all combinations for Opts...');
             try
@@ -239,16 +239,16 @@ classdef testAllOpts < sssTest
         end
         function runTbr(testCase)
             % Define possible opts combinations
-            OptsStuct.type        = {'tbr', 'adi', 'matchDcGain'};
-            OptsStuct.redErr      = {'0', 1};
-            OptsStuct.hsvTol      = {1e-15};
-            OptsStuct.warnOrError = {'warn','error', 0};
-            OptsStuct.lse         = {'sparse', 'full','iterative', 'gauss'}; 
-            OptsStuct.rctol       = {1e-15};
-            OptsStuct.forceOrder  = {true, false};
+            OptsStruct.type        = {'tbr', 'adi', 'matchDcGain'};
+            OptsStruct.redErr      = {'0', 1};
+            OptsStruct.hsvTol      = {1e-15};
+            OptsStruct.warnOrError = {'warn','error', 0};
+            OptsStruct.lse         = {'sparse', 'full','iterative', 'gauss'}; 
+            OptsStruct.rctol       = {1e-15};
+            OptsStruct.forceOrder  = {true, false};
 
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'tbr: testing all combinations for Opts...');
             try
@@ -277,26 +277,26 @@ classdef testAllOpts < sssTest
             n = 2;
             s0 = zeros(1,n);
             % Define possible opts combinations
-            OptsStuct.qm0     = {2*length(s0)};
-            OptsStuct.s0m     = {[s0,s0]};
-            OptsStuct.maxiter = {15};
-            OptsStuct.tol     = {1e-3};
-            OptsStuct.stopCrit= {'s0', 'sysr', 'sysm', 'combAny', 'combAll'};
+            OptsStruct.qm0     = {2*length(s0)};
+            OptsStruct.s0m     = {[s0,s0]};
+            OptsStruct.maxiter = {15};
+            OptsStruct.tol     = {1e-3};
+            OptsStruct.stopCrit= {'s0', 'sysr', 'sysm', 'combAny', 'combAll'};
 
-            OptsStuct.verbose         = {true, false};
-            OptsStuct.plot            = {true, false};
-            OptsStuct.suppressWarn    = {true, false};
-            OptsStuct.updateModel     = {'new', 'all'};
-            OptsStuct.modelTol        = {1e-2};
-            OptsStuct.clearInit       = {true, false};
-            OptsStuct.stableModelFct  = {true, false};
+            OptsStruct.verbose         = {true, false};
+            OptsStruct.plot            = {true, false};
+            OptsStruct.suppressWarn    = {true, false};
+            OptsStruct.updateModel     = {'new', 'all'};
+            OptsStruct.modelTol        = {1e-2};
+            OptsStruct.clearInit       = {true, false};
+            OptsStruct.stableModelFct  = {true, false};
 
-            OptsStuct.irka.suppressverbose = {true, false};
-            OptsStuct.irka.stopCrit        = {'combAny', 's0', 'sysr', 'combAll'};
-            OptsStuct.lse                  = {'sparse', 'full', 'hess'};
-            OptsStuct.irka.tol             = {1e-6};
+            OptsStruct.irka.suppressverbose = {true, false};
+            OptsStruct.irka.stopCrit        = {'combAny', 's0', 'sysr', 'combAll'};
+            OptsStruct.lse                  = {'sparse', 'full', 'hess'};
+            OptsStruct.irka.tol             = {1e-6};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'circa: testing all combinations for Opts...');
             try
@@ -323,27 +323,27 @@ classdef testAllOpts < sssTest
 %           -.cure.maxIter: [{'20'} / positive integer]
 
             % Define possible opts combinations
-            OptsStuct.warn            = {true, false};
-            OptsStuct.w               = {[]}; % [{''} / '{wmin,wmax}' / vector of frequencies]
-            OptsStuct.zeroThres       = {1e-4};
-            OptsStuct.cure.verbose    = {true, false};
-            OptsStuct.cure.redfun     = {'spark', 'irka', 'rk+pork'};
-            OptsStuct.cure.fact       = {'V', 'W'};
-            OptsStuct.cure.nk         = {2};
-            OptsStuct.cure.stop       = {'normROM', 'nmax', 'h2Error'};
-            OptsStuct.cure.stopval    = {1e-6};
-            OptsStuct.cure.initMode   = {'zero', 'sm', 'lm', 'slm'};
-            OptsStuct.cure.initN      = {5*2};
-            OptsStuct.cure.fact       = {'V'};
+            OptsStruct.warn            = {true, false};
+            OptsStruct.w               = {[]}; % [{''} / '{wmin,wmax}' / vector of frequencies]
+            OptsStruct.zeroThres       = {1e-4};
+            OptsStruct.cure.verbose    = {true, false};
+            OptsStruct.cure.redfun     = {'spark', 'irka', 'rk+pork'};
+            OptsStruct.cure.fact       = {'V', 'W'};
+            OptsStruct.cure.nk         = {2};
+            OptsStruct.cure.stop       = {'normROM', 'nmax', 'h2Error'};
+            OptsStruct.cure.stopval    = {1e-6};
+            OptsStruct.cure.initMode   = {'zero', 'sm', 'lm', 'slm'};
+            OptsStruct.cure.initN      = {5*2};
+            OptsStruct.cure.fact       = {'V'};
             
-            OptsStuct.cure.test       = {true, false};
-            OptsStuct.cure.gif        = {true, false};
+            OptsStruct.cure.test       = {true, false};
+            OptsStruct.cure.gif        = {true, false};
             
-            OptsStuct.cure.maxIter    = {20};
-            OptsStuct.cure.checkEVB   = {true};
-            OptsStuct.cure.sEVBTol    = {1e-16};
+            OptsStruct.cure.maxIter    = {20};
+            OptsStruct.cure.checkEVB   = {true};
+            OptsStruct.cure.sEVBTol    = {1e-16};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'cure: testing all combinations for Opts...');
             try
@@ -366,12 +366,12 @@ classdef testAllOpts < sssTest
         end
         function runIrka(testCase)
             % Define possible opts combinations
-            OptsStuct.refine      = {0};
-            OptsStuct.refTol      = {1e-6};
-            OptsStuct.refMaxiter  = {1e2};
-            OptsStuct.lse         = {'sparse'};
+            OptsStruct.refine      = {0};
+            OptsStruct.refTol      = {1e-6};
+            OptsStruct.refMaxiter  = {1e2};
+            OptsStruct.lse         = {'sparse'};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'irka: testing all combinations for Opts...');
             try
@@ -394,14 +394,14 @@ classdef testAllOpts < sssTest
         end
         function runIsrk(testCase)
             % Define possible opts combinations
-            OptsStuct.maxiter     = {50}; 
-            OptsStuct.tol         = {1e-3}; 
-            OptsStuct.verbose     = {true, false};
-            OptsStuct.stopCrit    = {'combAny', 's0', 'sysr', 'combAll'};
-            OptsStuct.suppressverbose = {true, false};
-            OptsStuct.lyapchol    = {'', 'adi', 'builtIn'};
+            OptsStruct.maxiter     = {50}; 
+            OptsStruct.tol         = {1e-3}; 
+            OptsStruct.verbose     = {true, false};
+            OptsStruct.stopCrit    = {'combAny', 's0', 'sysr', 'combAll'};
+            OptsStruct.suppressverbose = {true, false};
+            OptsStruct.lyapchol    = {'', 'adi', 'builtIn'};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'isrk: testing all combinations for Opts...');
             try
@@ -425,12 +425,12 @@ classdef testAllOpts < sssTest
         end
         function runModelFct(testCase)
             % Define possible opts combinations
-            OptsStuct.updateModel = {'new', 'all', 'new', 'lean'};
-            OptsStuct.modelTol    = {1e-2};
-            OptsStuct.plot        = {true, false};
-            OptsStuct.tol         = {1e-2};
+            OptsStruct.updateModel = {'new', 'all', 'new', 'lean'};
+            OptsStruct.modelTol    = {1e-2};
+            OptsStruct.plot        = {true, false};
+            OptsStruct.tol         = {1e-2};
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'modelFct: testing all combinations for Opts...');
             try
@@ -457,19 +457,19 @@ classdef testAllOpts < sssTest
             s0 = zeros(1,n);
             
             % Define possible opts combinations
-            OptsStuct.qm0           = {2*length(s0)};
-            OptsStuct.s0m           = {[s0,s0]};
-            OptsStuct.maxiter       = {15};
-            OptsStuct.tol           = {1e-3};
-            OptsStuct.stopcrit      = {'combAny', 's0', 'sysr', 'sysm', 'combAny', 'combAll'};
-            OptsStuct.verbose       = {true, false};
-            OptsStuct.plot          = {true, false};
-            OptsStuct.suppressWarn  = {true, false};
-            OptsStuct.updateModel   = {'new', 'all'};
-            OptsStuct.modelTol      = {1e-2};
-            OptsStuct.clearInit     = {true, false};
+            OptsStruct.qm0           = {2*length(s0)};
+            OptsStruct.s0m           = {[s0,s0]};
+            OptsStruct.maxiter       = {15};
+            OptsStruct.tol           = {1e-3};
+            OptsStruct.stopcrit      = {'combAny', 's0', 'sysr', 'sysm', 'combAny', 'combAll'};
+            OptsStruct.verbose       = {true, false};
+            OptsStruct.plot          = {true, false};
+            OptsStruct.suppressWarn  = {true, false};
+            OptsStruct.updateModel   = {'new', 'all'};
+            OptsStruct.modelTol      = {1e-2};
+            OptsStruct.clearInit     = {true, false};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'modelFctMor: testing all combinations for Opts...');
             try
@@ -494,12 +494,12 @@ classdef testAllOpts < sssTest
         end
         function runRkIcop(testCase)
             % Define possible opts combinations
-            OptsStuct.rk      = {'twoSided', 'input', 'output'}
-            OptsStuct.tol     = {1e-2};
-            OptsStuct.maxIter = {100};
-            OptsStuct.lse     = {'sparse', 'full', 'hess', 'gauss', 'iterative'};
+            OptsStruct.rk      = {'twoSided', 'input', 'output'}
+            OptsStruct.tol     = {1e-2};
+            OptsStruct.maxIter = {100};
+            OptsStruct.lse     = {'sparse', 'full', 'hess', 'gauss', 'iterative'};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'rkIcop: testing all combinations for Opts...');
             try
@@ -525,10 +525,10 @@ classdef testAllOpts < sssTest
         end
         function runRkOp(testCase)
             % Define possible opts combinations
-            OptsStuct.rk = {'twoSided', 'input', 'output'};
-            OptsStuct.lse = {'sparse', 'full', 'hess', 'gauss', 'iterative'};
+            OptsStruct.rk = {'twoSided', 'input', 'output'};
+            OptsStruct.lse = {'sparse', 'full', 'hess', 'gauss', 'iterative'};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'rkOp: testing all combinations for Opts...');
             try
@@ -552,23 +552,23 @@ classdef testAllOpts < sssTest
         end
         function runSpark(testCase)
             % Define possible opts combinations
-            OptsStuct.zeroThres  = {1e-6}; 
+            OptsStruct.zeroThres  = {1e-6}; 
 
-            OptsStuct.spark.type        = {'model', 'standard'};
-            OptsStuct.spark.test        = {true, false};
-            OptsStuct.spark.verbose     = {true, false};
-            OptsStuct.spark.mfe         = {5e3};
-            OptsStuct.spark.mi          = {5e3};
-            OptsStuct.spark.xTol        = {1e-10};
-            OptsStuct.spark.fTol        = {1e-10};
-            OptsStuct.spark.modelTol    = {1e-5};
-            OptsStuct.spark.pork        = {'V', 'W'};
+            OptsStruct.spark.type        = {'model', 'standard'};
+            OptsStruct.spark.test        = {true, false};
+            OptsStruct.spark.verbose     = {true, false};
+            OptsStruct.spark.mfe         = {5e3};
+            OptsStruct.spark.mi          = {5e3};
+            OptsStruct.spark.xTol        = {1e-10};
+            OptsStruct.spark.fTol        = {1e-10};
+            OptsStruct.spark.modelTol    = {1e-5};
+            OptsStruct.spark.pork        = {'V', 'W'};
 
-            OptsStuct.mespark.ritz      = {true, false};
-            OptsStuct.mespark.pertIter  = {5};
-            OptsStuct.mespark.maxIter   = {20};
+            OptsStruct.mespark.ritz      = {true, false};
+            OptsStruct.mespark.pertIter  = {5};
+            OptsStruct.mespark.maxIter   = {20};
 
-            [AllOptsCell,nCases]        = generateAllOpts(OptsStuct);
+            [AllOptsCell,nCases]        = generateAllOpts(OptsStruct);
 
             h = waitbar(0,'spark: testing all combinations for Opts...');
             try
