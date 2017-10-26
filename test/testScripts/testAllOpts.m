@@ -496,7 +496,7 @@ classdef testAllOpts < sssTest
         end
         function runRkIcop(testCase)
             % Define possible opts combinations
-            OptsStruct.rk      = {'twoSided', 'input', 'output'}
+            OptsStruct.rk      = {'twoSided', 'input', 'output'};
             OptsStruct.tol     = {1e-2};
             OptsStruct.maxIter = {100};
             OptsStruct.lse     = {'sparse', 'full', 'hess', 'gauss', 'iterative'};
