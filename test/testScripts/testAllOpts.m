@@ -15,11 +15,11 @@ classdef testAllOpts < sssTest
             % Define possible opts combinations
             OptsStruct.strategy   = {'eigs','ADI','const', 'ROM', 'linspaced', 'logspaced', 'random', 'lognrnd'};
             OptsStruct.shiftType  = {'conj','real', 'imag'};
-            OptsStruct.wmin       = {abs(eigs(sys,1,'sm'))}; %TODO any way of predefining the wmin, wmax params without sys?
-            OptsStruct.wmax       = {abs(eigs(sys,1))};
+            OptsStruct.wmin       = {0};
+            OptsStruct.wmax       = {1e4};
             OptsStruct.kp         = {40};
             OptsStruct.km         = {25};
-            OptsStruct.eigsType   = {'sm', 'lm', 'li', 'si', 'lr', 'sr', 'la','sa'};
+            OptsStruct.eigsType   = {'sm', 'lm', 'li', 'si', 'lr', 'sr'};
             OptsStruct.constValue = {0};
             OptsStruct.offset     = {0};
             OptsStruct.format     = {'complex','ab'};
@@ -34,7 +34,9 @@ classdef testAllOpts < sssTest
                 for i=1:length(testCase.sysCell)
                     % Run test
                     sys = testCase.sysCell{i};
-                    initializeShifts(sys,Opts);
+                    nShifts = 2;
+                    nSet = 2;
+                    initializeShifts(sys,nShifts,nSet,Opts);
                 end
             end
             close(h)
