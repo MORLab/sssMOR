@@ -24,7 +24,7 @@ classdef testAllOpts < sssTest
             OptsStruct.offset     = {0};
             OptsStruct.format     = {'complex','ab'};
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'initializeShifts: testing all combinations for Opts...');
             try
@@ -51,7 +51,7 @@ classdef testAllOpts < sssTest
             % Define possible opts combinations
             OptsStruct.tol   = {1e-3};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'isH2opt: testing all combinations for Opts...');
             try
@@ -80,7 +80,7 @@ classdef testAllOpts < sssTest
             OptsStruct.refMaxiter  = {1e2};
             OptsStruct.lse         = {'sparse'};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'moments: testing all combinations for Opts...');
             try
@@ -118,7 +118,7 @@ classdef testAllOpts < sssTest
             OptsStruct.verbose     = {true, false};
             OptsStruct.force       = {true, false};
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
         %     verifyError(testCase,arnoldi(),'sss:solveLse:cascadeSiso')
 
@@ -151,8 +151,8 @@ classdef testAllOpts < sssTest
             OptsStruct.lse         = {'sparse','full'};
             OptsStruct.subspaceW   = {'eigs','1by1'};
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
-
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
+            
             h = waitbar(0,'modalMor: testing all combinations for Opts...');
             try
             for kOpts = 1:nCases
@@ -188,7 +188,7 @@ classdef testAllOpts < sssTest
             % Define possible opts combinations
             OptsStruct.trans       = {'T','H'};
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'projectiveMor: testing all combinations for Opts...');
             try
@@ -217,7 +217,7 @@ classdef testAllOpts < sssTest
             % Define possible opts combinations
             OptsStruct.real       = {true,false};
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'rk: testing all combinations for Opts...');
             try
@@ -250,7 +250,7 @@ classdef testAllOpts < sssTest
             OptsStruct.forceOrder  = {true, false};
 
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'tbr: testing all combinations for Opts...');
             try
@@ -298,7 +298,7 @@ classdef testAllOpts < sssTest
             OptsStruct.lse                  = {'sparse', 'full', 'hess'};
             OptsStruct.irka.tol             = {1e-6};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'circa: testing all combinations for Opts...');
             try
@@ -345,7 +345,7 @@ classdef testAllOpts < sssTest
             OptsStruct.cure.checkEVB   = {true};
             OptsStruct.cure.sEVBTol    = {1e-16};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'cure: testing all combinations for Opts...');
             try
@@ -373,7 +373,7 @@ classdef testAllOpts < sssTest
             OptsStruct.refMaxiter  = {1e2};
             OptsStruct.lse         = {'sparse'};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'irka: testing all combinations for Opts...');
             try
@@ -403,7 +403,7 @@ classdef testAllOpts < sssTest
             OptsStruct.suppressverbose = {true, false};
             OptsStruct.lyapchol    = {'', 'adi', 'builtIn'};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'isrk: testing all combinations for Opts...');
             try
@@ -432,7 +432,7 @@ classdef testAllOpts < sssTest
             OptsStruct.plot        = {true, false};
             OptsStruct.tol         = {1e-2};
 
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'modelFct: testing all combinations for Opts...');
             try
@@ -471,7 +471,7 @@ classdef testAllOpts < sssTest
             OptsStruct.modelTol      = {1e-2};
             OptsStruct.clearInit     = {true, false};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'modelFctMor: testing all combinations for Opts...');
             try
@@ -501,7 +501,7 @@ classdef testAllOpts < sssTest
             OptsStruct.maxIter = {100};
             OptsStruct.lse     = {'sparse', 'full', 'hess', 'gauss', 'iterative'};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'rkIcop: testing all combinations for Opts...');
             try
@@ -530,7 +530,7 @@ classdef testAllOpts < sssTest
             OptsStruct.rk = {'twoSided', 'input', 'output'};
             OptsStruct.lse = {'sparse', 'full', 'hess', 'gauss', 'iterative'};
             
-            [AllOptsCell,nCases]  = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]  = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'rkOp: testing all combinations for Opts...');
             try
@@ -570,7 +570,7 @@ classdef testAllOpts < sssTest
             OptsStruct.mespark.pertIter  = {5};
             OptsStruct.mespark.maxIter   = {20};
 
-            [AllOptsCell,nCases]        = generateAllOpts(OptsStruct);
+            [AllOptsCell,nCases]        = generateAllOptsNested(OptsStruct);
 
             h = waitbar(0,'spark: testing all combinations for Opts...');
             try
