@@ -1,0 +1,122 @@
+*** runInitializeShifts()
+line 98: def.shiftTyp
+typo? ShiftTyp/ShiftType
+
+*** runIsH2opt()
+MIMO implementation of this is missing
+Probably not valid function call
+
+*** runMoments()
+momtnts.m: Opts description is missing
+used default ones in test. Perhaps need to add more options
+
+
+*** runArnoldi()
+add an exception: sss:solveLse:cascadeSiso
+
+*** runModalMor()
+OK
+
+*** runProjectiveMor()
+OK
+
+*** runRk()
+OK
+
+*** runTbr()
+OK
+
+
+*** runCirka()
+OptsStuct.lse = {..., 'iterative'}?
+
+*** runCure()
+Fails
+
+*** runIrka()
+Fails
+
+*** runIsrk()
+Fails
+
+*** runModelFct()
+add a run string..
+
+*** runModelFctMor()
+
+
+Fails...
+
+*** runRkIcop()
+after a number of tests:
+Could not achieve desired tolerance (1e-06) within 1000 iterations. Results may be inaccurate!
+
+Error using solveLse/iterSolve (line 1165)
+    Could not achieve desired tolerance (1e-06) within 1000 iterations. Results may be inaccurate!
+    
+    Error in solveLse/iterSolve (line 1144)
+                    iterSolve(A,b,newlu,hermite);
+    
+    Error in solveLse/iterSolve (line 1144)
+                    iterSolve(A,b,newlu,hermite);
+    
+    Error in solveLse/lse (line 820)
+                        [tempV,flag,method] = iterSolve(A,tempV,newlu,hermite);
+    
+    Error in solveLse/nextDirection (line 521)
+                        V(:,jCol) = lse(newlu, newtan, jCol, s0, tempV);
+    
+    Error in solveLse (line 435)
+                [V, SRsylv, Rsylv]                      = nextDirection(jCol, s0, V);
+    
+    Error in rkOp (line 120)
+            c=solveLse(sys.E.',sys.C.',Opts).';
+    
+    Error in rkIcop (line 182)
+            sOpt = rkOp(stabsep(sysr), Opts);
+    
+    Error in testAllOpts/runRkIcop (line 515)
+                        sysr = rkIcop(sys,s0,q,Opts);
+						
+
+sys = 
+
+  sss Model iss (SSS)(MIMO)
+  270 state variables, 3 inputs, 2 outputs
+  Continuous-time state-space model.
+
+
+Opts = 
+
+  struct with fields:
+
+         rk: 'twoSided'
+        tol: 0.0100
+    maxIter: 100
+        lse: 'iterative'
+
+*** runRkOp()
+Inner matrix dimensions must agree.
+
+*** runSpark()
+    Error using allcomb (line 88)
+    For cell input, all arguments should be cell arrays.
+	TODO: Add nested structs functionality to the allcomb function
+	
+	'ALLCOMB:InvalidCellInput'
+
+    --------------
+    Error Details:
+    --------------
+    Error using allcomb (line 88)
+    For cell input, all arguments should be cell arrays.
+    
+    Error in generateAllOpts (line 17)
+    P = allcomb(vargin{:});
+    
+    Error in testAllOpts/runSpark (line 571)
+                [AllOptsCell,nCases]        = generateAllOpts(OptsStuct);
+
+*** param update in ssRed
+
+
