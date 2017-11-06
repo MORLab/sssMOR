@@ -1,22 +1,101 @@
-function [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,s0_inp,s0_out,Rt,Lt,V,W,S,R,Opts)
-
-%% Still  to come
-% - input output der funktionen machen
-% - alles für c-sided machen
-% - multiple directions mit option machen
+function [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,nShifts,s0_inp,Rt,s0_out,Lt,basis1,basis2,Opts)
+% GETSHIFTS - get shift update for iterative rtional Krylov subspace methods within the iteration process
+%
+% Syntax for 'eigs'-method:
+%       [s0_inp,s0_out,Rt,Lt]       = GETSHIFTS([],sysr,nShifts,s0_inp,[],[],[],[],[])
+%       [s0_inp,s0_out,Rt,Lt]       = GETSHIFTS([],sysr,nShifts,s0_inp,Rt,[],[],[],[])
+%       [s0_inp,s0_out,Rt,Lt]       = GETSHIFTS([],sysr,nShifts,s0_inp,[],s0_out,[],[])
+%       [s0_inp,s0_out,Rt,Lt]       = GETSHIFTS([],sysr,nShifts,[],[],s0_out,Lt,[],[])
+%       [s0_inp,s0_out,Rt,Lt]       = GETSHIFTS([],sysr,nShifts,s0_inp,Rt,s0_out,Lt,[],[])
+%       [s0_inp,s0_out,Rt,Lt]       = GETSHIFTS([],sysr,nShifts,s0_inp,...,Opts)
+%
+% Syntax for 'adaptive'-method:
+%       [s0_inp,s0_out,Rt,Lt]       = GETSHIFTS(sys,sysr,[],s0_inp,[],[],[],V,[])
+%       [s0_inp,s0_out,Rt,Lt]       = GETSHIFTS(sys,sysr,[],s0_inp,Rt,[],[],V,[])
+%       [s0_inp,s0_out,Rt,Lt]       = GETSHIFTS(sys,sysr,[],s0_inp,[],s0_out,V,W)
+%       [s0_inp,s0_out,Rt,Lt]       = GETSHIFTS(sys,sysr,[],[],[],s0_out,Lt,[],W)
+%       [s0_inp,s0_out,Rt,Lt]       = GETSHIFTS(sys,sysr,[],s0_inp,Rt,s0_out,Lt,V,W)
+%       [s0_inp,s0_out,Rt,Lt]       = GETSHIFTS(sys,sysr,[],s0_inp,...,Opts)
+%       
+%
+% Description:
+%
+%       Generates a 1 x nShift row vector or nShift x 1 column vector of shift frequencies s0_inp 
+%       according to the chosen strategy, which can be defined in Opts.strategy.
+%       Besides, if necessary, tangential directions Rt and Lt as well as shift frequencies s0_out for an output
+%       Krylov subspace are available. 
+%       The GETSHIFTS function is mainly important for the Cumulative Rational Krylov Subspace
+%       Method (CRKSM) of sssMOR to obtain e. g. the solution of a Lyapunov
+%       equation or a reduced Model.
+%
+% Input Arguments:
+%		*Required Input Arguments:*
+%       -sys:                   An sss-object containing the original LTI system (necessary for 'adaptive' method)
+%       -sysr:                  sss-object containing an already reduced LTI system (necessary for both methods)
+%       -nShifts                Number of new shifts (necessary for 'eigs' method)
+%       -s0_inp:                previously used shift frequencies (necessary for both methods)
+%
+%		*Optional Input Arguments:*
+%       -s0_out:                expansion points for output Krylov subspace
+%       -Rt/Lt:                 right/left tangential directions (MIMO case)
+%       -V/W:                   orthogonal Krylov input/output subspace bases
+%       -Opts:                  a structure containing following options
+%           -.strategy:         strategy for calculating new shifts [{'daptive'} / 'eigs']
+%                -'adaptive':       use the adaptive  shift generation method after Druskin (one new shift) 
+%                -'eigs':           use a defined number (nShifts) of Ritz values of the current reduced order model 
+%           -.multDir:          use the multiple tangential directions method after Druskin [{0} / 1]
+%
+%
+% Output Arguments:
+%       -s0_inp:                new, enlarged input shift vector 
+%       -s0_out:                new, enlarged output shift vector, if it is
+%                               not specified, GETSHIFTS delivers an empty array
+%       -Rt:                    new, enlarged right tangential direction matrix, if it is
+%                               not specified, GETSHIFTS delivers an empty array
+%       -Lt:                    new, enlarged left tangential direction matrix, if it is
+%                               not specified, GETSHIFTS delivers an empty array
+%
+%
+% See Also: 
+%       initializeShifts, crksm, mess_para, mess_get_ritz_vals 
+%
+% References:
+%       * *[1] Druskin, Simoncini (2011)*, Adaptive Rational Krylov Subspaces
+%       for large-scale dynamical systems
+%       * *[2] Druskin, Simoncini, Zaslavsky (2014)*, Adaptive Tangential
+%       Interpolation in Rational Krylov Subspaces for MIMO Dynamical Systems
+%       * *[3] Kürschner (2016)*, Efficient Low-Rank Solution of Large-Scale Matrix Equations
+%
+%------------------------------------------------------------------
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% For any suggestions, submission and/or bug reports, mail us at
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
+%
+%------------------------------------------------------------------
+% Authors:      Paul Heidenreich, Maria Cruz Varona
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
+% Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
+% Work Adress:  Technische Universitaet Muenchen
+% Last Change:  02 Nov 2017
+% Copyright (c) 2016-2017 Chair of Automatic Control, TU Muenchen
+%------------------------------------------------------------------
 
 %% Create Def-struct containing default values/options
-Def.purpose         = 'lyapunov';       % choose purpose: ['lyapunov' / 'MOR'] 
-Def.strategy        = 'eigs';           % strategy for shift generation: ['ADI' / 'const' / 'ROM' / 'eigs'] 
-Def.shiftNotation   = 'row';            % select output of shifts as row- or column-vector
-Def.Bbot            = [];               % recycle Bbot if it is already available
+Def.strategy        = 'adaptive';       % strategy for shift generation: [{'adaptive'} / 'eigs' / 'projection']
+Def.multDir         =  0;               % choose strategy for tangential dierections [{0} / 1] 
+
+% additional function intern defaults, only interessting for usage within CRKSM-function
+Def.B_              = [];               % recycle Bbot if it is already available
 Def.Er_inv_Ar       = [];               % recycle Er^-1*Ar if it is already available
-Def.multDir        = 0;                % choose strategy for tangential dierections [0 / 1] 
+Def.C_              = [];               % recycle Cbot if it is already available
+Def.Er_invT_ArT     = [];               % recycle Er^-T*ArT if it is already available
 
-% persitent variables
-persistent SizeShiftSet
-%% Parsing of Inputs
-
+%% Parsing of Inputs/Preprocessing
 % create the options structure and check tangential directions
 if ~exist('Opts','var') || isempty(Opts)
     Opts = Def;
@@ -26,78 +105,88 @@ end
 clear Def
 
 %% Compute New Shift/Shifts
+% get new shifts: 'eigs' / 'adaptive' / ??'projection'??
+switch Opts.strategy
+    case 'eigs'        
+        % call INITIALIZESHIFTS to perform eigs
+        if isempty(Rt) && isempty(s0_out) 
+            snewOut = [];   Rtnew = [];     Ltnew = [];
+            snewInp = initializeShifts(sysr,nShifts,1,Opts);
+            snewInp = snewInp';
+        elseif isempty(s0_out)
+            snewOut = [];   Ltnew = [];
+            [snewInp,Rtnew] = initializeShifts(sysr,nShifts,1,Opts);
+            snewInp = snewInp';
+        elseif isempty(s0_inp)
+            snewInp = [];   Rtnew = [];    
+            [~,~,snewOut,Ltnew] = initializeShifts(sysr,nShifts,1,Opts);
+            snewOut = snewOut';
+        elseif isempty(Rt) && ~isempty(s0_out) 
+            Rtnew = [];     Ltnew = [];
+            [snewInp,~,snewOut,~] = initializeShifts(sysr,nShifts,1,Opts);
+            snewInp = snewInp';
+            snewOut = snewOut';
+        else
+            [snewInp,Rtnew,snewOut,Ltnew] = initializeShifts(sysr,nShifts,1,Opts);
+            snewInp = snewInp';
+            snewOut = snewOut';
+        end
+                      
+    case 'adaptive'
+        % shift generation after adaptive Druskin method
+        if isempty(s0_out)
+            snewOut = [];        Ltnew = [];
+            [snewInp,Rtnew] = newParaInp(sys,sysr,basis1,s0_inp,Rt,Opts);
+        elseif isempty(s0_inp)
+            snewInp = [];        Rtnew = [];
+            [snewOut,Ltnew] = newParaOut(sys,sysr,basis1,s0_out,Lt,Opts);
+        elseif s0_inp == s0_out
+            [snewInp,Rtnew] = newParaInp(sys,sysr,basis1,s0_inp,Rt,Opts);
+            snewOut = snewInp;
+            [~,Ltnew] = newParaOut(sys,sysr,basis2,s0_out,Lt,Opts);
+        else
+            [snewInp,Rtnew] = newParaInp(sys,sysr,basis1,s0_inp,Rt,S,R,Opts);
+            [snewOut,Ltnew] = newParaOut(sys,sysr,basis2,s0_out,Lt,Opts);
+        end
+        
+    case 'projection'    
+end
 
-% get new shifts: 'ADI' / 'const' / 'ROM' / 'eigs' 
-if strcmp(Opts.strategy,'ADI') && strcmp(Opts.purpose,'MOR')
-    error('This method is only implemented for solving a Lyapunov equations!');
-elseif strcmp(Opts.strategy,'adaptive') 
-    % choose case
-    if isempty(s0_out)
-        if isempty(Rt),     Rt = 1;   end
-        [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts);
-    elseif isempty(s0_inp)
-        if isempty(Lt),     Lt = 1;   end
-        [s0_out,Lt] = newParaOut(sys,sysr,W,s0_out,Lt,S,R,Opts);
-    elseif s0_inp == s0_out
-        if isempty(Rt),     Rt = eye(size(s0_inp,2));   end
-        [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts);
-        s0_out = s0_inp;
-        %******************************* hier kommt noch was fuer die tangential direction Lt
-    else
-        if isempty(Rt),     Rt = eye(size(s0_inp,2));   end
-        if isempty(Lt),     Lt = eye(size(s0_out,2));   end
-        [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts);
-        [s0_out,Lt] = newParaOut(sys,sysr,W,s0_out,Lt,Opts);
-    end
+% check complex values
+snewInp = cplxpair(snewInp); 
+for ii = 1:1:size(Rtnew,1),     Rtnew(ii,:) = cplxpair(Rtnew(ii,:));    end
+snewOut = cplxpair(snewOut);   
+for ii = 1:1:size(Ltnew,1),     Ltnew(ii,:) = cplxpair(Ltnew(ii,:));    end
+% check if s0_inp is column or row vector or matrix, build enlarged output parametres
+if isrow(s0_inp) || isrow(s0_out)
+    if ~isempty(s0_inp),    s0_inp = [s0_inp reshape(snewInp,[1,size(snewInp,1)])];   end
+    if ~isempty(s0_out),    s0_out = [s0_out reshape(snewOut,[1,size(snewOut,1)])];   end
 else 
-    if size(V,2)/size(s0_inp,2) == 1 && isempty(SizeShiftSet)
-        SizeShiftSet = size(s0_inp,2); % define SizeShiftSet
-    end   
-    [snewInp,Rtnew,snewOut,Ltnew] = initializeShifts(sysr,SizeShiftSet,1,Opts);
-    s0_inp = [s0_inp snewInp];
-    Rt = [Rt Rtnew];
-    if ~isempty(s0_out)
-        s0_out = [s0_out snewOut];
-        Lt = [Lt Ltnew];
-    end
+    if ~isempty(s0_inp),    s0_inp = [s0_inp; snewInp];                 end    
+    if ~isempty(s0_out),    s0_inp = [s0_inp; snewOut];                 end
 end
-
-% change shift vector to column notation
-if strcmp(Opts.shiftNotation,'column')  && ~iscolumn(s0_inp)
-    s0_inp = reshape(s0_inp,[size(s0_inp,2), 1]);
-    s0_out = reshape(s0_out,[size(s0_out,2), 1]);
-end
-
+Rt = [Rt Rtnew];        Lt = [Lt Ltnew];          
 end % end of getShifts
 
 %% ***************************** AUXILIARY ********************************
 
-function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts)
-    %[sysr_new] = tbr(sysr,10);
-%     ritzVal = [];
-%     [U,sigma,X] = svd(S*R');
-%     sigma_new = sigma(size(sysr.A,1)-10:end,size(sysr.A,1)-10:end);
-%     U = U(:,size(sysr.A,1)-size(sigma_new,2)+1:end);
-%     V_i = S'*U*(sigma_new^(-0.5));
-%     Ar = V_i'*sysr.A*V_i;
-%     Er = V_i'*sysr.E*V_i;
-%     
-%     
-    [~,ritzVal,setRt] = eig(sysr);   % compute Ritz-Values of reduced system 
-    ritzVal = diag(ritzVal);
-    if size(sysr.A,2) < 85
-        ritzVal = ritzVal(1:10,:);
-    else
-        ritzVal = ritzVal(50:60,:);
-    end
-    setRt = setRt(:,4:10);
-    resNorm_last = 0;       % Initialize and set variables
-    specSet = sort([s0_inp'; -ritzVal]);    % complex spectrum -> Mayer-Luenberger conditions 
-
+function [snewInp,Rtnew] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)  
+    % compute Ritz-Values of reduced system 
+    ritzVal = eig(sysr);  
+    
+    % delete already used Ritz values in s0_inp 
+    [~,idx] = ismember(single(ritzVal),-single(unique(s0_inp)));
+    idx = find(idx);
+    ritzVal(idx,:) = [];
+    ritzVal = sort(ritzVal);
+    
     % build convex hull
-    if ~isreal(specSet)
+    if ~isreal(ritzVal)
+        specSet = sort([s0_inp'; -ritzVal]);
         chull = convhull(real(specSet),imag(specSet));     % bulid convex hull of spectral set
         specSet = specSet(chull); 
+    else
+        specSet = -ritzVal;
     end
 
     % qr-decompositons, residual matrices
@@ -108,101 +197,119 @@ function [s0_inp,Rt] = newParaInp(sys,sysr,V,s0_inp,Rt,S,R,Opts)
     end
     res0 = norm(Opts.B_);
 
-    % solve max-problem for new shift
+    % solve max-problem for new shift, initialize and set variables
+    resNorm = zeros(size(specSet,1),1);
+    resNorm_last = 0;   
     for ii = 1:1:size(specSet,1)
-        Y = solveLse((sysr.A-specSet(ii,1)*sysr.E)*sysr.E,sysr.B);
-        resNorm = norm(((sys.A*V-sys.E*V*Opts.Er_inv_Ar)*Y-Opts.B_))/res0;
-        if isempty(resNorm_last) || (resNorm > resNorm_last && ~any(ismember(s0_inp,specSet(ii,1))))
+        Y = solveLse((sysr.A-specSet(ii,1)*sysr.E),sysr.B);
+        resNorm = norm(((sys.A*V-sys.E*V*Opts.Er_inv_Ar)*Y-Opts.B_))/res0;         
+        if isempty(resNorm_last) || resNorm > resNorm_last
             resNorm_last = resNorm;
-            snew = specSet(ii,1);
+            snewInp = specSet(ii,1);
+            if ~isreal(snewInp)
+                snewInp = [snewInp; conj(snewInp)];   
+            end
             Ypic = Y;
         end
     end
     
     % compute (multiple) tangential directions
-    if size(Rt,1) == size(sys.B,2) && ~isscalar(Rt)
+    if ~isempty(Rt)
         res = (sys.A*V-sys.E*V*Opts.Er_inv_Ar)*Ypic-Opts.B_;
         [~,S,rSingVec] = svd(res); 
         for ii = 1:1:size(S,2)
             if Opts.multDir == false
                 resNorm(ii,1) = norm(res*rSingVec(:,ii));
                 [~,index] = max(resNorm);
-                rt_new = rSingVec(:,index);
+                Rtnew = rSingVec(:,index);
+                if ~isreal(Rtnew)
+                    Rtnew = [Rtnew conj(Rtnew)];
+                end
             else              
-                if S(ii,ii) > 0.1*S(1,1) && ii ~= index
-                    rt_new = [rt_new rSingVec(:,ii)];
+                if S(ii,ii) > 0.1*S(1,1)
+                    rt_new = rSingVec(:,ii);
+                    if ~isreal(rt_new)
+                        rt_new = [rt_new conj(rt_new)];
+                    end
+                    Rtnew = [Rt rt_new];
+                    snewInp = [s0_inp S(ii,ii)];
                 end    
             end
-        end
+        end % end of for-loop
     else
-        rt_new = [];
-    end
-
-    % enlarge shift/direction vector
-    if ~isreal(snew)
-        s0_inp = [s0_inp cplxpair([snew conj(snew)])];
-        Rt     = [Rt cplxpair([rt_new conj(rt_new)])];
-    else
-        s0_inp = [s0_inp snew];
-        Rt     = [Rt rt_new];
+        Rtnew = [];
     end
 end
  
-function [s0_out,Lt] = newParaOut(sys,sysr,W,s0_out,Lt,Opts)
-    ritzVal = eig(sysr);  % compute Ritz-Values of reduced system 
-    resNorm_last = 0;       % Initialize and set variables
-
-    % build spectral Set
-    if ~isreal(s0_out)
-        specSet = sort([s0_out'; -ritzVal]);               % complex sectrum -> Mayer-Luenberger conditions
+function [snewOut,Ltnew] = newParaOut(sys,sysr,W,s0_out,Lt,Opts)
+    % compute Ritz-Values of reduced system 
+    ritzVal = eig(sysr);  
+    
+    % delete already used Ritz values in s0_inp 
+    [~,idx] = ismember(single(ritzVal),-single(unique(s0_out)));
+    idx = find(idx);
+    ritzVal(idx,:) = [];
+    ritzVal = sort(ritzVal);
+    %ritzVal = ritzVal(1:10,:);
+    
+    % build convex hull
+    if ~isreal(ritzVal)
+        specSet = sort([s0_out'; -ritzVal]);
         chull = convhull(real(specSet),imag(specSet));     % bulid convex hull of spectral set
-        specSet = specSet(chull);
+        specSet = specSet(chull); 
     else
-        specSet = sort([s0_out'; -ritzVal]);  
+        specSet = -ritzVal;
     end
 
     % qr-decompositons, residual matrices
-    if isempty(Opts.Cbot) || ~exist('Opts.Cbot','var')
-        ErT_inv_CrT = solveLse(sysr.E',sysr.C');
-        Opts.Cbot = sys.C'-(sys.E'*W)*ErT_inv_CrT;
+    if isempty(Opts.C_)
+        Er_invT_CrT = solveLse(sysr.E',sysr.C');
+        Opts.C_ = sys.C'-(sys.E'*W)*Er_invT_CrT;
+        Opts.Er_invT_ArT = solveLse(sysr.E',sysr.A',Opts);     
     end
-    [~,R_Cbot] = qr(Opts.Cbot);
-    [~,RW] = qr(W);
-    [~,SRW,~] = svd(RW);
+    res0 = norm(Opts.C_);
 
-    % solve max-problem for new shift
+    % solve max-problem for new shift, initialize and set variables
+    resNorm = zeros(size(specSet,1),1);
+    resNorm_last = 0;   
     for ii = 1:1:size(specSet,1)
-        Y = solveLse((sysr.A-specSet(ii,1)+sysr.E)',sysr.C');
-        resNorm = norm(R_Cbot)*(norm(Lt*Y+SRW(1,1))-1);
-        %resNorm = norm(R_Bbot*(Rt*Rinv*Y-eye(size(sys.B,2))));
-        if resNorm > resNorm_last && all(ismember(s0_out,specSet(ii,1)))
+        Y = solveLse((sysr.A-specSet(ii,1)*sysr.E)',sysr.C');
+        resNorm = norm(((sys.A'*W-sys.E'*W*Opts.Er_invT_ArT)*Y-Opts.C_))/res0;         
+        if isempty(resNorm_last) || resNorm > resNorm_last
             resNorm_last = resNorm;
-            snew = specSet(ii,1);
+            snewOut = specSet(ii,1);
+            if ~isreal(snewOut)
+                snewOut = [snewOut; conj(snewOut)];   
+            end
             Ypic = Y;
         end
     end
-
+    
     % compute (multiple) tangential directions
-    %  res = R_Bbot*(rRt*Rinv*Ypic-eye(size(sys.B,2)));
-    %  [~,S,rSingVec] = svd(res); 
-    %  for ii = 1:1:size(rSingVec,2)
-    %      resNorm(ii,1) = norm((R_Bbot*(rRt*Rinv*Y-eye(size(sys.B,2))))*rSingVec(:,ii));
-    %  end
-    %  [~,index] = max(resNorm);
-    %  rt_new = rSingVec(:,index);
-    %  
-    %  if Opts.multDir == true
-    %      % hier brauche ich das S
-    %      % ******************************************************
-    %  end
-
-    % enlarge shift/direction vector
-    if ~isreal(snew)
-        s0_out = [s0_out cplxpair([snew conj(snew)])];
-        % Lt     = [Lt cplxpair([lt_new conj(lt_new)])];
+    if ~isempty(Lt)
+        res = (sys.A'*W-sys.E'*W*Opts.Er_invT_ArT)*Ypic-Opts.C_;
+        [~,S,rSingVec] = svd(res); 
+        for ii = 1:1:size(S,2)
+            if Opts.multDir == false
+                resNorm(ii,1) = norm(res*rSingVec(:,ii));
+                [~,index] = max(resNorm);
+                Ltnew = rSingVec(:,index);
+                if ~isreal(Ltnew)
+                    Ltnew = [Ltnew conj(Ltnew)];
+                end
+            else              
+                if S(ii,ii) > 0.1*S(1,1)
+                    lt_new = rSingVec(:,ii);
+                    if ~isreal(lt_new)
+                        lt_new = [lt_new conj(lt_new)];
+                    end
+                    Ltnew = [Rt lt_new];
+                    snewOut = [s0_inp S(ii,ii)];
+                end    
+            end
+        end % end of for-loop
     else
-        s0_out = [s0_out snew];
-        %Lt     = [Lt lt_new];
+        Ltnew = [];
     end
 end
 
