@@ -145,7 +145,7 @@ switch Opts.strategy
             snewOut = snewInp;
             [~,Ltnew] = newParaOut(sys,sysr,basis2,s0_out,Lt,Opts);
         else
-            [snewInp,Rtnew] = newParaInp(sys,sysr,basis1,s0_inp,Rt,S,R,Opts);
+            [snewInp,Rtnew] = newParaInp(sys,sysr,basis1,s0_inp,Rt,Opts);
             [snewOut,Ltnew] = newParaOut(sys,sysr,basis2,s0_out,Lt,Opts);
         end
         

@@ -2,25 +2,23 @@ function [sysr,V,W,S,R,data] = crksm(varargin)
 % CRKSM - Cumulative Rational Krylov Subspace Method for cumulative reduction and/or approximately solving Lyapunov equations 
 %
 % Syntax:
-%       [sysr,V,S,data]             = CRKSM(sys, s0_inp) nur S
-%       [sysr,V,S,data]             = CRKSM(sys, s0_inp, Rt) nur S
-%       [sysr,W,R,data]             = CRKSM(sys, [], s0_out) nur R
-%       [sysr,W,R,data]             = CRKSM(sys, [], s0_out, [], Lt) nur R
-%       [sysr,V,W,S,R,data]         = CRKSM(sys, s0_inp, s0_out) alles 
-%       [sysr,V,W,S,R,data]         = CRKSM(sys, s0_inp, s0_out, Rt, Lt) alles
+%       [sysr,V,S,data]             = CRKSM(sys, s0_inp)
+%       [sysr,V,S,data]             = CRKSM(sys, s0_inp,Rt) 
+%       [sysr,W,R,data]             = CRKSM(sys, [], s0_out) 
+%       [sysr,W,R,data]             = CRKSM(sys, [], s0_out, [], Lt)
+%       [sysr,V,W,S,R,data]         = CRKSM(sys, s0_inp, s0_out)  
+%       [sysr,V,W,S,R,data]         = CRKSM(sys, s0_inp, s0_out, Rt, Lt) 
 %       [sysr,V,W,S,R,data]         = CRKSM(sys,...,Opts_rksm)
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,[],[],s0_inp) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,[],[],s0_inp,Rt) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,C, [],s0_inp)
+%       [sysr,V,S,data]             = CRKSM(A,B,[],[],s0_inp) 
+%       [sysr,V,S,data]             = CRKSM(A,B,[],[],s0_inp,Rt) 
 %       [sysr,V,W,S,R,data]         = CRKSM(A,B,C, [],s0_inp,s0_out) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,C, [],[],s0_out) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,[],C,[],[],s0_out,[],Lt) 
+%       [sysr,W,R,data]             = CRKSM(A,[],C, [],[],s0_out) 
+%       [sysr,W,R,data]             = CRKSM(A,[],C,[],[],s0_out,[],Lt) 
 %       [sysr,V,W,S,R,data]         = CRKSM(A,B,C, [],s_inp,s_out,Rt,Lt) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,[] ,E,s0_inp) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,[] ,E,s0_inp,Rt) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,C,E,s0_inp) 
+%       [sysr,V,S,data]             = CRKSM(A,B,[] ,E,s0_inp) 
+%       [sysr,V,S,data]             = CRKSM(A,B,[] ,E,s0_inp,Rt) 
 %       [sysr,V,W,S,R,data]         = CRKSM(A,B,C,E,s0_inp,s0_out) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,C,E,[],s0_out) 
+%       [sysr,W,S,data]             = CRKSM(A,[],C,E,[],s0_out) 
 %       [sysr,V,W,S,R,data]         = CRKSM(A,B,C,E,s0_inp,s0_out,Rt,Lt) 
 %       [sysr,V,W,S,R,data]         = CRKSM(A,B,...,s_inp,...,Opts_rksm) 
 %
@@ -341,18 +339,27 @@ end
 switch input
     case 1
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts); % basis1 is V 
+        Opts.equation = 'control';
     case 2
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 V
+        Opts.equation = 'control';
     case 3
         [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 W
+        Opts.equation = 'observe';
     case 4
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts); % basis1 is V 
         [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 W
+        Opts.equation = 'both';
     case 5
         [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 W
+        Opts.equation = 'observe';
     case 6
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 is V 
         [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 W
+        Opts.equation = 'both';
+%     case 7
+%         [basis1, basis2] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0_inp(1,1:2),s0_out(1,1:2),Opts); % basis1 is V 
+%         Opts.equation = 'both';
 end
 
 % preprocessing: initialize some variables for programme, set function handles
@@ -440,6 +447,7 @@ if ~exist('data.out2','var')
                 end
             else
                 newdir1 = pointerV(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2),Opts);
+                
                 newdir2 = pointerW(sys,basis2,basis1,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2),Opts);
                 if Opts.real == 1
                     basis1 = [basis1 real(newdir1)];    % basis1 is V  
@@ -492,7 +500,7 @@ if ~exist('data.out2','var')
        [sysr,chol1,chol2,data,Opts] = usage(sys,sysr,basis1,ii,s0_inp,s0_out,pointerLyap,data,Opts);
        
        % check shift capacity
-       if  isempty(Rt) && isempty(Lt) && (mean(abs(gradient(data.Norm(ii-1:ii,1)))) > 2*mean(abs(gradient(data.Norm'))))...
+       if  isempty(Rt) && isempty(Lt) && (mean(abs(gradient(data.Norm(ii-1:ii,1)))) > 2*mean(abs(gradient(data.Norm(:,1)))))...
            || isinf(data.Norm(ii,1)) 
           if ~isempty(s0_inp),  s0_inp = [s0_inp(:,1:ii) s0_inp(:,ii) s0_inp(:,ii+1:end)];  end
           if ~isempty(Rt),      Rt = [Rt(:,1:ii) Rt(:,ii) Rt(:,ii+1:end)];                  end  
@@ -725,7 +733,6 @@ function [wnew] = blockW(sys,W,~,~,s0_out,~,~,iter,colIndex,~)
     Opts.krylov = 0;
     % make SISO-system and calculate b-block column wise
     for ii = 1:1:size(sys.C,1)
-        %rhsC_ii = sys.E*rhsC*Lt(:,ii);
         rhsC_ii = sys.E*rhsC;
         [w_ii] = solveLse(sys.A',rhsC_ii,sys.E',s0_out(1,iter),Lt(:,ii),Opts);
         if size(w_ii) > 1,  w_ii = w_ii(:,1);   end
@@ -748,10 +755,10 @@ end
 function [wnew] = tangentialW(sys,~,~,~,s0_out,~,Lt,iter,~,Opts)
     if s0_out(1,iter) ~= s0_out(1,iter-1) && s0_out(1,iter) ~= conj(s0_out(1,iter-1))
         Opts.reuseLU = 0;
-        wnew = solveLse(sys.A,sys.C',sys.E,s0_out(1,iter),Lt(:,iter),Opts);
+        wnew = solveLse(sys.A',sys.C',sys.E',s0_out(1,iter),Lt(:,iter),Opts);
     else
         Opts.reuseLU = 1;
-        wnew = solveLse(sys.A,sys.C',sys.E,s0_out(1,iter),Lt(:,iter),Opts);
+        wnew = solveLse(sys.A',sys.C',sys.E',s0_out(1,iter),Lt(:,iter),Opts);
     end
     if size(wnew) > 1,  wnew = wnew(:,1);   end
 end
@@ -759,22 +766,27 @@ end
 function [sysr,chol1,chol2,data,Opts] = crksmLyap(sys,sysr,basis1,iter,s0_inp,s0_out,pointerLyap,data,Opts)
     % solve reduced Lyapunov equation
     if isempty(pointerLyap) 
-        trigger = 1;
-        [chol1,Rnorm,Opts] = lyapS(sys,sysr,basis1,iter,trigger,Opts);
+        [chol1,Rnorm1,Opts] = lyapS(sys,sysr,basis1,iter,Opts);
         if sys.issymmetric == 0
-            [chol2,~,Opts] = lyapR(sys,sysr,basis1,iter,trigger,Opts); % hier setzen, dass ich das residuum nicht mehr berechne
+            [chol2,Rnorm2,Opts] = lyapR(sys,sysr,basis1,iter,Opts); % hier setzen, dass ich das residuum nicht mehr berechne
         else
-            chol2 = chol1;
+            chol2 = chol1;  Rnorm2 = 0;
+        end
+        if iter < 3
+          data.Norm(1,1) = Rnorm1; data.Norm(2,1) = Rnorm1; 
+          data.Norm(1,2) = Rnorm2; data.Norm(2,2) = Rnorm2;
+        else
+          data.Norm(iter,1) = Rnorm1;  data.Norm(iter,2) = Rnorm2;
         end
     else
-        trigger = 1;
-        [chol1,Rnorm,Opts] = pointerLyap(sys,sysr,basis1,iter,trigger,Opts);
-        chol2 = [];
+        % solve controllability or observability Lyapunov equation
+        [chol1,Rnorm1,Opts] = pointerLyap(sys,sysr,basis1,iter,Opts);
+        chol2 = []; Rnorm2 = 0;
+        if iter < 3,  data.Norm(1,1) = Rnorm1; data.Norm(2,1) = Rnorm1;  else, data.Norm(iter,1) = Rnorm1;  end 
     end  
-    if iter < 3, data.Norm(1,1) = Rnorm;   data.Norm(2,1) = Rnorm;    else,   data.Norm(iter,1) = Rnorm;    end
         
     % stop program
-    if Rnorm < Opts.tol
+    if Rnorm1 < Opts.tol && Rnorm2 < Opts.tol
        if Opts.lowrank == 1            % compute low rank factor of solution
            chol1 = basis1*chol1;    
            if ~isempty('chol2','var'),  chol2 = basis1*chol2;  end
@@ -782,7 +794,10 @@ function [sysr,chol1,chol2,data,Opts] = crksmLyap(sys,sysr,basis1,iter,s0_inp,s0
        if ~isempty(s0_inp), data.Shifts_Input  = s0_inp;    end     % this line is important for leaving the for loop
        if ~isempty(s0_out), data.Shifts_Output = s0_out;    end 
        % show information of programme
-       fprintf('\n RKSM, usage Lyapunov, step:\t %d \t Convergence\n last residual norm:\t %d, tolerance:\t %d,\n',iter,Rnorm,Opts.tol);
+       if isempty(chol2)
+           fprintf('\n RKSM, usage Lyapunov, step:\t %d \t Convergence\n last residual norm:\t %d, tolerance:\t %d,\n',iter,Rnorm1,Opts.tol);
+       else
+       end
    elseif size(chol1,2) == size(sys.A,2)
        disp('\n V has reached the dimension of the original System without converging!');
    end
@@ -809,7 +824,7 @@ function [sysr,S,R,data,Opts] = crksmSysr(~,sysr,~,iter,s0_inp,~,~,data,Opts)
 end
 
 
-function [S,Rnorm,Opts] = lyapS(sys,sysr,basis1,iter,~,Opts)
+function [S,Rnorm,Opts] = lyapS(sys,sysr,basis1,iter,Opts)
 persistent S_last
     if iter == 1, S_last = [];  end
     
@@ -856,7 +871,7 @@ persistent S_last
     end % end stopCrit
 end
 
-function [R,Rnorm,Opts] = lyapR(sys,sysr,basis1,iter,trigger,Opts)
+function [R,Rnorm,Opts] = lyapR(sys,sysr,basis1,iter,Opts)
 persistent R_last 
     if iter == 1, R_last = [];  end
     
@@ -871,43 +886,39 @@ persistent R_last
          R = lyap(sysr.A',sysr.C'*sysr.C,[],sysr.E');
     end
     
-    if trigger == 1
-        % choose computation of norm/stopping criteria
-        if strcmp(Opts.stopCrit,'residualLyap')
-           % test determination (computation of residual after Panzer/Wolff), compute Er^-1*Br and Er^-1*Ar and other factors
-           Er_invT_CrT = solveLse(sysr.E',sysr.C');
-           Opts.reuseLU = 1;
-           Opts.Er_invT_ArT = solveLse(sysr.E',sysr.A',Opts);   
+    % choose computation of norm/stopping criteria
+    if strcmp(Opts.stopCrit,'residualLyap')
+       % test determination (computation of residual after Panzer/Wolff), compute Er^-1*Br and Er^-1*Ar and other factors
+       Er_invT_CrT = solveLse(sysr.E',sysr.C');
+       Opts.reuseLU = 1;
+       Opts.Er_invT_ArT = solveLse(sysr.E',sysr.A',Opts);   
 
-           % compute factors from residual
-           Opts.C_ = sys.C'-(sys.E'*basis1)*Er_invT_CrT;
-           Cr_hat = solveLse(Opts.C_'*Opts.C_,Opts.C_'*((sys.A'*basis1)-(sys.E'*basis1)*Opts.Er_invT_ArT));
-           F = sys.E'*basis1*(Er_invT_CrT+(R'*R)*Cr_hat');
+       % compute factors from residual
+       Opts.C_ = sys.C'-(sys.E'*basis1)*Er_invT_CrT;
+       Cr_hat = solveLse(Opts.C_'*Opts.C_,Opts.C_'*((sys.A'*basis1)-(sys.E'*basis1)*Opts.Er_invT_ArT));
+       F = sys.E'*basis1*(Er_invT_CrT+(R'*R)*Cr_hat');
 
-           % compute residual norm (Euclidean Norm)
-           if strcmp(Opts.crksmNorm, 'H2')
-               res0  = norm(sysr.C * sysr.C',2);
-               Rnorm = max(abs(eig(full([Opts.C_'*Opts.C_+Opts.C_'*F, Opts.C_'*Opts.C_; F'*Opts.C_+F'*F, F'*Opts.C_])))) / res0; 
-           else
-               % Frobenius Norm
-               res0  = norm(sysr.B' * sysr.B,'fro');
-               Rnorm = sqrt(sum(eig(full([Opts.C_'*Opts.C_+Opts.C_'*F, Opts.C_'*Opts.C_; F'*Opts.C_+F'*F, F'*Opts.C_])))^2) / res0;
-           end
-        else
-
-           if strcmp(Opts.crksmNorm, 'H2')
-               X_lastnorm = NormFrobEfficient(1,R_last);
-               X_norm = NormFrobEfficient(1,R);
-           else
-               X_lastnorm = NormFrobEfficient(0,R_last);
-               X_norm = NormFrobEfficient(0,R);
-           end
-           Rnorm = abs(X_norm-X_lastnorm);
-           R_last = R;
-        end % end stopCrit
+       % compute residual norm (Euclidean Norm)
+       if strcmp(Opts.crksmNorm, 'H2')
+           res0  = norm(sysr.C * sysr.C',2);
+           Rnorm = max(abs(eig(full([Opts.C_'*Opts.C_+Opts.C_'*F, Opts.C_'*Opts.C_; F'*Opts.C_+F'*F, F'*Opts.C_])))) / res0; 
+       else
+           % Frobenius Norm
+           res0  = norm(sysr.B' * sysr.B,'fro');
+           Rnorm = sqrt(sum(eig(full([Opts.C_'*Opts.C_+Opts.C_'*F, Opts.C_'*Opts.C_; F'*Opts.C_+F'*F, F'*Opts.C_])))^2) / res0;
+       end
     else
-         Rnorm = [];
-    end % end trigger
+
+       if strcmp(Opts.crksmNorm, 'H2')
+           X_lastnorm = NormFrobEfficient(1,R_last);
+           X_norm = NormFrobEfficient(1,R);
+       else
+           X_lastnorm = NormFrobEfficient(0,R_last);
+           X_norm = NormFrobEfficient(0,R);
+       end
+       Rnorm = abs(X_norm-X_lastnorm);
+       R_last = R;
+    end % end stopCrit
 end
 
 

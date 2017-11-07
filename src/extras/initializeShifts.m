@@ -9,6 +9,10 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 %       Generates a 1 x nShift vector of shift frequencies s0 according to the 
 %       chosen strategy, which can be defined in Opts.strategy. s0 can be used 
 %       as inputs to the reduction functions of sssMOR.
+%       If necessary, a shift vector for a Krylov output space can be
+%       built containing the same shifts as the s0_inp vector.
+%       Besides, for strategies 'eigs' and 'ROM', right and left tangential
+%       directions Rt and Lt are available. 
 %
 %       If nSets is specified and larger than one, then s0 is a 1 x nSets
 %       cell array of shift vectors of size nShifts.
@@ -45,7 +49,14 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 %                           [{complex} / ab]
 %
 % Output Arguments:
-%       -s0:            Vector (of sets) of shift frequencies 
+%       -s0_inp:            Vector (of sets) of shift frequencies for input Krylov subspace 
+%       -s0_out:            Vector (of sets) of shift frequencies for output Krylov subspace
+%                           (the same as for the input space s0_inp), if it is
+%                           not specified, INITIALIZESHIFTS delivers an empty array
+%       -Rt:                Matrix of right tangential directions, if it is
+%                           not specified, INITIALIZESHIFTS delivers an empty array
+%       -Lt:                Matrix of left tangentila directions, if it is
+%                           not specified, INITIALIZESHIFTS delivers an empty array
 %
 % Examples:
 %       By default, initializeShifts generates shifts with the eigs
@@ -93,8 +104,8 @@ Def.constValueInp  = 0;                     % constant shift for input space
 Def.constValueOut  = 0;                     % constant shift for output space
 Def.wmin           = abs(eigs(sys,1,'sm')); % lower bound  
 Def.wmax           = abs(eigs(sys,1));      % upper bound
-Def.kp             = 40;                    % number of Arnoldi steps
-Def.km             = 25;                    % number of Arnoldi steps
+Def.kp             = 40;                    % number of Arnoldi steps default 40
+Def.km             = 25;                    % number of Arnoldi steps default 25
 Def.eigsType       = 'sm';                  % eigs parameter
 Def.shiftTyp       = 'conj';                % plain imaginary shifts
 Def.offset         = 0;                     % global offset for shifts
@@ -153,26 +164,36 @@ switch Opts.strategy{1}
         catch
             s0_inp(end)=real(s0_inp(end));
         end
-        % get s0_out and right tangential directions
-        if nargout == 3
-            s0_inp = s0_inp';
+        
+        if size(sys.A,1) > 10e3
+             warning('system dimension is too big to calculate tangential directions');
+             if nargout > 2
+                s0_out = double(s0_inp);
+             end
+             Rt = [];  Lt = [];
         else
-            if nargout > 1 && Opts.isSiso == 0
-                [Lt, D, Rt] = eigs(sys);
+            % get s0_out and right tangential directions
+            if nargout > 1 && Opts.isSiso == 0 
+                [Lt,D,Rt] = eig(sys);
                 [~,idx] = ismember(single(diag(D)),-s0_inp);
                 Rt = full((Rt(:,idx(idx~=0))'*sys.B))';
                 s0_inp = s0_inp';
                 Rt = double(reshape(Rt,nSets*size(sys.B,2),nShifts));
-                if nargout > 2 
+                if nargout == 3
+                    s0_out = double(s0_inp);
+                else  % nargout = 4
                     % get s0_out and left tangential directions
                     s0_out = double(s0_inp);
-                    Lt = full(sys.C*(Lt(:,idx')));
+                    Lt = full(sys.C*(Lt(:,idx(idx~=0))));
                     Lt = double(reshape(Lt,nSets*size(sys.C,1),nShifts));
                 end
-            elseif nargout > 1
+            elseif nargout > 1 && Opts.isSiso == 1
+                Rt = [];  Lt = []; s0_out = double(s0_inp);
+            else
                 Rt = [];  Lt = []; s0_out = [];
             end
         end
+                
         if iscolumn(s0_inp)
             s0_inp = reshape(s0_inp,nShifts,nSets)';
         else
@@ -251,7 +272,7 @@ switch Opts.strategy{1}
             
             multip = ceil(nSets*nShifts/2);
             sysr = rk(sys,[mineig,conj(mineig);multip, multip],[mineig,conj(mineig);multip,multip]);
-            s0_inp = -eig(sysr).';
+            s0_inp = single(-eig(sysr).');
             if length(s0_inp)> nSets*nShifts
                 idx = find(imag(s0_inp)==0);
                 if isempty(idx)
@@ -268,7 +289,36 @@ switch Opts.strategy{1}
             
         else
             sysr = rk(sys,[mineig;nShifts],[mineig;nShifts]);
-            s0_inp = eig(sysr).';
+            s0_inp = single(eig(sysr).');
+        end
+        
+        if size(sysr.A,1) > 10e3
+             warning('system dimension is too big to calculate tangential directions');
+             if nargout > 2
+                s0_out = double(s0_inp);
+             end
+             Rt = [];  Lt = [];
+        else
+            % get s0_out and right tangential directions
+            if nargout > 1 && Opts.isSiso == 0 
+                [Lt,D,Rt] = eig(sysr);
+                [~,idx] = ismember(single(diag(D)),-s0_inp);
+                Rt = full((Rt(:,idx(idx~=0))'*sysr.B))';
+                s0_inp = s0_inp';
+                Rt = double(reshape(Rt,nSets*size(sysr.B,2),nShifts));
+                if nargout == 3
+                    s0_out = double(s0_inp);
+                else  % nargout = 4
+                    % get s0_out and left tangential directions
+                    s0_out = double(s0_inp);
+                    Lt = full(sysr.C*(Lt(:,idx(idx~=0))));
+                    Lt = double(reshape(Lt,nSets*size(sysr.C,1),nShifts));
+                end
+            elseif nargout > 1 && Opts.isSiso == 1
+                Rt = [];  Lt = []; s0_out = double(s0_inp);
+            else
+                Rt = [];  Lt = []; s0_out = [];
+            end
         end
         
         idxUnstable=real(s0_inp)<0;   %Spiegeln,falls instabile eigs
@@ -352,6 +402,16 @@ switch Opts.strategy{1}
         end
         
         s0_inp = reshape(s0_inp,nShifts,nSets)';
+        
+        % define output
+        if nargout == 2
+            Rt = [];  
+            warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
+        elseif nargout > 2
+            s0_out = s0_inp;
+            Rt = [];    Lt = [];
+            warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
+        end
 end
 
 % plain real shifts at the end, when the number of shifts is odd
