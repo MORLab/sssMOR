@@ -357,9 +357,9 @@ switch input
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 is V 
         [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 W
         Opts.equation = 'both';
-    case 7
-        [basis1, basis2] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0_inp(1,1:2),s0_out(1,1:2),Opts); % basis1 is V 
-        Opts.equation = 'both';
+%     case 7
+%         [basis1, basis2] = arnoldi(sys.E,sys.A,sys.B,sys.C,s0_inp(1,1:2),s0_out(1,1:2),Opts); % basis1 is V 
+%         Opts.equation = 'both';
 end
 
 % preprocessing: initialize some variables for programme, set function handles
