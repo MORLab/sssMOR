@@ -2,12 +2,12 @@ function [sysr,V,W,S,R,data] = crksm(varargin)
 % CRKSM - Cumulative Rational Krylov Subspace Method for cumulative reduction and/or approximately solving Lyapunov equations 
 %
 % Syntax:
-%       [sysr,V,W,S,R,data]         = CRKSM(sys, s0_inp)
-%       [sysr,V,W,S,R,data]         = CRKSM(sys, s0_inp, Rt)
-%       [sysr,V,W,S,R,data]         = CRKSM(sys, [], s0_out)
-%       [sysr,V,W,S,R,data]         = CRKSM(sys, [], s0_out, [], Lt)
-%       [sysr,V,W,S,R,data]         = CRKSM(sys, s0_inp, s0_out)
-%       [sysr,V,W,S,R,data]         = CRKSM(sys, s0_inp, s0_out, Rt, Lt)
+%       [sysr,V,S,data]             = CRKSM(sys, s0_inp) nur S
+%       [sysr,V,S,data]             = CRKSM(sys, s0_inp, Rt) nur S
+%       [sysr,W,R,data]             = CRKSM(sys, [], s0_out) nur R
+%       [sysr,W,R,data]             = CRKSM(sys, [], s0_out, [], Lt) nur R
+%       [sysr,V,W,S,R,data]         = CRKSM(sys, s0_inp, s0_out) alles 
+%       [sysr,V,W,S,R,data]         = CRKSM(sys, s0_inp, s0_out, Rt, Lt) alles
 %       [sysr,V,W,S,R,data]         = CRKSM(sys,...,Opts_rksm)
 %       [sysr,V,W,S,R,data]         = CRKSM(A,B,[],[],s0_inp) 
 %       [sysr,V,W,S,R,data]         = CRKSM(A,B,[],[],s0_inp,Rt) 
