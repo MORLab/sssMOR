@@ -34,11 +34,12 @@ function varargout = porkV(V,Sv,Rv,C)
 % Examples:
 %       Following code computes an H2-pseudo-optimal reduced order model
 %       with an input Krylov subspace
-%> sys = loadSss('building');
-%> s0 = -eigs(sys,4,'sm').';
-%> [sysr, V] = rk(sys,s0);
-%> [Rv, ~, Sv] = getSylvester(sys, sysr, V);
-%> sysrPO = porkV(V,Sv,Rv,sys.C)
+%> sys          = sss('building');
+%> s0           = -eigs(sys,4,'sm').';
+%> [sysr, V]    = rk(sys,s0);
+%> [Rv, ~, Sv]  = getSylvester(sys, sysr, V);
+%> sysrPO       = porkV(V,Sv,Rv,sys.C);
+%> disp(sysrPO)
 % 
 % See Also: 
 %       porkW, spark, rk, getSylvester
@@ -54,13 +55,13 @@ function varargout = porkV(V,Sv,Rv,C)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Thomas Wolf, Heiko Panzer
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  13 Apr 2016

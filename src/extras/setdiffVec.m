@@ -27,10 +27,14 @@ function setdiffVec = setdiffVec(v1,v2)
 %
 % Example:
 %
-%> v1 = [38, 0.43-13.44i, 0.43+13.44i, 0.38-5.21i,0.38+5.21i]';
-%> v2 = [0.38-5.21i, 0.38+5.21i, 0.43-13.44i, 0.43+13.44i, 38]';
-%> diff1 = v1 - v2 %standard difference in MATLAB
-%> diff2 = setdiffVec(v1,v2)
+%> v1       = [38, 0.43-13.44i, 0.43+13.44i, 0.38-5.21i,0.38+5.21i]';
+%> v2       = [0.38-5.21i, 0.38+5.21i, 0.43-13.44i, 0.43+13.44i, 38]';
+%> % standard difference in MATLAB
+%> diff1    = v1 - v2 
+%> % difference using setdiffVec
+%> diff2    = setdiffVec(v1,v2)
+%
+%       A comparison between the two difference vectors reveals:s
 %> norm(diff1),norm(diff2)
 %
 % See Also:
@@ -42,13 +46,13 @@ function setdiffVec = setdiffVec(v1,v2)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  01 Sep 2015

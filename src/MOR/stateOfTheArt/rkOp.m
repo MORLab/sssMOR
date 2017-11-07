@@ -40,8 +40,8 @@ function varargout = rkOp(varargin)
 %       This code computes the optimal expansion point and a reduced system
 %       of order q=10 for the benchmark model 'building'.
 %
-%> sys = loadSss('building')
-%> [sysr,V,W,sOpt] = rkOp(sys,10);
+%> sys              = sss('building');
+%> [sysr,V,W,sOpt]  = rkOp(sys,20);
 %> bode(sys,'-',sysr,'--r');
 %
 % See Also: 
@@ -63,13 +63,13 @@ function varargout = rkOp(varargin)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer (heiko@mytum.de), Rudy Eid
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  28 Jun 2016
@@ -93,7 +93,7 @@ else
     Opts = parseOpts(Opts,Def);
 end
 
-% compute sOpt
+%% compute sOpt
 if isa(varargin{1},'double') && length(varargin)==2 && length(varargin{1})==length(varargin{2}) % from impulse response
     g = varargin{1};
     tg = varargin{2};
@@ -143,7 +143,7 @@ else
     error('Wrong input.');
 end
 
-% return reduced system
+%% return reduced system
 if length(varargin)==2 && ~isa(varargin{1},'double') && isscalar(varargin{2})
     q=varargin{2};
     if sys.isSiso

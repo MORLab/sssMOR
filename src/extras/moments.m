@@ -34,14 +34,14 @@ function M = moments(sys, s0, n, Opts)
 %      This code computes 3 moments of the transfer function of the
 %      benchmark model 'build' about the frequencies 1, 1+i and 1-i
 %
-%> sys = loadSss('building');
-%> M = moments(sys,[1,1+i,1-i], 3)
+%> sys  = sss('building');
+%> M    = moments(sys,[1,1+i,1-i], 2)
 %
 %      To compute different order moments for different frequencies,
 %      specify n as an array of te same length as s0
 %
-%> sys = loadSss('CDplayer');
-%> M = moments(sys,[1,1+i,1-i],[1,2,4])
+%> sys  = sss('CDplayer');
+%> M    = moments(sys,[1,1+i,1-i],[1,2,4])
 %
 % See Also:
 %       rk, lu
@@ -57,13 +57,13 @@ function M = moments(sys, s0, n, Opts)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  11 September 2016

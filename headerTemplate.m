@@ -1,5 +1,5 @@
 function [output1,output2] = headerTemplate(input1,varargin)
-% HEADERTEMPLATE - sssMOR toolbox header template
+% HEADERTEMPLATE - sssMOR toolbox header template (_only 1 line here!_)
 % 
 % Syntax:
 %		output1				= HEADERTEMPLATE(input1)
@@ -45,6 +45,10 @@ function [output1,output2] = headerTemplate(input1,varargin)
 %       This generates a <https://www.rt.mw.tum.de URL>
 %
 %       This generates inline $LaTeX: x^2+e^{\pi i}$
+%
+%       For LaTeX in a separated line, use double dollar signs:
+%
+%       $$x^2+e^{\pi i}$$
 % 
 %       To insert a bulleted or numbered list, leave an empty line before
 %       the list:
@@ -116,13 +120,13 @@ function [output1,output2] = headerTemplate(input1,varargin)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Author 1, Author 2
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  02 Nov 2015

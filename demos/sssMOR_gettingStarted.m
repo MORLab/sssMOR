@@ -18,13 +18,13 @@ function sssMOR_gettingStarted(Opts)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  23 Nov 2015
@@ -61,6 +61,9 @@ rule
 fprintf(['\tDeveloped at the Chair of Automatic Control, TUM\n']);
 fprintf(['\tNote: for academic use only.\n']);
 rule
+
+downloadSoftware;
+
 %%  Model Order Reduction
 clearvars -except Opts
 
@@ -252,7 +255,7 @@ fprintf('the capabilities of the sssMOR toolbox by yourself! (Check out all \n')
 fprintf('other demos and benchmark systems that you can use!)\n');
 fprintf('For any further questions, please refer to the documentation of the\n');
 fprintf('toolbox. For comments and submissions, please send a mail to \n');
-fprintf('"sssMOR@rt.mw.tum.de". If you want to stay up to date with new\n');
+fprintf('"morlab@rt.mw.tum.de". If you want to stay up to date with new\n');
 fprintf('releases, sign up for our newsletter under "www.rt.mw.tum.de". \n');
 rule
 close all
@@ -321,4 +324,22 @@ function init_demo
     tbr(sys,1);
     irka(sys,1,struct('suppressverbose',true));
     clear sys ans;
+end
+
+function downloadSoftware
+    % check if the benchmarks and third-party software (MESS) are already
+    % installed
+    if ~exist('CDplayer.mat','file') || ~exist('mess_path.m','file')
+        fprintf('\n');
+        fprintf('The toolbox in general as well as this demonstration require\n');
+        fprintf('benchmark models and third-party software to be installed on\n');
+        fprintf('your machine.\n\n');
+        fprintf('Do you want to download the benchmark models and the third-party software?\nY/[N]: ');
+        inp = lower(strtrim(input('','s')));
+        fprintf('\n\n');
+        
+        if strcmp(inp , 'y')
+            downloadThirdParty;
+        end
+    end
 end

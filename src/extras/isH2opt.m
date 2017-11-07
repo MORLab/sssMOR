@@ -2,9 +2,9 @@ function isH2opt = isH2opt(sys,sysr,s0,Opts)
 % ISH2OPT - Evaluate Meier-Luenberger necessary conditions for H2-optimality
 %
 % Syntax:
-%       ISH2OPT(sys,sysr,s0)
-%       ISH2OPT(sys,sysr,s0,Opts)
-%       isH2opt = ISH2OPT(sys,sysr,s0)
+%                   ISH2OPT(sys,sysr,s0)
+%                   ISH2OPT(sys,sysr,s0,Opts)
+%       isH2opt =   ISH2OPT(sys,sysr,s0)
 %
 % Description:
 %       This function evaluates the Maier-Luenberger conditions for
@@ -43,10 +43,10 @@ function isH2opt = isH2opt(sys,sysr,s0,Opts)
 %       the benchmark model 'building' and uses the function isH2opt to
 %       verify if the necessary conditions for optimality are satisfied.
 %
-%> sys = loadSss('building')
-%> [sysr, ~, ~, s0opt] = irka(sys, -eigs(sys,8).');
+%> sys                  = sss('building');
+%> [sysr, ~, ~, s0opt]  = irka(sys, -eigs(sys,8).');
 %> bode(sys,'-',sysr,'--r');
-%> isH2opt(sys, sysr, s0opt)
+%> isH2opt(sys, sysr, s0opt);
 %
 % See Also: 
 %		moments, irka, spark, eig
@@ -60,13 +60,13 @@ function isH2opt = isH2opt(sys,sysr,s0,Opts)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  31 Aug 2015

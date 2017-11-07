@@ -13,7 +13,7 @@ classdef testModal < sssTest
 %   of Automatic Control, Technische Universitaet Muenchen.
 %   For updates and further information please visit www.rt.mw.tum.de
 %   For any suggestions, submission and/or bug reports, mail us at
-%                     -> sssMOR@rt.mw.tum.de <-
+%                     -> morlab@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 %               Lisa Jeschek
@@ -56,7 +56,7 @@ classdef testModal < sssTest
         end
         function descriptorSymmetric(testCase) 
             %with E-matrix, symmetric
-            sys = loadSss('rail_1357');
+            sys = sss('rail_1357');
             
             q = 10;
             Opts.type='SM';

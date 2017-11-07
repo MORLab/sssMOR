@@ -21,6 +21,8 @@ web: https://www.rt.mw.tum.de/
         <tocitem image="HelpIcon.FUNCTION" target="functions_index.html">Functions Reference
             <tocitem target="functions_index.html">Reduced Order Models (ssRed)
                 <tocitem image="HelpIcon.FUNCTION" target="ssRedhelp.html">ssRed</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="l2normhelp.html">l2norm</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="stabsephelp.html">stabsep</tocitem>
             </tocitem>
             <tocitem target="functions_index.html">LTI MOR Classic
                 <tocitem image="HelpIcon.FUNCTION" target="arnoldihelp.html">arnoldi</tocitem>
@@ -50,6 +52,7 @@ web: https://www.rt.mw.tum.de/
                 <tocitem image="HelpIcon.FUNCTION" target="momentshelp.html">moments</tocitem>
                 <tocitem image="HelpIcon.FUNCTION" target="setdiffVechelp.html">setdiffVec</tocitem>
                 <tocitem image="HelpIcon.FUNCTION" target="shiftVechelp.html">shiftVec</tocitem>
+                <tocitem image="HelpIcon.FUNCTION" target="cplxpairAllhelp.html">cplxpairAll</tocitem>
             </tocitem>
             <tocitem target="functions_index.html">Demos
                 <tocitem image="HelpIcon.FUNCTION" target="sssMOR_gettingStartedhelp.html">sssMOR_gettingStarted</tocitem>

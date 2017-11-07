@@ -62,14 +62,16 @@ function [sysr,sysrVec] = cure(sys,Opts)
 %       By default, cure reduces a given model sys to a reduced order of
 %       sqrt(sys.n) by steps of nk = 2 using mespark (model function based
 %       spark)
-%> sys = loadSss('building');
-%> sysr = cure(sys); disp(sysr)
+%> sys  = sss('building');
+%> sysr = cure(sys); 
+%> disp(sysr)
 %
 %       The behavior of the function can be highly customized using the
-%       option structure Opts
+%       option structure Opts:
 %
-%> Opts.cure = struct('nk',4, 'redfun', 'irka', 'verbose', 1, 'stopval',12);
-%> sysr = cure(sys,Opts); disp(sysr)
+%> Opts.cure    = struct('nk',4, 'redfun', 'irka', 'verbose', 1, 'stopval',12);
+%> sysr         = cure(sys,Opts); 
+%> disp(sysr)
 % 
 % See Also: 
 %       spark, rk, irka, porkV, porkW, getSylvester
@@ -84,14 +86,14 @@ function [sysr,sysrVec] = cure(sys,Opts)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto, Maria Cruz Varona,
 %               Philipp Seiwald
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  23 Mar 2017

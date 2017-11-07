@@ -25,14 +25,14 @@ function varargout = sssMOR_App(varargin)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Sylvia Cremer, Niklas Kochdumper,
 %               Maria Cruz Varona, Alessandro Castagnotto
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  05 May 2016
@@ -1616,9 +1616,9 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 for i = 1:size(systemList,1)
                    if isa(systemList{i,2},'sss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
-                            systemList{i,5} = freqresp(systemList{i,2},systemList{i,6},struct('frd',1));
+                            systemList{i,5} = frd(systemList{i,2},systemList{i,6});
                        else
-                            systemList{i,5} = freqresp(systemList{i,2},struct('frd',1));
+                            systemList{i,5} = frd(systemList{i,2});
                        end
                    elseif isa(systemList{i,2},'ss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
@@ -1659,9 +1659,9 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 for i = 1:size(systemList,1)
                    if isa(systemList{i,2},'sss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
-                            systemList{i,5} = freqresp(systemList{i,2},systemList{i,6},struct('frd',1));
+                            systemList{i,5} = frd(systemList{i,2},systemList{i,6});
                        else
-                            systemList{i,5} = freqresp(systemList{i,2},struct('frd',1));
+                            systemList{i,5} = frd(systemList{i,2});
                        end
                    elseif isa(systemList{i,2},'ss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
@@ -1702,9 +1702,9 @@ function pb_plot_Callback(hObject, eventdata, handles)
                 for i = 1:size(systemList,1)
                    if isa(systemList{i,2},'sss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
-                            systemList{i,5} = freqresp(systemList{i,2},systemList{i,6},struct('frd',1));
+                            systemList{i,5} = frd(systemList{i,2},systemList{i,6});
                        else
-                            systemList{i,5} = freqresp(systemList{i,2},struct('frd',1));
+                            systemList{i,5} = frd(systemList{i,2});
                        end
                    elseif isa(systemList{i,2},'ss')
                        if strcmp(systemList{i,3}.resolution,'manual') 
@@ -3400,15 +3400,9 @@ function updateTBR(hObject, eventdata, handles)
         end
 
         % make callback react to click on red HSV line
-
         set(h,'HitTest','off');
 
-        % legend
-
-        legend(handles.axes_mor_hsv, regexprep(sysname, '_', ' '));
-
         % set scale
-
         if get(handles.rb_mor_tbr_log,'Value')==1 || ...
            get(handles.rb_mor_tbr_norm,'Value')==1
             set(handles.axes_mor_hsv,'YScale','log')
@@ -3416,8 +3410,7 @@ function updateTBR(hObject, eventdata, handles)
             set(handles.axes_mor_hsv,'YScale','linear')                
         end
         
-        %Plot the red line
-            
+        %Plot the red line            
         if ishandle(hr)
             set(hr,'XData',[q,q])
             set(hr,'YData',get(handles.axes_mor_hsv,'YLim'));
@@ -3425,6 +3418,9 @@ function updateTBR(hObject, eventdata, handles)
             hr=plot(handles.axes_mor_hsv,[q,q], get(handles.axes_mor_hsv,'YLim'),'r');
             set(handles.axes_mor_hsv,'UserData',hr)
         end
+           
+        % legend
+        legend(h, regexprep(sysname, '_', ' '));
     end
     
     %Set cursor back to arrow
@@ -6149,8 +6145,7 @@ function x = listClassesInWorkspace(class)
     x(cellfun(@isempty,x)) = []; 
     
 function success = loadSystemWithLoadSss(filename,path)
-% create a system from the matrices in a .mat file by using the function
-% loadSss
+% create a system from the matrices in a .mat file 
    try
        lastwarn('');
        success = 1;
@@ -6174,8 +6169,8 @@ function success = loadSystemWithLoadSss(filename,path)
        % contain "-"
        name = strrep(name,'-','_');
 
-       % create system using loadSss
-       sys = loadSss(strcat(path,filename));         
+       % create system using sss-Konstructor
+       sys = sss(strcat(path,filename));         
        assignin('base',name,sys);
 
        % check whether the system is DAE and warn the user if the case
@@ -6183,7 +6178,12 @@ function success = loadSystemWithLoadSss(filename,path)
            msgbox(strcat(filename,': System is DAE. This User-Interface does not fully support systems in DAE-format'),'Warning','Warn');
            uiwait
        end    
-
+      
+       % suppress the warning that the function "loadSss" is depreciated
+       if strcmp(lastwarn,'loadSss is deprecated and will be removed in later releases of sss. Use ''sss(fname)'' instead.')
+          lastwarn(''); 
+       end
+    
        error('loadSss:WarningOccured',lastwarn);
 
     catch ex
@@ -6193,7 +6193,7 @@ function success = loadSystemWithLoadSss(filename,path)
                 uiwait
             end
         else
-            msgbox({strcat(filename,': '),'Error while evaluating function loadSss.', ...
+            msgbox({strcat(filename,': '),'Error while loading the selected model.', ...
                     'Try to load the matrices and then compose the model.'},'Error','error');
             success = 0;
         end            

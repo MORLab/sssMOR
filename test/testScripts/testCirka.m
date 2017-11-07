@@ -7,7 +7,7 @@ classdef testCirka < sssTest
 %   of Automatic Control, Technische Universitaet Muenchen.
 %   For updates and further information please visit www.rt.mw.tum.de
 %   For any suggestions, submission and/or bug reports, mail us at
-%                     -> sssMOR@rt.mw.tum.de <-
+%                     -> morlab@rt.mw.tum.de <-
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 % Last Change:  09 Apr 2017
@@ -74,9 +74,9 @@ classdef testCirka < sssTest
                 %  test system
                 sys =    testCase.sysCell{i};  
                 sys =    sys(1,1);
-                n   =    ceil(10*rand(1));
-                
-                [sysr, V, W, s0, ~, ~, ~, sysm,s0m, relH2err] = cirka(sys, n);
+                n   =    ceil(10*rand);
+                              
+                [sysr, V, W, s0, ~, ~, ~, sysm,~, relH2err] = cirka(sys, n);
                 
                 verifyClass(testCase,sysr,'ssRed')
                 verifyClass(testCase,sysm,'ssRed')
@@ -85,7 +85,6 @@ classdef testCirka < sssTest
                 verifySize(testCase,V,[sys.n,n])
                 verifySize(testCase,W,[sys.n,n])
                 verifySize(testCase,s0,[1,n])
-                verifySize(testCase,s0m,[1,sysm.n])
                 verifyTrue(testCase,isstable(sysm))
                 verifyGreaterThanOrEqual(testCase,size(sysm.A,1),n);
                 verifyEqual(testCase,norm(sysm-sysr)/norm(sysm),relH2err)    

@@ -13,24 +13,25 @@ classdef testSsRed < sssTest
 %       - pole
 %       - zpk
 %       - tzero (only for MIMO-models)
+%    + Conversion from sss, ss and dss to ssRed
 % ------------------------------------------------------------------
 %   This file is part of sssMOR, a Sparse State Space, Model Order
 %   Reduction and System Analysis Toolbox developed at the Institute 
 %   of Automatic Control, Technische Universitaet Muenchen.
 %   For updates and further information please visit www.rt.mw.tum.de
 %   For any suggestions, submission and/or bug reports, mail us at
-%                     -> sssMOR@rt.mw.tum.de <-
+%                     -> morlab@rt.mw.tum.de <-
 % ------------------------------------------------------------------
-% Authors:      Niklas Kochdumper
-% Last Change:  21 Aug 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Authors:      Niklas Kochdumper, Alessandro Castagnotto
+% Last Change:  02 Aug 2017
+% Copyright (c) 2016,2017 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------     
     
     methods(Test)
         function testSsRedTbr(testCase)
             
             % Create ssRed-object througth reduction with tbr (SISO)          
-            sys = loadSss('building.mat');
+            sys = sss('building.mat');
             sysr = tbr(sys,10);
             
             % Test some functions of the Control System Toolbox on the
@@ -46,7 +47,7 @@ classdef testSsRed < sssTest
             sysr = tbr(sysr,5);
             
             % Create ssRed-object througth reduction with tbr (MIMO)          
-            sys = loadSss('CDplayer.mat');
+            sys = sss('CDplayer.mat');
             sysr = tbr(sys,10);
             
             % Test some functions of the Control System Toolbox on the
@@ -55,7 +56,7 @@ classdef testSsRed < sssTest
             bode(sysr);
             impulse(sysr);
             pole(sysr);
-            zero(sysr);
+            tzero(sysr);
             zpk(sysr);
             tzero(sysr);
             
@@ -68,7 +69,7 @@ classdef testSsRed < sssTest
             warning('off','all')
             
             % Create ssRed-object througth reduction with irka (SISO)          
-            sys = loadSss('building.mat');
+            sys = sss('building.mat');
             s0 = [0 1+i 1-i];
             sysr = irka(sys,s0);
             
@@ -86,7 +87,7 @@ classdef testSsRed < sssTest
             sysr = irka(sysr,s0);
             
             % Create ssRed-object througth reduction with irka (MIMO)          
-            sys = loadSss('CDplayer.mat');
+            sys = sss('CDplayer.mat');
             s0 = [0 1+i 1-i];
             L = [1 0 0; 0 1 1];
             sysr = irka(sys,s0,L,L);
@@ -112,7 +113,7 @@ classdef testSsRed < sssTest
             warning('off','all')
             
             % Create ssRed-object througth reduction with rk (SISO)          
-            sys = loadSss('building.mat');
+            sys = sss('building.mat');
             s0 = [0 1+i 1-i];
             sysr = rk(sys,s0);
             
@@ -130,7 +131,7 @@ classdef testSsRed < sssTest
             sysr = rk(sysr,s0);
             
             % Create ssRed-object througth reduction with rk (MIMO)          
-            sys = loadSss('CDplayer.mat');
+            sys = sss('CDplayer.mat');
             s0 = [0 1+i 1-i];
             L = [1 0 0; 0 1 1];
             sysr = rk(sys,s0,L,L);
@@ -156,7 +157,7 @@ classdef testSsRed < sssTest
             warning('off','all')
             
             % Create ssRed-object througth reduction with modalMor (SISO)          
-            sys = loadSss('building.mat');
+            sys = sss('building.mat');
             Opts.type = 'SR';
             Opts.real = 'real';
             sysr = modalMor(sys,10,Opts);
@@ -174,7 +175,7 @@ classdef testSsRed < sssTest
             sysr = modalMor(sysr,5,Opts);
             
             % Create ssRed-object througth reduction with modalMor (MIMO)          
-            sys = loadSss('CDplayer.mat');
+            sys = sss('CDplayer.mat');
             Opts.type = 'SR';
             Opts.real = 'real';
             sysr = modalMor(sys,10,Opts);
@@ -198,7 +199,7 @@ classdef testSsRed < sssTest
             warning('off','all')
             
             % Create ssRed-object througth reduction with cure_spark (SISO)          
-            sys = loadSss('building.mat');
+            sys = sss('building.mat');
             sysr = cure(sys);
             
             % Test some functions of the Control System Toolbox on the
@@ -250,7 +251,7 @@ classdef testSsRed < sssTest
             sysr = cure(sysr,Opts);
             
             % Create ssRed-object througth reduction with cure_rk+pork (MIMO)          
-            sys = loadSss('CDplayer.mat');
+            sys = sss('CDplayer.mat');
             sysr = cure(sys,Opts);
             
             % Test some functions of the Control System Toolbox on the
@@ -267,9 +268,9 @@ classdef testSsRed < sssTest
         function testSssFunctionality(testCase)
             
             % create a ssRed-model
-            sys1 = loadSss('building');
-            sys2 = loadSss('CDplayer');
-            sys3 = loadSss('beam');
+            sys1 = sss('building');
+            sys2 = sss('CDplayer');
+            sys3 = sss('beam');
             sysr1 = ssRed(sys1.A,sys1.B,sys1.C,sys1.D,sys1.E);
             sysr2 = ssRed(sys2.A,sys2.B,sys2.C,sys2.D,sys2.E);
             sysr3 = ssRed(sys3.A,sys3.B,sys3.C,sys3.D,sys3.E);
@@ -386,10 +387,13 @@ classdef testSsRed < sssTest
             verifyEqual(testCase,+stab,+stabr,'Test for the isstable-function failed!');
             
             % test lsim
+            Opts.method = 'RK4';
+            Opts.Ts_sample = 0.01;
             u = rand(100,1);
-            [Y,~,t] = lsim(sys1,u,0.01,'RK4',0.01);
-            [Yr,tr,~] = lsim(sysr1,u,t);
-            verifyEqual(testCase,Y,Yr','AbsTol',1e-5, ... 
+            t = 0:0.01:(length(u)-1)*0.01;
+            [Y,~,~] = lsim(sys1,u,0.01,[],Opts);
+            [Yr,~,~] = lsim(sysr1,u',t);
+            verifyEqual(testCase,Y,Yr,'AbsTol',1e-5, ... 
                         'Test for the lsim-function failed!');
              
             % test lyapchol
@@ -478,7 +482,7 @@ classdef testSsRed < sssTest
                         'Test for the size-function failed (input dimension)!'); 
                     
             % test spy
-            spy(sysr1,'test plot');
+            spy(sysr1,'test plot'); drawnow; close(gcf)
             
             % test ss (not implemented for ssRed-objects)
             
@@ -530,6 +534,24 @@ classdef testSsRed < sssTest
                         'Test for the zpk-function failed (invariant zeros)!');     
             
             
+        end
+        
+        function testConversionToSsRed(testCase)
+            tol = 1e-6;
+            
+            % sss
+            sys     = sss('building');
+            sys2    = ssRed(sys); 
+            
+            verifyClass(testCase,sys2,'ssRed')
+            verifyLessThanOrEqual(testCase,norm(sys-sys2),tol);
+            
+            % ss
+            sys     = stabsep(rss(ceil(100*rand)));
+            sys2    = ssRed(sys); 
+            
+            verifyClass(testCase,sys2,'ssRed')
+            verifyLessThanOrEqual(testCase,norm(sys-sys2),tol);
         end
       
         

@@ -80,8 +80,8 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Examples:
 %       To compute a balanced realization, use
 %
-%> sys = loadSss('building');
-%> sysBal = tbr(sys,sys.n); disp(sysBal)
+%> sys      = sss('building');
+%> sysBal   = tbr(sys,sys.n); disp(sysBal)
 %
 %       To performe balanced reduction, specify a reduced order q
 %
@@ -106,14 +106,14 @@ function [sysr, varargout] = tbr(sys, varargin)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Sylvia Cremer, Rudy Eid, 
 %               Alessandro Castagnotto, Lisa Jeschek
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
 % Last Change:  11 Dec 2016

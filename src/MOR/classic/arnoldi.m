@@ -1,4 +1,4 @@
-function [V, Sv, Rv, W, Sw, Lw] = arnoldi(E,A,B,varargin)
+function [V, Sv, Rv, W, Sw, Lw, nLU] = arnoldi(E,A,B,varargin)
 % ARNOLDI - Arnoldi algorithm for Krylov subspaces with multiple shifts
 % 
 % Syntax:
@@ -11,6 +11,7 @@ function [V, Sv, Rv, W, Sw, Lw] = arnoldi(E,A,B,varargin)
 %       [V,Sv,Rv,W,Sw,Lw]                = ARNOLDI(E,A,B,C,s0,IP)
 %       [V,Sv,Rv,W,Sw,Lw]                = ARNOLDI(E,A,B,C,s0,Rt,Lt)
 %       [V,Sv,Rv,W,Sw,Lw]                = ARNOLDI(E,A,B,C,s0,Rt,Lt,IP)
+%       [V,Sv,Rv,W,Sw,Lw,nLU]            = ARNOLDI(E,A,B,...)
 %       [V,...]                          = ARNOLDI(E,A,B,...,Opts)
 % 
 % Description:
@@ -83,9 +84,9 @@ function [V, Sv, Rv, W, Sw, Lw] = arnoldi(E,A,B,varargin)
 %           -.real:         keep the projection matrices real
 %                           [{true} / false]
 %           -.orth:         orthogonalization of new projection direction
-%                           [{'2mgs'} / 0 / 'dgks' / 'mgs']
+%                           [{'2mgs'} / 'dgks' / 'mgs' / false]
 %           -.reorth:       reorthogonalization
-%                           [{'gs'} / 0 / 'qr']
+%                           [{false} / 'mgs' / 'qr' ]
 %           -.lse:          use LU or hessenberg decomposition
 %                           [{'sparse'} / 'full' / 'hess' /'iterative']
 %           -.dgksTol:      tolerance for dgks orthogonalization
@@ -110,6 +111,7 @@ function [V, Sv, Rv, W, Sw, Lw] = arnoldi(E,A,B,varargin)
 %       -W:        Orthonormal basis spanning the output Krylov subsp.
 %       -Sw:       Matrix of output Sylvester Eq. (2)
 %       -Lw:       Left tangential directions of Sylvester Eq. (2), (pxq) matrix
+%       -nLU:      Number of LU decompositions required
 %
 % See Also: 
 %       rk, irka, projectiveMor
@@ -127,33 +129,33 @@ function [V, Sv, Rv, W, Sw, Lw] = arnoldi(E,A,B,varargin)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto, Maria Cruz Varona,
 %               Lisa Jeschek
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  13 Apr 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  09 Aug 2017
+% Copyright (c) 2015-2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %%  Define execution parameters
-if ~isempty(varargin) && isstruct(varargin{end});
+if ~isempty(varargin) && isstruct(varargin{end})
     %Options defined
     Opts = varargin{end};
     varargin = varargin(1:end-1);
 end
 
-Def.real = true; %keep the projection matrices real?
-Def.orth = '2mgs'; %orthogonalization after every direction {0,'dgks','mgs','2mgs'}
-Def.reorth = 0; %reorthogonaliation at the end {0, 'mgs', 'qr'}
-Def.lse = 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess'}
-Def.dgksTol = 1e-12; %orthogonality tolerance: norm(V'*V-I,'fro')<tol
-Def.krylov = 'standardKrylov'; %standard or cascaded krylov basis (only for siso) {'standardKrylov','cascadedKrylov'}
+Def.real    = true;     %keep the projection matrices real?
+Def.orth    = '2mgs';   %orthogonalization after every direction {0,'dgks','mgs','2mgs'}
+Def.reorth  = false;    %reorthogonaliation at the end {0, 'mgs', 'qr'}
+Def.lse 	= 'sparse'; %use sparse or full LU or lse with Hessenberg decomposition {'sparse', 'full','hess'}
+Def.dgksTol = 1e-12;    %orthogonality tolerance: norm(V'*V-I,'fro')<tol
+Def.krylov  = 'standardKrylov'; %standard or cascaded krylov basis (only for siso) {'standardKrylov','cascadedKrylov'}
         
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -240,8 +242,12 @@ end
 %% ---------------------------- CODE -------------------------------
 % Real reduced system
 if Opts.real
-    s0 = updateS0(s0);
+    s0  = updateS0(s0);
+    nLU = length(unique(s0)); %get number of LU decompositions required
+else
+    nLU = length(unique(s0));
 end
+
 
 % Tangential directions
 if ~exist('Rt', 'var') || isempty(Rt)%   Compute block Krylov subspaces
@@ -249,13 +255,17 @@ if ~exist('Rt', 'var') || isempty(Rt)%   Compute block Krylov subspaces
 end
 
 % preallocate memory
-V=zeros(length(B),q);
-Rv=zeros(size(B,2),q);
-Sv=zeros(q);
+V   = zeros(length(B),q);
+Rv  = zeros(size(B,2),q);
+Sv  = zeros(q);
 if hermite 
-    W = zeros(length(B),q); 
-    Lw = zeros(size(C,1),q);
-    Sw=zeros(q);
+    W   = zeros(length(B),q); 
+    Lw  = zeros(size(C,1),q);
+    Sw  = zeros(q);
+else %initialize outputs
+    W   = [];
+    Lw  = [];
+    Sw  = []; 
 end
 
 % Compute hess
@@ -270,9 +280,9 @@ end
 % Compute the Krylov subspaces
 for jCol=1:length(s0)
     if hermite
-        [V, W, SRsylv, Rsylv, SLsylv, Lsylv] = solveLse(jCol, V, W, A, B, C, E, s0, Rt, Lt, Opts);
+        [V, W, SRsylv, Rsylv, SLsylv, Lsylv]    = solveLse(jCol, V, W, A, B, C, E, s0, Rt, Lt, Opts);
     else
-        [V, SRsylv, Rsylv] = solveLse(jCol, V, A, B, E, s0, Rt, Opts);
+        [V, SRsylv, Rsylv]                      = solveLse(jCol, V, A, B, E, s0, Rt, Opts);
     end
     
     Sv(:,jCol) = SRsylv;
@@ -285,23 +295,23 @@ for jCol=1:length(s0)
     % split complex conjugate columns into real (->j) and imag (->j+length(s0c)/2
     if Opts.real
         if hermite
-            [V, Sv, Rv, W, Sw, Lw] = realSubspace(jCol, q, s0, V, Sv, Rv, W, Sw, Lw);
+            [V, Sv, Rv, W, Sw, Lw]  = realSubspace(jCol, q, s0, V, Sv, Rv, W, Sw, Lw);
         else
-            [V, Sv, Rv] = realSubspace(jCol, q, s0, V, Sv, Rv);
+            [V, Sv, Rv]             = realSubspace(jCol, q, s0, V, Sv, Rv);
         end
     end
 
     if Opts.orth
         if hermite
-            [V, TRv, W, TLw] = gramSchmidt(jCol, V, W);
+            [V, TRv, W, TLw]    = gramSchmidt(jCol, V, W);
         else
-            [V, TRv] = gramSchmidt(jCol, V);
+            [V, TRv]            = gramSchmidt(jCol, V);
         end
-        Rv=Rv*TRv;
-        Sv=TRv\Sv*TRv;
+        Rv = Rv*TRv;
+        Sv = TRv\Sv*TRv;
         if hermite
-            Lw=Lw*TLw;
-            Sw=TLw\Sw*TLw;
+            Lw = Lw*TLw;
+            Sw = TLw\Sw*TLw;
         end
     end
 end
@@ -372,7 +382,7 @@ switch Opts.reorth
        end  
     case 0
     otherwise
-        error('The orthogonalization chosen is incorrect or not implemented')
+        error('The reorthogonalization chosen is incorrect or not implemented')
 end
 
 function [s0] = tangentialDirection(s0)
@@ -465,7 +475,7 @@ end
 end
 
 %b) SECONDARY
-function [V, TRv, W, TLw] = gramSchmidt(jCol, V, W)
+function [V, TRv, W, TLw]       = gramSchmidt(jCol, V, W)
 %   Gram-Schmidt orthonormalization
 %   Input:  jCol:  Column to be treated
 %           V, W:  Krylov-Subspaces

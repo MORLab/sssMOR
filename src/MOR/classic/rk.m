@@ -1,4 +1,4 @@
-function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
+function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw, nLU] = rk(sys, s0_inp, varargin)
 % RK - Model Order Reduction by Rational Krylov
 %
 % Syntax:
@@ -11,10 +11,12 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 %       sysr = RK(sys, s0_inp, s0_out, Rt, Lt)
 %       sysr = RK(sys, s0_inp, s0_out, Rt, Lt, IP)
 %
-%       [sysr, V, W]                         = RK(sys,s0_inp,...)
-%		[sysr, V, W, B_, Sv, Rv]             = RK(sys,s0_inp,...)
-%       [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = RK(sys,s0_inp, s0_out, ...)
-%		[sysr,...]                           = RK(sys, s0_inp, ..., Opts)
+%       [sysr, V, W]                            = RK(sys,s0_inp,...)
+%		[sysr, V, W, B_, Sv, Rv]                = RK(sys,s0_inp,...)
+%       [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw]    = RK(sys,s0_inp, s0_out, ...)
+%       [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw,nLU]= RK(sys,s0_inp, s0_out, ...)
+%
+%		[sysr,...]                              = RK(sys, s0_inp, ..., Opts)
 %
 % Description:
 %       Reduction by Rational Krylov subspace methods. 
@@ -58,6 +60,7 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 %                           equation (Rv is a (mxq) matrix, where q is the reduced order)
 %       -C_,Sw,Lw:          resulting matrices of the output Sylvester
 %                           equation (Lw is a (pxq) matrix, where q is the reduced order)
+%       -nLU:               number of LU decompositions required
 %
 % Examples:
 %       This code reduces the benchmark model build by orthogonal
@@ -65,15 +68,17 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 %       shifts s0 = [1 1 2 2 2] (i.e. matching two moments about 1 and
 %       three moments about 2)
 %
-%> sys = loadSss('building');
+%> sys = sss('building');
 %> s0  = [1 1 2 2 2];
 %> sysr = rk(sys,s0);
+%> disp(sysr);
 %
 %       The same result can be achieved by specyfing the shifts as a matrix
 %       with two rows:
 %
 %> s0 = [1 2; 2 3];
 %> sysr = rk(sys,s0);
+%> disp(sysr)
 %
 %       For two-sided reduction, specify shifts for the output Krylov
 %       subspace
@@ -87,14 +92,16 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 %
 %       For MIMO systems, specify tangential directions
 %
-%> sys = loadSss('CDplayer'); n = 5;
-%> s0 = rand(1,n); Rt = rand(sys.m,n); Lt = rand(sys.p,n);
+%> sys  = sss('CDplayer'); n = 5;
+%> s0   = rand(1,n); Rt = rand(sys.m,n); Lt = rand(sys.p,n);
 %> sysr = rk(sys, s0, s0, Rt, Lt);
+%> disp(sysr)
 %
 %       If no tangential directions are specified, block Krylov reduction
 %       is conducted.
 %
 %> sysr = rk(sys, s0, s0); 
+%> disp(sysr)
 %
 %//Note: In the block Krylov case, the reduced order is in general higher
 %       than the lenght of s0.
@@ -114,17 +121,17 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Heiko Panzer, Alessandro Castagnotto 
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  06 Apr 2016
-% Copyright (c) 2015 Chair of Automatic Control, TU Muenchen
+% Last Change:  09 Aug 2017
+% Copyright (c) 2015-2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 %%  Parsing
@@ -133,7 +140,7 @@ function [sysr, V, W, B_, Sv, Rv, C_, Sw, Lw] = rk(sys, s0_inp, varargin)
 Def.real = true; %keep the projection matrices real?       
 
 % use hess if sys is ssRed object
-if isa(sys,'ssRed'), 
+if isa(sys,'ssRed')
     Def.lse='hess'; 
     if isempty(sys.E), sys.E = eye(size(sys.A)); end %ssRed robust compatibility
 else
@@ -184,7 +191,7 @@ if exist('s0_inp', 'var')
     s0_inp = shiftVec(s0_inp);
     % sort expansion points & tangential directions
     s0old = s0_inp;
-    if Opts.real, 
+    if Opts.real 
         s0_inp = cplxpair(s0_inp); %make sure shifts can be paired 
     else
         s0_inp = sort(s0_inp);
@@ -205,7 +212,7 @@ if exist('s0_out', 'var')
     s0_out = shiftVec(s0_out);
         % sort expansion points & tangential directions
     s0old = s0_out;
-    if Opts.real, 
+    if Opts.real
         s0_out = cplxpair(s0_out); %make sure shifts can be paired 
     else
         s0_out = sort(s0_out);
@@ -232,7 +239,7 @@ if ~isempty(s0_inp) && ~isempty(s0_out)
     end
 end
 %%  Define execution variables
-if ~exist('IP', 'var'), 
+if ~exist('IP', 'var')
     IP=@(x,y) (x.'*y);
 end
 %%  Computation
@@ -240,7 +247,7 @@ if isempty(s0_out)
     % input Krylov subspace
     
     % SISO Arnoldi
-    [V, Sv, Rv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
+    [V, Sv, Rv, ~,~,~, nLU] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
     W = V;
     sysr = projectiveMor(sys,V,W);
     if nargout>3
@@ -251,7 +258,7 @@ elseif isempty(s0_inp)
     % output Krylov subspace
     
     % SISO Arnoldi
-    [W, Sw, Lw] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
+    [W, Sw, Lw, ~,~,~, nLU] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
     V = W;
     sysr = projectiveMor(sys,V,W);
     if nargout>3
@@ -261,14 +268,15 @@ elseif isempty(s0_inp)
 
 else
     if all(s0_inp == s0_out) % use only 1 LU decomposition for V and W
-        [V, Sv, Rv, W, Sw, Lw] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
+        [V, Sv, Rv, W, Sw, Lw,nLU] = arnoldi(sys.E, sys.A, sys.B, sys.C,...
                             s0_inp,Rt, Lt, IP, Opts);
                         
         sysr = projectiveMor(sys,V,W);
 
     else
-        [V, Sv, Rv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
-        [W, Sw, Lw] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
+        [V, Sv, Rv,~,~,~,nLUv] = arnoldi(sys.E, sys.A, sys.B, s0_inp, Rt, IP, Opts);
+        [W, Sw, Lw,~,~,~,nLUw] = arnoldi(sys.E.', sys.A.', sys.C.', s0_out, Lt, IP, Opts);
+        nLU = nLUv + nLUw;
         if size(V,2)<size(W,2)
             V=[V,W(:,size(V,2)+1:size(W,2))];
         elseif size(V,2)>size(W,2)

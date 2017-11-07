@@ -1,11 +1,12 @@
-function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
-% MODELFCT - computes or updates the model function of an sss object
+function [sysm, s0mTot, V, W,nLU] = modelFct(sys,s0m,s0mTot,V,W,Opts)
+% MODELFCT - Computes or updates the model function of an sss object
 %
 % Syntax:
 %       sysm = MODELFCT(sys,s0m)
-%       [sysm, s0mTot, V, W] = MODELFCT(sys,s0m)
-%       [sysm, s0mTot, V, W] = MODELFCT(sys,s0m,s0mTot,V,W)
-%       [sysm, s0mTot, V, W] = MODELFCT(sys,s0m,s0mTot,V,W,Opts)
+%       [sysm, s0mTot, V, W]        = MODELFCT(sys,s0m)
+%       [sysm, s0mTot, V, W]        = MODELFCT(sys,s0m,s0mTot,V,W)
+%       [sysm, s0mTot, V, W]        = MODELFCT(sys,s0m,s0mTot,V,W,Opts)
+%       [sysm, s0mTot, V, W, nLU]   = MODELFCT(sys,s0m,...)
 %
 % Description:
 %       This function generates a surrogate model, called "model function" |sysm|,
@@ -47,6 +48,7 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
 %       -sysm:          (updated) model function;
 %       -s0mTot:        cumulated vector of approximation frequencies
 %       -V,W:           (updated) projection matrices
+%       -nLU:           number of LU decompositions
 %
 % See also:
 %       cirka, modelFctMor, solveLse, rk, spark
@@ -63,17 +65,17 @@ function [sysm, s0mTot, V, W] = modelFct(sys,s0m,s0mTot,V,W,Opts)
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  22 Nov 2016
-% Copyright (c) 2016 Chair of Automatic Control, TU Muenchen
+% Last Change:  09 Aug 2017
+% Copyright (c) 2016-2017 Chair of Automatic Control, TU Muenchen
 % ------------------------------------------------------------------
 
 if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works only for SISO models');end
@@ -99,22 +101,22 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
     end
     
     %% Initialize variables in nested functions
-    N = size(sys.A,1);
-    L1 = sparse(N,N);U1=L1;P1=L1;Q1=L1; 
-    L2 = sparse(N,N);U2=L2;P2=L2;Q2=L2; 
+    N   = size(sys.A,1);
+    L1  = sparse(N,N);U1=L1;P1=L1;Q1=L1; 
+    L2  = sparse(N,N);U2=L2;P2=L2;Q2=L2; 
     
     %%  Compute the model function
     % Check model function is not larger than original
     if length(s0mTot)<size(sys.a,1)
         %   Update model function
-        [sysm,V,W] = updateModelFct(s0m,V,W);
+        [sysm,V,W,nLU] = updateModelFct(s0m,V,W);
     else
         warning('sssMOR:modelFct:sizeLimit',...
             ['Model function is already as big as the original.',...
             ' Returning the original model.']);
-        sysm = sys;
-        V = speye(sys.n);
-        W = V;
+        sysm    = sys;
+        V       = speye(sys.n);
+        W       = V;
     end
     
 %%  Auxiliary functions --------------------------------------------------
@@ -149,23 +151,24 @@ if ~sys.isSiso, error('sssMOR:modelFct:notSiso','This function currently works o
                 error('selected model function update is not valid');
         end
     end
-    function [sysm,V,W] = updateModelFct(s0,V,W)
+    function [sysm,V,W,nLU] = updateModelFct(s0,V,W)
         if isempty(V)
             %first run
-            [sysm,V,W] = rk(sys,s0,s0);
+            [sysm,V,W,~,~,~,~,~,~,nLU] = rk(sys,s0,s0);
         else
-            idxComplex=find(imag(s0));
+            idxComplex = find(imag(s0));
             if ~isempty(idxComplex)
                 s0c = cplxpair(s0(idxComplex));
                 s0(idxComplex) = []; %real shifts
                 s0 = [s0 s0c(1:2:end)]; %add 1 complex shift per complex partner
             end
-
+            nLU = 0;
             for iShift = 1:length(s0)
                 if iShift > 1 && s0(iShift)==s0(iShift-1)
                         %do nothing: no new LU decomposition needed
                 else %new LU needed
                     computeLU(s0(iShift));
+                    nLU = nLU+1;
                 end
                 V = newColV(V);  W = newColW(W);
             end

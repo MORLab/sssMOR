@@ -4,6 +4,8 @@
 %% Reduced Order Models (ssRed)
 %
 % * <.\ssRedhelp.html |ssRed|>  --  Reduced state-space LTI system (ssRed) class
+% * <.\l2normhelp.html |l2norm|>  --  L2-norm of a dynamical system (ssRed)
+% * <.\stabsephelp.html |stabsep|>  --  Stable-unstable decomposition
 
 %% LTI MOR Classic
 %
@@ -19,8 +21,8 @@
 % * <.\curehelp.html |cure|>  --  CUmulative REduction framework
 % * <.\irkahelp.html |irka|>  --  Iterative Rational Krylov Algorithm
 % * <.\isrkhelp.html |isrk|>  --  Iterative SVD-Rational Krylov Algorithm
-% * <.\modelFcthelp.html |modelFct|>  --  computes or updates the model function of an sss object
-% * <.\modelFctMorhelp.html |modelFctMor|>  --  model function-based model order reduction
+% * <.\modelFcthelp.html |modelFct|>  --  Computes or updates the model function of an sss object
+% * <.\modelFctMorhelp.html |modelFctMor|>  --  Model function-based model order reduction
 % * <.\porkVhelp.html |porkV|>  --  Pseudo-Optimal Rational Krylov (Input)
 % * <.\porkWhelp.html |porkW|>  --  Pseudo-Optimal Rational Krylov (Output)
 % * <.\rkIcophelp.html |rkIcop|>  --  Rational Krylov with an iteratively calculated optimal point
@@ -29,13 +31,14 @@
 
 %% Extras
 %
-% * <.\getDesiredOutputhelp.html |getDesiredOutput|>  --  get only the desired output from a function
+% * <.\getDesiredOutputhelp.html |getDesiredOutput|>  --  Get only the desired output from a function
 % * <.\getSylvesterhelp.html |getSylvester|>  --  Get matrices of Sylvester's equation for Krylov subspaces
 % * <.\isH2opthelp.html |isH2opt|>  --  Evaluate Meier-Luenberger necessary conditions for H2-optimality
-% * <.\ismemberf2help.html |ismemberf2|>  --  determine which elements are within a radius
+% * <.\ismemberf2help.html |ismemberf2|>  --  Determine which elements are within a radius
 % * <.\momentshelp.html |moments|>  --  Returns the moments or Markov parameters of an LTI system
 % * <.\setdiffVechelp.html |setdiffVec|>  --  Computes the difference between two unsorted vectors
 % * <.\shiftVechelp.html |shiftVec|>  --  convert shift definition to single row notation
+% * <.\cplxpairAllhelp.html |cplxpairAll|>  --  Sort arrays of complex numbers into complex conjugate pairs
 
 %% Demos
 %

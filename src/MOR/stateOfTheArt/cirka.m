@@ -1,4 +1,4 @@
-function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, Opts) 
+function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err,nLU] = cirka(sys, s0, Opts) 
 % CIRKA - Confined Iterative Rational Krylov Algorithm
 %
 % Syntax:
@@ -7,7 +7,8 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %       sysr                    = CIRKA(sys, s0, Opts)
 %       [sysr, V, W]            = CIRKA(sys, s0,... )
 %       [sysr, V, W, s0, R, L]  = CIRKA(sys, s0,... )
-%       [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err]       = CIRKA(sys, s0,... )
+%       [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err,nLU]   = CIRKA(sys, s0,... )
 %
 % Description:
 %       This function executes the Confined Iterative Rational Krylov
@@ -41,7 +42,7 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %						[{15} / positive integer]
 %           -.tol:		convergence tolerance;
 %						[{1e-3} / positive float]
-%           -.stopcrit:convergence criterion for CIRKA;
+%           -.stopCrit:convergence criterion for CIRKA;
 %                       ['s0' / 'sysr' / 'sysm' / {'combAny'} / 'combAll']
 %           -.verbose:	show text output during iterations;
 %						[{false} / true]
@@ -53,7 +54,9 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %                       [{'new'},'all']
 %           -.clearInit: reset the model function after first iteration;
 %                       [{true}, false]
-%           -.irka.stopcrit: stopping criterion used in irka;
+%           -.stableModelFct: return only the stable part of sysm;
+%                       [{true}, false]
+%           -.irka.stopCrit: stopping criterion used in irka;
 %                       [{'combAny'} / 's0' / 'sysr' /'combAll']
 %           -.irka.lse:  choose type of lse solver;
 %                       ['sparse' / {'full'} / 'hess']
@@ -70,15 +73,16 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 %       -R,L:               matrices of right/left tangential directions
 %       -kIrka:             vector of irka iterations
 %       -sysm:              resulting model function
-%       -s0mTot:               shifts for model function
+%       -s0mTot:            shifts for model function
 %       -relH2err:          estimate of the relative H2 error
+%       -nLU:               number of (high-dimensional) LU decompositions
 %
 % Examples:
 %       This code computes an H2-optimal approximation of order 10 to
 %       the benchmark model 'building' using Confined IRKA. 
 %
-%> sys = loadSss('building'); s0 = zeros(1,10);
-%> [sysr, ~, ~, s0opt, kIrka, sysm, relH2err] = cirka(sys, s0);
+%> sys = sss('building'); s0 = zeros(1,10);
+%> [sysr, ~, ~, s0opt, ~, ~, kIrka, sysm, ~, relH2err] = cirka(sys, s0);
 %> bode(sys,'-',sysm,'--r',sysr,'--g'); legend('sys','sysm','sysr')
 %
 %       //Note: The computational advantage of the model function framework
@@ -113,16 +117,16 @@ function [sysr, V, W, s0, R, L, kIrka, sysm, s0mTot, relH2err] = cirka(sys, s0, 
 % Automatic Control, Technische Universitaet Muenchen. For updates 
 % and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
-% Email:        <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a>
+% Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  09 Apr 2017
+% Last Change:  09 Aug 2017
 % Copyright (c) 2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
     
@@ -139,15 +143,17 @@ end
 %% Define execution options
     Def.qm0     = 2*length(s0); %default initial surrogate size
     Def.s0m     = shiftVec([s0;2*ones(1,length(s0))]); %default surrogate shifts
-    Def.maxiter = 15;   %maximum number of CIRKA iterations
-    Def.tol     = 1e-3; %tolerance for stopping criterion
-    Def.stopCrit= 'combAny'; %stopping criterion for CIRKA 
-                             %s0,sysr,sysm,combAny,combAll
-    Def.verbose = 0; Def.plot = 0; %display text and plots
-    Def.suppressWarn = 0; %suppress warnings
-    Def.updateModel = 'new'; %shifts used for the model function update
-    Def.modelTol = 1e-2; %shift tolerance for model function
-    Def.clearInit = 0; %reset the model fct after initialization?
+    Def.maxiter = 15;           %maximum number of CIRKA iterations
+    Def.tol     = 1e-3;         %tolerance for stopping criterion
+    Def.stopCrit= 'combAny';    %stopping criterion for CIRKA 
+                                %s0,sysr,sysm,combAny,combAll
+    Def.verbose         = 0; 
+    Def.plot            = 0;    %display text and plots
+    Def.suppressWarn    = 0;    %suppress warnings
+    Def.updateModel     = 'new';%shifts used for the model function update
+    Def.modelTol        = 1e-2; %shift tolerance for model function
+    Def.clearInit       = 0;    %reset the model fct after initialization?
+    Def.stableModelFct  = true; %make sysm stable
     
     Def.irka.suppressverbose = true;
     Def.irka.stopCrit        = 'combAny';
@@ -164,7 +170,7 @@ end
 %% run computations
     kIter   = 0;
     kIrka   = zeros(1,Opts.maxiter);
-    if any(strcmp(Opts.stopCrit,{'combAny','combAll'})),
+    if any(strcmp(Opts.stopCrit,{'combAny','combAll'}))
         nStopVal = 3;
     else
         nStopVal = 1;
@@ -174,7 +180,7 @@ end
     sysmOld = ss([]);
     
     %   Generate the model function
-    s0m = Opts.s0m;    [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
+    s0m = Opts.s0m;    [sysm, s0mTot, Vm, Wm,nLU] = modelFct(sys,s0m);
 
     if Opts.verbose, fprintf('Starting model function MOR...\n'); end
     if Opts.plot, sysFrd = freqresp(sys,struct('frd',true)); end
@@ -188,17 +194,18 @@ end
             if kIter == 2 && Opts.clearInit
                 %reset the model function after the first step
                 s0m = [s0,s0m(1:length(s0m)-length(s0))];
-                [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0m);
+                [sysm, s0mTot, Vm, Wm, nLUk] = modelFct(sys,s0m);
             else
                 % update model
-                [sysm, s0mTot, Vm, Wm] = modelFct(sys,s0,s0mTot,Vm,Wm,Opts);
+                [sysm, s0mTot, Vm, Wm, nLUk] = modelFct(sys,s0,s0mTot,Vm,Wm,Opts);
             end
+            nLU = nLU + nLUk; %update count of LU decompositions
         end
         
         % reduction of new model with new starting shifts
         [sysr, Virka, Wirka, s0new, ~,~,~,~,R,~,~,L,kIrkaNew] = irka(sysm,s0,Opts.irka);
 
-        if Opts.plot, 
+        if Opts.plot
             figure; bodemag(sysFrd,ss(sysm),sysr)
             legend('FOM','ModelFct','ROM');   
             title(sprintf('kIter=%i, nModel=%i',kIter,sysm.n));
@@ -218,7 +225,7 @@ end
         sysmOld = sysm;
         sysrOld = sysr;
             
-        if Opts.verbose, 
+        if Opts.verbose 
             fprintf(1,'\tkIrka: %03i\n',kIrkaNew);
             fprintf(1,'\tstopVal (%s): %s\n',Opts.stopCrit,sprintf('%3.2e\t',stopVal(kIter,:)));
             fprintf(1,'\tModelFct size: %i \n',length(s0mTot));
@@ -227,7 +234,9 @@ end
     
     %%  Terminate execution  
     % make model function stable by removing ustable modes
-    if ~isstable(sysm), sysm = stabsep(sysm); end
+    if ~isstable(sysm) && Opts.stableModelFct
+        sysm = stabsep(sysm); 
+    end
     
     % prepare outputs
     relH2err = norm(sysm-sysr)/norm(sysm);
