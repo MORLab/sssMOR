@@ -380,7 +380,7 @@ if strcmp(Opts.purpose,'lyapunov')
     else
        pointerLyap = []; 
     end
-    clearFields = {'restolMOR','equation'};
+    clearFields = {'restolMOR'};
     Opts = rmfield(Opts,clearFields);
 else
     usage = @crksmSysr;
@@ -392,7 +392,7 @@ end
 clear input Def varargin s0old A B C D E 
 
 % first reduction step
-if  ~exist('basis2','var') && ~strcmp(Opts.equation,'both') % ich muss nur eine gleichung loesen
+if  ~exist('basis2','var') % ich muss nur eine gleichung loesen
     Ar = basis1'*sys.A*basis1;   Br = basis1'*sys.B;   Er = basis1'*sys.E*basis1;   Cr = sys.C*basis1;
     basis2 = [];
 else
@@ -402,7 +402,7 @@ end
 sysr = ssRed(Ar,Br,Cr,sys.D,Er);
 
 % call usage handle function for the first solving step
-[sysr,S,R,data,Opts] = usage(sys,sysr,basis1,1,s0_inp,s0_out,pointerLyap,data,Opts);
+[sysr,chol1,chol2,data,Opts] = usage(sys,sysr,basis1,1,s0_inp,s0_out,pointerLyap,data,Opts);
 
 % start iteration
 if ~exist('data.out2','var')
@@ -489,7 +489,7 @@ if ~exist('data.out2','var')
        sysr = ssRed(Ar,Br,Cr,sys.D,Er);     % ssRed-object
 
        % call usage handle function for Lyapunov/sysr
-       [sysr,S,R,data,Opts] = usage(sys,sysr,basis1,ii,s0_inp,s0_out,pointerLyap,data,Opts);
+       [sysr,chol1,chol2,data,Opts] = usage(sys,sysr,basis1,ii,s0_inp,s0_out,pointerLyap,data,Opts);
        
        % check shift capacity
        if  isempty(Rt) && isempty(Lt) && (mean(abs(gradient(data.Norm(ii-1:ii,1)))) > 2*mean(abs(gradient(data.Norm'))))...
@@ -532,12 +532,21 @@ if ~exist('data.out2','var')
            newdir2 = newdir1;
        end
     end  % end of for loop
-
+    
     % create output
+    if strcmp(Opts.equation,'control')
+        S = chol1;   
+    elseif strcmp(Opts.equation,'observe')
+        R = chol1;
+    else
+        S = chol1;      R = chol2;
+    end
     if nnz(sysr.C) && ~isempty(s0_out) && isempty(basis2)
         W = basis1;  V = W;
     elseif isempty(basis2) && isempty(s0_out)
         V = basis1;  W = V;
+    else
+        V = basis1;  W = basis2;
     end
     
     if ii == Opts.maxiter
@@ -716,8 +725,9 @@ function [wnew] = blockW(sys,W,~,~,s0_out,~,~,iter,colIndex,~)
     Opts.krylov = 0;
     % make SISO-system and calculate b-block column wise
     for ii = 1:1:size(sys.C,1)
-        rhsC_ii = sys.E*rhsC*Lt(:,ii);
-        [w_ii] = solveLse(sys.A,rhsC_ii,sys.E,s0_out(1,iter),Opts);
+        %rhsC_ii = sys.E*rhsC*Lt(:,ii);
+        rhsC_ii = sys.E*rhsC;
+        [w_ii] = solveLse(sys.A',rhsC_ii,sys.E',s0_out(1,iter),Lt(:,ii),Opts);
         if size(w_ii) > 1,  w_ii = w_ii(:,1);   end
         wnew(:,ii) = w_ii; 
         Opts.reuseLU = 1;
@@ -752,10 +762,9 @@ function [sysr,chol1,chol2,data,Opts] = crksmLyap(sys,sysr,basis1,iter,s0_inp,s0
         trigger = 1;
         [chol1,Rnorm,Opts] = lyapS(sys,sysr,basis1,iter,trigger,Opts);
         if sys.issymmetric == 0
-            [chol2,RnormR,Opts] = lyapR(sys,sysr,basis1,iter,trigger,Opts); % hier setzen, dass ich das residuum nicht mehr berechne
+            [chol2,~,Opts] = lyapR(sys,sysr,basis1,iter,trigger,Opts); % hier setzen, dass ich das residuum nicht mehr berechne
         else
-            [chol2,RnormR,Opts] = lyapR(sys,sysr,basis1,iter,trigger,Opts); 
-            %chol2 = chol1;
+            chol2 = chol1;
         end
     else
         trigger = 1;
