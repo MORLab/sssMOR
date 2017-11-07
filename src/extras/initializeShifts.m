@@ -158,7 +158,7 @@ switch Opts.strategy{1}
             s0_inp = s0_inp';
         else
             if nargout > 1 && Opts.isSiso == 0
-                [Lt, D, Rt] = eig(sys);
+                [Lt, D, Rt] = eigs(sys);
                 [~,idx] = ismember(single(diag(D)),-s0_inp);
                 Rt = full((Rt(:,idx(idx~=0))'*sys.B))';
                 s0_inp = s0_inp';
