@@ -5,7 +5,7 @@ clearvars -global
 %% testdaten My_rksm
 
 % load any benchmark system
-sys = loadSss('rail_1357');
+sys = loadSss('eady');
 
 % other models: rail_1357, rail_5177, iss, gyro, building, CDplayer, beam,
 %               eady, heat-cont, LF10, random, bips98_606,
@@ -48,7 +48,7 @@ Opts.strategy = 'ROM';
 
 
 % call crksm and other functions
-Opts.maxiter = 30;
+Opts.maxiter = 200;
 Opts.restolLyap   =  1e-6; 
 Opts.stopCrit  = 'residualLyap';  
 %Opts.stopCrit  = 'normChol';
@@ -68,14 +68,14 @@ Opts.adiMethod = 'heur';
 
     % call function crksm
     tic
-    [sysr,Vcrksm,Wcrksm,S,R,data_crksm] = crksm(sys,s0_inp2,Opts);
+    [sysr,Vcrksm,Wcrksm,S,R,data_crksm] = crksm(sys,[],s0_inp2,Opts);
     time_crksm=toc;
     
     % mess-adi options
     Opts.method = 'adi';
     Opts.messPara = 'heur';    % only for MESS
     Opts.rctol = 0;
-    Opts.restol = 1e-7;
+    Opts.restol = 1e-6;
     Opts.norm = 2;
     Opts.info = 1;
     
@@ -88,17 +88,27 @@ Opts.adiMethod = 'heur';
 
 %% testing quality of solution (when dimension is high, comment out n>1500)
 
-Pr = S'*S;
-P = Vcrksm*Pr*Vcrksm';
-% Pr = W*S*V';
-% P  = Pr*Pr';
-YS = A*P*E' + E*P*A' + B*B';
-YS_norm = norm(YS);
-
-Qr = R'*R;
-Q = Vcrksm*Qr*Vcrksm';
-YR = A'*Q*E + E'*Q*A + C'*C;
-YR_norm = norm(YR);
+if isempty(R)
+    Pr = S'*S;
+    P = Vcrksm*Pr*Vcrksm';
+    YS = A*P*E' + E*P*A' + B*B';
+    YS_norm = norm(YS);
+elseif isempty(S)
+    Qr = R'*R;
+    Q = Wcrksm*Qr*Wcrksm';
+    YR = A'*Q*E + E'*Q*A + C'*C;
+    YR_norm = norm(YR);
+else
+     Pr = S'*S;
+     P = Wcrksm*Pr*Vcrksm';
+     YS = A*P*E' + E*P*A' + B*B';
+     YS_norm = norm(YS);
+     Qr = R'*R;
+     Q = Wcrksm*Qr*Vcrksm';
+     YR = A'*Q*E + E'*Q*A + C'*C;
+     YR_norm = norm(YR);
+end
+    
 
 
 
