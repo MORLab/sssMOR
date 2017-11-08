@@ -31,38 +31,52 @@ function [sysr,V,W,S,R,data] = crksm(varargin)
 % Input Arguments:
 %		*Required Input Arguments:*
 %       -sys:                   sss-object containing LTI system 
-%       -A/B/C/E:               system matrices
-%       -s0_inp:                initial expansion points for input Krylov subspace (must have at least two entries)
+%       -A/B/C/D/E:             system matrices
+%       -s0_inp:                initial expansion points for input Krylov 
+%                               subspace (must have at least two entries)
 %
 %		*Optional Input Arguments:*
-%       -s0_out:                expansion points for output Krylov subspace
-%       -Rt/Lt:                 right/left tangential directions (MIMO case)
+%       -s0_out:                initial expansion points for output Krylov subspace
+%       -Rt/Lt:                 initial right/left tangential directions (MIMO case)
 %       -Opts:                  a structure containing following options
+%       *Option Settings for the whole crksm function*
 %           -.purpose:          purpose of using CRKSM [{'lyapunov'} / 'MOR']
 %                -'lyapunov':       use CRKSM for approximately solving Lyapunov equations
 %                -'MOR':            use CRKSM for cumulative and adaptive model order reduction
+%           -.maxiter:          specify maximal number of iterations
+%                               [{200} / positive integer]
+%           -.lse:              use LU or hessenberg decomposition (refer to solveLse)
+%                               [{'sparse'} / 'full' / 'hess' / 'iterative' / 'gauss']
+%           -.orth:             orthogonalization of new projection direction (refer to arnoldi) 
+%                               [{'2mgs'} / 'dgks' / 'mgs' / false]
+%       *Option Settings for Lyapunov Equations Purposes*
+%           -.equation:         specify Lyapunov equation to be solved
+%                               [{'both'} / 'control' / 'observe']
+%           -.stopCrit:         specify stopping criteria [{'residualLyap'} / 'normChol']
+%                -'residualLyap':   compute residual of Lyapunov equation
+%                -'normChol':       compare the norm of the last two Cholesky factors
+%           -.crksmNorm:        specify norm [{'H2'} / 'fro']
+%                -'H2':             use 2-norm (Euclidian Norm)
+%                -'fro':            use Frobenius Norm
+%           -.lowrank:          compute the low-rank factor of the final solution 
+%                               [{0} / 1]
+%           -.restolLyap:       tolerance for -.stopCrit = 'residualLyap'
+%                               [{1e-8} / positive float]
+%           -.rctol:            tolerance for -.stopCrit = 'normChol'
+%                               [{1e-12} / positive float]
+%       *Option Settings for MOR Purposes*
+%           -.real:             keep the projection matrices real
+%                               [{true} / false]
+%           -.restolMOR:        tolerance for MOR stopping criterion comparing the last two reduced models sysr
+%                               [{1e-3} / positive float]
+%       *Option Settings for the choice of shifts*
 %           -.shifts:           choose which shifts and how they should be used
 %                -'cyclic':         use the same shifts for the whole iteration
 %                -'adaptive':       a new shift is computed online for every single iteration
 %                -'mess':           use a function to generate shifts out of the mess-toolbox
-%
-%           -.residual:         specify determination criteria [{'residual_lyap'} / 'norm_chol']
-%                -'residual_lyap':  compute residual of Lyapunov equation
-%                -'norm_chol':      compare  the norm of the two last Cholesky factors
-%
-%           -.rksmnorm:         specify norm [{'H2'} / 'fro']
-%                -'H2':             use 2-norm (Euclidian Norm)
-%                -'fro':            use Frobenius Norm
-%
-%           -.lowrank:          compute the low-rank factor of the final solution 
-%                               [{0} / 1]
-%
-%           -.orth:             specify orhtogonalization method in Gram-Schmidt
-%                               [{'2mgs'} / 'dgks' / 'mgs']
-%
-%           -.tol:              specify tolerance
-%
-%           -.maxiter:          specify maximal number of iterations
+%           -.strategy:         gklkmgx
+%           -.shiftTol:          tolerance for the choice of new shifts
+%                               [{0.1} / positive float]
 %
 % Output Arguments:
 %       -sysr:                  reduced system
@@ -86,7 +100,8 @@ function [sysr,V,W,S,R,data] = crksm(varargin)
 %> bode(sys,'-',sysr,'--r');
 %
 % See Also: 
-%       rk, arnoldi, solveLse, sss/lyapchol, mess_lradi, getShifts
+%       rk, arnoldi, solveLse, sss/lyapchol, mess_lradi, getShifts,
+%       initializeShifts
 %
 % References:
 %       * *[1] Druskin, Simoncini (2011)*, Adaptive Rational Krylov Subspaces
@@ -111,7 +126,7 @@ function [sysr,V,W,S,R,data] = crksm(varargin)
 % Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  05 Oct 2017
+% Last Change:  08 Nov 2017
 % Copyright (c) 2016-2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -121,10 +136,12 @@ function [sysr,V,W,S,R,data] = crksm(varargin)
 % general default option settings (for the whole function)
 Def.purpose              = 'lyapunov';         % [{'lyapunov'} / 'MOR']
 Def.maxiter              =  200;               % default number of iterations
-Def.lse                  = 'sparse';           % for solving a LTI-system
-Def.orth                 = '2mgs';             % for Gram-Schmidt
-Def.reuseLu              = 0;
-Def.krylov               = 0;
+%**solveLse options
+Def.lse                  = 'sparse';           % [{'sparse'} / 'full' / 'hess' / 'iterative' / 'gauss']
+% Def.reuseLU              = 0;                % reuse lu [{0},1]
+% Def.krylov               = 0;                % standard or cascaded krylov basis [{0},'cascade']
+%**arnoldi options
+Def.orth                 = '2mgs';             % [{'2mgs'} / 'dgks' / 'mgs' / false]
 
 % default option settings for Lyapunov equation purposes
 Def.equation             = 'both';             % [{'both'} / 'control' / 'observe']
@@ -135,7 +152,7 @@ Def.restolLyap           =  1e-8;              % default tolerance for -.stopCri
 Def.rctol                =  1e-12;             % default tolerance for -.stopCrit = 'normChol' 
 
 % default option settings for MOR
-Def.real                 =  true;              % [{true} / false], true means to keep the subspace real
+Def.real                 =  true;              % [{true} / false]
 Def.restolMOR            =  1e-3;              % default tolerance
 
 % default option settings for the choice of shifts
