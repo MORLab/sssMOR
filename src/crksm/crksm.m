@@ -23,10 +23,39 @@ function [sysr,V,W,S,R,data] = crksm(varargin)
 %       [sysr,V,W,S,R,data]         = CRKSM(A,B,...,s_inp,...,Opts_rksm) 
 %
 % Description:
+%       This function performs the Cumulative Rational Krylov Subspace Method  
+%       (CRKSM) as proposed by Druskin and Simoncini in [1] and [2].
+%
+%       On the one hand, |crksm| can be used for cumulative model order reduction,
+%       where the projection matrices V and W are computed iteratively and 
+%       cumulated step by step using rational Krylov subspaces. Thus, the
+%       order of the reduced model is ad hoc chosen by the algorithm until 
+%       the tolerance for the MOR stopping criterion is reached.
+%
+%       On the other hand, |crksm| can also be used for approximately
+%       solving linear Lyapunov equations:
 %
 %              $$    A X E^T + E X A^T + B B^T = 0 \quad   (1)    $$
 %
 %              $$    A^T Y E + E^T Y A + C^T C = 0 \quad   (2)    $$
+%
+%       To this end, the cumulatively computed projection matrices are used
+%       to project (1) and (2) to obtain _reduced_ Lyapunov equations. These 
+%       reduced Lyapunov equations are then solved using _direct_ techniques (MATLAB
+%       built-in lyapchol using Hammarling's method). This way, the Cholesky 
+%       factorization X=S*S' of the solution of (1) and the low rank factor 
+%       Y = R*R' of the dual (generalized) equation (2) are computed. 
+%
+%       Auf symmetry eingehen, 'both' / 'control' / 'observe' eingehen
+%
+%
+%       This function computes input (and output) Krylov subspaces
+%       corresponding to the shifts s0_inp and s0_out. For MIMO systems,
+%       tangential directions Rt and Lt can be defined. Otherwise, block
+%       Krylov subspaces will be computed.
+%
+%       Auf MIMO tangential, MIMO block eingehen. Auf adaptiveShifts
+%       eingehen
 %
 % Input Arguments:
 %		*Required Input Arguments:*
@@ -52,7 +81,7 @@ function [sysr,V,W,S,R,data] = crksm(varargin)
 %       *Option Settings for Lyapunov Equations Purposes*
 %           -.equation:         specify Lyapunov equation to be solved
 %                               [{'both'} / 'control' / 'observe']
-%           -.stopCrit:         specify stopping criteria [{'residualLyap'} / 'normChol']
+%           -.stopCritLyap:         specify stopping criteria [{'residualLyap'} / 'normChol']
 %                -'residualLyap':   compute residual of Lyapunov equation
 %                -'normChol':       compare the norm of the last two Cholesky factors
 %           -.crksmNorm:        specify norm [{'H2'} / 'fro']
@@ -70,34 +99,37 @@ function [sysr,V,W,S,R,data] = crksm(varargin)
 %           -.restolMOR:        tolerance for MOR stopping criterion comparing the last two reduced models sysr
 %                               [{1e-3} / positive float]
 %       *Option Settings for the choice of shifts*
-%           -.shifts:           choose which shifts and how they should be used
-%                -'cyclic':         use the same shifts for the whole iteration
+%           -.shifts:           choose shifts and how they should be used [{'dynamical'} / 'fixedCyclic']
+%                -'fixedCyclic':    same initial shifts defined by the user are cyclically used for the whole function
+%                -'dynamical':      new shifts are obtained dynamically during the programme 
+%           -.strategy:         choose strategy for dynamically getting shifts with |getShifts| 
 %                -'adaptive':       a new shift is computed online for every single iteration
+%                -'eigs':           TODO
 %                -'mess':           use a function to generate shifts out of the mess-toolbox
-%           -.strategy:         gklkmgx
-%           -.shiftTol:          tolerance for the choice of new shifts
+%           -.shiftTol:         tolerance for the choice of new shifts
 %                               [{0.1} / positive float]
 %
 % Output Arguments:
 %       -sysr:                  reduced system
+%       -V,W:                   projection matrices spanning Krylov subspaces
 %       -S:                     Cholesky factor X=S*S' of Lyapunov equation A*X*E'+E*X*A'+B*B'=0
-%       -R:                     Cholesky factor Y=R*R' of lyapunov equation A'*Y*E+E'*Y*A+C'*C=0
+%       -R:                     Cholesky factor Y=R*R' of Lyapunov equation A'*Y*E+E'*Y*A+C'*C=0
 %       -data:                  struct containing the following data
-%           -V/W:               V_basis, W_basis
 %           -norm_val:          norm values of the iterations
 %           -TODO:              additional shifts, 
-%           -Ar/Br/Cr:          reduced system matrices of last iteration
 %           -rhs:               last rhs
 %           -res0:              reference residual norm
 %           -TODO:              last norm value
 %
 % Examples:
-%       This code computes ....
+%       MOR_purpose: This code computes ....
 %
 %> sys = sss('fom');
 %> Opts.purpose = 'MOR';
 %> sysr = crksm(sys, -eigs(sys,8).');
 %> bode(sys,'-',sysr,'--r');
+%
+%       Lyapunov_purpose: This code computes ....
 %
 % See Also: 
 %       rk, arnoldi, solveLse, sss/lyapchol, mess_lradi, getShifts,
