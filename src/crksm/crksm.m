@@ -177,6 +177,7 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
         s0_inp = varargin{2};                s0_out  = [];        
         Rt     = [];                         Lt      = [];
         input  = 1;                          pointer = @blockV;
+        %Opts.hermite = false;
     elseif length(varargin) == 3       
         if size(varargin{3},1) == size(sys.B,2) && sys.isSiso == 0 &&...
            (size(varargin{3},2) == size(varargin{2},2) || size(varargin{3},2) == size(varargin{2},1)) 
@@ -184,26 +185,37 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
             s0_inp = varargin{2};            s0_out  = [];           
             Rt     = varargin{3};            Lt      = [];
             input  = 2;                      pointer = @tangentialV;
+            Opts.hermite = false;
         elseif isempty(varargin{2})                     % usage: CRKSM(sys, [], s0_out)
             s0_inp = [];                     s0_out  = varargin{3};  
             Rt     = [];                     Lt      = [];
             input  = 3;                      pointer = @blockW;
+            Opts.hermite = false;
         else                                            % usage: CRKSM(sys, s0_inp, s0_out)
             s0_inp = varargin{2};            s0_out  = varargin{3};      
             Rt     = [];                     Lt      = [];           
-            input  = 4;                      pointerV = @blockV;
-                                             pointerW = @blockW;
+            input  = 4; 
+            if all(s0_inp == s0_out)
+                pointerV = @blockV;         Opts.hermite = true;
+            else
+                pointerV = @blockV;         pointerW = @blockW;     Opts.hermite = false;
+            end
         end 
     elseif length(varargin) == 5
         if isempty(varargin{2})                         % usage: CRKSM(sys, [], s0_out, [], Lt)
             s0_inp = [];                     s0_out  = varargin{3};  
             Rt     = [];                     Lt      = varargin{5};
             input  = 5;                      pointer = @tangentialW;
+            Opts.hermite = false;
         else                                            % usage: CRKSM(sys, s0_inp, s0_out, Rt, Lt)
             s0_inp = varargin{2};            s0_out  = varargin{3};  
             Rt     = varargin{4};            Lt      = varargin{5};   
-            input  = 6;                      pointerV = @tangentialV;
-                                             pointerW = @tangentialW;
+            input  = 6;                      
+            if all(s0_inp == s0_out)
+                pointerV = @blockV;         Opts.hermite = true;
+            else
+                pointerV = @blockV;         pointerW = @blockW;     Opts.hermite = false;
+            end
         end  
     else
         error('Input not compatible with current crksm implementation');
@@ -446,9 +458,12 @@ if ~exist('data.out2','var')
                     basis1 = [basis1 newdir1];
                 end
             else
-                newdir1 = pointerV(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2),Opts);
-                
-                newdir2 = pointerW(sys,basis2,basis1,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2),Opts);
+                if Opts.hermite
+                    [newdir1,newdir2] = pointerV(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2),Opts);
+                else
+                    newdir1 = pointerV(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2),Opts);
+                    newdir2 = pointerW(sys,basis2,basis1,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2),Opts);
+                end
                 if Opts.real == 1
                     basis1 = [basis1 real(newdir1)];    % basis1 is V  
                     basis2 = [basis2 real(newdir2)];    % basis2 is W
@@ -707,30 +722,50 @@ else
 end
 end
 
-function [vnew] = blockV(sys,V,~,s0_inp,~,~,~,iter,colIndex,~)
+% function for building new (block) directions for V-basis or for V and W-basis in hermite case
+function [vnew,wnew] = blockV(sys,V,W,s0_inp,~,~,~,iter,colIndex,Opts)
     rhsB = V(:,size(V,2)-(colIndex-1):size(V,2));
     % preallocate memory, set unity matrix for tangential directions, set options
     Rt = eye(size(sys.B,2)); 
     vnew = zeros(size(sys.A,1),size(sys.B,2));
-    Opts.reuseLU = 0;
-    Opts.krylov = 0;
+    if Opts.hermite
+        wnew = zeros(size(sys.A,1),size(sys.C,1));
+        Lt = eye(size(sys.C,1));
+        rhsC = W(:,size(W,2)-(colIndex-1):size(W,2));
+    end
+    if s0_inp(1,iter) == s0_inp(1,iter-1)
+        Opts.reuseLU = 1;
+    else
+       Opts.reuseLU = 0; 
+    end
     % make SISO-system and calculate b-block column wise
     for ii = 1:1:size(sys.B,2)
         rhsB_ii = sys.E*rhsB;
-        [v_ii] = solveLse(sys.A,rhsB_ii,sys.E,s0_inp(1,iter),Rt(:,ii),Opts);
-        if size(v_ii) > 1,  v_ii = v_ii(:,1);   end
+        if Opts.hermite
+            rhsC_ii = sys.E*rhsC;
+            [v_ii,w_ii] = solveLse(sys.A,rhsB_ii,rhsC_ii',sys.E,s0_inp(1,iter),Rt(:,ii),Lt(:,ii),Opts);
+            w_ii = w_ii(:,1);
+            wnew(:,ii) = w_ii;
+        else
+            [v_ii] = solveLse(sys.A,rhsB_ii,sys.E,s0_inp(1,iter),Rt(:,ii),Opts);
+            wnew = [];
+        end
+        v_ii = v_ii(:,1);  
         vnew(:,ii) = v_ii; 
         Opts.reuseLU = 1;
     end 
 end
 
-function [wnew] = blockW(sys,W,~,~,s0_out,~,~,iter,colIndex,~)
+function [wnew] = blockW(sys,W,~,s0_inp,s0_out,~,~,iter,colIndex,~)
     rhsC = W(:,size(W,2)-(colIndex-1):size(W,2));
     % preallocate memory, set unity matrix for tangential directions, set options
     Lt = eye(size(sys.C,1)); 
     wnew = zeros(size(sys.A,1),size(sys.C,1));
-    Opts.reuseLU = 0;
-    Opts.krylov = 0;
+    if (~isempty(s0_inp) && s0_inp(1,iter) == s0_out(1,iter)) || s0_out(1,iter) == s0_out(1,iter-1)
+        Opts.reuseLU = 1;
+    else
+       Opts.reuseLU = 0; 
+    end
     % make SISO-system and calculate b-block column wise
     for ii = 1:1:size(sys.C,1)
         rhsC_ii = sys.E*rhsC;
@@ -741,23 +776,35 @@ function [wnew] = blockW(sys,W,~,~,s0_out,~,~,iter,colIndex,~)
     end 
 end
 
-function [vnew] = tangentialV(sys,~,~,s0_inp,~,Rt,~,iter,~,Opts)
-    if s0_inp(1,iter) ~= s0_inp(1,iter-1)
-        Opts.reuseLU = 0;
-        vnew = solveLse(sys.A,sys.B,sys.E,s0_inp(1,iter),Rt(:,iter),Opts);
-    else
+function [vnew,wnew] = tangentialV(sys,~,~,s0_inp,~,Rt,Lt,iter,~,Opts)
+    if s0_inp(1,iter) == s0_inp(1,iter-1)
         Opts.reuseLU = 1;
-        vnew = solveLse(sys.A,sys.B,sys.E,s0_inp(1,iter),Rt(:,iter),Opts);
+        if hermite
+           [vnew,wnew] = solveLse(sys.A,sys:B,sys.C',sys.E,s0_inp(1,iter),Rt(:,ii),Lt(:,ii),Opts); 
+           wnew = wnew(:,1); 
+        else
+            vnew = solveLse(sys.A,sys.B,sys.E,s0_inp(1,iter),Rt(:,iter),Opts);
+            wnew = []; 
+        end
+    else
+        Opts.reuseLU = 0;
+        if hermite
+           [vnew,wnew] = solveLse(sys.A,sys:B,sys.C',sys.E,s0_inp(1,iter),Rt(:,ii),Lt(:,ii),Opts);
+           wnew = wnew(:,1); 
+        else
+            vnew = solveLse(sys.A,sys.B,sys.E,s0_inp(1,iter),Rt(:,iter),Opts);
+            wnew = []; 
+        end
     end
-    if size(vnew) > 1,  vnew = vnew(:,1);   end
+    vnew = vnew(:,1);
 end
     
-function [wnew] = tangentialW(sys,~,~,~,s0_out,~,Lt,iter,~,Opts)
-    if s0_out(1,iter) ~= s0_out(1,iter-1) && s0_out(1,iter) ~= conj(s0_out(1,iter-1))
-        Opts.reuseLU = 0;
+function [wnew] = tangentialW(sys,~,~,s0_inp,s0_out,~,Lt,iter,~,Opts)
+    if (~isempty(s0_inp) && s0_inp(1,iter) == s0_out(1,iter)) || s0_out(1,iter) == s0_out(1,iter-1)
+        Opts.reuseLU = 1;
         wnew = solveLse(sys.A',sys.C',sys.E',s0_out(1,iter),Lt(:,iter),Opts);
     else
-        Opts.reuseLU = 1;
+        Opts.reuseLU = 0;
         wnew = solveLse(sys.A',sys.C',sys.E',s0_out(1,iter),Lt(:,iter),Opts);
     end
     if size(wnew) > 1,  wnew = wnew(:,1);   end
