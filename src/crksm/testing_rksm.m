@@ -5,7 +5,7 @@ clearvars -global
 %% testdaten My_rksm
 
 % load any benchmark system
-sys = loadSss('eady');
+sys = loadSss('rail_1357');
 
 % other models: rail_1357, rail_5177, iss, gyro, building, CDplayer, beam,
 %               eady, heat-cont, LF10, random, bips98_606,
@@ -35,7 +35,7 @@ tic
 %[sysr_irka, ~, ~, s0_inp, Rt, Lt] = irka(sys,s0_inp,Rt,Lt);
 time_irka = toc;
 
-Opts.strategy = 'eigs';
+Opts.strategy = 'ROM';
 [s0_inp1,Rt1,s0_out1,Lt1] = initializeShifts(sys,10,1,Opts);
 %s0_inp1 = initializeShifts(sys,10,1,Opts);
 Opts.strategy = 'ADI';

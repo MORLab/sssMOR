@@ -174,7 +174,7 @@ switch Opts.strategy{1}
         else
             % get s0_out and right tangential directions
             if nargout > 1 && Opts.isSiso == 0 
-                [Lt,D,Rt] = eig(sys);
+                %[Lt,D,Rt] = eig(sys);
                 [~,idx] = ismember(single(diag(D)),-s0_inp);
                 Rt = full((Rt(:,idx(idx~=0))'*sys.B))';
                 s0_inp = s0_inp';
@@ -288,8 +288,20 @@ switch Opts.strategy{1}
             end
             
         else
-            sysr = rk(sys,[mineig;nShifts],[mineig;nShifts]);
-            s0_inp = single(eig(sysr).');
+            % always hermite case
+            if size(sys.B,2) == size(sys.C,1)
+                sysr = rk(sys,[mineig;nShifts],[mineig;nShifts]);
+            else
+                [~,V,~] = rk(sys,[mineig;nShifts]);
+                [~,~,W] = rk(sys,[],[mineig;nShifts]);
+                if size(V,2)<size(W,2)
+                    V=[V,W(:,size(V,2)+1:size(W,2))];
+                elseif size(V,2)>size(W,2)
+                    W=[W,V(:,size(W,2)+1:size(V,2))];
+                end
+                sysr = projectiveMor(sys,V,W);
+            end
+            s0_inp = single(-(eigs(sys,nShifts*nSets,Opts.eigsType))');
         end
         
         if size(sysr.A,1) > 10e3
