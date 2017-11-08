@@ -156,7 +156,8 @@ switch Opts.strategy{1}
             warning('No tangential directions can be specified in case "Opts.strategy = constant" ');
         end
     case 'eigs'
-        s0_inp = single(-(eigs(sys,nShifts*nSets,Opts.eigsType))');
+        [Rev,s0_inp] = (eigs(sys,nShifts*nSets,Opts.eigsType));
+        s0_inp = -(diag(s0_inp));
         idxUnstable = real(s0_inp)<0;   %Spiegeln,falls instabile eigs
         s0_inp(idxUnstable) = -s0_inp(idxUnstable);
         try
@@ -165,34 +166,26 @@ switch Opts.strategy{1}
             s0_inp(end)=real(s0_inp(end));
         end
         
-        if size(sys.A,1) > 10e3
-             warning('system dimension is too big to calculate tangential directions');
-             if nargout > 2
+         % get right tangential directions
+         if nargout > 1 && Opts.isSiso == 0 
+             Rt = full((Rev'*sys.B))';
+             if nargout == 3
+                    s0_out = double(s0_inp);
+             elseif nargout > 3
+                % get s0_out and left tangential directions
                 s0_out = double(s0_inp);
+                if sys.issymmetric 
+                    Lev = Rev;
+                else
+                    [Lev,~] = (eigs(sys',nShifts*nSets,Opts.eigsType)); 
+                end 
+                Lt = full(sys.C*Lev);
              end
-             Rt = [];  Lt = [];
-        else
-            % get s0_out and right tangential directions
-            if nargout > 1 && Opts.isSiso == 0 
-                %[Lt,D,Rt] = eig(sys);
-                [~,idx] = ismember(single(diag(D)),-s0_inp);
-                Rt = full((Rt(:,idx(idx~=0))'*sys.B))';
-                s0_inp = s0_inp';
-                Rt = double(reshape(Rt,nSets*size(sys.B,2),nShifts));
-                if nargout == 3
-                    s0_out = double(s0_inp);
-                else  % nargout = 4
-                    % get s0_out and left tangential directions
-                    s0_out = double(s0_inp);
-                    Lt = full(sys.C*(Lt(:,idx(idx~=0))));
-                    Lt = double(reshape(Lt,nSets*size(sys.C,1),nShifts));
-                end
-            elseif nargout > 1 && Opts.isSiso == 1
-                Rt = [];  Lt = []; s0_out = double(s0_inp);
-            else
-                Rt = [];  Lt = []; s0_out = [];
-            end
-        end
+         elseif nargout > 1 && Opts.isSiso == 1
+            Rt = [];  Lt = []; s0_out = double(s0_inp);
+         else
+            Rt = [];  Lt = []; s0_out = [];
+         end
                 
         if iscolumn(s0_inp)
             s0_inp = reshape(s0_inp,nShifts,nSets)';
@@ -301,42 +294,39 @@ switch Opts.strategy{1}
                 end
                 sysr = projectiveMor(sys,V,W);
             end
-            s0_inp = single(-(eigs(sys,nShifts*nSets,Opts.eigsType))');
         end
         
-        if size(sysr.A,1) > 10e3
-             warning('system dimension is too big to calculate tangential directions');
-             if nargout > 2
+        [Rev,s0_inp] = (eigs(sysr,nShifts*nSets,Opts.eigsType));
+        s0_inp = -(diag(s0_inp));
+        idxUnstable = real(s0_inp)<0;   %Spiegeln,falls instabile eigs
+        s0_inp(idxUnstable) = -s0_inp(idxUnstable);
+        try
+            cplxpair(s0_inp);
+        catch
+            s0_inp(end)=real(s0_inp(end));
+        end
+        
+         % get right tangential directions
+         if nargout > 1 && Opts.isSiso == 0 
+             Rt = full((Rev'*sysr.B))';
+             if nargout == 3
+                    s0_out = double(s0_inp);
+             elseif nargout > 3
+                % get s0_out and left tangential directions
                 s0_out = double(s0_inp);
+                if sys.issymmetric 
+                    Lev = Rev;
+                else
+                    [Lev,~] = (eigs(sysr',nShifts*nSets,Opts.eigsType)); 
+                end 
+                Lt = full(sysr.C*Lev);
              end
-             Rt = [];  Lt = [];
-        else
-            % get s0_out and right tangential directions
-            if nargout > 1 && Opts.isSiso == 0 
-                [Lt,D,Rt] = eig(sysr);
-                [~,idx] = ismember(single(diag(D)),-s0_inp);
-                Rt = full((Rt(:,idx(idx~=0))'*sysr.B))';
-                s0_inp = s0_inp';
-                Rt = double(reshape(Rt,nSets*size(sysr.B,2),nShifts));
-                if nargout == 3
-                    s0_out = double(s0_inp);
-                else  % nargout = 4
-                    % get s0_out and left tangential directions
-                    s0_out = double(s0_inp);
-                    Lt = full(sysr.C*(Lt(:,idx(idx~=0))));
-                    Lt = double(reshape(Lt,nSets*size(sysr.C,1),nShifts));
-                end
-            elseif nargout > 1 && Opts.isSiso == 1
-                Rt = [];  Lt = []; s0_out = double(s0_inp);
-            else
-                Rt = [];  Lt = []; s0_out = [];
-            end
-        end
-        
-        idxUnstable=real(s0_inp)<0;   %Spiegeln,falls instabile eigs
-        s0_inp(idxUnstable)=-s0_inp(idxUnstable);
+         elseif nargout > 1 && Opts.isSiso == 1
+            Rt = [];  Lt = []; s0_out = double(s0_inp);
+         else
+            Rt = [];  Lt = []; s0_out = [];
+         end
         s0_inp = reshape(s0_inp,nShifts,nSets)';
-    
     
     otherwise
         % grid and random based strategies
