@@ -588,6 +588,8 @@ if ~exist('data.out2','var')
     else
         V = basis1;  W = basis2;
     end
+    % build final sysr-object
+     sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'crksm',Opts,sys);
     
     if ii == Opts.maxiter
         warning('\n maximum number of iterations is reached without converging!' )
@@ -757,9 +759,9 @@ function [vnew,wnew] = blockV(sys,V,W,s0_inp,~,~,~,iter,colIndex,Opts)
     end
     % make SISO-system and calculate b-block column wise
     for ii = 1:1:size(sys.B,2)
-        rhsB_ii = sys.E*rhsB;
+        rhsB_ii = sys.E*rhsB; 
         if Opts.hermite
-            rhsC_ii = sys.E*rhsC;
+            rhsC_ii = sys.E'*rhsC;
             [v_ii,w_ii] = solveLse(sys.A,rhsB_ii,rhsC_ii',sys.E,s0_inp(1,iter),Rt(:,ii),Lt(:,ii),Opts);
             w_ii = w_ii(:,1);
             wnew(:,ii) = w_ii;
@@ -785,7 +787,7 @@ function [wnew] = blockW(sys,W,~,s0_inp,s0_out,~,~,iter,colIndex,~)
     end
     % make SISO-system and calculate b-block column wise
     for ii = 1:1:size(sys.C,1)
-        rhsC_ii = sys.E*rhsC;
+        rhsC_ii = sys.E'*rhsC;
         [w_ii] = solveLse(sys.A',rhsC_ii,sys.E',s0_out(1,iter),Lt(:,ii),Opts);
         if size(w_ii) > 1,  w_ii = w_ii(:,1);   end
         wnew(:,ii) = w_ii; 
@@ -797,7 +799,7 @@ function [vnew,wnew] = tangentialV(sys,~,~,s0_inp,~,Rt,Lt,iter,~,Opts)
     if s0_inp(1,iter) == s0_inp(1,iter-1)
         Opts.reuseLU = 1;
         if hermite
-           [vnew,wnew] = solveLse(sys.A,sys:B,sys.C',sys.E,s0_inp(1,iter),Rt(:,ii),Lt(:,ii),Opts); 
+           [vnew,wnew] = solveLse(sys.A,sys.B,sys.C,sys.E,s0_inp(1,iter),Rt(:,ii),Lt(:,ii),Opts); 
            wnew = wnew(:,1); 
         else
             vnew = solveLse(sys.A,sys.B,sys.E,s0_inp(1,iter),Rt(:,iter),Opts);
@@ -806,7 +808,7 @@ function [vnew,wnew] = tangentialV(sys,~,~,s0_inp,~,Rt,Lt,iter,~,Opts)
     else
         Opts.reuseLU = 0;
         if hermite
-           [vnew,wnew] = solveLse(sys.A,sys:B,sys.C',sys.E,s0_inp(1,iter),Rt(:,ii),Lt(:,ii),Opts);
+           [vnew,wnew] = solveLse(sys.A,sys:B,sys.C,sys.E,s0_inp(1,iter),Rt(:,ii),Lt(:,ii),Opts);
            wnew = wnew(:,1); 
         else
             vnew = solveLse(sys.A,sys.B,sys.E,s0_inp(1,iter),Rt(:,iter),Opts);
