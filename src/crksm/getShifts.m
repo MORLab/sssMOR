@@ -40,7 +40,7 @@ function [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,nShifts,s0_inp,Rt,s0_out,Lt,
 %       -Rt/Lt:                 right/left tangential directions (MIMO case)
 %       -V/W:                   orthogonal Krylov input/output subspace bases
 %       -Opts:                  a structure containing following options
-%           -.strategy:         strategy for calculating new shifts [{'daptive'} / 'eigs']
+%           -.strategy:         strategy for calculating new shifts [{'adaptive'} / 'eigs']
 %                -'adaptive':       use the adaptive  shift generation method after Druskin (one new shift) 
 %                -'eigs':           use a defined number (nShifts) of Ritz values of the current reduced order model 
 %           -.multDir:          use the multiple tangential directions method after Druskin [{0} / 1]
@@ -312,22 +312,3 @@ function [snewOut,Ltnew] = newParaOut(sys,sysr,W,s0_out,Lt,Opts)
         Ltnew = [];
     end
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
