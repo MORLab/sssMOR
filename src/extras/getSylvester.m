@@ -118,7 +118,7 @@ end
 if any( res > 1e-6 )
     resMax = max(res);
     if  resMax < 1e-1
-        warning('careful, the problem might be ill conditioned and the results of getSylvester inaccurate (res = %e)',resMax);
+        warning('Careful, the problem might be ill conditioned and the results of getSylvester inaccurate (res = %e)',resMax);
     else
         error('The Sylvester equation residual (%e) indicates that getSylvester failed to get the correct solution. Check the condition number of your problem',resMax);
     end
