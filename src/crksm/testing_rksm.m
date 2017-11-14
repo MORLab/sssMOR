@@ -5,7 +5,7 @@ clearvars -global
 %% testdaten My_rksm
 
 % load any benchmark system
-sys = loadSss('rail_1357');
+sys = loadSss('iss');
 
 % other models: rail_1357, rail_5177, iss, gyro, building, CDplayer, beam,
 %               eady, heat-cont, LF10, random, bips98_606,
@@ -35,16 +35,12 @@ tic
 %[sysr_irka, ~, ~, s0_inp, Rt, Lt] = irka(sys,s0_inp,Rt,Lt);
 time_irka = toc;
 
-Opts.strategy = 'ROM';
+Opts.strategy = 'eigs';
 [s0_inp1,Rt1,s0_out1,Lt1] = initializeShifts(sys,10,1,Opts);
-%s0_inp1 = initializeShifts(sys,10,1,Opts);
 Opts.strategy = 'ADI';
 [s0_inp2,Rt2,s0_out2,Lt2] = initializeShifts(sys,10,1,Opts);
-%s0_inp2 = initializeShifts(sys,10,1,Opts);
-%s0_inp2 = s0_inp2';
 Opts.strategy = 'ROM';
-
-
+[s0_inp3,Rt3,s0_out3,Lt3] = initializeShifts(sys,10,1,Opts);
 
 
 % call crksm and other functions
@@ -55,7 +51,7 @@ Opts.stopCrit  = 'residualLyap';
 %Opts.purpose = 'MOR';
 Opts.shifts = 'dynamical';
 %Opts.shifts = 'fixedCyclic';
-Opts.strategy = 'adaptive';
+Opts.strategy = 'eigs';
 Opts.adiMethod = 'heur';
 %Opts.rksmnorm = 'fro';
 %Opts.stopCrit = 'sysr';
@@ -68,12 +64,12 @@ Opts.adiMethod = 'heur';
 
     % call function crksm
     tic
-    [sysr,Vcrksm,Wcrksm,S,R,data_crksm] = crksm(sys,[],s0_inp2,Opts);
+    [sysr,Vcrksm,Wcrksm,Z,data_crksm] = crksm(sys,[],s0_out1,[],Lt1,Opts);
     time_crksm=toc;
     
     % mess-adi options
     Opts.method = 'adi';
-    Opts.messPara = 'heur';    % only for MESS
+    Opts.messPara = 'projection';    % only for MESS
     Opts.rctol = 0;
     Opts.restol = 1e-6;
     Opts.norm = 2;
@@ -100,11 +96,11 @@ elseif isempty(S)
     YR_norm = norm(YR);
 else
      Pr = S'*S;
-     P = Wcrksm*Pr*Vcrksm';
+     P = Vcrksm*Pr*Vcrksm';
      YS = A*P*E' + E*P*A' + B*B';
      YS_norm = norm(YS);
      Qr = R'*R;
-     Q = Wcrksm*Qr*Vcrksm';
+     Q = Wcrksm*Qr*Wcrksm';
      YR = A'*Q*E + E'*Q*A + C'*C;
      YR_norm = norm(YR);
 end
