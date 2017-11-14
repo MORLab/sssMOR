@@ -170,10 +170,12 @@ switch Opts.strategy{1}
          if nargout > 1 && Opts.isSiso == 0 
              Rt = full((Rev'*sys.B))';
              if nargout == 3
-                    s0_out = double(s0_inp);
+                s0_out = double(s0_inp);
+                s0_out = reshape(s0_out,nShifts,nSets);
              elseif nargout > 3
                 % get s0_out and left tangential directions
                 s0_out = double(s0_inp);
+                s0_out = reshape(s0_out,nShifts,nSets);
                 if sys.issymmetric 
                     Lev = Rev;
                 else
@@ -186,13 +188,8 @@ switch Opts.strategy{1}
          else
             Rt = [];  Lt = []; s0_out = [];
          end
-                
-        if iscolumn(s0_inp)
-            s0_inp = reshape(s0_inp,nShifts,nSets)';
-        else
-            s0_inp = reshape(s0_inp,nSets,nShifts);
-        end
-        s0_inp = double(s0_inp);
+         s0_inp = reshape(s0_inp,nShifts,nSets);
+         s0_inp = double(s0_inp);
         
     case 'ADI'
         Opts.method='heur';
@@ -244,17 +241,16 @@ switch Opts.strategy{1}
                 error('Abschneiden funktioniert nicht, s0 zu lang')
             end
         end
-        
-        s0_inp = reshape(s0_inp,nSets,nShifts)';
+        s0_inp = reshape(s0_inp,nShifts,nSets);
         
         % define output
         if nargout == 2
             Rt = [];  
-            warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
+           % warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
         elseif nargout > 2
             s0_out = s0_inp;
             Rt = [];    Lt = [];
-            warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
+           % warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
         end
         
     case 'ROM'
@@ -311,9 +307,11 @@ switch Opts.strategy{1}
              Rt = full((Rev'*sysr.B))';
              if nargout == 3
                     s0_out = double(s0_inp);
+                    s0_out = reshape(s0_out,nShifts,nSets);
              elseif nargout > 3
                 % get s0_out and left tangential directions
                 s0_out = double(s0_inp);
+                s0_out = reshape(s0_out,nShifts,nSets);
                 if sys.issymmetric 
                     Lev = Rev;
                 else
@@ -326,7 +324,7 @@ switch Opts.strategy{1}
          else
             Rt = [];  Lt = []; s0_out = [];
          end
-        s0_inp = reshape(s0_inp,nShifts,nSets)';
+        s0_inp = reshape(s0_inp,nShifts,nSets);
     
     otherwise
         % grid and random based strategies
