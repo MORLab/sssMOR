@@ -112,7 +112,7 @@ switch Opts.strategy
         if isempty(Rt) && isempty(s0_out) 
             snewOut = [];   Rtnew = [];     Ltnew = [];
             snewInp = initializeShifts(sysr,nShifts,1,Opts);
-            snewInp = snewInp';
+            snewInp = snewInp'; % row-vector
         elseif isempty(s0_out)
             snewOut = [];   Ltnew = [];
             [snewInp,Rtnew] = initializeShifts(sysr,nShifts,1,Opts);
@@ -137,33 +137,56 @@ switch Opts.strategy
         if isempty(s0_out)
             snewOut = [];        Ltnew = [];
             [snewInp,Rtnew] = newParaInp(sys,sysr,basis1,s0_inp,Rt,Opts);
+            if isreal(snewInp) && ~isreal(Rtnew)
+                snewInp = [snewInp snewInp];
+            elseif ~isreal(snewInp) && isreal(Rtnew)
+                Rtnew = [Rtnew Rtnew];
+            end
         elseif isempty(s0_inp)
             snewInp = [];        Rtnew = [];
-            [snewOut,Ltnew] = newParaOut(sys,sysr,basis1,s0_out,Lt,Opts);
-        elseif s0_inp == s0_out
-            [snewInp,Rtnew] = newParaInp(sys,sysr,basis1,s0_inp,Rt,Opts);
-            snewOut = snewInp;
-            [~,Ltnew] = newParaOut(sys,sysr,basis2,s0_out,Lt,Opts);
+            [snewOut,Ltnew] = newParaOut(sys,sysr,basis1,s0_out,[],Lt,Opts);
+            if isreal(snewOut) && ~isreal(Rtnew)
+                snewOut = [snewOut snewOut];
+            elseif ~isreal(snewOut) && isreal(Ltnew)
+                Ltnew = [Ltnew Ltnew];
+            end
         else
             [snewInp,Rtnew] = newParaInp(sys,sysr,basis1,s0_inp,Rt,Opts);
-            [snewOut,Ltnew] = newParaOut(sys,sysr,basis2,s0_out,Lt,Opts);
-        end
-        
-    case 'projection'    
-end
+            [snewOut,Ltnew] = newParaOut(sys,sysr,basis2,s0_out,[],Lt,Opts);
+            % check cocnsistence of vector/matrix length
+            if size(snewInp,2) ~= size(snewOut,2)
+                if size(snewInp,2) > size(snewOut,2)
+                    snewOut = [snewOut snewOut];
+                else
+                    snewInp = [snewInp snewInp];
+                end
+            end
+            if size(Rtnew,2) ~= size(Ltnew,2)
+                if size(Rtnew,2) > size(Ltnew,2)
+                    Ltnew = [Ltnew Ltnew];
+                else
+                    Rtnew = [Rtnew Rtnew];
+                end
+            end
+        end    
+end % end switch
 
 % check complex values
-snewInp = cplxpair(snewInp); 
-for ii = 1:1:size(Rtnew,1),     Rtnew(ii,:) = cplxpair(Rtnew(ii,:));    end
+soldInp = snewInp;
+soldOut = snewOut;
+snewInp = cplxpair(snewInp);
 snewOut = cplxpair(snewOut);   
-for ii = 1:1:size(Ltnew,1),     Ltnew(ii,:) = cplxpair(Ltnew(ii,:));    end
+[~,cplxSortingInp] = ismember(snewInp,soldInp);       [~,cplxSortingOut] = ismember(snewOut,soldOut); 
+if ~isempty(Rtnew),     Rtnew = Rtnew(:,cplxSortingInp);        end                       
+if ~isempty(Ltnew),     Ltnew = Ltnew(:,cplxSortingOut);        end
+
 % check if s0_inp is column or row vector or matrix, build enlarged output parametres
 if isrow(s0_inp) || isrow(s0_out)
-    if ~isempty(s0_inp),    s0_inp = [s0_inp reshape(snewInp,[1,size(snewInp,1)])];   end
-    if ~isempty(s0_out),    s0_out = [s0_out reshape(snewOut,[1,size(snewOut,1)])];   end
+    if ~isempty(s0_inp),    s0_inp = [s0_inp snewInp];   end
+    if ~isempty(s0_out),    s0_out = [s0_out snewOut];   end
 else 
-    if ~isempty(s0_inp),    s0_inp = [s0_inp; snewInp];                 end    
-    if ~isempty(s0_out),    s0_inp = [s0_inp; snewOut];                 end
+    if ~isempty(s0_inp),    s0_inp = [s0_inp reshape(snewInp,[1,size(snewInp,2)])];                end    
+    if ~isempty(s0_out),    s0_out = [s0_out reshape(snewOut,[1,size(snewOut,1)])];                end
 end
 Rt = [Rt Rtnew];        Lt = [Lt Ltnew];          
 end % end of getShifts
@@ -207,7 +230,7 @@ function [snewInp,Rtnew] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
             resNorm_last = resNorm;
             snewInp = specSet(ii,1);
             if ~isreal(snewInp)
-                snewInp = [snewInp; conj(snewInp)];   
+                snewInp = [snewInp conj(snewInp)];   
             end
             Ypic = Y;
         end
@@ -241,17 +264,17 @@ function [snewInp,Rtnew] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
     end
 end
  
-function [snewOut,Ltnew] = newParaOut(sys,sysr,W,s0_out,Lt,Opts)
+function [snewOut,Ltnew] = newParaOut(sys,sysr,W,s0_out,snewOut,Lt,Opts)
     % compute Ritz-Values of reduced system 
     ritzVal = eig(sysr);  
-    
+
     % delete already used Ritz values in s0_inp 
     [~,idx] = ismember(single(ritzVal),-single(unique(s0_out)));
     idx = find(idx);
     ritzVal(idx,:) = [];
     ritzVal = sort(ritzVal);
     %ritzVal = ritzVal(1:10,:);
-    
+
     % build convex hull
     if ~isreal(ritzVal)
         specSet = sort([s0_out'; -ritzVal]);
@@ -279,11 +302,11 @@ function [snewOut,Ltnew] = newParaOut(sys,sysr,W,s0_out,Lt,Opts)
             resNorm_last = resNorm;
             snewOut = specSet(ii,1);
             if ~isreal(snewOut)
-                snewOut = [snewOut; conj(snewOut)];   
+                snewOut = [snewOut conj(snewOut)];   
             end
             Ypic = Y;
         end
-    end
+    end       
     
     % compute (multiple) tangential directions
     if ~isempty(Lt)
