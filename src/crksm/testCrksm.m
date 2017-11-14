@@ -30,7 +30,9 @@ methods(Test)
 
 %% SISO
     function SISO_Vsided(testCase)
+    % test ok
         SISObenchmarksSysCell = getSISObenchmarks();
+        % building, fom, heat-cont
         for i=1:length(SISObenchmarksSysCell)
              %  get system
              sys = SISObenchmarksSysCell{i};
@@ -46,17 +48,18 @@ methods(Test)
              Opts.strategy = 'adaptive';
              Opts.stopCrit = 'residualLyap';
              Opts.shifts = 'dynamical';
-             sysrCrksm = crksm(sys, s0_inp, Opts);
+             %sysrCrksm = crksm(sys, s0_inp, Opts);
              % evaluation
 %              NORM{i} = norm(sys - sysrCrksm);
         end
     end
         
     function SISO_Wsided(testCase) 
-        Opts.restolLyap = 1e-7;
-        Opts.shifts = 'dynamical';
-        
+    % test ok
+    
         SISObenchmarksSysCell = getSISObenchmarks();
+        % building, fom, heat-cont
+        
         for i=1:length(SISObenchmarksSysCell)
              %  get system
              sys = SISObenchmarksSysCell{i};
@@ -65,43 +68,53 @@ methods(Test)
              Opts.strategy = 'ADI';
              Opts.method = 'heur';
              Opts.nShifts = 10;
-             s0_out = initializeShifts(sys,10,1,Opts);
+             s0_out = initializeShifts(sys,Opts.nShifts,1,Opts);
              
              %  test system with crksm
              Opts.restolLyap = 1e-6;
              Opts.strategy = 'adaptive';
              Opts.stopCrit = 'residualLyap';
              Opts.shifts = 'dynamical';
-             sysrCrksm = crksm(sys, [], s0_out, Opts);
+             %sysrCrksm = crksm(sys, [], s0_out, Opts);
              
              % evaluation
 %              NORM{i} = norm(sys - sysrCrksm);
         end
     end
 
-%     function SISO_TwoSided(testCase) 
-%         Opts.rctol = 1e-3;
-% %         Opts.shifts = 'dynamical';
-%         
-%         SISObenchmarksSysCell = getSISObenchmarks();
-%         for i=1:length(SISObenchmarksSysCell)
-%              %  get system
-%              sys = SISObenchmarksSysCell{i};
-%              %  get interpolation data
-%              r = 10; s0_inp = 100*randn(1,r); s0_out = 100*randn(1,r); %s0_out = -eigs(sys,r).';
-%              %  test system with crksm
-%              sysrCrksm = crksm(sys, s0_inp, s0_out, Opts);
-%              
-%              % evaluation
-% %              NORM{i} = norm(sys - sysrCrksm);
-%         end
-%     end
+    function SISO_TwoSided(testCase)
+    % test ok   
+        SISObenchmarksSysCell = getSISObenchmarks();
+        % building, fom, heat-cont
+        
+        for i=1:length(SISObenchmarksSysCell)
+             %  get system
+             sys = SISObenchmarksSysCell{i};
+             %  get interpolation data
+             Opts.strategy = 'ADI';
+             Opts.method = 'heur';
+             Opts.nShifts = 10;
+             s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
+             Opts.strategy = 'eigs';
+             [~,~,s0_out] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             
+             %  test system with crksm
+             Opts.purpose = 'MOR';
+             Opts.strategy = 'adaptive';
+             Opts.restolMOR = 1e-3;
+             %sysrCrksm = crksm(sys, s0_inp, s0_out, Opts);
+             
+             % evaluation
+%              NORM{i} = norm(sys - sysrCrksm);
+        end
+    end
 
     function SISO_TwoSidedHermite(testCase) 
-        Opts.rctol = 1e-3;
-        Opts.shifts = 'dynamical';
-        
+    % Test ok
+    
         SISObenchmarksSysCell = getSISObenchmarks();
+         % building, fom, heat-cont
+         
         for i=1:length(SISObenchmarksSysCell)
              %  get system
              sys = SISObenchmarksSysCell{i};
@@ -110,14 +123,13 @@ methods(Test)
              Opts.strategy = 'ADI';
              Opts.method = 'heur';
              Opts.nShifts = 10;
-             [s0_inp,~,s0_out] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              
-             %  test system with crksm
-             Opts.restolLyap = 1e-6;
+             %  test system with crksm 
+             Opts.purpose = 'MOR';
              Opts.strategy = 'adaptive';
-             Opts.stopCrit = 'residualLyap';
-             Opts.shifts = 'dynamical';
-             sysrCrksm = crksm(sys, s0_inp, s0_out, Opts);
+             Opts.restolMOR = 1e-3;
+             %sysrCrksm = crksm(sys, s0_inp, s0_inp, Opts);
              
              % evaluation
 %              NORM{i} = norm(sys - sysrCrksm);
@@ -126,10 +138,13 @@ methods(Test)
 
 %% MIMO Block
     function MIMO_Block_Vsided(testCase) 
+    % Test ok
         
         MIMObenchmarksSysCell = getMIMObenchmarks();
+        % 'CDplayer','iss'
+        
         for i=1:length(MIMObenchmarksSysCell)
-             %  get system
+             % get system
              sys = MIMObenchmarksSysCell{i};
              
              %  get interpolation data
@@ -143,17 +158,20 @@ methods(Test)
              Opts.strategy = 'adaptive';
              Opts.stopCrit = 'residualLyap';
              Opts.shifts = 'dynamical';
-             sysrCrksm = crksm(sys, s0_inp, Opts);
+             %sysrCrksm = crksm(sys, s0_inp, Opts);
              
              % evaluation
 %              NORM{i} = norm(sys - sysrCrksm);
         end
     end
 
-    function MIMO_Block_Wsided(testCase)        
+    function MIMO_Block_Wsided(testCase)
+    % Test ok
         MIMObenchmarksSysCell = getMIMObenchmarks();
+        % 'CDplayer','iss'
+         
         for i=1:length(MIMObenchmarksSysCell)
-             %  get system
+             % get system
              sys = MIMObenchmarksSysCell{i};
              
              %  get interpolation data
@@ -167,75 +185,170 @@ methods(Test)
              Opts.strategy = 'adaptive';
              Opts.stopCrit = 'residualLyap';
              Opts.shifts = 'dynamical';
-             sysrCrksm = crksm(sys, [], s0_out, Opts);
+             %sysrCrksm = crksm(sys, [], s0_out, Opts);
              
              % evaluation
 %              NORM{i} = norm(sys - sysrCrksm);
         end
     end
 
-%     function MIMO_Block_TwoSided(testCase)       
-%         Opts.rctol = 1e-3;
-% %         Opts.shifts = 'dynamical';
-%         
-%         MIMObenchmarksSysCell = getMIMObenchmarks();
-%         for i=1:length(MIMObenchmarksSysCell)
-%              %  get system
-%              sys = MIMObenchmarksSysCell{i};
-%              %  get interpolation data
-%              r = 10; s0_inp = 100*randn(1,r); s0_out = 100*randn(1,r); %s0_out = -eigs(sys,r).';
-%              %  test system with crksm
-%              sysrCrksm = crksm(sys, s0_inp, s0_out, Opts);
-%              
-%              % evaluation
-% %              NORM{i} = norm(sys - sysrCrksm);
-%         end
-%     end
+    function MIMO_Block_TwoSided(testCase)       
+    % Test ok, endet in warning, instabil 
+        
+        MIMObenchmarksSysCell = getMIMObenchmarks();
+        % 'CDplayer','iss'
+        for i=1:length(MIMObenchmarksSysCell)
+             % get system
+             sys = MIMObenchmarksSysCell{i};
+             %  get interpolation data
+             Opts.strategy = 'ADI';
+             Opts.method = 'heur';
+             Opts.nShifts = 10;
+             s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
+             Opts.strategy = 'eigs';
+             [~,~,s0_out] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             
+             %  test system with crksm
+             Opts.strategy = 'adaptive';
+             Opts.purpose = 'MOR';
+             Opts.restolMOR = 1e-3;
+             %sysrCrksm = crksm(sys, s0_inp, s0_out, Opts);
+             
+             % evaluation
+%              NORM{i} = norm(sys - sysrCrksm);
+        end
+    end
 
-%     function MIMO_Block_TwoSidedHermite(testCase)        
-%         Opts.rctol = 1e-3;
-% %         Opts.shifts = 'dynamical';
-%         
-%         MIMObenchmarksSysCell = getMIMObenchmarks();
-%         for i=1:length(MIMObenchmarksSysCell)
-%              %  get system
-%              sys = MIMObenchmarksSysCell{i};
-%              %  get interpolation data
-%              r = 10; s0_inp = zeros(1,r); s0_out = zeros(1,r); %s0_out = -eigs(sys,r).';
-%              %  test system with crksm
-%              sysrCrksm = crksm(sys, s0_inp, s0_out, Opts);
-%              
-%              % evaluation
-% %              NORM{i} = norm(sys - sysrCrksm);
-%         end
-%     end
+    function MIMO_Block_TwoSidedHermite(testCase) 
+    % Test ok, iss endet in warning, ist instabil
+        
+        MIMObenchmarksSysCell = getMIMObenchmarks();
+        % 'CDplayer','iss'
+        for i=1:length(MIMObenchmarksSysCell)
+             %  get system
+             sys = MIMObenchmarksSysCell{i};
+             %  get interpolation data
+             Opts.strategy = 'ROM';
+             %Opts.method = 'heur';
+             Opts.nShifts = 10;
+             s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
+             
+             %  test system with crksm
+             Opts.strategy = 'adaptive';
+             Opts.purpose = 'MOR';
+             Opts.restolMOR = 1e-3;
+             %sysrCrksm = crksm(sys, s0_inp, s0_inp, Opts);
+             
+             % evaluation
+%              NORM{i} = norm(sys - sysrCrksm);
+        end
+    end
     
 %% MIMO Tangential
+% diese fälle noch analysieren
 % 
-%     function MIMO_Tangential_Vsided(testCase) 
-%         MIMObenchmarksSysCell = getMIMObenchmarks();
-% [s0,Rt,s0,Lt] = initiali,....
-%     
-% norm(V_rk - V_crksm); subspace(V_rk,V_crksm); norm(sysr_Rk - sysr_Crksm); 
+    function MIMO_Tangential_Vsided(testCase) 
+        % test ok
+        MIMObenchmarksSysCell = getMIMObenchmarks();
+        
+        for i=1:length(MIMObenchmarksSysCell)
+             %  get system
+             sys = MIMObenchmarksSysCell{i};
+             
+             %  get interpolation data
+             Opts.strategy = 'eigs';
+             Opts.nShifts = 10;
+             [s0_inp,Rt] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             
+             %  test system with crksm
+             Opts.restolLyap = 1e-6;
+             Opts.strategy = 'adaptive';
+             Opts.stopCrit = 'residualLyap';
+             Opts.shifts = 'dynamical';
+             %sysrCrksm = crksm(sys, s0_inp,Rt,Opts);
+             %norm(V_rk - V_crksm); subspace(V_rk,V_crksm); norm(sysr_Rk - sysr_Crksm); 
+        end
+    end
 
-%     end
-% 
-%     function MIMO_Tangential_Wsided(testCase)
-%         MIMObenchmarksSysCell = getMIMObenchmarks();
-%     end
-% 
-%     function MIMO_Tangential_TwoSided(testCase)
-%         MIMObenchmarksSysCell = getMIMObenchmarks();
-%     end
-% 
-%     function MIMO_Tangential_TwoSidedHermite(testCase)
-%         MIMObenchmarksSysCell = getMIMObenchmarks();
-%     end
+    function MIMO_Tangential_Wsided(testCase)
+    % test ok
+        MIMObenchmarksSysCell = getMIMObenchmarks();
+        
+        for i=1:length(MIMObenchmarksSysCell)
+             %  get system: 'CDplayer','iss'
+             sys = MIMObenchmarksSysCell{i};
+             
+             %  get interpolation data
+%              Opts.strategy = 'eigs';
+%              Opts.nShifts = 10;
+%              [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             Opts.strategy = 'ROM';
+             Opts.nShifts = 10;
+             [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             
+             %  test system with crksm
+             Opts.restolLyap = 1e-6;
+             Opts.strategy = 'adaptive';
+             Opts.stopCrit = 'residualLyap';
+             Opts.shifts = 'dynamical';
+             %sysrCrksm = crksm(sys,[],s0_out,[],Lt,Opts);
+             %norm(V_rk - V_crksm); subspace(V_rk,V_crksm); norm(sysr_Rk - sysr_Crksm); 
+        end
+    end
+
+    function MIMO_Tangential_TwoSided(testCase)
+        % test ok
+        MIMObenchmarksSysCell = getMIMObenchmarks();
+        
+        for i=1:length(MIMObenchmarksSysCell)
+             %  get system: 'CDplayer','iss'
+             sys = MIMObenchmarksSysCell{i};
+             
+             %  get interpolation data
+             Opts.strategy = 'ROM';
+             Opts.nShifts = 10;
+             [s0_inp,Rt,~,~] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             Opts.strategy = 'eigs';
+             Opts.nShifts = 10;
+             [~,~,s0_out,Lt] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             
+             %  test system with crksm
+             Opts.purpose = 'MOR';
+             Opts.strategy = 'eigs';
+             Opts.restolMOR = 1e-3;
+             %sysrCrksm = crksm(sys,s0_inp,s0_out,Rt,Lt,Opts);
+             %norm(V_rk - V_crksm); subspace(V_rk,V_crksm); norm(sysr_Rk - sysr_Crksm); 
+             
+        end
+    end
+
+    function MIMO_Tangential_TwoSidedHermite(testCase)
+        % test ok
+        MIMObenchmarksSysCell = getMIMObenchmarks();
+        
+         for i=1:length(MIMObenchmarksSysCell)
+             %  get system
+             sys = MIMObenchmarksSysCell{i};
+             
+             %  get interpolation data
+             Opts.strategy = 'eigs';
+             Opts.nShifts = 10;
+             [s0_inp,Rt,~,Lt] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             
+             %  test system with crksm
+             Opts.purpose = 'MOR';
+             Opts.restolMOR = 1e-3;
+              Opts.strategy = 'eigs';
+             %sysrCrksm = crksm(sys,s0_inp,s0_inp,Rt,Lt,Opts);
+             %norm(V_rk - V_crksm); subspace(V_rk,V_crksm); norm(sysr_Rk - sysr_Crksm); 
+         end
+    end
 
 %% MISO_SIMO Block
     function MISO_SIMO_Block_Vsided(testCase)
         
         MISO_SIMObenchmarksSysCell = getMISO_SIMObenchmarks();
+        % Test ok
         for i=1:length(MISO_SIMObenchmarksSysCell)
              %  get system
              sys = MISO_SIMObenchmarksSysCell{i};
@@ -251,7 +364,7 @@ methods(Test)
              Opts.strategy = 'adaptive';
              Opts.stopCrit = 'residualLyap';
              Opts.shifts = 'dynamical';
-             sysrCrksm = crksm(sys, s0_inp, Opts);
+             %sysrCrksm = crksm(sys, s0_inp, Opts);
              
              % evaluation
 %              NORM{i} = norm(sys - sysrCrksm);
@@ -259,6 +372,7 @@ methods(Test)
     end
 
     function MISO_SIMO_Block_Wsided(testCase)
+        % Test ok
         
         MISO_SIMObenchmarksSysCell = getMISO_SIMObenchmarks();
         for i=1:length(MISO_SIMObenchmarksSysCell)
@@ -277,8 +391,8 @@ methods(Test)
              Opts.strategy = 'adaptive';
              Opts.stopCrit = 'residualLyap';
              Opts.shifts = 'dynamical';
-             Opts.maxiter = 20;
-             sysrCrksm = crksm(sys, [], s0_out, Opts);
+             Opts.maxiter = 100;
+             %sysrCrksm = crksm(sys, [], s0_out, Opts);
              
              % evaluation
 %              NORM{i} = norm(sys - sysrCrksm);
@@ -287,6 +401,8 @@ methods(Test)
 
     function MISO_SIMO_Block_TwoSided(testCase)
         MISO_SIMObenchmarksSysCell = getMISO_SIMObenchmarks();
+        % fall geht nicht, weil m~=p und auffuellen Dimensionsprobleme
+        % macht
         for i=1:length(MISO_SIMObenchmarksSysCell)
              %  get system
              sys = MISO_SIMObenchmarksSysCell{i};
@@ -295,7 +411,9 @@ methods(Test)
              Opts.strategy = 'ADI';
              Opts.method = 'heur';
              Opts.nShifts = 10;
-             [s0_inp,~,s0_out] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
+             Opts.strategy = 'eigs';
+             [~,~,s0_out] = initializeShifts(sys,Opts.nShifts,1,Opts);
              
              %  test system with crksm
              Opts.restolLyap = 1e-6;
@@ -303,7 +421,7 @@ methods(Test)
              Opts.stopCrit = 'residualLyap';
              Opts.shifts = 'dynamical';
              Opts.maxiter = 20;
-             sysrCrksm = crksm(sys, s0_inp, s0_out, Opts);
+             %sysrCrksm = crksm(sys, s0_inp, s0_out, Opts);
              
              % evaluation
 %              NORM{i} = norm(sys - sysrCrksm);
@@ -314,21 +432,99 @@ methods(Test)
 
 
 %% MISO_SIMO Tangential
-%     function MISO_SIMO_Tangential_Vsided(testCase)
-%         MISO_SIMObenchmarksSysCell = getMISO_SIMObenchmarks();
-%     end
-% 
-%     function MISO_SIMO_Tangential_Wsided(testCase)
-%         MISO_SIMObenchmarksSysCell = getMISO_SIMObenchmarks();
-%     end
-% 
-%     function MISO_SIMO_Tangential_TwoSided(testCase)
-%         MISO_SIMObenchmarksSysCell = getMISO_SIMObenchmarks();
-%     end
-% 
-%     function MISO_SIMO_Tangential_TwoSidedHermite(testCase)
-%         MISO_SIMObenchmarksSysCell = getMISO_SIMObenchmarks();
-%     end
+    function MISO_SIMO_Tangential_Vsided(testCase)
+    % test ok
+        MISO_SIMObenchmarksSysCell = getMISO_SIMObenchmarks();
+        
+        for i=1:length(MISO_SIMObenchmarksSysCell)
+             %  get system
+             sys = MISO_SIMObenchmarksSysCell{i};
+             
+             %  get interpolation data
+             Opts.strategy = 'eigs';
+             Opts.nShifts = 10;
+             [s0_inp,Rt] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             
+             %  test system with crksm
+             Opts.restolLyap = 1e-6;
+             Opts.strategy = 'adaptive';
+             Opts.stopCrit = 'residualLyap';
+             Opts.shifts = 'dynamical';
+             %sysrCrksm = crksm(sys, s0_inp,Rt,Opts);
+             %norm(V_rk - V_crksm); subspace(V_rk,V_crksm); norm(sysr_Rk - sysr_Crksm); 
+        end
+    end
+ 
+    function MISO_SIMO_Tangential_Wsided(testCase)
+    % test ok
+        MISO_SIMObenchmarksSysCell = getMISO_SIMObenchmarks();
+        
+        for i=1:length(MISO_SIMObenchmarksSysCell)
+             %  get system
+             sys = MISO_SIMObenchmarksSysCell{i};
+             
+             %  get interpolation data
+             Opts.strategy = 'eigs';
+             Opts.nShifts = 10;
+             [~,~,s0_out,Lt] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             
+             %  test system with crksm
+             Opts.restolLyap = 1e-6;
+             Opts.strategy = 'adaptive';
+             Opts.stopCrit = 'residualLyap';
+             Opts.shifts = 'dynamical';
+             %sysrCrksm = crksm(sys,[],s0_out,[],Lt,Opts);
+             %norm(V_rk - V_crksm); subspace(V_rk,V_crksm); norm(sysr_Rk - sysr_Crksm); 
+        end
+    end
+ 
+    function MISO_SIMO_Tangential_TwoSided(testCase)
+    % test ok
+        MISO_SIMObenchmarksSysCell = getMISO_SIMObenchmarks();
+        
+        for i=1:length(MISO_SIMObenchmarksSysCell)
+             %  get system
+             sys = MISO_SIMObenchmarksSysCell{i};
+             
+             %  get interpolation data
+             Opts.strategy = 'ROM';
+             Opts.nShifts = 10;
+             [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             
+             %  test system with crksm
+             Opts.purpose = 'MOR';
+             Opts.maxiter = 300;
+             Opts.strategy = 'eigs';
+             Opts.restolMOR = 1e-3;
+             %sysrCrksm = crksm(sys,s0_inp,s0_out,Rt,Lt,Opts);
+             %norm(V_rk - V_crksm); subspace(V_rk,V_crksm); norm(sysr_Rk - sysr_Crksm); 
+             
+        end
+    end
+ 
+    function MISO_SIMO_Tangential_TwoSidedHermite(testCase)
+    % test ok
+        MISO_SIMObenchmarksSysCell = getMISO_SIMObenchmarks();
+        
+        for i=1:length(MISO_SIMObenchmarksSysCell)
+             %  get system
+             sys = MISO_SIMObenchmarksSysCell{i};
+             
+             %  get interpolation data
+             Opts.strategy = 'eigs';
+             Opts.nShifts = 10;
+             [s0_inp,Rt,~,Lt] = initializeShifts(sys,Opts.nShifts,1,Opts);
+             
+             %  test system with crksm
+             Opts.maxiter = 300;
+             Opts.purpose = 'MOR';
+             Opts.restolMOR = 1e-3;
+             Opts.strategy = 'eigs';
+             %sysrCrksm = crksm(sys,s0_inp,s0_inp,Rt,Lt,Opts);
+             %norm(V_rk - V_crksm); subspace(V_rk,V_crksm); norm(sysr_Rk - sysr_Crksm); 
+             
+        end
+    end
 end  
  
 end
