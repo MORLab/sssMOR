@@ -451,7 +451,7 @@ else
     Z = [];
     if Opts.hermite && strcmp(Opts.strategy,'adaptive')
         Opts.strategy = 'eigs';
-        disp('Shift strategy changed from adaptove to eigs because adaptive does not support the hermite, twosided case');
+        disp('Shift strategy changed from adaptive to eigs because adaptive does not support the hermite, twosided case');
     end
     clearFields = {'restolLyap','equation'};
     Opts = rmfield(Opts,clearFields);
@@ -566,14 +566,13 @@ if ~exist('data.out2','var')
        [sysr,Z,data,Opts] = usage(sys,sysr,basis1,ii,s0_inp,s0_out,pointerLyap,data,Opts);
        
        % check shift capacity
-       if  isempty(Rt) && isempty(Lt) && (mean(abs(gradient(data.Norm(ii-1:ii,1)))) > 2*mean(abs(gradient(data.Norm(:,1)))))...
-           || ~isinf(data.Norm(ii,1)) 
+%        if  isempty(Rt) && isempty(Lt) && (mean(abs(gradient(data.Norm(ii-1:ii,1)))) > 4*mean(abs(gradient(data.Norm(:,1)))))...
+%            || ~isinf(data.Norm(ii,1)) 
 %           if ~isempty(s0_inp),  s0_inp = [s0_inp(:,1:ii) s0_inp(:,ii) s0_inp(:,ii+1:end)];  end
 %           if ~isempty(Rt),      Rt = [Rt(:,1:ii) Rt(:,ii) Rt(:,ii+1:end)];                  end  
 %           if ~isempty(s0_out),  s0_out = [s0_out(:,1:ii) s0_out(:,ii) s0_out(:,ii+1:end)];  end 
 %           if ~isempty(Lt),      Lt = [Lt(:,1:ii) Lt(:,ii) Lt(:,ii+1:end)];                  end   
-          %nShifts = nShifts+1;
-       end
+%        end
 
        % quit for loop, show information
        if ~isempty(data.Shifts_Input) || ~isempty(data.Shifts_Output), break;   end
@@ -614,10 +613,14 @@ if ~exist('data.out2','var')
     % create output
     if nnz(sysr.C) && ~isempty(s0_out) && isempty(basis2)
         W = basis1;  V = W;
+        fprintf(' final dimension of W-subpsace, onesided:\t %d x %d\n' ,size(basis1,1),size(basis1,2));
     elseif isempty(basis2) && isempty(s0_out)
         V = basis1;  W = V;
+        fprintf('final dimension of V-subpsace, onesided:\t %d x %d\n' ,size(basis1,1),size(basis1,2));
     else
         V = basis1;  W = basis2;
+        fprintf(' final dimension of V-subpsace, twosided:\t %d x %d\n' ,size(basis1,1),size(basis1,2));
+        fprintf(' final dimension of W-subpsace, twosided:\t %d x %d\n' ,size(basis2,1),size(basis2,2));
     end
     % build final sysr-object
      sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'crksm',Opts,sys);
@@ -868,12 +871,12 @@ function [sysr,Z,data,Opts] = crksmLyap(sys,sysr,basis1,iter,s0_inp,s0_out,point
     % stop program
     if Rnorm < Opts.tol
        if Opts.lowrank == 1            % compute low rank factor of solution
-           Z = basis1*Z;    
+           Z = basis1*(Z'); 
        end
        if ~isempty(s0_inp), data.Shifts_Input  = s0_inp;    end     % this line is important for leaving the for loop
        if ~isempty(s0_out), data.Shifts_Output = s0_out;    end 
        % show information of programme
-       fprintf('\n RKSM, usage Lyapunov, step:\t %d \t Convergence\n last residual norm:\t %d, tolerance:\t %d,\n',iter,Rnorm,Opts.tol);
+       fprintf('\n RKSM, usage Lyapunov, step:\t %d \t Convergence\n last residual norm:\t %d, tolerance:\t %d\n',iter,Rnorm,Opts.tol);
     elseif size(Z,2) == size(sys.A,2)
        disp('\n V has reached the dimension of the original System without converging!');
    end
@@ -895,7 +898,7 @@ function [sysr,Z,data,Opts] = crksmSysr(~,sysr,~,iter,s0_inp,s0_out,~,data,Opts)
     if stopCrit < Opts.restolMOR
        if ~isempty(s0_inp), data.Shifts_Input  = s0_inp;    end     % this line is important for leaving the for loop
        if ~isempty(s0_out), data.Shifts_Output = s0_out;    end 
-       fprintf('\n RKSM, usage MOR, step: %d \t Convergence\n last system norm: %d, tolerance: %d,\n' ,iter,stopCrit,Opts.restolMOR);
+       fprintf('\n RKSM, usage MOR, step: %d \t Convergence\n last system norm: %d, tolerance: %d,\n final dimension of the subpsace:\t %d x %d\n' ,iter,stopCrit,Opts.restolMOR);
     end
     sysr_last = sysr;
 end
@@ -908,10 +911,10 @@ persistent S_last
     try
        S = lyapchol(sysr.A,sysr.B,sysr.E);
     catch
-%         warning('Reduced system is unstable (iteration: %d), command "lyapchol" failed to solve for S',iter);
-%         fprintf('Programme continues solving the reduced Lyapunov equation with command "lyap" but an error may occur due to NaN or Inf entries in S \n');
-%         fprintf('For better stability behaviour try to perform crksm with onesided projection only with V-basis\n');
-%         fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) or [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
+        warning('Reduced system is unstable (iteration: %d), command "lyapchol" failed to solve for S',iter);
+        fprintf('Programme continues solving the reduced Lyapunov equation with command "lyap" but an error may occur due to NaN or Inf entries in S \n');
+        fprintf('For better stability behaviour try to perform crksm with onesided projection only with V-basis\n');
+        fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) or [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
         S = lyap(sysr.A,sysr.B*sysr.B',[],sysr.E);
     end
     % choose computation of norm/stopping criteria
@@ -955,11 +958,11 @@ persistent R_last
     try
         R = lyapchol(sysr.A',sysr.C',sysr.E');
     catch
-%         warning('Reduced system is unstable (iteration: %d), command "lyapchol" failed to solve for R',iter);
-%         fprintf('Programme continues solving the reduced Lyapunov equation with command "lyap" but an error may occur due to NaN or Inf entries in R \n');
-%         fprintf('For better stability behaviour try to perform crksm with onesided projection only with V-basis: \n');
-%         fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) or [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
-%         fprintf('\n \n \n');
+        warning('Reduced system is unstable (iteration: %d), command "lyapchol" failed to solve for R',iter);
+        fprintf('Programme continues solving the reduced Lyapunov equation with command "lyap" but an error may occur due to NaN or Inf entries in R \n');
+        fprintf('For better stability behaviour try to perform crksm with onesided projection only with V-basis: \n');
+        fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) or [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
+        fprintf('\n \n \n');
          R = lyap(sysr.A',sysr.C'*sysr.C,[],sysr.E');
     end
     
