@@ -246,11 +246,11 @@ switch Opts.strategy{1}
         % define output
         if nargout == 2
             Rt = [];  
-           % warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
+            warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
         elseif nargout > 2
             s0_out = s0_inp;
             Rt = [];    Lt = [];
-           % warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
+            warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
         end
         
     case 'ROM'

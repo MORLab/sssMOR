@@ -158,7 +158,7 @@ methods(Test)
              Opts.strategy = 'adaptive';
              Opts.stopCrit = 'residualLyap';
              Opts.shifts = 'dynamical';
-             %sysrCrksm = crksm(sys, s0_inp, Opts);
+             sysrCrksm = crksm(sys, s0_inp, Opts);
              
              % evaluation
 %              NORM{i} = norm(sys - sysrCrksm);
