@@ -2,6 +2,21 @@ clear
 clc
 clearvars -global
 
+sys = sss('fom')
+[S_P,R_Q] = lyapchol(sys);
+[R_Q_trans] = lyapchol(sys.');
+norm(R_Q - R_Q_trans)
+
+Opts.method = 'adi'
+[S_P,R_Q] = lyapchol(sys,Opts);
+[R_Q_trans] = lyapchol(sys.',Opts);
+norm(R_Q - R_Q_trans)
+
+Opts.method = 'crksm'
+[S_P,R_Q] = lyapchol(sys,Opts);
+[R_Q_trans] = lyapchol(sys.',Opts);
+norm(R_Q - R_Q_trans)
+
 % %% testdaten My_rksm
 % 
 % % load any benchmark system
