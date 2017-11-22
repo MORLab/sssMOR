@@ -28,17 +28,21 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 %			-.initShiftsStrategy:  	strategy for shift generation;
 %                                   [ADI / const / ROM / {eigs} / 
 %                                   linspaced / logspaced / random / lognrnd]
-%                                    mixed strategy for real and imag part possible 
+%                                   mixed strategy for real and imag part possible 
 %			-.shiftType:            type of shifts;
 %                                   [{'conj'} / 'real' / imag]
 %			-.wmin:                 lower bound of generated shifts;
 %                                   [{|eigs(sys,'sm')|}, positive double]
 %			-.wmax:                 upper bound of generated shifts;
 %                                   [{|eigs(sys,'lm')|}, positive double]
-%			-.kp:                   number of Arnoldi steps for ADI
-%                                   [{40} / 20...80 ]
-%			-.km:                   number of Arnoldi steps for ADI
-%                                   [{40} / 10...40 ]
+%			-.kp:                   number of Arnoldi steps w.r.t. A for heuristic shift computation
+%                                   refer to opts.adi.shifts.kp in
+%                                   MESS_PARA or MESS_LRADI for more info
+%                                   [{50} / 20...80 ]
+%			-.km:                   number of Arnoldi steps w.r.t. inv(A) for heuristic shift computation
+%                                   refer to opts.adi.shifts.km in
+%                                   MESS_PARA or MESS_LRADI for more info
+%                                   [{25} / 10...40 ]
 %			-.eigsTyp:              choice of eigenvalues for eigs and ROM;
 %                                   [{'sm'} / 'lm' / 'li' / 'si'/ 'lr' / 'sr' / 'la' / 'sa']
 %			-.constValue:           value for constant shift strategy;
@@ -93,26 +97,26 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 % Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  12 Sep 2017
+% Last Change:  22 Nov 2017
 % Copyright (c) 2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
 
 %% Execution parameters
-Def.initShiftsStrategy       = 'eigs';                % initialisation strategy
-Def.constValueInp            = 0;                     % constant shift for input space
-Def.constValueOut            = 0;                     % constant shift for output space
-Def.wmin                     = abs(eigs(sys,1,'sm')); % lower bound  
-Def.wmax                     = abs(eigs(sys,1));      % upper bound
-Def.kp                       = 40;                    % number of Arnoldi steps default 40
-Def.km                       = 25;                    % number of Arnoldi steps default 25
-Def.eigsType                 = 'sm';                  % eigs parameter
-Def.shiftTyp                 = 'conj';                % plain imaginary shifts
-Def.offset                   = 0;                     % global offset for shifts
-Def.format                   = 'complex';             % output format
-Def.isSiso                   = sys.isSiso;
+Def.initShiftsStrategy     = 'eigs';                % initialisation strategy
+Def.constValueInp          = 0;                     % constant shift for input space
+Def.constValueOut          = 0;                     % constant shift for output space
+Def.wmin                   = abs(eigs(sys,1,'sm')); % lower bound  
+Def.wmax                   = abs(eigs(sys,1));      % upper bound
+Def.kp                     = 50;                    % number of Arnoldi steps w.r.t. A for heuristic shift computation
+Def.km                     = 25;                    % number of Arnoldi steps w.r.t. inv(A) for heuristic shift computation
+Def.eigsType               = 'sm';                  % eigs parameter
+Def.shiftTyp               = 'conj';                % plain imaginary shifts
+Def.offset                 = 0;                     % global offset for shifts
+Def.format                 = 'complex';             % output format
+Def.isSiso                 = sys.isSiso;
 
-%create the options structure                 %aus CURE übernommen
+% create the options structure
 if ~exist('Opts','var') || isempty(Opts)
     Opts = Def;
 else
@@ -158,7 +162,7 @@ switch Opts.initShiftsStrategy{1}
     case 'eigs'
         [Rev,s0_inp] = (eigs(sys,nShifts*nSets,Opts.eigsType));
         s0_inp = -(diag(s0_inp));
-        idxUnstable = real(s0_inp)<0;   %Spiegeln,falls instabile eigs
+        idxUnstable = real(s0_inp)<0;   % mirror shifts if unstable
         s0_inp(idxUnstable) = -s0_inp(idxUnstable);
         try
             cplxpair(s0_inp);
@@ -192,14 +196,21 @@ switch Opts.initShiftsStrategy{1}
          s0_inp = double(s0_inp);
         
     case 'ADI'
-        Opts.method='heur';
-        Def.adi= 0; %use only adi or lyapunov equation ('0','adi','lyap')
-        Def.lse= 'gauss'; %lse (used only for adi)
+        Def.adiShiftsMethod = 'heur';
+%         Def.adi = 0; %use only adi or lyapunov equation ('0','adi','lyap')
+        Def.lse = 'gauss'; %lse (used only for adi)
         
         if ~exist('Opts','var') || isempty(Opts)
             Opts = Def;
         else
             Opts = parseOpts(Opts,Def);
+        end
+        
+        if strcmp(Opts.adiShiftsMethod,'projection') || strcmp(Opts.adiShiftsMethod,'wachspress')
+            Opts.adiShiftsMethod = 'heur';
+            warning(['ADI shift method changed from projection/wachspress to heur, ',...
+                     'because projection only computes one real or two complex conjugated shifts ',...
+                     'and wachspress does not always return the desired number of shifts.'])
         end
         
         if ~sys.isDae
@@ -209,7 +220,7 @@ switch Opts.initShiftsStrategy{1}
             
             % opts struct: mess options
             messOpts.adi=struct('shifts',struct('l0',nSets*nShifts,'kp',Opts.kp,'km',Opts.km,'b0',ones(sys.n,1),...
-                'info',0,'method',Opts.method),'maxiter',300,'restol',0.1,'rctol',1e-12,...
+                'info',0,'method',Opts.adiShiftsMethod),'maxiter',300,'restol',0.1,'rctol',1e-12,...
                 'info',0,'norm','fro');
             
             % user functions: default
@@ -225,20 +236,20 @@ switch Opts.initShiftsStrategy{1}
         end
         
         % get adi shifts
-        [messOpts.adi.shifts.p, ~]=mess_para(eqn,messOpts,oper);
+        [messOpts.adi.shifts.p]=mess_para(eqn,messOpts,oper);
         s0_inp=messOpts.adi.shifts.p;
         
-        %Spiegeln
+        % mirror shifts if unstable
         idxUnstable = real(s0_inp)<0;
         s0_inp(idxUnstable) = - s0_inp(idxUnstable);
         
-        %Abschneiden (des letzten rein reellen shifts falls  s0 zu lang)
+        % truncation (of last real shift if length of s0 too long)
         if(length(s0_inp)>nSets*nShifts)
             reals0=find((imag(s0_inp)==0));
             if(~isempty(reals0))
                 s0_inp(reals0(end))=[];
             else
-                error('Abschneiden funktioniert nicht, s0 zu lang')
+                error('Truncation does not work, s0 too long')
             end
         end
         s0_inp = reshape(s0_inp,nShifts,nSets);
@@ -255,7 +266,7 @@ switch Opts.initShiftsStrategy{1}
         
     case 'ROM'
         
-        mineig=-eigs(sys,1,'sm'); %Verwendung des gespiegelten Eigenwerts!
+        mineig=-eigs(sys,1,'sm'); % use mirrored eigenvalue with smallest magnitude
         
         if(~isreal(mineig))
             
@@ -294,7 +305,7 @@ switch Opts.initShiftsStrategy{1}
         
         [Rev,s0_inp] = (eigs(sysr,nShifts*nSets,Opts.eigsType));
         s0_inp = -(diag(s0_inp));
-        idxUnstable = real(s0_inp)<0;   %Spiegeln,falls instabile eigs
+        idxUnstable = real(s0_inp)<0;   % mirror shifts if unstable
         s0_inp(idxUnstable) = -s0_inp(idxUnstable);
         try
             cplxpair(s0_inp);
@@ -374,7 +385,7 @@ switch Opts.initShiftsStrategy{1}
             end
         end
         
-        %generate final s0 matrix
+        % generate final s0 matrix
         if ~strcmp(Opts.shiftTyp,'real')
             if strcmp(Opts.shiftTyp,'conj')
                 if  ~isempty(strfind(Opts.initShiftsStrategy{1},'spaced'))
