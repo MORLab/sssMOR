@@ -2,212 +2,110 @@ clear
 clc
 clearvars -global
 
-% %% testdaten My_rksm
-% 
-% % load any benchmark system
-% sys = loadSss('fom');
-% 
-% % other models: rail_1357, rail_5177, iss, gyro, building, CDplayer, beam,
-% %               eady, heat-cont, LF10, random, bips98_606,
-% %               SpiralInductorPeec, fom
-% 
-% % declare system matices
-% A = sys.A;
-% B = sys.B;
-% C = sys.C;
-% E = sys.E;
-% D = sys.D;
-% 
-% sys_new = sss(A,B,C,D,E);
-% m = size(B,2);
-% p = size(C,1);
-% 
-% 
-% 
-% %% testing function for several cases, make plots for master thesis
-% 
-% %% fom model, Lyapunov
-% sys = loadSss('fom');
-% 
-% Opts.strategy = 'ADI';
-% [s0_inp,~,~,~] = initializeShifts(sys,10,1,Opts);
-% 
-% Opts.maxiter = 200;
-% %Opts.shifts = 'fixedCyclic';
-% Opts.restolLyap   =  1e-8; 
-% Opts.stopCrit  = 'residualLyap'; 
-% Opts.shifts = 'dynamical';
-% Opts.strategy = 'adaptive';
-% %Opts.rksmnorm = 'fro';
-% %Opts.stopCrit = 'sysr';
-% %Opts.equation = 'observe';
-% %Opts.stopCrit  = 'normChol';
-% %Opts.purpose = 'MOR';
-% 
-% tic
-% %[Scrksm,Rcrksm] = lyapchol(sys,Opts);
-% [sysr_fom,Vcrksm_fom,Wcrksm_fom,Scrksm_fom,data_crksm_fom] = crksm(sys,s0_inp,Opts);
-% time_crksm_fom=toc;
-% clear s0_inp s0_out
-% 
-% % mess-adi options
-% Opts.method = 'adi';
-% Opts.messPara = 'projection';    % only for MESS
-% Opts.rctol = 0;
-% Opts.restol = 1e-8;
-% Opts.norm = 2;
-% 
-% tic
-% [Sadi_fom] = lyapchol(sys,Opts);
-% time_adi_fom = toc;
-% 
-% 
-% % call rk
-% %[sysr_rk,Vrk,Wrk] = rk(sys,s0_inp);
-% % test subspace
-% %alpha1 = subspace(Vcrksm,Vrk);
-% clear Opts
-% 
-% %% CDplayer model, MOR
-% sys = loadSss('CDplayer');
-% 
-% Opts.strategy = 'ADI';
-% [s0_inp,~,~,~] = initializeShifts(sys,10,1,Opts);
-% 
-% Opts.maxiter = 200;
-% %Opts.shifts = 'fixedCyclic';
-% %Opts.restolLyap   =  1e-8; 
-% %Opts.stopCrit  = 'residualLyap'; 
-% Opts.shifts = 'dynamical';
-% Opts.strategy = 'adaptive';
-% %Opts.rksmnorm = 'fro';
-% %Opts.stopCrit = 'sysr';
-% %Opts.equation = 'observe';
-% %Opts.stopCrit  = 'normChol';
-% Opts.purpose = 'MOR';
-% 
-% tic
-% %[Scrksm,Rcrksm] = lyapchol(sys,Opts);
-% [sysr_CD,Vcrksm_CD,Wcrksm_CD,Scrksm_CD,data_crksm_CD] = crksm(sys,s0_inp,Opts);
-% time_crksm_CD=toc;
-% clear s0_inp s0_out
-% 
-% % initialize irka
-% % s0_inp = zeros(1,10);
-% % Rt = ones(m,size(s0_inp,10));
-% % Lt = ones(p,size(s0_inp,10));
-% % tic
-% % [sysr_irka_CD, ~, ~, s0_inp, Rt, Lt] = irka(sys,s0_inp,Rt,Lt);
-% % time_irka_CD = toc;
-% 
-% % call rk
-% %[sysr_rk,Vrk,Wrk] = rk(sys,s0_inp);
-% % test subspace
-% %alpha1 = subspace(Vcrksm,Vrk);
-% clear Opts
-% 
-% %% Rail 1357 Lyapunov block
-% sys = loadSss('rail_1357');
-% 
-% Opts.strategy = 'ADI';
-% [s0_inp,~,~,~] = initializeShifts(sys,10,1,Opts);
-% 
-% Opts.maxiter = 200;
-% %Opts.shifts = 'fixedCyclic';
-% Opts.restolLyap   =  1e-8; 
-% Opts.stopCrit  = 'residualLyap'; 
-% Opts.shifts = 'dynamical';
-% Opts.strategy = 'adaptive';
-% %Opts.rksmnorm = 'fro';
-% %Opts.stopCrit = 'sysr';
-% %Opts.equation = 'observe';
-% %Opts.stopCrit  = 'normChol';
-% 
-% 
-% tic
-% %[Scrksm,Rcrksm] = lyapchol(sys,Opts);
-% [sysr_rail13,Vcrksm_rail13,Wcrksm_rail13,Scrksm_rail13,data_crksm_rail13] = crksm(sys,s0_inp,Opts);
-% time_crksm_rail13=toc;
-% clear s0_inp s0_out
-% 
-% % mess-adi options
-% Opts.method = 'adi';
-% Opts.messPara = 'projection';    % only for MESS
-% Opts.rctol = 0;
-% Opts.restol = 1e-8;
-% Opts.norm = 2;
-% 
-% tic
-% [Sadi_rail13] = lyapchol(sys,Opts);
-% time_adi_rail13 = toc;
-% clear Opts
-% 
-% %% Rail 5177 Lyapunov block
-% sys = loadSss('rail_5177');
-% 
-% Opts.strategy = 'ADI';
-% [s0_inp,~,~,~] = initializeShifts(sys,10,1,Opts);
-% 
-% Opts.maxiter = 200;
-% %Opts.shifts = 'fixedCyclic';
-% Opts.restolLyap   =  1e-8; 
-% Opts.stopCrit  = 'residualLyap'; 
-% Opts.shifts = 'dynamical';
-% Opts.strategy = 'adaptive';
-% %Opts.rksmnorm = 'fro';
-% %Opts.stopCrit = 'sysr';
-% %Opts.equation = 'observe';
-% %Opts.stopCrit  = 'normChol';
-% 
-% 
-% tic
-% %[Scrksm,Rcrksm] = lyapchol(sys,Opts);
-% [sysr_rail51,Vcrksm_rail51,Wcrksm_rail51,Scrksm_rail51,data_crksm_rail51] = crksm(sys,s0_inp,Opts);
-% time_crksm_rail51=toc;
-% clear s0_inp s0_out
-% 
-% % mess-adi options
-% Opts.method = 'adi';
-% Opts.messPara = 'projection';    % only for MESS
-% Opts.rctol = 0;
-% Opts.restol = 1e-8;
-% Opts.norm = 2;
-% 
-% tic
-% [Sadi_rail51] = lyapchol(sys,Opts);
-% time_adi_rail_51 = toc;
-% clear Opts
-% 
-% %% Rail 5177 Lyapunov tangential
-% sys = loadSss('rail_5177');
-% 
-% Opts.strategy = 'eigs';
-% [s0_inp,Rt,~,~] = initializeShifts(sys,10,1,Opts);
-% 
-% Opts.maxiter = 200;
-% %Opts.shifts = 'fixedCyclic';
-% Opts.restolLyap   =  1e-8; 
-% Opts.stopCrit  = 'residualLyap'; 
-% Opts.shifts = 'dynamical';
-% Opts.strategy = 'adaptive';
-% %Opts.rksmnorm = 'fro';
-% %Opts.stopCrit = 'sysr';
-% %Opts.equation = 'observe';
-% %Opts.stopCrit  = 'normChol';
-% 
-% 
-% tic
-% %[Scrksm,Rcrksm] = lyapchol(sys,Opts);
-% [sysr_rail51t,Vcrksm_rail51t,Wcrksm_rail51t,Scrksm_rail51t,data_crksm_rail51t] = crksm(sys,s0_inp,Rt,Opts);
-% time_crksm_rail51t=toc;
-% clear s0_inp s0_out Opts
+%% testdaten My_rksm
 
-%% gyro noch machen
+% load any benchmark system
+
+% other models: rail_1357, rail_5177, iss, gyro, building, CDplayer, beam,
+%               eady, heat-cont, LF10, random, bips98_606,
+%               SpiralInductorPeec, fom
 
 
-%% testing quality of solution (when dimension is high, comment out n>1500)
+%% fom model, Lyapunov
+sys = loadSss('fom');
 
-sys = loadSss('SpiralInductorPeec');
+Opts.initShiftsStrategy = 'ADI';
+[s0_inp,~,~,~] = initializeShifts(sys,10,1,Opts);
+
+Opts.maxiter = 200;
+%Opts.shifts = 'fixedCyclic';
+Opts.restolLyap   =  1e-8; 
+Opts.stopCrit  = 'residualLyap'; 
+Opts.shifts = 'dynamical';
+Opts.getShiftsStrategy = 'adaptive';
+%Opts.lowrank = 1;
+Opts.infoLyap = 1;
+%Opts.rksmnorm = 'fro';
+%Opts.stopCrit = 'sysr';
+%Opts.equation = 'observe';
+%Opts.stopCrit  = 'normChol';
+%Opts.purpose = 'MOR';
+
+tic
+Opts.method = 'crksm';
+%[Scrksm_fom1,data] = lyapchol(sys,Opts);
+%[Scrksm_fom1,Rcrksm_fom1,datacrksm] = lyapchol(sys,Opts);
+%[Scrksm_fom2,Rcrksm_fom2] = lyapchol(sys,Opts);
+[sysr_fom,Vcrksm_fom,Wcrksm_fom,Scrksm_fom,data_crksm_fom] = crksm(sys,s0_inp,Opts);
+%[sysr_fom,Vcrksm_fom,Wcrksm_fom,Rcrksm_fom,data_crksm_fom] = crksm(sys,[],s0_inp,Opts);
+time_crksm_fom=toc;
+clear s0_inp s0_out
+
+% mess-adi options
+Opts.method = 'adi';
+Opts.messPara = 'projection';    % only for MESS
+Opts.rctol = 0;
+Opts.restol = 1e-8;
+Opts.norm = 2;
+
+tic
+[Sadi_fom,r,data] = lyapchol(sys,Opts);
+time_adi_fom = toc;
+
+% perform tbr
+tic
+%sysr_crksm = tbr(sys,10,Scrksm_fom,Rcrksm_fom);
+time_tbr_crksm = toc;
+
+tic
+%sysr_adi = tbr(sys,10,Sadi_fom,Radi_fom);
+time_tbr_adi = toc;
+% call rk
+%[sysr_rk,Vrk,Wrk] = rk(sys,s0_inp);
+% test subspace
+%alpha1 = subspace(Vcrksm,Vrk);
+clear Opts
+
+%% CDplayer model, MOR
+sys = loadSss('CDplayer');
+
+Opts.strategy = 'ADI';
+[s0_inp,~,~,~] = initializeShifts(sys,10,1,Opts);
+
+Opts.maxiter = 200;
+%Opts.shifts = 'fixedCyclic';
+%Opts.restolLyap   =  1e-8; 
+%Opts.stopCrit  = 'residualLyap'; 
+Opts.shifts = 'dynamical';
+Opts.strategy = 'adaptive';
+%Opts.rksmnorm = 'fro';
+%Opts.stopCrit = 'sysr';
+%Opts.equation = 'observe';
+%Opts.stopCrit  = 'normChol';
+Opts.purpose = 'MOR';
+
+tic
+%[Scrksm,Rcrksm] = lyapchol(sys,Opts);
+%[sysr_CD,Vcrksm_CD,Wcrksm_CD,Scrksm_CD,data_crksm_CD] = crksm(sys,s0_inp,Opts);
+time_crksm_CD=toc;
+clear s0_inp s0_out
+
+% initialize irka
+% s0_inp = zeros(1,10);
+% Rt = ones(m,size(s0_inp,10));
+% Lt = ones(p,size(s0_inp,10));
+% tic
+% [sysr_irka_CD, ~, ~, s0_inp, Rt, Lt] = irka(sys,s0_inp,Rt,Lt);
+% time_irka_CD = toc;
+
+% call rk
+%[sysr_rk,Vrk,Wrk] = rk(sys,s0_inp);
+% test subspace
+%alpha1 = subspace(Vcrksm,Vrk);
+clear Opts
+
+%% Rail 1357 Lyapunov block
+sys = loadSss('rail_1357');
 
 Opts.strategy = 'ADI';
 [s0_inp,~,~,~] = initializeShifts(sys,10,1,Opts);
@@ -222,15 +120,92 @@ Opts.strategy = 'adaptive';
 %Opts.stopCrit = 'sysr';
 %Opts.equation = 'observe';
 %Opts.stopCrit  = 'normChol';
-Opts.lowrank = 1;
 
 
 tic
 %[Scrksm,Rcrksm] = lyapchol(sys,Opts);
-[sysr,Vcrksm,Wcrksm,Scrksm,data_crksm] = crksm(sys,s0_inp,Opts);
-time_crksm=toc;
-Rcrksm = Scrksm;
+%[sysr_rail13,Vcrksm_rail13,Wcrksm_rail13,Scrksm_rail13,data_crksm_rail13] = crksm(sys,s0_inp,Opts);
+time_crksm_rail13=toc;
+clear s0_inp s0_out
 
+% mess-adi options
+Opts.method = 'adi';
+Opts.messPara = 'projection';    % only for MESS
+Opts.rctol = 0;
+Opts.restol = 1e-8;
+Opts.norm = 2;
+
+tic
+%[Sadi_rail13] = lyapchol(sys,Opts);
+time_adi_rail13 = toc;
+clear Opts
+
+%% Rail 5177 Lyapunov block
+sys = loadSss('rail_5177');
+
+Opts.strategy = 'ADI';
+[s0_inp,~,~,~] = initializeShifts(sys,10,1,Opts);
+
+Opts.maxiter = 200;
+%Opts.shifts = 'fixedCyclic';
+Opts.restolLyap   =  1e-8; 
+Opts.stopCrit  = 'residualLyap'; 
+Opts.shifts = 'dynamical';
+Opts.strategy = 'adaptive';
+%Opts.rksmnorm = 'fro';
+%Opts.stopCrit = 'sysr';
+%Opts.equation = 'observe';
+%Opts.stopCrit  = 'normChol';
+
+
+tic
+%[Scrksm,Rcrksm] = lyapchol(sys,Opts);
+%[sysr_rail51,Vcrksm_rail51,Wcrksm_rail51,Scrksm_rail51,data_crksm_rail51] = crksm(sys,s0_inp,Opts);
+time_crksm_rail51=toc;
+clear s0_inp s0_out
+
+% mess-adi options
+Opts.method = 'adi';
+Opts.messPara = 'projection';    % only for MESS
+Opts.rctol = 0;
+Opts.restol = 1e-8;
+Opts.norm = 2;
+
+tic
+%[Sadi_rail51] = lyapchol(sys,Opts);
+time_adi_rail_51 = toc;
+clear Opts
+
+%% Rail 5177 Lyapunov tangential
+sys = loadSss('rail_5177');
+
+Opts.strategy = 'eigs';
+[s0_inp,Rt,~,~] = initializeShifts(sys,10,1,Opts);
+
+Opts.maxiter = 200;
+%Opts.shifts = 'fixedCyclic';
+Opts.restolLyap   =  1e-8; 
+Opts.stopCrit  = 'residualLyap'; 
+Opts.shifts = 'dynamical';
+Opts.strategy = 'adaptive';
+%Opts.rksmnorm = 'fro';
+%Opts.stopCrit = 'sysr';
+%Opts.equation = 'observe';
+%Opts.stopCrit  = 'normChol';
+
+
+tic
+%[Scrksm,Rcrksm] = lyapchol(sys,Opts);
+[sysr_rail51t,Vcrksm_rail51t,Wcrksm_rail51t,Scrksm_rail51t,data_crksm_rail51t] = crksm(sys,s0_inp,Rt,Opts);
+time_crksm_rail51t=toc;
+clear s0_inp s0_out Opts
+
+%% gyro noch machen
+
+
+%% testing quality of solution (when dimension is high, comment out n>1500)
+
+% with low rank factor
 P = Scrksm*Scrksm';
 YS = sys.A*P*sys.E' + sys.E*P*sys.A' + sys.B*sys.B';
 YS_norm = norm(YS);
@@ -239,6 +214,7 @@ Q = Rcrksm*Rcrksm';
 YR = sys.A'*Q*sys.E + sys.E'*Q*sys.A + sys.C'*sys.C;
 YR_norm = norm(YR);
 
+% no low rank factor
 if isempty(R)
     Pr = S'*S;
     P = Vcrksm*Pr*Vcrksm';
