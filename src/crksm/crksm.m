@@ -9,18 +9,6 @@ function [sysr,V,W,Z,data] = crksm(varargin)
 %       [sysr,V,W,Z,data]           = CRKSM(sys, s0_inp, s0_out)  
 %       [sysr,V,W,Z,data]           = CRKSM(sys, s0_inp, s0_out, Rt, Lt)  
 %       [sysr,...,data]             = CRKSM(sys,...,Opts_rksm)
-%       [sysr,V,S,data]             = CRKSM(A,B,[],[],s0_inp) 
-%       [sysr,V,S,data]             = CRKSM(A,B,[],[],s0_inp,Rt) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,C, [],s0_inp,s0_out) 
-%       [sysr,W,R,data]             = CRKSM(A,[],C, [],[],s0_out) 
-%       [sysr,W,R,data]             = CRKSM(A,[],C,[],[],s0_out,[],Lt) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,C, [],s_inp,s_out,Rt,Lt) 
-%       [sysr,V,S,data]             = CRKSM(A,B,[] ,E,s0_inp) 
-%       [sysr,V,S,data]             = CRKSM(A,B,[] ,E,s0_inp,Rt) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,C,E,s0_inp,s0_out) 
-%       [sysr,W,S,data]             = CRKSM(A,[],C,E,[],s0_out) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,C,E,s0_inp,s0_out,Rt,Lt) 
-%       [sysr,V,W,S,R,data]         = CRKSM(A,B,...,s_inp,...,Opts_rksm) 
 %
 % Description:
 %       This function performs the Cumulative Rational Krylov Subspace Method  
@@ -187,7 +175,7 @@ Def.restolMOR            =  1e-4;              % default tolerance
 
 % default option settings for the choice of shifts
 Def.shifts               = 'dynamical';        % choose usage of shifts [{'dynamical'} / 'fixedCyclic']
-Def.strategy             = 'adaptive';         % choose GETSHIFTS strategy: [ {'adaptive'} / 'eigs' ]
+Def.getShiftsStrategy     = 'adaptive';         % choose GETSHIFTS strategy for updating shifts: [ {'adaptive'} / 'eigs' ]
 Def.shiftTol             =  0.1;               % default value for new shifts
 
 % define data struct
@@ -242,11 +230,11 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
             s0_inp = varargin{2};            s0_out  = varargin{3};      
             Rt     = [];                     Lt      = [];           
             input  = 4; 
+            if size(sys.B,2) ~= size(sys.C,1)
+                error('Block Krylov for m~=p is not supported in crksm');
+            end
             if all(s0_inp == s0_out)
                 % in hermite case, m must be equal to p (m = p)!!
-                if size(sys.B,2) ~= size(sys.C,1)
-                    error('Block Krylov for m~=p is not supported in crksm');
-                end
                 pointerV = @blockV;         Opts.hermite = true;
             else
                 pointerV = @blockV;         pointerW = @blockW;     Opts.hermite = false;
@@ -270,61 +258,9 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
         end  
     else
         error('Input not compatible with current crksm implementation');
-    end
-
-% input of matrices    
+    end   
 elseif length(varargin) > 1
-
-    % set A, B matrix
-    A = varargin{1};       D = [];  
-    B = varargin{2};   
-
-    % set other inputs
-    if nargin == 5
-        C      = varargin{3};              E       = varargin{4};  
-        s0_inp = varargin{5};              s0_out  = [];
-        Rt     = [];                       Lt      = [];
-        input  = 1;                        pointer = @blockV;
-        if isempty(E),  E = speye(size(A)); end
-    elseif nargin == 6
-        if isempty(varargin{3})                                   
-            C      = zeros(1,size(A,1));   E       = varargin{4};
-            s0_inp = varargin{5};          s0_out  = [];
-            Rt     = varargin{6};          Lt      = []; 
-            input  = 2;                    pointer = @tangentialV;
-            if isempty(E),  E = speye(size(A)); end
-        elseif isempty(varargin{4}) && size(varargin{6,1}) ~= size(B,2)    
-            C      = varargin{3};          E      = varargin{4};
-            s0_inp = varargin{5};          s0_out = varargin{6};
-            Rt     = [];                   Lt     = []; 
-            input  = 4;                    pointerV = @blockV;
-                                           pointerW = @blockW; 
-            if isempty(E),  E = speye(size(A)); end
-            if isempty(s0_inp)
-                input  = 3;  
-                pointer = @blockW;     
-                clear pointerV pointerW
-            end
-        end
-    elseif nargin == 8
-            C      = varargin{3};          E      = varargin{4};
-            s0_inp = varargin{5};          s0_out = varargin{6};
-            Rt     = varargin{7};          Lt     = varargin{8}; 
-            input  = 6;                    pointerV = @tangentialV;
-                                           pointerW = @tangentialW;
-            if isempty(E),       E = speye(size(A));        end
-            if isempty(s0_inp)
-                input  = 5;  
-                pointer = @tangentialW;     
-                clear pointerV pointerW
-            end                      
-    else
-        if length(varargin) > 8 || length(varargin) < 3
-            error('Wrong input');
-        end   
-    end
-    sys = sss(A,B,C,D,E);       % build sys-object
-    Opts.isSiso = sys.isSiso;
+    % here, possible implementation of matrix input
 end
 
 % check shifts and tangential directions, check Opts-field OPts.crksmUsage, check if extended or rational krylov
@@ -337,6 +273,8 @@ end
 if (input == 1 && s0_inp(1,1) == 0 && s0_inp(1,2) == inf) || ...
    (input == 3 && s0_out(1,1) == 0 && s0_out(1,2) == inf) 
     Opts.shifts = 'fixedCyclic';
+    fprintf('\n Extended Krylov method will be used, shifts are used in a fixed cyclic way \n');
+    
 else
     % sort expansion points & tangential directions
     s0_inp = shiftVec(s0_inp);
@@ -416,9 +354,6 @@ switch input
         [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 W
         Opts.equation = 'both';
 end
-% fill up basis1 or basis2 in twosided non hermite case, if m~=p 
-if exist('basis2','var') && size(basis1,2)<size(basis2,2),         basis1=[basis1,basis2(:,size(basis1,2)+1:size(basis2,2))];
-elseif exist('basis2','var') && size(basis1,2)>size(basis2,2),     basis2=[basis2,basis1(:,size(basis2,2)+1:size(basis1,2))];   end
 
 % preprocessing: initialize some variables for programme, set function handles
 newdir1 = zeros(size(sys.A,1),size(basis1,2)/2); % declare newdir-variable
@@ -432,6 +367,7 @@ end
 
 % check usage of crksm-function
 if strcmp(Opts.purpose,'lyapunov')
+    Opts.didlyap = 0;
     usage = @crksmLyap; 
     if strcmp(Opts.stopCrit,'residualLyap')
         Opts.tol = Opts.restolLyap;  
@@ -449,9 +385,9 @@ else
     usage = @crksmSysr;
     pointerLyap = []; 
     Z = [];
-    if Opts.hermite && strcmp(Opts.strategy,'adaptive')
-        Opts.strategy = 'eigs';
-        disp('Shift strategy changed from adaptive to eigs because adaptive does not support the hermite, twosided case');
+    if Opts.hermite && strcmp(Opts.getShiftsStrategy,'adaptive')
+        Opts.getShiftsStrategy = 'eigs';
+        disp('Shift update strategy changed from adaptive to eigs because adaptive does not support the hermite, twosided case');
     end
     clearFields = {'restolLyap','equation'};
     Opts = rmfield(Opts,clearFields);
@@ -520,9 +456,6 @@ if ~exist('data.out2','var')
                     basis1 = [basis1 newdir1];    % basis1 is V  
                     basis2 = [basis2 newdir2];    % basis2 is W
                 end  
-                % fill up basis1 or basis2 in twosided non hermite case, if m~=p 
-                if ~isempty(basis2) && size(basis1,2)<size(basis2,2),         basis1=[basis1,basis2(:,size(basis1,2)+1:size(basis2,2))];
-                elseif ~isempty(basis2) && size(basis1,2)>size(basis2,2),     basis2=[basis2,basis1(:,size(basis2,2)+1:size(basis1,2))];   end
             end                   
        end % end of complex wait-sequence (if isreal(vnew))
 
@@ -564,15 +497,6 @@ if ~exist('data.out2','var')
 
        % call usage handle function for Lyapunov/sysr
        [sysr,Z,data,Opts] = usage(sys,sysr,basis1,ii,s0_inp,s0_out,pointerLyap,data,Opts);
-       
-       % check shift capacity
-%        if  isempty(Rt) && isempty(Lt) && (mean(abs(gradient(data.Norm(ii-1:ii,1)))) > 4*mean(abs(gradient(data.Norm(:,1)))))...
-%            || ~isinf(data.Norm(ii,1)) 
-%           if ~isempty(s0_inp),  s0_inp = [s0_inp(:,1:ii) s0_inp(:,ii) s0_inp(:,ii+1:end)];  end
-%           if ~isempty(Rt),      Rt = [Rt(:,1:ii) Rt(:,ii) Rt(:,ii+1:end)];                  end  
-%           if ~isempty(s0_out),  s0_out = [s0_out(:,1:ii) s0_out(:,ii) s0_out(:,ii+1:end)];  end 
-%           if ~isempty(Lt),      Lt = [Lt(:,1:ii) Lt(:,ii) Lt(:,ii+1:end)];                  end   
-%        end
 
        % quit for loop, show information
        if ~isempty(data.Shifts_Input) || ~isempty(data.Shifts_Output), break;   end
@@ -599,28 +523,20 @@ if ~exist('data.out2','var')
                    newdir1 = pointerV(sys,basis1,basis2,s0_inp,s0_out,Rt,Lt,ii,size(newdir1,2),Opts);
                    basis1 = [basis1 real(newdir1)];
                end
-               % fill up basis1 or basis2 in twosided non hermite case, if m~=p 
-               if ~isempty(basis2) && size(basis1,2)<size(basis2,2),         basis1=[basis1,basis2(:,size(basis1,2)+1:size(basis2,2))];
-               elseif ~isempty(basis2) && size(basis1,2)>size(basis2,2),     basis2=[basis2,basis1(:,size(basis2,2)+1:size(basis1,2))];   end
            end
            % empty newdir of basis1 and/or basis2 
            newdir1 = zeros(size(sys.A,1),size(newdir1,2));
            newdir2 = newdir1;
        end
-       % fill up basis1 or basis2 in twosided non hermite case, if m~=p 
     end  % end of for loop
     
     % create output
     if nnz(sysr.C) && ~isempty(s0_out) && isempty(basis2)
         W = basis1;  V = W;
-        fprintf(' final dimension of W-subpsace, onesided:\t %d x %d\n' ,size(basis1,1),size(basis1,2));
     elseif isempty(basis2) && isempty(s0_out)
         V = basis1;  W = V;
-        fprintf('final dimension of V-subpsace, onesided:\t %d x %d\n' ,size(basis1,1),size(basis1,2));
     else
         V = basis1;  W = basis2;
-        fprintf(' final dimension of V-subpsace, twosided:\t %d x %d\n' ,size(basis1,1),size(basis1,2));
-        fprintf(' final dimension of W-subpsace, twosided:\t %d x %d\n' ,size(basis2,1),size(basis2,2));
     end
     % build final sysr-object
      sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'crksm',Opts,sys);
@@ -876,7 +792,7 @@ function [sysr,Z,data,Opts] = crksmLyap(sys,sysr,basis1,iter,s0_inp,s0_out,point
        if ~isempty(s0_inp), data.Shifts_Input  = s0_inp;    end     % this line is important for leaving the for loop
        if ~isempty(s0_out), data.Shifts_Output = s0_out;    end 
        % show information of programme
-       fprintf('\n RKSM, usage Lyapunov, step:\t %d \t Convergence\n last residual norm:\t %d, tolerance:\t %d\n',iter,Rnorm,Opts.tol);
+       fprintf('\n RKSM, usage Lyapunov, step:\t %d \t Convergence\n',iter);
     elseif size(Z,2) == size(sys.A,2)
        disp('\n V has reached the dimension of the original System without converging!');
    end
@@ -898,7 +814,7 @@ function [sysr,Z,data,Opts] = crksmSysr(~,sysr,~,iter,s0_inp,s0_out,~,data,Opts)
     if stopCrit < Opts.restolMOR
        if ~isempty(s0_inp), data.Shifts_Input  = s0_inp;    end     % this line is important for leaving the for loop
        if ~isempty(s0_out), data.Shifts_Output = s0_out;    end 
-       fprintf('\n RKSM, usage MOR, step: %d \t Convergence\n last system norm: %d, tolerance: %d,\n final dimension of the subpsace:\t %d x %d\n' ,iter,stopCrit,Opts.restolMOR);
+       fprintf('\n RKSM, usage MOR, step: %d \t Convergence\n' ,iter);
     end
     sysr_last = sysr;
 end
@@ -911,11 +827,16 @@ persistent S_last
     try
        S = lyapchol(sysr.A,sysr.B,sysr.E);
     catch
-        warning('Reduced system is unstable (iteration: %d), command "lyapchol" failed to solve for S',iter);
-        fprintf('Programme continues solving the reduced Lyapunov equation with command "lyap" but an error may occur due to NaN or Inf entries in S \n');
-        fprintf('For better stability behaviour try to perform crksm with onesided projection only with V-basis\n');
-        fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) or [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
+        % only show this warning once
+        if Opts.didlyap == 0
+            warning('Reduced system is unstable (iteration: %d), command "lyapchol" failed to solve for S',iter);
+            fprintf('Programme continues solving the reduced Lyapunov equation with command "lyap" but an error may occur due to NaN or Inf entries in S \n');
+            fprintf('For better stability behaviour try to perform crksm with onesided projection only with V-basis\n');
+            fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) or [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
+            Opts.didlyap = 1;
+        end
         S = lyap(sysr.A,sysr.B*sysr.B',[],sysr.E);
+        
     end
     % choose computation of norm/stopping criteria
     if strcmp(Opts.stopCrit,'residualLyap')
@@ -958,11 +879,14 @@ persistent R_last
     try
         R = lyapchol(sysr.A',sysr.C',sysr.E');
     catch
-        warning('Reduced system is unstable (iteration: %d), command "lyapchol" failed to solve for R',iter);
-        fprintf('Programme continues solving the reduced Lyapunov equation with command "lyap" but an error may occur due to NaN or Inf entries in R \n');
-        fprintf('For better stability behaviour try to perform crksm with onesided projection only with V-basis: \n');
-        fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) or [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
-        fprintf('\n \n \n');
+        % only show this warning once
+        if Opts.didlyap == 0
+            warning('Reduced system is unstable (iteration: %d), command "lyapchol" failed to solve for R',iter);
+            fprintf('Programme continues solving the reduced Lyapunov equation with command "lyap" but an error may occur due to NaN or Inf entries in R \n');
+            fprintf('For better stability behaviour try to perform crksm with onesided projection only with V-basis: \n');
+            fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) or [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
+            Opts.didlyap = 1;
+        end
          R = lyap(sysr.A',sysr.C'*sysr.C,[],sysr.E');
     end
     

@@ -7,8 +7,8 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 % Description:
 %       
 %       Generates a 1 x nShift vector of shift frequencies s0 according to the 
-%       chosen strategy, which can be defined in Opts.strategy. s0 can be used 
-%       as inputs to the reduction functions of sssMOR.
+%       chosen  initial shift strategy, which can be defined in Opts.strategy.
+%       s0 can be used as inputs to the reduction functions of sssMOR.
 %       If necessary, a shift vector for a Krylov output space can be
 %       built containing the same shifts as the s0_inp vector.
 %       Besides, for strategies 'eigs' and 'ROM', right and left tangential
@@ -25,32 +25,32 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 %
 %		*Optional Input Arguments:*
 %		-Opts:              A structure containing following fields
-%			-.strategy:  	strategy for shift generation;
-%                           [ADI / const / ROM / {eigs} / 
-%                            linspaced / logspaced / random / lognrnd]
-%                           mixed strategy for real and imag part possible 
-%			-.shiftType:  	type of shifts;
-%                           [{'conj'} / 'real' / imag]
-%			-.wmin:         lower bound of generated shifts;
-%                           [{|eigs(sys,'sm')|}, positive double]
-%			-.wmax:         upper bound of generated shifts;
-%                           [{|eigs(sys,'lm')|}, positive double]
-%			-.kp:           number of Arnoldi steps w.r.t. A for heuristic shift computation
-%                           refer to opts.adi.shifts.kp in
-%                           MESS_PARA or MESS_LRADI for more info
-%                           [{50} / 20...80 ]
-%			-.km:           number of Arnoldi steps w.r.t. inv(A) for heuristic shift computation
-%                           refer to opts.adi.shifts.km in
-%                           MESS_PARA or MESS_LRADI for more info
-%                           [{25} / 10...40 ]
-%			-.eigsTyp:  	choice of eigenvalues for eigs and ROM;
-%                           [{'sm'} / 'lm' / 'li' / 'si'/ 'lr' / 'sr' / 'la' / 'sa']
-%			-.constValue:  	value for constant shift strategy;
-%                           [{0} / double]
-%			-.offset:       offset for plain imag or real shifts 
-%                           [{0} / double]
-%           -.format:       output format of the shifts
-%                           [{complex} / ab]
+%			-.initShiftsStrategy:  	strategy for shift generation;
+%                                   [ADI / const / ROM / {eigs} / 
+%                                   linspaced / logspaced / random / lognrnd]
+%                                   mixed strategy for real and imag part possible 
+%			-.shiftType:            type of shifts;
+%                                   [{'conj'} / 'real' / imag]
+%			-.wmin:                 lower bound of generated shifts;
+%                                   [{|eigs(sys,'sm')|}, positive double]
+%			-.wmax:                 upper bound of generated shifts;
+%                                   [{|eigs(sys,'lm')|}, positive double]
+%			-.kp:                   number of Arnoldi steps w.r.t. A for heuristic shift computation
+%                                   refer to opts.adi.shifts.kp in
+%                                   MESS_PARA or MESS_LRADI for more info
+%                                   [{50} / 20...80 ]
+%			-.km:                   number of Arnoldi steps w.r.t. inv(A) for heuristic shift computation
+%                                   refer to opts.adi.shifts.km in
+%                                   MESS_PARA or MESS_LRADI for more info
+%                                   [{25} / 10...40 ]
+%			-.eigsTyp:              choice of eigenvalues for eigs and ROM;
+%                                   [{'sm'} / 'lm' / 'li' / 'si'/ 'lr' / 'sr' / 'la' / 'sa']
+%			-.constValue:           value for constant shift strategy;
+%                                   [{0} / double]
+%			-.offset:               offset for plain imag or real shifts 
+%                                   [{0} / double]
+%           -.format:               output format of the shifts
+%                                   [{complex} / ab]
 %
 % Output Arguments:
 %       -s0_inp:            Vector (of sets) of shift frequencies for input Krylov subspace 
@@ -73,7 +73,7 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 %       The behavior of the function can be customized using the
 %       option structure Opts, e.g. mixed strategies with logspaced real 
 %       and linspaced imag part of the shifts
-%> Opts = struct('strategy',{{'logspaced','linspaced'}});
+%> Opts = struct('initShiftsStrategy',{{'logspaced','linspaced'}});
 %> s0 = initializeShifts(sys,10,[],Opts); plot(complex(s0'),'x');
 %
 % See Also: 
@@ -103,18 +103,18 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 
 
 %% Execution parameters
-Def.strategy       = 'eigs';                % initialisation strategy
-Def.constValueInp  = 0;                     % constant shift for input space
-Def.constValueOut  = 0;                     % constant shift for output space
-Def.wmin           = abs(eigs(sys,1,'sm')); % lower bound  
-Def.wmax           = abs(eigs(sys,1));      % upper bound
-Def.kp             = 50;                    % number of Arnoldi steps w.r.t. A for heuristic shift computation
-Def.km             = 25;                    % number of Arnoldi steps w.r.t. inv(A) for heuristic shift computation
-Def.eigsType       = 'sm';                  % eigs parameter
-Def.shiftTyp       = 'conj';                % plain imaginary shifts
-Def.offset         = 0;                     % global offset for shifts
-Def.format         = 'complex';             % output format
-Def.isSiso         = sys.isSiso;
+Def.initShiftsStrategy     = 'eigs';                % initialisation strategy
+Def.constValueInp          = 0;                     % constant shift for input space
+Def.constValueOut          = 0;                     % constant shift for output space
+Def.wmin                   = abs(eigs(sys,1,'sm')); % lower bound  
+Def.wmax                   = abs(eigs(sys,1));      % upper bound
+Def.kp                     = 50;                    % number of Arnoldi steps w.r.t. A for heuristic shift computation
+Def.km                     = 25;                    % number of Arnoldi steps w.r.t. inv(A) for heuristic shift computation
+Def.eigsType               = 'sm';                  % eigs parameter
+Def.shiftTyp               = 'conj';                % plain imaginary shifts
+Def.offset                 = 0;                     % global offset for shifts
+Def.format                 = 'complex';             % output format
+Def.isSiso                 = sys.isSiso;
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -129,13 +129,13 @@ if ~exist('nSets','var') || isempty(nSets)
 end
 
 % check for valid combination of strategies
-if ~iscell(Opts.strategy)
-    Opts.strategy = {Opts.strategy};
+if ~iscell(Opts.initShiftsStrategy)
+    Opts.initShiftsStrategy = {Opts.initShiftsStrategy};
 else
-    if (any(strcmp(Opts.strategy{1},{'ADI','eigs','ROM','const'}))...
-            ||any(strcmp(Opts.strategy{end},{'ADI','eigs','ROM','const'})))...
-            && (length(Opts.strategy) > 1 || ~strcmp(Opts.shiftTyp,'conj'))
-        error('invalid choice of strategy');
+    if (any(strcmp(Opts.initShiftsStrategy{1},{'ADI','eigs','ROM','const'}))...
+            ||any(strcmp(Opts.initShiftsStrategy{end},{'ADI','eigs','ROM','const'})))...
+            && (length(Opts.initShiftsStrategy) > 1 || ~strcmp(Opts.shiftTyp,'conj'))
+        error('invalid choice of initial shift strategy');
     end
 end
 
@@ -148,16 +148,16 @@ if mod(nShifts,2)
 end
 
 %% Initialize shifts
-switch Opts.strategy{1}
+switch Opts.initShiftsStrategy{1}
     case 'constant'
         s0_inp = Opts.constValueInp*ones(1,nSets,nShifts);  
         if nargout == 2 
             Rt = [];
-            warning('No tangential directions can be specified in case "Opts.strategy = constant" ');
+            warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = constant" ');
         elseif nargout > 2
             s0_out = Opts.constValueOut*ones(1,nSets,nShifts);  
             Rt = [];   Lt = [];
-            warning('No tangential directions can be specified in case "Opts.strategy = constant" ');
+            warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = constant" ');
         end
     case 'eigs'
         [Rev,s0_inp] = (eigs(sys,nShifts*nSets,Opts.eigsType));
@@ -257,11 +257,11 @@ switch Opts.strategy{1}
         % define output
         if nargout == 2
             Rt = [];  
-            warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
+            warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = ADI" ');
         elseif nargout > 2
             s0_out = s0_inp;
             Rt = [];    Lt = [];
-            warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
+            warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = ADI" ');
         end
         
     case 'ROM'
@@ -341,10 +341,10 @@ switch Opts.strategy{1}
         % grid and random based strategies
         
         % check for valid combination of strategeis
-        if length(Opts.strategy)==1 && strcmp(Opts.shiftTyp,'conj')
-            Opts.strategy = [Opts.strategy; Opts.strategy];
-        elseif ~strcmp(Opts.shiftTyp,'conj') && length(Opts.strategy)>1
-            error('invalid choice of strategy');
+        if length(Opts.initShiftsStrategy)==1 && strcmp(Opts.shiftTyp,'conj')
+            Opts.initShiftsStrategy = [Opts.initShiftsStrategy; Opts.initShiftsStrategy];
+        elseif ~strcmp(Opts.shiftTyp,'conj') && length(Opts.initShiftsStrategy)>1
+            error('invalid choice of initial shift strategy');
         end
         
         % compute grid size and grid parameters
@@ -362,8 +362,8 @@ switch Opts.strategy{1}
             NoS = iSplit;
         end
         
-        for ii = 1:length(Opts.strategy)
-            switch Opts.strategy{ii}
+        for ii = 1:length(Opts.initShiftsStrategy)
+            switch Opts.initShiftsStrategy{ii}
                 case 'linspaced'
                     s0_temp=linspace(Opts.wmin,Opts.wmax,iSplit);
                     s0_parts{ii} = s0_temp;
@@ -381,14 +381,14 @@ switch Opts.strategy{1}
                     s0_parts{ii} = s0_temp;
                     
                 otherwise
-                    error('unknown initalisation strategy');
+                    error('unknown initalisation initial shift strategy');
             end
         end
         
         % generate final s0 matrix
         if ~strcmp(Opts.shiftTyp,'real')
             if strcmp(Opts.shiftTyp,'conj')
-                if  ~isempty(strfind(Opts.strategy{1},'spaced'))
+                if  ~isempty(strfind(Opts.initShiftsStrategy{1},'spaced'))
                     s0_real = repelem(s0_parts{1},2*iSplit);
                     s0_real = s0_real(1:nShifts*nSets);
                 else
@@ -397,7 +397,7 @@ switch Opts.strategy{1}
             else
                 s0_real = Opts.offset;
             end
-            if  ~isempty(strfind(Opts.strategy{end},'spaced'))
+            if  ~isempty(strfind(Opts.initShiftsStrategy{end},'spaced'))
                 s0_imag = repmat(repelem(s0_parts{end},2).*repmat([1,-1],1,iSplit),1,iSplit)*1i;
                 s0_imag = s0_imag(1:nShifts*nSets);
             else
@@ -417,11 +417,11 @@ switch Opts.strategy{1}
         % define output
         if nargout == 2
             Rt = [];  
-            warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
+            warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = ADI" ');
         elseif nargout > 2
             s0_out = s0_inp;
             Rt = [];    Lt = [];
-            warning('No tangential directions can be specified in case "Opts.strategy = ADI" ');
+            warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = ADI" ');
         end
 end
 
