@@ -86,14 +86,14 @@ function [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,nShifts,s0_inp,Rt,s0_out,Lt,
 %------------------------------------------------------------------
 
 %% Create Def-struct containing default values/options
-Def.strategy        = 'adaptive';       % strategy for shift generation: [{'adaptive'} / 'eigs' / 'projection']
-Def.multDir         =  0;               % choose strategy for tangential dierections [{0} / 1] 
+Def.getShiftsStrategy     = 'adaptive';       % strategy for shift generation: [{'adaptive'} / 'eigs' / 'projection']
+Def.multDir              =  0;               % choose strategy for tangential dierections [{0} / 1] 
 
 % additional function intern defaults, only interessting for usage within CRKSM-function
-Def.B_              = [];               % recycle Bbot if it is already available
-Def.Er_inv_Ar       = [];               % recycle Er^-1*Ar if it is already available
-Def.C_              = [];               % recycle Cbot if it is already available
-Def.Er_invT_ArT     = [];               % recycle Er^-T*ArT if it is already available
+Def.B_                   = [];               % recycle Bbot if it is already available
+Def.Er_inv_Ar            = [];               % recycle Er^-1*Ar if it is already available
+Def.C_                   = [];               % recycle Cbot if it is already available
+Def.Er_invT_ArT          = [];               % recycle Er^-T*ArT if it is already available
 
 %% Parsing of Inputs/Preprocessing
 % create the options structure and check tangential directions
@@ -106,8 +106,10 @@ clear Def
 
 %% Compute New Shift/Shifts
 % get new shifts: 'eigs' / 'adaptive' / ??'projection'??
-switch Opts.strategy
-    case 'eigs'        
+switch Opts.getShiftsStrategy
+    case 'eigs'   
+        % getShifts-function uses initializeShifts-function, overwrite strategies
+        Opts.initShiftsStrategy = Opts.getShiftsStrategy;
         % call INITIALIZESHIFTS to perform eigs
         if isempty(Rt) && isempty(s0_out) 
             snewOut = [];   Rtnew = [];     Ltnew = [];
@@ -203,6 +205,17 @@ function [snewInp,Rtnew] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
     ritzVal(idx,:) = [];
     ritzVal = sort(ritzVal);
     
+    %Spiegeln,falls instabile eigs
+    if all(real(ritzVal)) < 0
+        idxUnstable = real(ritzVal)<0; 
+        ritzVal(idxUnstable) = -ritzVal(idxUnstable);
+    end
+    
+    % check if there are NaN or Inf entries in ritzVal
+    if sum(isnan(ritzVal)) ~= 0 || sum(isinf(ritzVal)) ~= 0
+        warning('The reduced system seems to be unstable because there are Nan and/or Inf Ritz Values. An error may occur! Try a onesided projection only with V or W basis to avoid instability');
+    end
+    
     % build convex hull
     if ~isreal(ritzVal)
         specSet = sort([s0_inp'; -ritzVal]);
@@ -273,7 +286,17 @@ function [snewOut,Ltnew] = newParaOut(sys,sysr,W,s0_out,snewOut,Lt,Opts)
     idx = find(idx);
     ritzVal(idx,:) = [];
     ritzVal = sort(ritzVal);
-    %ritzVal = ritzVal(1:10,:);
+
+    %Spiegeln,falls instabile eigs
+    if all(real(ritzVal)) < 0
+        idxUnstable = real(ritzVal)<0; 
+        ritzVal(idxUnstable) = -ritzVal(idxUnstable);
+    end
+    
+    % check if there are NaN or Inf entries in ritzVal
+    if sum(isnan(ritzVal)) ~= 0 || sum(isinf(ritzVal)) ~= 0
+        warning('The reduced system seems to be unstable because there are Nan and/or Inf Ritz Values. An error may occur! Try a onesided projection only with V or W basis to avoid instability');
+    end
 
     % build convex hull
     if ~isreal(ritzVal)
