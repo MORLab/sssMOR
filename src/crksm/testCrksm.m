@@ -41,7 +41,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.strategy = 'ADI';
-             Opts.method = 'heur';
+             Opts.adiShiftsMethod = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -67,7 +67,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.strategy = 'ADI';
-             Opts.method = 'heur';
+             Opts.adiShiftsMethod = 'heur';
              Opts.nShifts = 10;
              s0_out = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -93,7 +93,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.strategy = 'ADI';
-             Opts.method = 'heur';
+             Opts.adiShiftsMethod = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              Opts.strategy = 'eigs';
@@ -122,7 +122,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.strategy = 'ADI';
-             Opts.method = 'heur';
+             Opts.adiShiftsMethod = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -149,7 +149,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.strategy = 'ADI';
-             Opts.method = 'heur';
+             Opts.adiShiftsMethod = 'heur';
              Opts.nShifts = 10;
              [s0_inp] = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -174,7 +174,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.strategy = 'ADI';
-             Opts.method = 'heur';
+             Opts.adiShiftsMethod = 'heur';
              Opts.nShifts = 10;
              [~,~,s0_out] = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -199,7 +199,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.strategy = 'ADI';
-             Opts.method = 'heur';
+             Opts.adiShiftsMethod = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              Opts.strategy = 'eigs';
@@ -227,7 +227,7 @@ methods(Test)
              sys = MIMObenchmarksSysCell{i};
              %  get interpolation data
              Opts.strategy = 'ROM';
-             %Opts.method = 'heur';
+             %Opts.adiShiftsMethod = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -354,7 +354,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.strategy = 'ADI';
-             Opts.method = 'heur';
+             Opts.adiShiftsMethod = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -380,7 +380,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.strategy = 'ADI';
-             Opts.method = 'heur';
+             Opts.adiShiftsMethod = 'heur';
              Opts.nShifts = 10;
              [~,~,s0_out] = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -406,7 +406,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.strategy = 'ADI';
-             Opts.method = 'heur';
+             Opts.adiShiftsMethod = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              Opts.strategy = 'eigs';
