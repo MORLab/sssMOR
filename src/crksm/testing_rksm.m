@@ -30,6 +30,9 @@ Opts.infoLyap = 1;
 %Opts.equation = 'observe';
 %Opts.stopCrit  = 'normChol';
 %Opts.purpose = 'MOR';
+[Scrksm_fom1,R,data] = lyapchol(sys,Opts);
+[Scrksm_fom1,data] = lyapchol(sys',Opts);
+
 
 tic
 Opts.method = 'crksm';
