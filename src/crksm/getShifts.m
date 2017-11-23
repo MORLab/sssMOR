@@ -220,7 +220,7 @@ function [snewInp,Rtnew] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
     if ~isreal(ritzVal)
         specSet = sort([s0_inp'; -ritzVal]);
         chull = convhull(real(specSet),imag(specSet));     % bulid convex hull of spectral set
-        specSet = specSet(chull); 
+        specSet = specSet(single(chull)); 
     else
         specSet = -ritzVal;
     end
@@ -302,7 +302,7 @@ function [snewOut,Ltnew] = newParaOut(sys,sysr,W,s0_out,snewOut,Lt,Opts)
     if ~isreal(ritzVal)
         specSet = sort([s0_out'; -ritzVal]);
         chull = convhull(real(specSet),imag(specSet));     % bulid convex hull of spectral set
-        specSet = specSet(chull); 
+        specSet = specSet(single(chull)); 
     else
         specSet = -ritzVal;
     end

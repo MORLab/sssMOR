@@ -51,7 +51,7 @@ methods(Test)
              Opts.stopCrit = 'residualLyap'; Opts.restolLyap = 1e-6;
              Opts.shifts = 'dynamical'; %[{'dynamical'} / 'fixedCyclic']
              Opts.getShiftsStrategy = 'adaptive';
-             %[sysrCrksm,V,W,S,data] = crksm(sys, s0_inp, Opts);
+             [sysrCrksm,V,W,S,data] = crksm(sys, s0_inp, Opts);
              
              % evaluation
 %              NORM{i} = norm(sys - sysrCrksm);

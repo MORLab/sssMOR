@@ -10,20 +10,67 @@ clearvars -global
 %               eady, heat-cont, LF10, random, bips98_606,
 %               SpiralInductorPeec, fom
 
-% sys = sss('fom')
-% [S_P,R_Q] = lyapchol(sys);
-% [R_Q_trans] = lyapchol(sys.');
-% norm(R_Q - R_Q_trans)
-% 
-% Opts.method = 'adi'
-% [S_P,R_Q] = lyapchol(sys,Opts);
+%%
+sys = sss('fom')
+sys = sss('rail_1357');
+Opts.method = 'hammarling'
+[S_P,R_Q] = lyapchol(sys);
+[R_Q_trans] = lyapchol(sys.');
+norm(R_Q - R_Q_trans)
+
+Opts.method = 'adi'
+[S_P,R_Q] = lyapchol(sys,Opts);
+[R_Q_trans] = lyapchol(sys.',Opts);
+norm(R_Q - R_Q_trans)
+
+Opts.method = 'crksm';
+% Opts.initShiftsStrategy = 'ADI'
+Opts.nShifts = 10;
+Opts.initShiftsStrategy = 'eigs'
+% Opts.shifts = 'fixedCyclic'
+% Opts.restolLyap = 1e-2;
+% Opts.initShiftsStrategy = 'constant'
+[S_P,R_Q,dataLyap] = lyapchol(sys,Opts);
 % [R_Q_trans] = lyapchol(sys.',Opts);
 % norm(R_Q - R_Q_trans)
-% 
-% Opts.method = 'crksm'
-% [S_P,R_Q] = lyapchol(sys,Opts);
-% [R_Q_trans] = lyapchol(sys.',Opts);
-% norm(R_Q - R_Q_trans)
+
+clear
+% Opts.initShiftsStrategy = 'ADI';
+Opts.initShiftsStrategy = 'eigs'
+Opts.nShifts = 10;
+Opts.maxiter = 35;
+% Opts.shifts = 'fixedCyclic'
+% Opts.restolLyap = 1e-2;
+% s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts); %s0_inp = double(single(s0_inp));
+[s0_inp,~,s0_out] = initializeShifts(sys,Opts.nShifts,1,Opts);
+[sysrCrksm,V,W,S,dataCrksm] = crksm(sys,[],s0_out,Opts);
+
+% s0_inp = initializeShifts(sys.',Opts.nShifts,1,Opts); %s0_inp = double(single(s0_inp));
+% [sysrCrksmDual,VDual,WDual,SDual,dataDua] = crksm(sys.',s0_inp,Opts);
+
+%%
+clear 
+sys = sss('fom');
+s0_inp = [0 Inf];
+Opts.purpose = 'MOR';
+[sysrCrksm,V,W,S,data] = crksm(sys, s0_inp, Opts);
+figure; bode(sys,'k',sysrCrksm,'r--');
+
+clear 
+sys = sss('fom');
+s0_inp = [0 Inf];
+[sysrCrksm,V,W,S,data] = crksm(sys, s0_inp);
+figure; bode(sys,'k',sysrCrksm,'r--');
+
+clear
+sys = sss('eady');
+s0_inp = [0 Inf];
+Opts.purpose = 'MOR'; 
+Opts.restolMOR =  1e-3;
+[sysrCrksm,V,W,S,data] = crksm(sys, s0_inp, Opts);
+figure; bode(sys,'k',sysrCrksm,'r--');
+
+ 
 
 %% fom model, Lyapunov
 sys = loadSss('fom');

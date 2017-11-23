@@ -174,7 +174,8 @@ switch Opts.initShiftsStrategy{1}
          if nargout > 1 && Opts.isSiso == 0 
              Rt = full((Rev'*sys.B))';
              if nargout == 3
-                s0_out = double(s0_inp);
+                s0_out = s0_inp;
+%                 s0_out = double(s0_inp);
                 s0_out = reshape(s0_out,nShifts,nSets);
              elseif nargout > 3
                 % get s0_out and left tangential directions
