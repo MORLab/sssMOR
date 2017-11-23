@@ -70,7 +70,33 @@ Opts.restolMOR =  1e-3;
 [sysrCrksm,V,W,S,data] = crksm(sys, s0_inp, Opts);
 figure; bode(sys,'k',sysrCrksm,'r--');
 
- 
+clear
+sys = sss('iss');
+s0_inp = [0 Inf];
+s0_out = [0 10];
+Opts.purpose = 'MOR'; 
+Opts.restolMOR =  1e-3;
+Opts.maxiter = 20;
+[sysrCrksm,V,W,S,data] = crksm(sys, s0_inp, s0_inp, Opts);
+figure; bode(sys,'k',sysrCrksm,'r--');
+
+clear
+sys = sss('rail_1357');
+s0_inp = [0 Inf];
+Opts.purpose = 'MOR'; 
+Opts.restolMOR =  1e-3;
+Opts.maxiter = 20;
+[sysrCrksm,V,W,S,data] = crksm(sys, s0_inp, Opts);
+figure; bode(sys,'k',sysrCrksm,'r--');
+
+clear
+sys = sss('rail_1357');
+s0_inp = [0 0]; Opts.shifts = 'fixedCyclic';
+Opts.purpose = 'MOR'; 
+Opts.restolMOR =  1e-3;
+Opts.maxiter = 20;
+[sysrCrksm,V,W,S,data] = crksm(sys, s0_inp, Opts);
+figure; bode(sys,'k',sysrCrksm,'r--');
 
 %% fom model, Lyapunov
 sys = loadSss('fom');
