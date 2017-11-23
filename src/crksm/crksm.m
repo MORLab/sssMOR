@@ -539,7 +539,8 @@ if ~exist('data.out2','var')
         V = basis1;  W = basis2;
     end
     % build final sysr-object
-     sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'crksm',Opts,sys);
+    Opts.originalOrder = sys.n;
+    sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'crksm',Opts,sys);
     
     if ii == Opts.maxiter
         warning('\n maximum number of iterations is reached without converging!' )
