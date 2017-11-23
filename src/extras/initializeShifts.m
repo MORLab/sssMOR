@@ -381,7 +381,7 @@ switch Opts.initShiftsStrategy{1}
                     s0_parts{ii} = s0_temp;
                     
                 otherwise
-                    error('unknown initalisation initial shift strategy');
+                    error('unknown initial shift strategy');
             end
         end
         
