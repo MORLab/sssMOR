@@ -10,6 +10,20 @@ clearvars -global
 %               eady, heat-cont, LF10, random, bips98_606,
 %               SpiralInductorPeec, fom
 
+% sys = sss('fom')
+% [S_P,R_Q] = lyapchol(sys);
+% [R_Q_trans] = lyapchol(sys.');
+% norm(R_Q - R_Q_trans)
+% 
+% Opts.method = 'adi'
+% [S_P,R_Q] = lyapchol(sys,Opts);
+% [R_Q_trans] = lyapchol(sys.',Opts);
+% norm(R_Q - R_Q_trans)
+% 
+% Opts.method = 'crksm'
+% [S_P,R_Q] = lyapchol(sys,Opts);
+% [R_Q_trans] = lyapchol(sys.',Opts);
+% norm(R_Q - R_Q_trans)
 
 %% fom model, Lyapunov
 sys = loadSss('fom');
@@ -97,6 +111,7 @@ clear s0_inp s0_out
 % s0_inp = zeros(1,10);
 % Rt = ones(m,size(s0_inp,10));
 % Lt = ones(p,size(s0_inp,10));
+
 % tic
 % [sysr_irka_CD, ~, ~, s0_inp, Rt, Lt] = irka(sys,s0_inp,Rt,Lt);
 % time_irka_CD = toc;
