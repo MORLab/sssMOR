@@ -172,6 +172,9 @@ switch Opts.getShiftsStrategy
             end
         end    
 end % end switch
+% convert to single for numerical accuracy
+snewInp = single(snewInp);      Rtnew = single(Rtnew);
+snewOut = single(snewOut);      Ltnew = single(Ltnew); 
 
 % check complex values
 soldInp = snewInp;
@@ -184,13 +187,13 @@ if ~isempty(Ltnew),     Ltnew = Ltnew(:,cplxSortingOut);        end
 
 % check if s0_inp is column or row vector or matrix, build enlarged output parametres
 if isrow(s0_inp) || isrow(s0_out)
-    if ~isempty(s0_inp),    s0_inp = [s0_inp snewInp];   end
-    if ~isempty(s0_out),    s0_out = [s0_out snewOut];   end
+    if ~isempty(s0_inp),    s0_inp = double([s0_inp snewInp]);   end
+    if ~isempty(s0_out),    s0_out = double([s0_out snewOut]);   end
 else 
-    if ~isempty(s0_inp),    s0_inp = [s0_inp reshape(snewInp,[1,size(snewInp,2)])];                end    
-    if ~isempty(s0_out),    s0_out = [s0_out reshape(snewOut,[1,size(snewOut,1)])];                end
+    if ~isempty(s0_inp),    s0_inp = double([s0_inp reshape(snewInp,[1,size(snewInp,2)])]);                end    
+    if ~isempty(s0_out),    s0_out = double([s0_out reshape(snewOut,[1,size(snewOut,1)])]);                end
 end
-Rt = [Rt Rtnew];        Lt = [Lt Ltnew];          
+Rt = double([Rt Rtnew]);        Lt = double([Lt Ltnew]);  
 end % end of getShifts
 
 %% ***************************** AUXILIARY ********************************
@@ -238,7 +241,7 @@ function [snewInp,Rtnew] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
     resNorm_last = 0;   
     for ii = 1:1:size(specSet,1)
         Y = solveLse((sysr.A-specSet(ii,1)*sysr.E),sysr.B);
-        resNorm = norm(((sys.A*V-sys.E*V*Opts.Er_inv_Ar)*Y-Opts.B_))/res0;         
+        resNorm = norm(((sys.A*V-sys.E*V*Opts.Er_inv_Ar)*Y-Opts.B_))/res0; 
         if isempty(resNorm_last) || resNorm > resNorm_last
             resNorm_last = resNorm;
             snewInp = specSet(ii,1);
