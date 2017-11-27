@@ -175,10 +175,12 @@ switch Opts.initShiftsStrategy{1}
          if nargout > 1 && sys.isSiso == 0 
              Rt = full((Rev'*sys.B))';
              if nargout == 3
-                s0_out = double(s0_inp);
+                s0_out = s0_inp;
+%                 s0_out = double(s0_inp);
              elseif nargout > 3
                 % get s0_out and left tangential directions
-                s0_out = double(s0_inp);
+%                 s0_out = double(s0_inp);
+                s0_out = s0_inp;
                 if sys.issymmetric 
                     Lev = Rev;
                 else
@@ -187,7 +189,8 @@ switch Opts.initShiftsStrategy{1}
                 Lt = full(sys.C*Lev);
              end
          elseif nargout > 1 && sys.isSiso == 1
-            s0_out = double(s0_inp);
+%             s0_out = double(s0_inp);
+            s0_out = s0_inp;
          end
         
     case 'ADI'
@@ -249,7 +252,8 @@ switch Opts.initShiftsStrategy{1}
         
         % define output
         if nargout > 2
-            s0_out = double(s0_inp);
+%             s0_out = double(s0_inp);
+            s0_out = s0_inp;
         end
         
     case 'ROM'
@@ -303,10 +307,12 @@ switch Opts.initShiftsStrategy{1}
          if nargout > 1 && sys.isSiso == 0 
              Rt = full((Rev'*sysr.B))';
              if nargout == 3
-                 s0_out = double(s0_inp);
+%                  s0_out = double(s0_inp);
+                 s0_out = s0_inp;
              elseif nargout > 3
                 % get s0_out and left tangential directions
-                s0_out = double(s0_inp);
+%                 s0_out = double(s0_inp);
+                s0_out = s0_inp;
                 if sys.issymmetric 
                     Lev = Rev;
                 else
@@ -315,7 +321,8 @@ switch Opts.initShiftsStrategy{1}
                 Lt = full(sysr.C*Lev);
              end
          elseif nargout > 1 && sys.isSiso == 1
-            s0_out = double(s0_inp);
+%             s0_out = double(s0_inp);
+            s0_out = s0_inp;
          end
     
     otherwise % grid and random based strategies
@@ -394,7 +401,8 @@ switch Opts.initShiftsStrategy{1}
         
         % define output
         if nargout > 2
-            s0_out = double(s0_inp);
+%             s0_out = double(s0_inp);
+            s0_out = s0_inp;
         end
 end
 
