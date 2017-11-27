@@ -90,10 +90,9 @@ function [sysr,V,W,Z,data] = crksm(varargin)
 %           -.shifts:           choose shifts and how they should be used [{'dynamical'} / 'fixedCyclic']
 %                -'fixedCyclic':    same initial shifts defined by the user are cyclically used for the whole function
 %                -'dynamical':      new shifts are obtained dynamically during the programme 
-%           -.strategy:         choose strategy for dynamically getting shifts with |getShifts| 
+%           -.getShiftsStrategy:choose strategy for dynamically getting shifts with |getShifts| 
 %                -'adaptive':       a new shift is computed online for every single iteration
 %                -'eigs':           TODO
-%                -'mess':           use a function to generate shifts out of the mess-toolbox
 %           -.shiftTol:         tolerance for the choice of new shifts
 %                               [{0.1} / positive float]
 %
@@ -175,7 +174,7 @@ Def.restolMOR            =  1e-4;              % default tolerance
 
 % default option settings for the choice of shifts
 Def.shifts               = 'dynamical';        % choose usage of shifts [{'dynamical'} / 'fixedCyclic']
-Def.getShiftsStrategy     = 'adaptive';         % choose GETSHIFTS strategy for updating shifts: [ {'adaptive'} / 'eigs' ]
+Def.getShiftsStrategy    = 'adaptive';         % choose GETSHIFTS strategy for updating shifts: [ {'adaptive'} / 'eigs' ]
 Def.shiftTol             =  0.1;               % default value for new shifts
 
 % define data struct
@@ -271,7 +270,8 @@ end
 
 % check extended case
 if (input == 1 && s0_inp(1,1) == 0 && s0_inp(1,2) == inf) || ...
-   (input == 3 && s0_out(1,1) == 0 && s0_out(1,2) == inf) 
+   (input == 3 && s0_out(1,1) == 0 && s0_out(1,2) == inf) || ...
+   (input == 4 && s0_inp(1,1) == 0 && s0_inp(1,2) == inf && s0_out(1,1) == 0 && s0_out(1,2) == inf)
     Opts.shifts = 'fixedCyclic';
     fprintf('\n Extended Krylov method will be used, shifts are used in a fixed cyclic way \n');
     
@@ -385,7 +385,7 @@ else
     usage = @crksmSysr;
     pointerLyap = []; 
     Z = [];
-    if Opts.hermite && strcmp(Opts.getShiftsStrategy,'adaptive')
+    if Opts.hermite && ~strcmp(Opts.shifts,'fixedCyclic') && strcmp(Opts.getShiftsStrategy,'adaptive')
         Opts.getShiftsStrategy = 'eigs';
         disp('Shift update strategy changed from adaptive to eigs because adaptive does not support the hermite, twosided case');
     end
@@ -539,7 +539,8 @@ if ~exist('data.out2','var')
         V = basis1;  W = basis2;
     end
     % build final sysr-object
-     sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'crksm',Opts,sys);
+    Opts.originalOrder = sys.n;
+    sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'crksm',Opts,sys);
     
     if ii == Opts.maxiter
         warning('\n maximum number of iterations is reached without converging!' )

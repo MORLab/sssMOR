@@ -1,8 +1,8 @@
 function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
-% initializeShifts - initialize Shifts for global and consecutive MOR
+% INITIALIZESHIFTS - Initialize shifts for global and consecutive MOR
 % 
 % Syntax:
-%		[s0_inp,Rt,s0_out,Lt]         = initializeShifts(sys,Opts)
+%		[s0_inp,Rt,s0_out,Lt]         = INITIALIZESHIFTS(sys,Opts)
 % 
 % Description:
 %       
@@ -77,7 +77,7 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 %> s0 = initializeShifts(sys,10,[],Opts); plot(complex(s0'),'x');
 %
 % See Also: 
-%		cure, cirka, spark
+%		cure, cirka, spark, crksm, sss/lyapchol
 %
 % References:
 %		[1] Michael Ott (2016)*, Strategien zur Initialisierung der Entwicklungspunkte für H2-optimale Modellordnungsreduktion
@@ -97,7 +97,7 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 % Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  22 Nov 2017
+% Last Change:  23 Nov 2017
 % Copyright (c) 2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -150,12 +150,12 @@ end
 %% Initialize shifts
 switch Opts.initShiftsStrategy{1}
     case 'constant'
-        s0_inp = Opts.constValueInp*ones(1,nSets,nShifts);  
+        s0_inp = Opts.constValueInp*ones(nSets,nShifts);  
         if nargout == 2 
             Rt = [];
             warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = constant" ');
         elseif nargout > 2
-            s0_out = Opts.constValueOut*ones(1,nSets,nShifts);  
+            s0_out = Opts.constValueOut*ones(nSets,nShifts);  
             Rt = [];   Lt = [];
             warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = constant" ');
         end
@@ -174,7 +174,8 @@ switch Opts.initShiftsStrategy{1}
          if nargout > 1 && Opts.isSiso == 0 
              Rt = full((Rev'*sys.B))';
              if nargout == 3
-                s0_out = double(s0_inp);
+                s0_out = s0_inp;
+%                 s0_out = double(s0_inp);
                 s0_out = reshape(s0_out,nShifts,nSets);
              elseif nargout > 3
                 % get s0_out and left tangential directions
