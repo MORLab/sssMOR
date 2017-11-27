@@ -42,7 +42,7 @@ methods(Test)
              %  get interpolation data
 
              Opts.initShiftsStrategy = 'ADI';
-             Opts.adiShiftsMethod = 'heur';
+             Opts.adi.shifts.method = 'heur';
 
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
@@ -69,7 +69,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.initShiftsStrategy = 'ADI';
-             Opts.adiShiftsMethod = 'heur';
+             Opts.adi.shifts.method = 'heur';
              Opts.nShifts = 10;
              s0_out = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -95,7 +95,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.initShiftsStrategy = 'ADI';
-             Opts.adiShiftsMethod = 'heur';
+             Opts.adi.shifts.method = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              Opts.initShiftsStrategy = 'eigs';
@@ -124,7 +124,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.initShiftsStrategy = 'ADI';
-             Opts.adiShiftsMethod = 'heur';
+             Opts.adi.shifts.method = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -151,7 +151,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.initShiftsStrategy = 'ADI';
-             Opts.adiShiftsMethod = 'heur';
+             Opts.adi.shifts.method = 'heur';
              Opts.nShifts = 10;
              [s0_inp] = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -176,7 +176,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.initShiftsStrategy = 'ADI';
-             Opts.adiShiftsMethod = 'heur';
+             Opts.adi.shifts.method = 'heur';
              Opts.nShifts = 10;
              [~,~,s0_out] = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -201,7 +201,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.initShiftsStrategy = 'ADI';
-             Opts.adiShiftsMethod = 'heur';
+             Opts.adi.shifts.method = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              Opts.initShiftsStrategy = 'eigs';
@@ -229,7 +229,7 @@ methods(Test)
              sys = MIMObenchmarksSysCell{i};
              %  get interpolation data
              Opts.initShiftsStrategy = 'ROM';
-             %Opts.adiShiftsMethod = 'heur';
+             %Opts.adi.shifts.method = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -356,7 +356,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.initShiftsStrategy = 'ADI';
-             Opts.adiShiftsMethod = 'heur';
+             Opts.adi.shifts.method = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -382,7 +382,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.initShiftsStrategy = 'ADI';
-             Opts.adiShiftsMethod = 'heur';
+             Opts.adi.shifts.method = 'heur';
              Opts.nShifts = 10;
              [~,~,s0_out] = initializeShifts(sys,Opts.nShifts,1,Opts);
              
@@ -408,7 +408,7 @@ methods(Test)
              
              %  get interpolation data
              Opts.initShiftsStrategy = 'ADI';
-             Opts.adiShiftsMethod = 'heur';
+             Opts.adi.shifts.method = 'heur';
              Opts.nShifts = 10;
              s0_inp = initializeShifts(sys,Opts.nShifts,1,Opts);
              Opts.initShiftsStrategy = 'eigs';
@@ -533,8 +533,8 @@ function SISObenchmarksSysCell = getSISObenchmarks()
 %     SISOBenchmarks = {'building.mat','random','heat-cont.mat','beam.mat','eady.mat',...
 %         'fom.mat','SpiralInductorPeec.mat'};
     
-    SISOBenchmarks = {'building.mat','fom.mat','heat-cont.mat'};
-%     SISOBenchmarks = {'heat-cont.mat','beam.mat','eady.mat','fom.mat'};
+%     SISOBenchmarks = {'building.mat','fom.mat','heat-cont.mat'};
+    SISOBenchmarks = {'heat-cont.mat','beam.mat','eady.mat','fom.mat'};
  
     nFiles = length(SISOBenchmarks);
     

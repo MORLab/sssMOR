@@ -31,8 +31,8 @@ Opts.initShiftsStrategy = 'eigs'
 % Opts.restolLyap = 1e-2;
 % Opts.initShiftsStrategy = 'constant'
 [S_P,R_Q,dataLyap] = lyapchol(sys,Opts);
-% [R_Q_trans] = lyapchol(sys.',Opts);
-% norm(R_Q - R_Q_trans)
+[R_Q_trans] = lyapchol(sys.',Opts);
+norm(R_Q - R_Q_trans)
 
 clear
 % Opts.initShiftsStrategy = 'ADI';
@@ -45,8 +45,8 @@ Opts.maxiter = 35;
 [s0_inp,~,s0_out] = initializeShifts(sys,Opts.nShifts,1,Opts);
 [sysrCrksm,V,W,S,dataCrksm] = crksm(sys,[],s0_out,Opts);
 
-% s0_inp = initializeShifts(sys.',Opts.nShifts,1,Opts); %s0_inp = double(single(s0_inp));
-% [sysrCrksmDual,VDual,WDual,SDual,dataDua] = crksm(sys.',s0_inp,Opts);
+s0_inp = initializeShifts(sys.',Opts.nShifts,1,Opts); %s0_inp = double(single(s0_inp));
+[sysrCrksmDual,VDual,WDual,SDual,dataDua] = crksm(sys.',s0_inp,Opts);
 
 %%
 clear 
@@ -133,7 +133,7 @@ clear s0_inp s0_out
 
 % mess-adi options
 Opts.method = 'adi';
-Opts.messPara = 'projection';    % only for MESS
+Opts.adi.shifts.method = 'projection';    % only for MESS
 Opts.rctol = 0;
 Opts.restol = 1e-8;
 Opts.norm = 2;
@@ -221,7 +221,7 @@ clear s0_inp s0_out
 
 % mess-adi options
 Opts.method = 'adi';
-Opts.messPara = 'projection';    % only for MESS
+Opts.adi.shifts.method = 'projection';    % only for MESS
 Opts.rctol = 0;
 Opts.restol = 1e-8;
 Opts.norm = 2;
@@ -257,7 +257,7 @@ clear s0_inp s0_out
 
 % mess-adi options
 Opts.method = 'adi';
-Opts.messPara = 'projection';    % only for MESS
+Opts.adi.shifts.method = 'projection';    % only for MESS
 Opts.rctol = 0;
 Opts.restol = 1e-8;
 Opts.norm = 2;
