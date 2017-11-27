@@ -2,18 +2,22 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 % INITIALIZESHIFTS - Initialize shifts for global and consecutive MOR
 % 
 % Syntax:
-%		[s0_inp,Rt,s0_out,Lt]         = INITIALIZESHIFTS(sys,Opts)
+%		[s0_inp,Rt,s0_out,Lt] = INITIALIZESHIFTS(sys,Opts)
 % 
 % Description:
 %       
 %       Generates a 1 x nShift vector of shift frequencies s0 according to the 
-%       chosen  initial shift strategy, which can be defined in Opts.strategy.
+%       chosen initial shift strategy, which can be defined in Opts.initShiftsStrategy.
 %       s0 can be used as inputs to the reduction functions of sssMOR.
 %       If necessary, a shift vector for a Krylov output space can be
 %       built containing the same shifts as the s0_inp vector.
-%       Besides, for strategies 'eigs' and 'ROM', right and left tangential
-%       directions Rt and Lt are available. 
 %
+%       Besides, for strategies 'eigs' and 'ROM', right and left tangential
+%       directions Rt and Lt are available. For all the other strategies (i.e.
+%       'ADI', 'constant', 'linspaced', etc.) tangential directions with ones
+%       are computed:
+%       Rt = ones(sys.m,nShifts*nSets); Lt = ones(sys.p,nShifts*nSets);
+%       
 %       If nSets is specified and larger than one, then s0 is a 1 x nSets
 %       cell array of shift vectors of size nShifts.
 %       
@@ -26,7 +30,7 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 %		*Optional Input Arguments:*
 %		-Opts:              A structure containing following fields
 %			-.initShiftsStrategy:  	strategy for shift generation;
-%                                   [ADI / const / ROM / {eigs} / 
+%                                   [ADI / constant / ROM / {eigs} / 
 %                                   linspaced / logspaced / random / lognrnd]
 %                                   mixed strategy for real and imag part possible 
 %			-.shiftType:            type of shifts;
@@ -35,11 +39,11 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 %                                   [{|eigs(sys,'sm')|}, positive double]
 %			-.wmax:                 upper bound of generated shifts;
 %                                   [{|eigs(sys,'lm')|}, positive double]
-%			-.kp:                   number of Arnoldi steps w.r.t. A for heuristic shift computation
+%			-.adi.shifts.kp:        number of Arnoldi steps w.r.t. A for heuristic shift computation
 %                                   refer to opts.adi.shifts.kp in
 %                                   MESS_PARA or MESS_LRADI for more info
 %                                   [{50} / 20...80 ]
-%			-.km:                   number of Arnoldi steps w.r.t. inv(A) for heuristic shift computation
+%			-.adi.shifts.km:        number of Arnoldi steps w.r.t. inv(A) for heuristic shift computation
 %                                   refer to opts.adi.shifts.km in
 %                                   MESS_PARA or MESS_LRADI for more info
 %                                   [{25} / 10...40 ]
@@ -54,13 +58,10 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 %
 % Output Arguments:
 %       -s0_inp:            Vector (of sets) of shift frequencies for input Krylov subspace 
+%       -Rt:                Matrix of right tangential directions
 %       -s0_out:            Vector (of sets) of shift frequencies for output Krylov subspace
-%                           (the same as for the input space s0_inp), if it is
-%                           not specified, INITIALIZESHIFTS delivers an empty array
-%       -Rt:                Matrix of right tangential directions, if it is
-%                           not specified, INITIALIZESHIFTS delivers an empty array
-%       -Lt:                Matrix of left tangentila directions, if it is
-%                           not specified, INITIALIZESHIFTS delivers an empty array
+%                           (the same as for the input space s0_inp)
+%       -Lt:                Matrix of left tangential directions
 %
 % Examples:
 %       By default, initializeShifts generates shifts with the eigs
@@ -86,18 +87,19 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
 % Reduction and System Analysis Toolbox developed at the Chair of 
 % Automatic Control, Technische Universitaet Muenchen. For updates 
-% and further information please visit <a href="https://www.rt.mw.tum.de/?sssMOR">www.rt.mw.tum.de/?sssMOR</a>
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:sssMOR@rt.mw.tum.de">sssMOR@rt.mw.tum.de</a> <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
 %
 % More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 %
 %------------------------------------------------------------------
 % Authors:      Michael Ott, Siyang Hu, Alessandro Castagnotto
+%               Maria Cruz Varona, Paul Heidenreich
 % Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  23 Nov 2017
+% Last Change:  27 Nov 2017
 % Copyright (c) 2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -108,13 +110,13 @@ Def.constValueInp          = 0;                     % constant shift for input s
 Def.constValueOut          = 0;                     % constant shift for output space
 Def.wmin                   = abs(eigs(sys,1,'sm')); % lower bound  
 Def.wmax                   = abs(eigs(sys,1));      % upper bound
-Def.kp                     = 50;                    % number of Arnoldi steps w.r.t. A for heuristic shift computation
-Def.km                     = 25;                    % number of Arnoldi steps w.r.t. inv(A) for heuristic shift computation
+Def.adi.shifts.kp          = 50;                    % number of Arnoldi steps w.r.t. A for heuristic shift computation
+Def.adi.shifts.km          = 25;                    % number of Arnoldi steps w.r.t. inv(A) for heuristic shift computation
 Def.eigsType               = 'sm';                  % eigs parameter
 Def.shiftTyp               = 'conj';                % plain imaginary shifts
 Def.offset                 = 0;                     % global offset for shifts
 Def.format                 = 'complex';             % output format
-Def.isSiso                 = sys.isSiso;
+% Def.isSiso                 = sys.isSiso;
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -132,8 +134,8 @@ end
 if ~iscell(Opts.initShiftsStrategy)
     Opts.initShiftsStrategy = {Opts.initShiftsStrategy};
 else
-    if (any(strcmp(Opts.initShiftsStrategy{1},{'ADI','eigs','ROM','const'}))...
-            ||any(strcmp(Opts.initShiftsStrategy{end},{'ADI','eigs','ROM','const'})))...
+    if (any(strcmp(Opts.initShiftsStrategy{1},{'ADI','eigs','ROM','constant'}))...
+            ||any(strcmp(Opts.initShiftsStrategy{end},{'ADI','eigs','ROM','constant'})))...
             && (length(Opts.initShiftsStrategy) > 1 || ~strcmp(Opts.shiftTyp,'conj'))
         error('invalid choice of initial shift strategy');
     end
@@ -147,17 +149,16 @@ if mod(nShifts,2)
    oddOrder = 1;
 end
 
+% initialize tangential directions with ones
+Rt = ones(sys.m,nShifts*nSets);
+Lt = ones(sys.p,nShifts*nSets);
+
 %% Initialize shifts
 switch Opts.initShiftsStrategy{1}
     case 'constant'
         s0_inp = Opts.constValueInp*ones(nSets,nShifts);  
-        if nargout == 2 
-            Rt = [];
-            warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = constant" ');
-        elseif nargout > 2
+        if nargout > 2
             s0_out = Opts.constValueOut*ones(nSets,nShifts);  
-            Rt = [];   Lt = [];
-            warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = constant" ');
         end
     case 'eigs'
         [Rev,s0_inp] = (eigs(sys,nShifts*nSets,Opts.eigsType));
@@ -171,16 +172,13 @@ switch Opts.initShiftsStrategy{1}
         end
         
          % get right tangential directions
-         if nargout > 1 && Opts.isSiso == 0 
+         if nargout > 1 && sys.isSiso == 0 
              Rt = full((Rev'*sys.B))';
              if nargout == 3
-                s0_out = s0_inp;
-%                 s0_out = double(s0_inp);
-                s0_out = reshape(s0_out,nShifts,nSets);
+                s0_out = double(s0_inp);
              elseif nargout > 3
                 % get s0_out and left tangential directions
                 s0_out = double(s0_inp);
-                s0_out = reshape(s0_out,nShifts,nSets);
                 if sys.issymmetric 
                     Lev = Rev;
                 else
@@ -188,17 +186,12 @@ switch Opts.initShiftsStrategy{1}
                 end 
                 Lt = full(sys.C*Lev);
              end
-         elseif nargout > 1 && Opts.isSiso == 1
-            Rt = [];  Lt = []; s0_out = double(s0_inp);
-         else
-            Rt = [];  Lt = []; s0_out = [];
+         elseif nargout > 1 && sys.isSiso == 1
+            s0_out = double(s0_inp);
          end
-         s0_inp = reshape(s0_inp,nShifts,nSets);
-         s0_inp = double(s0_inp);
         
     case 'ADI'
-        Def.adiShiftsMethod = 'heur';
-%         Def.adi = 0; %use only adi or lyapunov equation ('0','adi','lyap')
+        Def.adi.shifts.method = 'heur';
         Def.lse = 'gauss'; %lse (used only for adi)
         
         if ~exist('Opts','var') || isempty(Opts)
@@ -207,8 +200,8 @@ switch Opts.initShiftsStrategy{1}
             Opts = parseOpts(Opts,Def);
         end
         
-        if strcmp(Opts.adiShiftsMethod,'projection') || strcmp(Opts.adiShiftsMethod,'wachspress')
-            Opts.adiShiftsMethod = 'heur';
+        if strcmp(Opts.adi.shifts.method,'projection') || strcmp(Opts.adi.shifts.method,'wachspress')
+            Opts.adi.shifts.method = 'heur';
             warning(['ADI shift method changed from projection/wachspress to heur, ',...
                      'because projection only computes one real or two complex conjugated shifts ',...
                      'and wachspress does not always return the desired number of shifts.'])
@@ -219,10 +212,10 @@ switch Opts.initShiftsStrategy{1}
             % eqn struct: system data
             eqn=struct('A_',sys.A,'E_',sys.E,'B',sys.B,'C',sys.C,'type','N','haveE',sys.isDescriptor);
             
-            % opts struct: mess options
-            messOpts.adi=struct('shifts',struct('l0',nSets*nShifts,'kp',Opts.kp,'km',Opts.km,'b0',ones(sys.n,1),...
-                'info',0,'method',Opts.adiShiftsMethod),'maxiter',300,'restol',0.1,'rctol',1e-12,...
-                'info',0,'norm','fro');
+            % opts struct: mess options            
+            messOpts.adi=struct('shifts',struct('l0',nSets*nShifts,'kp',Opts.adi.shifts.kp,...
+                'km',Opts.adi.shifts.km,'b0',ones(sys.n,1),'info',0,'method',Opts.adi.shifts.method),...
+                'restol',0.1); % for the choice of 'restol', refer to TOL in MESS_WACHSPRESS 
             
             % user functions: default
             if strcmp(Opts.lse,'gauss')
@@ -237,44 +230,36 @@ switch Opts.initShiftsStrategy{1}
         end
         
         % get adi shifts
-        [messOpts.adi.shifts.p]=mess_para(eqn,messOpts,oper);
-        s0_inp=messOpts.adi.shifts.p;
+        messOpts.adi.shifts.p = mess_para(eqn,messOpts,oper);
+        s0_inp = messOpts.adi.shifts.p;
         
         % mirror shifts if unstable
         idxUnstable = real(s0_inp)<0;
-        s0_inp(idxUnstable) = - s0_inp(idxUnstable);
+        s0_inp(idxUnstable) = -s0_inp(idxUnstable);
         
         % truncation (of last real shift if length of s0 too long)
-        if(length(s0_inp)>nSets*nShifts)
-            reals0=find((imag(s0_inp)==0));
-            if(~isempty(reals0))
+        if length(s0_inp) > nSets*nShifts
+            reals0 = find((imag(s0_inp)==0));
+            if ~isempty(reals0)
                 s0_inp(reals0(end))=[];
             else
                 error('Truncation does not work, s0 too long')
             end
         end
-        s0_inp = reshape(s0_inp,nShifts,nSets);
         
         % define output
-        if nargout == 2
-            Rt = [];  
-            warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = ADI" ');
-        elseif nargout > 2
-            s0_out = s0_inp;
-            Rt = [];    Lt = [];
-            warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = ADI" ');
+        if nargout > 2
+            s0_out = double(s0_inp);
         end
         
     case 'ROM'
-        
         mineig=-eigs(sys,1,'sm'); % use mirrored eigenvalue with smallest magnitude
         
-        if(~isreal(mineig))
-            
+        if ~isreal(mineig)
             multip = ceil(nSets*nShifts/2);
             sysr = rk(sys,[mineig,conj(mineig);multip, multip],[mineig,conj(mineig);multip,multip]);
             s0_inp = single(-eig(sysr).');
-            if length(s0_inp)> nSets*nShifts
+            if length(s0_inp) > nSets*nShifts
                 idx = find(imag(s0_inp)==0);
                 if isempty(idx)
                     s0_inp=sort(s0_inp);
@@ -315,15 +300,13 @@ switch Opts.initShiftsStrategy{1}
         end
         
          % get right tangential directions
-         if nargout > 1 && Opts.isSiso == 0 
+         if nargout > 1 && sys.isSiso == 0 
              Rt = full((Rev'*sysr.B))';
              if nargout == 3
-                    s0_out = double(s0_inp);
-                    s0_out = reshape(s0_out,nShifts,nSets);
+                 s0_out = double(s0_inp);
              elseif nargout > 3
                 % get s0_out and left tangential directions
                 s0_out = double(s0_inp);
-                s0_out = reshape(s0_out,nShifts,nSets);
                 if sys.issymmetric 
                     Lev = Rev;
                 else
@@ -331,17 +314,13 @@ switch Opts.initShiftsStrategy{1}
                 end 
                 Lt = full(sysr.C*Lev);
              end
-         elseif nargout > 1 && Opts.isSiso == 1
-            Rt = [];  Lt = []; s0_out = double(s0_inp);
-         else
-            Rt = [];  Lt = []; s0_out = [];
+         elseif nargout > 1 && sys.isSiso == 1
+            s0_out = double(s0_inp);
          end
-        s0_inp = reshape(s0_inp,nShifts,nSets);
     
-    otherwise
-        % grid and random based strategies
+    otherwise % grid and random based strategies
         
-        % check for valid combination of strategeis
+        % check for valid combination of strategies
         if length(Opts.initShiftsStrategy)==1 && strcmp(Opts.shiftTyp,'conj')
             Opts.initShiftsStrategy = [Opts.initShiftsStrategy; Opts.initShiftsStrategy];
         elseif ~strcmp(Opts.shiftTyp,'conj') && length(Opts.initShiftsStrategy)>1
@@ -398,7 +377,7 @@ switch Opts.initShiftsStrategy{1}
             else
                 s0_real = Opts.offset;
             end
-            if  ~isempty(strfind(Opts.initShiftsStrategy{end},'spaced'))
+            if ~isempty(strfind(Opts.initShiftsStrategy{end},'spaced'))
                 s0_imag = repmat(repelem(s0_parts{end},2).*repmat([1,-1],1,iSplit),1,iSplit)*1i;
                 s0_imag = s0_imag(1:nShifts*nSets);
             else
@@ -413,16 +392,9 @@ switch Opts.initShiftsStrategy{1}
             end
         end
         
-        s0_inp = reshape(s0_inp,nShifts,nSets)';
-        
         % define output
-        if nargout == 2
-            Rt = [];  
-            warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = ADI" ');
-        elseif nargout > 2
-            s0_out = s0_inp;
-            Rt = [];    Lt = [];
-            warning('No tangential directions can be specified in case "Opts.initShiftsStrategy = ADI" ');
+        if nargout > 2
+            s0_out = double(s0_inp);
         end
 end
 
@@ -430,17 +402,31 @@ end
 if oddOrder
     s0_inp(:,end) = [];
     s0_inp(:,end) = real(s0_inp(:,end));
+    if nargout == 3
+        s0_out(:,end) = [];
+        s0_out(:,end) = real(s0_out(:,end));
+    end
 end
 
 % change output format to ab
 if strcmp(Opts.format,'ab')
     s0_inp = s2p(s0_inp(:,1),s0_inp(:,2));
+    if nargout == 3
+        s0_out = s2p(s0_out(:,1),s0_out(:,2));
+    end
 end
 
-% Change s0 from matrix to cell if several sets were computed
+% Change s0_inp/s0_out & Rt/Lt from matrix to cell if several sets were computed
 if nSets > 1
-    s0_inp = reshape(s0_inp.',1,nShifts*nSets);
-    s0_inp = mat2cell(s0_inp,1,nShifts*ones(1,nSets));
+    s0_inp = reshape(s0_inp,1,nShifts*nSets);    s0_inp = mat2cell(s0_inp,1,nShifts*ones(1,nSets));
+    
+    if nargout == 2
+        Rt = reshape(Rt,sys.m,nShifts*nSets);    Rt = mat2cell(Rt,sys.m,nShifts*ones(1,nSets));
+    elseif nargout == 3
+        s0_out = reshape(s0_out,1,nShifts*nSets);    s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
+    elseif nargout == 4
+        Lt = reshape(Lt,sys.p,nShifts*nSets);    Lt = mat2cell(Lt,sys.p,nShifts*ones(1,nSets));
+    end
 end
 
 end
@@ -470,12 +456,14 @@ function varargout = s2p(varargin)
 % [1] Panzer (2014), Model Order Reduction by Krylov Subspace Methods
 %     with Global Error Bounds and Automatic Choice of Parameters
 % ------------------------------------------------------------------
-% This file is part of MORLab, a Sparse State Space, Model Order
-% Reduction and System Analysis Toolbox developed at the Institute
-% of Automatic Control, Technische Universitaet Muenchen.
-% For updates and further information please visit www.rt.mw.tum.de
+% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
+% Reduction and System Analysis Toolbox developed at the Chair of 
+% Automatic Control, Technische Universitaet Muenchen. For updates 
+% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % For any suggestions, submission and/or bug reports, mail us at
-%                      -> MORLab@tum.de <-
+%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
+%
+% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
 % ------------------------------------------------------------------
 % Authors:      Alessandro Castagnotto
 % Last Change:  27 April 2015
