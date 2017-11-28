@@ -53,8 +53,6 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 %                                   [{0} / double]
 %			-.offset:               offset for plain imag or real shifts 
 %                                   [{0} / double]
-%           -.format:               output format of the shifts
-%                                   [{complex} / ab]
 %
 % Output Arguments:
 %       -s0_inp:            Vector (of sets) of shift frequencies for input Krylov subspace 
@@ -99,7 +97,7 @@ function [s0_inp,Rt,s0_out,Lt] = initializeShifts(sys,nShifts,nSets,Opts)
 % Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  27 Nov 2017
+% Last Change:  28 Nov 2017
 % Copyright (c) 2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -115,8 +113,6 @@ Def.adi.shifts.km          = 25;                    % number of Arnoldi steps w.
 Def.eigsType               = 'sm';                  % eigs parameter
 Def.shiftTyp               = 'conj';                % plain imaginary shifts
 Def.offset                 = 0;                     % global offset for shifts
-Def.format                 = 'complex';             % output format
-% Def.isSiso                 = sys.isSiso;
 
 % create the options structure
 if ~exist('Opts','var') || isempty(Opts)
@@ -173,7 +169,7 @@ switch Opts.initShiftsStrategy{1}
         
          % get right tangential directions
          if nargout > 1 && sys.isSiso == 0 
-             Rt = full((Rev'*sys.B))';
+             Rt = full((Rev.'*sys.B)).';
              if nargout == 3
                 s0_out = s0_inp;
 %                 s0_out = double(s0_inp);
@@ -406,96 +402,52 @@ switch Opts.initShiftsStrategy{1}
         end
 end
 
+% sort & reshape shifts
+% s0_inp = reshape(s0_inp,nShifts,nSets)';
+% if nargout > 1
+%     Rt = reshape(Rt,nShifts,sys.m)';
+%     if nargout == 3
+%         s0_out = reshape(s0_out,nShifts,nSets)';
+%     elseif nargout > 3
+%         s0_out = reshape(s0_out,nShifts,nSets)';
+%         Lt = reshape(Lt,nShifts,sys.p)';
+%     end
+% end
+
 % plain real shifts at the end, when the number of shifts is odd
 if oddOrder
-    s0_inp(:,end) = [];
-    s0_inp(:,end) = real(s0_inp(:,end));
-    if nargout == 3
-        s0_out(:,end) = [];
-        s0_out(:,end) = real(s0_out(:,end));
+    s0_inp(end) = [];  s0_inp(end) = real(s0_inp(end));
+    if nargout > 1
+        Rt(:,end) = [];  Rt(:,end) = real(Rt(:,end));
+        if nargout == 3
+            s0_out(:,end) = [];  s0_out(:,end) = real(s0_out(:,end));
+        elseif nargout > 3
+            s0_out(end) = [];  s0_out(end) = real(s0_out(end));
+            Lt(:,end) = [];  Lt(:,end) = real(Lt(:,end));
+        end
     end
-end
-
-% change output format to ab
-if strcmp(Opts.format,'ab')
-    s0_inp = s2p(s0_inp(:,1),s0_inp(:,2));
-    if nargout == 3
-        s0_out = s2p(s0_out(:,1),s0_out(:,2));
-    end
+    nShifts = nShifts - 1;
 end
 
 % Change s0_inp/s0_out & Rt/Lt from matrix to cell if several sets were computed
 if nSets > 1
     s0_inp = reshape(s0_inp,1,nShifts*nSets);    s0_inp = mat2cell(s0_inp,1,nShifts*ones(1,nSets));
-    
-    if nargout == 2
+%     s0_inp = reshape(s0_inp,nShifts,nSets)'; s0_inp = reshape(s0_inp.',1,nShifts*nSets); s0_inp = mat2cell(s0_inp,1,nShifts*ones(1,nSets));
+    if nargout > 1   
         Rt = reshape(Rt,sys.m,nShifts*nSets);    Rt = mat2cell(Rt,sys.m,nShifts*ones(1,nSets));
-    elseif nargout == 3
+%         Rt = reshape(Rt,nShifts,nSets)';  Rt = reshape(Rt.',sys.m,nShifts*nSets);   Rt = mat2cell(Rt,sys.m,nShifts*ones(1,nSets));
+    if nargout == 3
         s0_out = reshape(s0_out,1,nShifts*nSets);    s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
-    elseif nargout == 4
+%         s0_out = reshape(s0_out,nShifts,nSets)'; s0_out = reshape(s0_out.',1,nShifts*nSets); s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
+    elseif nargout > 3
+        s0_out = reshape(s0_out,1,nShifts*nSets);    s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
+%         s0_out = reshape(s0_out,nShifts,nSets)'; s0_out = reshape(s0_out.',1,nShifts*nSets); s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
+
         Lt = reshape(Lt,sys.p,nShifts*nSets);    Lt = mat2cell(Lt,sys.p,nShifts*ones(1,nSets));
+%         Lt = reshape(Lt,nShifts,nSets)';   Lt = reshape(Lt.',sys.p,nShifts*nSets);   Lt = mat2cell(Lt,sys.p,nShifts*ones(1,nSets));
+    end
     end
 end
 
-end
-
-%% ------------------ AUXILIARY FUNCTIONS --------------------------
-
-function varargout = s2p(varargin)
-% s2p: Shifts to optimization parameters for spark
-% ------------------------------------------------------------------
-% USAGE:  This function computes the two paramters a,b that are used within
-% the optimization in spark.
-%
-% p = s2p(s)
-% [a,b] = s2p(s1,s2)
-%
-% Computations:
-% a = (s1+s2)/2
-% b = s1*s2
-%
-% s1 = a + sqrt(a^2-b)
-% s2 = a - sqrt(a^2-b)
-%
-% See also CURE, SPARK.
-%
-% ------------------------------------------------------------------
-% REFERENCES:
-% [1] Panzer (2014), Model Order Reduction by Krylov Subspace Methods
-%     with Global Error Bounds and Automatic Choice of Parameters
-% ------------------------------------------------------------------
-% This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
-% Reduction and System Analysis Toolbox developed at the Chair of 
-% Automatic Control, Technische Universitaet Muenchen. For updates 
-% and further information please visit <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
-% For any suggestions, submission and/or bug reports, mail us at
-%                   -> <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a> <-
-%
-% More Toolbox Info by searching <a href="matlab:docsearch sssMOR">sssMOR</a> in the Matlab Documentation
-% ------------------------------------------------------------------
-% Authors:      Alessandro Castagnotto
-% Last Change:  27 April 2015
-% ------------------------------------------------------------------
-
-% parse input
-if nargin==1
-    s1 = varargin{1}(1);
-    s2 = varargin{1}(2);
-else
-    s1 = varargin{1};
-    s2 = varargin{2};
-end
-
-% compute
-a = (s1+s2)/2;
-b = s1.*s2;
-
-% generate output
-if nargout<=1
-    varargout{1} = [a,b];
-else
-    varargout{1} = a;
-    varargout{2} = b;
-end
 end
     

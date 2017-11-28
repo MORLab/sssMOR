@@ -86,7 +86,7 @@ function [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,nShifts,s0_inp,Rt,s0_out,Lt,
 %------------------------------------------------------------------
 
 %% Create Def-struct containing default values/options
-Def.getShiftsStrategy     = 'adaptive';       % strategy for shift generation: [{'adaptive'} / 'eigs' / 'projection']
+Def.getShiftsStrategy    = 'adaptive';       % strategy for shift generation: [{'adaptive'} / 'eigs' / 'projection']
 Def.multDir              =  0;               % choose strategy for tangential dierections [{0} / 1] 
 
 % additional function intern defaults, only interessting for usage within CRKSM-function
@@ -105,7 +105,7 @@ end
 clear Def
 
 %% Compute New Shift/Shifts
-% get new shifts: 'eigs' / 'adaptive' / ??'projection'??
+% get new shifts: 'eigs' / 'adaptive'
 switch Opts.getShiftsStrategy
     case 'eigs'   
         % getShifts-function uses initializeShifts-function, overwrite strategies
