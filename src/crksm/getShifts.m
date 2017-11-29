@@ -200,7 +200,8 @@ end % end of getShifts
 
 function [snewInp,Rtnew] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)  
     % compute Ritz-Values of reduced system 
-    ritzVal = eig(sysr);  
+    ritzVal = eig(sysr); 
+    ritzVal = single(ritzVal);
     
     % delete already used Ritz values in s0_inp 
     [~,idx] = ismember(single(ritzVal),-single(unique(s0_inp)));
@@ -218,6 +219,7 @@ function [snewInp,Rtnew] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
     if sum(isnan(ritzVal)) ~= 0 || sum(isinf(ritzVal)) ~= 0
         warning('The reduced system seems to be unstable because there are Nan and/or Inf Ritz Values. An error may occur! Try a onesided projection only with V or W basis to avoid instability');
     end
+    ritzVal = double(ritzVal);
     
     % build convex hull
     if ~isreal(ritzVal)
@@ -246,9 +248,7 @@ function [snewInp,Rtnew] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
             resNorm_last = resNorm;
             snewInp = specSet(ii,1);
             if ~isreal(snewInp)
-                snewInp = single(snewInp);
                 snewInp = [snewInp conj(snewInp)];   
-                snewInp = double(snewInp);
             end
             Ypic = Y;
         end
@@ -284,7 +284,8 @@ end
  
 function [snewOut,Ltnew] = newParaOut(sys,sysr,W,s0_out,snewOut,Lt,Opts)
     % compute Ritz-Values of reduced system 
-    ritzVal = eig(sysr);  
+    ritzVal = eig(sysr);
+    ritzVal = single(ritzVal);
 
     % delete already used Ritz values in s0_inp 
     [~,idx] = ismember(single(ritzVal),-single(unique(s0_out)));
@@ -302,6 +303,7 @@ function [snewOut,Ltnew] = newParaOut(sys,sysr,W,s0_out,snewOut,Lt,Opts)
     if sum(isnan(ritzVal)) ~= 0 || sum(isinf(ritzVal)) ~= 0
         warning('The reduced system seems to be unstable because there are Nan and/or Inf Ritz Values. An error may occur! Try a onesided projection only with V or W basis to avoid instability');
     end
+    ritzVal = double(ritzVal);
 
     % build convex hull
     if ~isreal(ritzVal)
@@ -330,13 +332,11 @@ function [snewOut,Ltnew] = newParaOut(sys,sysr,W,s0_out,snewOut,Lt,Opts)
             resNorm_last = resNorm;
             snewOut = specSet(ii,1);
             if ~isreal(snewOut)
-                snewOut = single(snewOut);
                 snewOut = [snewOut conj(snewOut)];  
-                snewOut = double(snewOut);
             end
             Ypic = Y;
         end
-    end       
+    end
     
     % compute (multiple) tangential directions
     if ~isempty(Lt)
