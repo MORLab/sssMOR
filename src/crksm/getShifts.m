@@ -246,7 +246,9 @@ function [snewInp,Rtnew] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
             resNorm_last = resNorm;
             snewInp = specSet(ii,1);
             if ~isreal(snewInp)
+                snewInp = single(snewInp);
                 snewInp = [snewInp conj(snewInp)];   
+                snewInp = double(snewInp);
             end
             Ypic = Y;
         end
@@ -328,7 +330,9 @@ function [snewOut,Ltnew] = newParaOut(sys,sysr,W,s0_out,snewOut,Lt,Opts)
             resNorm_last = resNorm;
             snewOut = specSet(ii,1);
             if ~isreal(snewOut)
-                snewOut = [snewOut conj(snewOut)];   
+                snewOut = single(snewOut);
+                snewOut = [snewOut conj(snewOut)];  
+                snewOut = double(snewOut);
             end
             Ypic = Y;
         end
