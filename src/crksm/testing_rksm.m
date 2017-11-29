@@ -24,20 +24,21 @@ Opts.method = 'adi'
 testADI = norm(R_Q - R_Q_trans);
 
 Opts.method = 'crksm';
-% Opts.initShiftsStrategy = 'ADI'
+Opts.infoLyap = 1;
+Opts.initShiftsStrategy = 'ADI'
 Opts.nShifts = 10;
-Opts.initShiftsStrategy = 'eigs'
+%Opts.initShiftsStrategy = 'eigs'
 % Opts.shifts = 'fixedCyclic'
 % Opts.restolLyap = 1e-2;
 % Opts.initShiftsStrategy = 'constant'
 [S_P,R_Q,dataLyap] = lyapchol(sys,Opts);
-[R_Q_trans] = lyapchol(sys.',Opts);
+[R_Q_trans,dataR_Q_trans] = lyapchol(sys.',Opts);
 testCrksm1 = norm(R_Q - R_Q_trans);
 
 Opts.method = 'crksm';
-% Opts.initShiftsStrategy = 'ADI'
+Opts.initShiftsStrategy = 'ADI'
 Opts.nShifts = 10;
-Opts.initShiftsStrategy = 'eigs'
+%Opts.initShiftsStrategy = 'eigs'
 % Opts.shifts = 'fixedCyclic'
 % Opts.restolLyap = 1e-2;
 % Opts.initShiftsStrategy = 'constant'
@@ -49,8 +50,8 @@ testCrksm1b = norm(S_P - S_P_trans);
 
 %clear
 %sys = sss('fom')
-% Opts.initShiftsStrategy = 'ADI';
-Opts.initShiftsStrategy = 'eigs'
+Opts.initShiftsStrategy = 'ADI';
+%Opts.initShiftsStrategy = 'eigs'
 Opts.nShifts = 10;
 Opts.maxiter = 80;
 % Opts.shifts = 'fixedCyclic'
@@ -64,8 +65,8 @@ testCrksm2 = norm(Rcrksm - Rcrksm_dual);
 
 [s0_inp] = initializeShifts(sys,Opts.nShifts,1,Opts);
 [sysrCrksm,V,W,Scrksm,dataCrksm] = crksm(sys,s0_inp,Opts);
-[s0_inp,~,s0_out] = initializeShifts(sys.',Opts.nShifts,1,Opts);
-[sysrCrksm,V,W,Scrksm_dual,dataCrksm] = crksm(sys.',[],s0_out,Opts);
+%[s0_inp,~,s0_out] = initializeShifts(sys.',Opts.nShifts,1,Opts);
+[sysrCrksm,V,W,Scrksm_dual,dataCrksm] = crksm(sys.',[],s0_inp,Opts);
 testCrksm3 = norm(Scrksm - Scrksm_dual);
 
 s0_inp = initializeShifts(sys.',Opts.nShifts,1,Opts); %s0_inp = double(single(s0_inp));
