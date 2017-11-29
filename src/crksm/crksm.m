@@ -67,8 +67,6 @@ function [sysr,V,W,Z,data] = crksm(varargin)
 %           -.orth:             orthogonalization of new projection direction (refer to arnoldi) 
 %                               [{'2mgs'} / 'dgks' / 'mgs' / false]
 %       *Option Settings for Lyapunov Equations Purposes*
-%           -.equation:         specify Lyapunov equation to be solved
-%                               [{'control'} / 'observe']
 %           -.stopCritLyap:     specify stopping criteria [{'residualLyap'} / 'normChol']
 %                -'residualLyap':   compute residual of Lyapunov equation
 %                -'normChol':       compare the norm of the last two Cholesky factors
@@ -161,7 +159,6 @@ Def.lse                  = 'sparse';          % [{'sparse'} / 'full' / 'hess' / 
 Def.orth                 = '2mgs';            % [{'2mgs'} / 'dgks' / 'mgs' / false]
 
 % default option settings for Lyapunov equation purposes
-Def.equation             = 'control';         % [{'control'} / 'observe']
 Def.stopCrit             = 'residualLyap';    % [{'residualLyap'} / 'normChol']
 Def.crksmNorm            = 2;                 % [{2} / 'fro']
 Def.lowrank              = 0;                 % [{0} / 1] 
@@ -211,7 +208,7 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
         s0_inp = varargin{2};                s0_out  = [];        
         Rt     = [];                         Lt      = [];
         input  = 1;                          pointer = @blockV;
-        Opts.hermite = false;                Opts.equation = 'control';
+        Opts.hermite = false;        
     elseif length(varargin) == 3       
         if size(varargin{3},1) == size(sys.B,2) && sys.isSiso == 0 &&...
            (size(varargin{3},2) == size(varargin{2},2) || size(varargin{3},2) == size(varargin{2},1)) 
@@ -219,12 +216,12 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
             s0_inp = varargin{2};            s0_out  = [];           
             Rt     = varargin{3};            Lt      = [];
             input  = 2;                      pointer = @tangentialV;
-            Opts.hermite = false;            Opts.equation = 'control';
+            Opts.hermite = false;            
         elseif isempty(varargin{2})                     % usage: CRKSM(sys, [], s0_out)
             s0_inp = [];                     s0_out  = varargin{3};  
             Rt     = [];                     Lt      = [];
             input  = 3;                      pointer = @blockW;
-            Opts.hermite = false;            Opts.equation = 'observe';
+            Opts.hermite = false;            
         else                                            % usage: CRKSM(sys, s0_inp, s0_out)
             s0_inp = varargin{2};            s0_out  = varargin{3};      
             Rt     = [];                     Lt      = [];           
@@ -244,7 +241,7 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
             s0_inp = [];                     s0_out  = varargin{3};  
             Rt     = [];                     Lt      = varargin{5};
             input  = 5;                      pointer = @tangentialW;
-            Opts.hermite = false;            Opts.equation = 'observe';
+            Opts.hermite = false;            
         else                                            % usage: CRKSM(sys, s0_inp, s0_out, Rt, Lt)
             s0_inp = varargin{2};            s0_out  = varargin{3};  
             Rt     = varargin{4};            Lt      = varargin{5};   
@@ -335,24 +332,18 @@ end
 switch input
     case 1
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts); % basis1 is V 
-        Opts.equation = 'control';
     case 2
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 V
-        Opts.equation = 'control';
     case 3
         [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 W
-        Opts.equation = 'observe';
     case 4
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts); % basis1 is V 
         [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 W
-        Opts.equation = 'both';
     case 5
         [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 W
-        Opts.equation = 'observe';
     case 6
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 is V 
         [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 W
-        Opts.equation = 'both';
 end
 
 % preprocessing: initialize some variables for programme, set function handles
@@ -374,9 +365,11 @@ if strcmp(Opts.purpose,'lyapunov')
     else
         Opts.tol = Opts.rctol;  
     end
-    if strcmp(Opts.equation,'control')
+    %if strcmp(Opts.equation,'control')
+    if input == 1 || input == 2
        pointerLyap = @lyapS; 
-    else
+    elseif input == 3 || input == 5
+    %else
        pointerLyap = @lyapR;   
     end
     clearFields = {'restolMOR'};
