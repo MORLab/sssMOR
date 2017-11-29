@@ -68,12 +68,12 @@ function [sysr,V,W,Z,data] = crksm(varargin)
 %                               [{'2mgs'} / 'dgks' / 'mgs' / false]
 %       *Option Settings for Lyapunov Equations Purposes*
 %           -.equation:         specify Lyapunov equation to be solved
-%                               [{'both'} / 'control' / 'observe']
-%           -.stopCritLyap:         specify stopping criteria [{'residualLyap'} / 'normChol']
+%                               [{'control'} / 'observe']
+%           -.stopCritLyap:     specify stopping criteria [{'residualLyap'} / 'normChol']
 %                -'residualLyap':   compute residual of Lyapunov equation
 %                -'normChol':       compare the norm of the last two Cholesky factors
-%           -.crksmNorm:        specify norm [{'H2'} / 'fro']
-%                -'H2':             use 2-norm (Euclidian Norm)
+%           -.crksmNorm:        specify norm [{2} / 'fro']
+%                -2:                use 2-norm (Euclidian Norm)
 %                -'fro':            use Frobenius Norm
 %           -.lowrank:          compute the low-rank factor of the final solution 
 %                               [{0} / 1]
@@ -91,8 +91,8 @@ function [sysr,V,W,Z,data] = crksm(varargin)
 %                -'fixedCyclic':    same initial shifts defined by the user are cyclically used for the whole function
 %                -'dynamical':      new shifts are obtained dynamically during the programme 
 %           -.getShiftsStrategy:choose strategy for dynamically getting shifts with |getShifts| 
-%                -'adaptive':       a new shift is computed online for every single iteration
-%                -'eigs':           TODO
+%                -'adaptive':       a new shift is computed online for every single iteration using Druskin's method [1,2]
+%                -'eigs':           new shifts are computed online using the mirrored images of the reduced eigenvalues (Ritz values)
 %           -.shiftTol:         tolerance for the choice of new shifts
 %                               [{0.1} / positive float]
 %
@@ -153,29 +153,29 @@ function [sysr,V,W,Z,data] = crksm(varargin)
 % Note: there may be no point named Def.reuseLU, otherwise one gets a conflict with solveLse/lyapchol/bilyapchol
 
 % general default option settings (for the whole function)
-Def.purpose              = 'lyapunov';         % [{'lyapunov'} / 'MOR']
-Def.maxiter              =  200;               % default number of iterations
+Def.purpose              = 'lyapunov';        % [{'lyapunov'} / 'MOR']
+Def.maxiter              = 200;               % default number of iterations
 %**solveLse options
-Def.lse                  = 'sparse';           % [{'sparse'} / 'full' / 'hess' / 'iterative' / 'gauss']
+Def.lse                  = 'sparse';          % [{'sparse'} / 'full' / 'hess' / 'iterative' / 'gauss']
 %**arnoldi options
-Def.orth                 = '2mgs';             % [{'2mgs'} / 'dgks' / 'mgs' / false]
+Def.orth                 = '2mgs';            % [{'2mgs'} / 'dgks' / 'mgs' / false]
 
 % default option settings for Lyapunov equation purposes
-Def.equation             = 'control';          % [{'control'} / 'observe']
-Def.stopCrit             = 'residualLyap';     % [{'residualLyap'} / 'normChol']
-Def.crksmNorm            = 'H2';               % [{'H2'} / 'fro']
-Def.lowrank              =  0;                 % [{0} / 1] 
-Def.restolLyap           =  1e-8;              % default tolerance for -.stopCrit = 'residualLyap'
-Def.rctol                =  1e-12;             % default tolerance for -.stopCrit = 'normChol' 
+Def.equation             = 'control';         % [{'control'} / 'observe']
+Def.stopCrit             = 'residualLyap';    % [{'residualLyap'} / 'normChol']
+Def.crksmNorm            = 2;                 % [{2} / 'fro']
+Def.lowrank              = 0;                 % [{0} / 1] 
+Def.restolLyap           = 1e-8;              % default tolerance for -.stopCrit = 'residualLyap'
+Def.rctol                = 1e-12;             % default tolerance for -.stopCrit = 'normChol' 
 
 % default option settings for MOR
-Def.real                 =  true;              % [{true} / false]
-Def.restolMOR            =  1e-4;              % default tolerance
+Def.real                 = true;              % [{true} / false]
+Def.restolMOR            = 1e-4;              % default tolerance
 
 % default option settings for the choice of shifts
-Def.shifts               = 'dynamical';        % choose usage of shifts [{'dynamical'} / 'fixedCyclic']
-Def.getShiftsStrategy    = 'adaptive';         % choose GETSHIFTS strategy for updating shifts: [ {'adaptive'} / 'eigs' ]
-Def.shiftTol             =  0.1;               % default value for new shifts
+Def.shifts               = 'dynamical';       % choose usage of shifts [{'dynamical'} / 'fixedCyclic']
+Def.getShiftsStrategy    = 'adaptive';        % choose GETSHIFTS strategy for updating shifts: [ {'adaptive'} / 'eigs' ]
+Def.shiftTol             = 0.1;               % default value for new shifts
 
 % define data struct
 data = struct('Norm',[],'Shifts_Input',[],'Shifts_Output',[]);
@@ -259,7 +259,7 @@ if isa(varargin{1},'ss') || isa(varargin{1},'sss') || isa(varargin{1},'ssRed')
         error('Input not compatible with current crksm implementation');
     end   
 elseif length(varargin) > 1
-    % here, possible implementation of matrix input
+    % here, possible implementation of matrix input (A,B,C,D,E)
 end
 
 % check shifts and tangential directions, check Opts-field OPts.crksmUsage, check if extended or rational krylov
@@ -273,7 +273,7 @@ if (input == 1 && s0_inp(1,1) == 0 && s0_inp(1,2) == inf) || ...
    (input == 3 && s0_out(1,1) == 0 && s0_out(1,2) == inf) || ...
    (input == 4 && s0_inp(1,1) == 0 && s0_inp(1,2) == inf && s0_out(1,1) == 0 && s0_out(1,2) == inf)
     Opts.shifts = 'fixedCyclic';
-    fprintf('\n Extended Krylov method will be used, shifts are used in a fixed cyclic way \n');
+    fprintf('Extended Krylov Subspace Method (EKSM / K-PIK) will be used, shifts are used in a fixed cyclic way \n');
     
 else
     % sort expansion points & tangential directions
@@ -293,7 +293,7 @@ else
         % hiermit wird gepueft, ob tang. richtungen konjugiert komplex sind, unabh?ngig von den shifts  
         if mod(size(find(imag(s0_inp)),2),2) ~= 0 && mod(size(find(imag(Rt(1,:))),2),2) ~= 0 &&...
            sum(sum(imag(Rt),2)) ~= 0
-            error('wrong input,  right tangential directions (Rt) must be in complex conjugate pairs');
+            error('wrong input, right tangential directions (Rt) must be in complex conjugate pairs');
         end
     end
 
@@ -314,7 +314,7 @@ else
             % hiermit wird gepueft, ob tang. richtungen konjugiert komplex sind, unabh?ngig von den shifts  
             if mod(size(find(imag(s0_inp)),2),2) ~= 0 && mod(size(find(imag(Rt(1,:))),2),2) ~= 0 &&...
                sum(sum(imag(Rt),2)) ~= 0
-                error('wrong input,  left tangential directions (Lt) must be in complex conjugate pairs');
+                error('wrong input, left tangential directions (Lt) must be in complex conjugate pairs');
             end
         end
     end
@@ -543,7 +543,7 @@ if ~exist('data.out2','var')
     sysr = ssRed(sysr.A,sysr.B,sysr.C,sysr.D,sysr.E,'crksm',Opts,sys);
     
     if ii == Opts.maxiter
-        warning('\n maximum number of iterations is reached without converging!' )
+        warning('maximum number of iterations is reached without converging!' )
         if ~isempty(s0_inp), data.Shifts_Input  = s0_inp;    end     % this line is important for leaving the for loop
         if ~isempty(s0_out), data.Shifts_Output = s0_out;    end 
     end
@@ -793,9 +793,9 @@ function [sysr,Z,data,Opts] = crksmLyap(sys,sysr,basis1,iter,s0_inp,s0_out,point
        if ~isempty(s0_inp), data.Shifts_Input  = s0_inp;    end     % this line is important for leaving the for loop
        if ~isempty(s0_out), data.Shifts_Output = s0_out;    end 
        % show information of programme
-       fprintf('\n RKSM, usage Lyapunov, step:\t %d \t Convergence\n',iter);
+       fprintf('CRKSM, usage Lyapunov, step:\t %d \t Convergence\n',iter);
     elseif size(Z,2) == size(sys.A,2)
-       disp('\n V has reached the dimension of the original System without converging!');
+       disp('The subspace has reached the dimension of the original system without converging!');
    end
 end
 
@@ -815,7 +815,7 @@ function [sysr,Z,data,Opts] = crksmSysr(~,sysr,~,iter,s0_inp,s0_out,~,data,Opts)
     if stopCrit < Opts.restolMOR
        if ~isempty(s0_inp), data.Shifts_Input  = s0_inp;    end     % this line is important for leaving the for loop
        if ~isempty(s0_out), data.Shifts_Output = s0_out;    end 
-       fprintf('\n RKSM, usage MOR, step: %d \t Convergence\n' ,iter);
+       fprintf('CRKSM, usage MOR, step: %d \t Convergence\n' ,iter);
     end
     sysr_last = sysr;
 end
@@ -852,7 +852,7 @@ persistent S_last
        F = sys.E*basis1*(Er_inv_Br+(S'*S)*Cr_hat');
 
        % compute residual norm (Euclidean Norm)
-       if strcmp(Opts.crksmNorm, 'H2')
+       if Opts.crksmNorm == 2
            res0  = norm(sysr.B' * sysr.B,2);
            Rnorm = max(abs(eig(full([Opts.B_'*Opts.B_+Opts.B_'*F, Opts.B_'*Opts.B_; F'*Opts.B_+F'*F, F'*Opts.B_])))) / res0; 
        else
@@ -861,7 +861,7 @@ persistent S_last
            Rnorm = sqrt(sum(eig(full([Opts.B_'*Opts.B_+Opts.B_'*F, Opts.B_'*Opts.B_; F'*Opts.B_+F'*F, F'*Opts.B_])))^2) / res0;
        end
     else
-       if strcmp(Opts.crksmNorm, 'H2')
+       if Opts.crksmNorm == 2
            X_lastnorm = NormFrobEfficient(1,S_last);
            X_norm = NormFrobEfficient(1,S);
        else
@@ -904,7 +904,7 @@ persistent R_last
        F = sys.E'*basis1*(Er_invT_CrT+(R'*R)*Cr_hat');
 
        % compute residual norm (Euclidean Norm)
-       if strcmp(Opts.crksmNorm, 'H2')
+       if Opts.crksmNorm == 2
            res0  = norm(sysr.C * sysr.C',2);
            Rnorm = max(abs(eig(full([Opts.C_'*Opts.C_+Opts.C_'*F, Opts.C_'*Opts.C_; F'*Opts.C_+F'*F, F'*Opts.C_])))) / res0; 
        else
@@ -914,7 +914,7 @@ persistent R_last
        end
     else
 
-       if strcmp(Opts.crksmNorm, 'H2')
+       if Opts.crksmNorm == 2
            X_lastnorm = NormFrobEfficient(1,R_last);
            X_norm = NormFrobEfficient(1,R);
        else
