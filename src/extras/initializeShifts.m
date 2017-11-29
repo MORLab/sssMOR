@@ -162,7 +162,9 @@ switch Opts.initShiftsStrategy{1}
         idxUnstable = real(s0_inp)<0;   % mirror shifts if unstable
         s0_inp(idxUnstable) = -s0_inp(idxUnstable);
         try
+            %s0_inp = single(s0_inp);
             cplxpair(s0_inp);
+            %s0_inp = double(s0_inp);
         catch
             s0_inp(end)=real(s0_inp(end));
         end
@@ -175,7 +177,6 @@ switch Opts.initShiftsStrategy{1}
 %                 s0_out = double(s0_inp);
              elseif nargout > 3
                 % get s0_out and left tangential directions
-%                 s0_out = double(s0_inp);
                 s0_out = s0_inp;
                 if sys.issymmetric 
                     Lev = Rev;
@@ -185,7 +186,6 @@ switch Opts.initShiftsStrategy{1}
                 Lt = full(sys.C*Lev);
              end
          elseif nargout > 1 && sys.isSiso == 1
-%             s0_out = double(s0_inp);
             s0_out = s0_inp;
          end
         
@@ -294,10 +294,13 @@ switch Opts.initShiftsStrategy{1}
         idxUnstable = real(s0_inp)<0;   % mirror shifts if unstable
         s0_inp(idxUnstable) = -s0_inp(idxUnstable);
         try
+            %s0_inp = single(s0_inp);
             cplxpair(s0_inp);
+            %s0_inp = double(s0_inp);
         catch
             s0_inp(end)=real(s0_inp(end));
         end
+        double(s0_inp);
         
          % get right tangential directions
          if nargout > 1 && sys.isSiso == 0 
