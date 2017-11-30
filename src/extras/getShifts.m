@@ -64,7 +64,7 @@ function [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,nShifts,s0_inp,Rt,s0_out,Lt,
 %       for large-scale dynamical systems
 %       * *[2] Druskin, Simoncini, Zaslavsky (2014)*, Adaptive Tangential
 %       Interpolation in Rational Krylov Subspaces for MIMO Dynamical Systems
-%       * *[3] Kürschner (2016)*, Efficient Low-Rank Solution of Large-Scale Matrix Equations
+%       * *[3] Kuerschner (2016)*, Efficient Low-Rank Solution of Large-Scale Matrix Equations
 %
 %------------------------------------------------------------------
 % This file is part of <a href="matlab:docsearch sssMOR">sssMOR</a>, a Sparse State-Space, Model Order 
@@ -81,7 +81,7 @@ function [s0_inp,s0_out,Rt,Lt] = getShifts(sys,sysr,nShifts,s0_inp,Rt,s0_out,Lt,
 % Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  02 Nov 2017
+% Last Change:  30 Nov 2017
 % Copyright (c) 2016-2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -217,14 +217,15 @@ function [snewInp,Rtnew] = newParaInp(sys,sysr,V,s0_inp,Rt,Opts)
     
     % check if there are NaN or Inf entries in ritzVal
     if sum(isnan(ritzVal)) ~= 0 || sum(isinf(ritzVal)) ~= 0
-        warning('The reduced system seems to be unstable because there are Nan and/or Inf Ritz Values. An error may occur! Try a onesided projection only with V or W basis to avoid instability');
+        warning('The reduced system seems to be unstable because there are Nan and/or Inf Ritz values. An error may occur!');
+        fprintf('Try a one-sided projection only with V or W basis to avoid instability \n');
     end
     ritzVal = double(ritzVal);
     
     % build convex hull
     if ~isreal(ritzVal)
         specSet = sort([s0_inp'; -ritzVal]);
-        chull = convhull(real(specSet),imag(specSet));     % bulid convex hull of spectral set
+        chull = convhull(real(specSet),imag(specSet));     % build convex hull of spectral set
         specSet = specSet(single(chull)); 
     else
         specSet = -ritzVal;
@@ -301,7 +302,8 @@ function [snewOut,Ltnew] = newParaOut(sys,sysr,W,s0_out,snewOut,Lt,Opts)
     
     % check if there are NaN or Inf entries in ritzVal
     if sum(isnan(ritzVal)) ~= 0 || sum(isinf(ritzVal)) ~= 0
-        warning('The reduced system seems to be unstable because there are Nan and/or Inf Ritz Values. An error may occur! Try a onesided projection only with V or W basis to avoid instability');
+        warning('The reduced system seems to be unstable because there are Nan and/or Inf Ritz values. An error may occur!');
+        fprintf('Try a one-sided projection only with V or W basis to avoid instability \n');
     end
     ritzVal = double(ritzVal);
 

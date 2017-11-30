@@ -2,13 +2,13 @@ function [sysr,V,W,Z,data] = crksm(varargin)
 % CRKSM - Cumulative Rational Krylov Subspace Method for cumulative reduction and/or approximately solving Lyapunov equations 
 %
 % Syntax:
-%       [sysr,V,Z,data]             = CRKSM(sys, s0_inp)
-%       [sysr,V,Z,data]             = CRKSM(sys, s0_inp,Rt) 
-%       [sysr,W,Z,data]             = CRKSM(sys, [], s0_out) 
-%       [sysr,W,Z,data]             = CRKSM(sys, [], s0_out, [], Lt)
-%       [sysr,V,W,Z,data]           = CRKSM(sys, s0_inp, s0_out)  
-%       [sysr,V,W,Z,data]           = CRKSM(sys, s0_inp, s0_out, Rt, Lt)  
-%       [sysr,...,data]             = CRKSM(sys,...,Opts_rksm)
+%       [sysr,V,W,Z,data]             = CRKSM(sys, s0_inp)
+%       [sysr,V,W,Z,data]             = CRKSM(sys, s0_inp, Rt) 
+%       [sysr,V,W,Z,data]             = CRKSM(sys, [], s0_out) 
+%       [sysr,V,W,Z,data]             = CRKSM(sys, [], s0_out, [], Lt)
+%       [sysr,V,W,Z,data]             = CRKSM(sys, s0_inp, s0_out)  
+%       [sysr,V,W,Z,data]             = CRKSM(sys, s0_inp, s0_out, Rt, Lt)  
+%       [sysr,...,data]               = CRKSM(sys,...,Opts_rksm)
 %
 % Description:
 %       This function performs the Cumulative Rational Krylov Subspace Method  
@@ -125,7 +125,7 @@ function [sysr,V,W,Z,data] = crksm(varargin)
 %       for large-scale dynamical systems
 %       * *[2] Druskin, Simoncini, Zaslavsky (2014)*, Adaptive Tangential
 %       Interpolation in Rational Krylov Subspaces for MIMO Dynamical Systems
-%       * *[3] Kürschner (2016)*, Efficient Low-Rank Solution of Large-Scale Matrix Equations
+%       * *[3] Kuerschner (2016)*, Efficient Low-Rank Solution of Large-Scale Matrix Equations
 %       * *[4] Wolf (2014)*, H2 Pseudo-Optimal Moder Order Reduction
 %
 %------------------------------------------------------------------
@@ -143,7 +143,7 @@ function [sysr,V,W,Z,data] = crksm(varargin)
 % Email:        <a href="mailto:morlab@rt.mw.tum.de">morlab@rt.mw.tum.de</a>
 % Website:      <a href="https://www.rt.mw.tum.de/">www.rt.mw.tum.de</a>
 % Work Adress:  Technische Universitaet Muenchen
-% Last Change:  08 Nov 2017
+% Last Change:  30 Nov 2017
 % Copyright (c) 2016-2017 Chair of Automatic Control, TU Muenchen
 %------------------------------------------------------------------
 
@@ -259,19 +259,18 @@ elseif length(varargin) > 1
     % here, possible implementation of matrix input (A,B,C,D,E)
 end
 
-% check shifts and tangential directions, check Opts-field OPts.crksmUsage, check if extended or rational krylov
+% check shifts and tangential directions
 if  (~exist('s0_inp', 'var') || isempty(s0_inp)) && ...
     (~exist('s0_out', 'var') || isempty(s0_out))
     error('sssMOR:rk:NoExpansionPoints','No expansion points assigned.');
 end
 
-% check extended case
+% check if extended (EKSM) or rational Krylov (RKSM) case
 if (input == 1 && s0_inp(1,1) == 0 && s0_inp(1,2) == inf) || ...
    (input == 3 && s0_out(1,1) == 0 && s0_out(1,2) == inf) || ...
    (input == 4 && s0_inp(1,1) == 0 && s0_inp(1,2) == inf && s0_out(1,1) == 0 && s0_out(1,2) == inf)
     Opts.shifts = 'fixedCyclic';
-    fprintf('Extended Krylov Subspace Method (EKSM / K-PIK) will be used, shifts are used in a fixed cyclic way \n');
-    
+    fprintf('Extended Krylov Subspace Method (EKSM / K-PIK) will be used, shifts are used in a fixed cyclic way \n');  
 else
     % sort expansion points & tangential directions
     s0_inp = shiftVec(s0_inp);
@@ -287,7 +286,7 @@ else
         if size(Rt,1) ~= size(sys.B,2),          error('Inconsistent size of Lt');end
         [~,cplxSorting] = ismember(s0_inp,s0old); 
         Rt = Rt(:,cplxSorting);
-        % hiermit wird gepueft, ob tang. richtungen konjugiert komplex sind, unabh?ngig von den shifts  
+        % check if tangential directions are complex conjugated  
         if mod(size(find(imag(s0_inp)),2),2) ~= 0 && mod(size(find(imag(Rt(1,:))),2),2) ~= 0 &&...
            sum(sum(imag(Rt),2)) ~= 0
             error('wrong input, right tangential directions (Rt) must be in complex conjugate pairs');
@@ -308,7 +307,7 @@ else
             if size(Lt,1) ~= size(sys.C,1),    error('Inconsistent size of Lt');end
             [~,cplxSorting] = ismember(s0_out,s0old); 
             Lt = Lt(:,cplxSorting);
-            % hiermit wird gepueft, ob tang. richtungen konjugiert komplex sind, unabh?ngig von den shifts  
+            % check if tangential directions are complex conjugated
             if mod(size(find(imag(s0_inp)),2),2) ~= 0 && mod(size(find(imag(Rt(1,:))),2),2) ~= 0 &&...
                sum(sum(imag(Rt),2)) ~= 0
                 error('wrong input, left tangential directions (Lt) must be in complex conjugate pairs');
@@ -333,17 +332,17 @@ switch input
     case 1
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts); % basis1 is V 
     case 2
-        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 V
+        [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 is V
     case 3
-        [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 W
+        [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 is W
     case 4
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts); % basis1 is V 
-        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 W
+        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 is W
     case 5
-        [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 W
+        [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 is W
     case 6
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 is V 
-        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 W
+        [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 is W
 end
 
 % preprocessing: initialize some variables for programme, set function handles
@@ -356,7 +355,7 @@ else
     nShifts = size(s0_inp,2);
 end
 
-% check usage of crksm-function
+% check purpose of crksm-function
 if strcmp(Opts.purpose,'lyapunov')
     Opts.didlyap = 0;
     usage = @crksmLyap; 
@@ -380,19 +379,19 @@ else
     Z = [];
     if Opts.hermite && ~strcmp(Opts.shifts,'fixedCyclic') && strcmp(Opts.getShiftsStrategy,'adaptive')
         Opts.getShiftsStrategy = 'eigs';
-        disp('Shift update strategy changed from adaptive to eigs because adaptive does not support the hermite, twosided case');
+        disp('Shift update strategy changed from adaptive to eigs because adaptive does not support the hermite, two-sided case');
     end
-    clearFields = {'restolLyap','equation'};
+    clearFields = {'restolLyap'};
     Opts = rmfield(Opts,clearFields);
 end
 
 clear input Def varargin s0old A B C D E 
 
 % first reduction step
-if  ~exist('basis2','var') % ich muss nur eine gleichung loesen
+if  ~exist('basis2','var') % one-sided projection (only basis1 exists)
     Ar = basis1'*sys.A*basis1;   Br = basis1'*sys.B;   Er = basis1'*sys.E*basis1;   Cr = sys.C*basis1;
     basis2 = [];
-else
+else % two-sided projection (basis1 and basis2 exist)
     Ar = basis2'*sys.A*basis1;   Br = basis2'*sys.B;   Er = basis2'*sys.E*basis1;   Cr = sys.C*basis1;
 end
 % build ssRed object
@@ -408,7 +407,7 @@ if ~exist('data.out2','var')
 
             % get new shifts and tangetial directions
             if (~isempty(s0_inp) && ii > size(s0_inp,2)) || (~isempty(s0_out) && ii > size(s0_out,2)) 
-                % determine residual or cholesky norm developpement
+                % determine residual or cholesky norm development
                 if ii <= 2*nShifts && isempty(Rt) && isempty(Lt)
                     nablaNorm = norm(gradient(data.Norm(1+size(data.Norm,1)-nShifts:end))); 
                     if nablaNorm < 1e-2
@@ -566,7 +565,7 @@ elseif length(varargin) == 2
     hermite_gram_sch = varargin{2};
 end
     
-% hier muss ich jetzt noch das IP standardm??ig definieren
+% IP (inner product) is defined here
 IP = @(x,y) (x.'*y);
 
 TRv=eye(size(V,2));
@@ -668,7 +667,7 @@ if ~exist('X_L','var')
         try 
             [X_L,X_D] = ldl(X);
         catch
-            % if all other matrix decompositions failed use onlx the
+            % if all other matrix decompositions failed use only the
             % symmetric part of X
             [X_L,X_D] = ldl((X+X')/2);
         end
@@ -792,7 +791,6 @@ function [sysr,Z,data,Opts] = crksmLyap(sys,sysr,basis1,iter,s0_inp,s0_out,point
    end
 end
 
-
 function [sysr,Z,data,Opts] = crksmSysr(~,sysr,~,iter,s0_inp,s0_out,~,data,Opts)
     persistent stopCrit sysr_last 
     Z = [];
@@ -813,7 +811,6 @@ function [sysr,Z,data,Opts] = crksmSysr(~,sysr,~,iter,s0_inp,s0_out,~,data,Opts)
     sysr_last = sysr;
 end
 
-
 function [S,Rnorm,Opts] = lyapS(sys,sysr,basis1,iter,Opts)
 persistent S_last
     if iter == 1, S_last = [];  end
@@ -825,8 +822,9 @@ persistent S_last
         if Opts.didlyap == 0
             warning('Reduced system is unstable (iteration: %d), command "lyapchol" failed to solve for S',iter);
             fprintf('Programme continues solving the reduced Lyapunov equation with command "lyap" but an error may occur due to NaN or Inf entries in S \n');
-            fprintf('For better stability behaviour try to perform crksm with onesided projection only with V-basis\n');
-            fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) or [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
+            fprintf('For better stability behaviour try to perform crksm with one-sided projection only with V or W basis\n');
+            fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) / [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
+            fprintf('or [sysr,V,W,S,R,data] = CRKSM(sys, [], s0_out) / [sysr,V,W,S,R,data] = CRKSM(sys, [], s0_out, [], Lt)\n');
             Opts.didlyap = 1;
         end
         S = lyap(sysr.A,sysr.B*sysr.B',[],sysr.E);
@@ -834,7 +832,7 @@ persistent S_last
     end
     % choose computation of norm/stopping criteria
     if strcmp(Opts.stopCrit,'residualLyap')
-       % test determination (computation of residual after Panzer/Wolff)
+       % test determination (computation of residual after Panzer/Wolf)
        Er_inv_Br = solveLse(sysr.E,sysr.B);
        Opts.reuseLU = 0;
        Opts.Er_inv_Ar = solveLse(sysr.E,sysr.A,Opts);   
@@ -877,8 +875,9 @@ persistent R_last
         if Opts.didlyap == 0
             warning('Reduced system is unstable (iteration: %d), command "lyapchol" failed to solve for R',iter);
             fprintf('Programme continues solving the reduced Lyapunov equation with command "lyap" but an error may occur due to NaN or Inf entries in R \n');
-            fprintf('For better stability behaviour try to perform crksm with onesided projection only with V-basis: \n');
-            fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) or [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
+            fprintf('For better stability behaviour try to perform crksm with one-sided projection only with V or W basis\n');
+            fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) / [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
+            fprintf('or [sysr,V,W,S,R,data] = CRKSM(sys, [], s0_out) / [sysr,V,W,S,R,data] = CRKSM(sys, [], s0_out, [], Lt)\n');
             Opts.didlyap = 1;
         end
          R = lyap(sysr.A',sysr.C'*sysr.C,[],sysr.E');
@@ -886,7 +885,7 @@ persistent R_last
     
     % choose computation of norm/stopping criteria
     if strcmp(Opts.stopCrit,'residualLyap')
-       % test determination (computation of residual after Panzer/Wolff), compute Er^-1*Br and Er^-1*Ar and other factors
+       % test determination (computation of residual after Panzer/Wolf), compute Er^-1*Br and Er^-1*Ar and other factors
        Er_invT_CrT = solveLse(sysr.E',sysr.C');
        Opts.reuseLU = 1;
        Opts.Er_invT_ArT = solveLse(sysr.E',sysr.A',Opts);   
