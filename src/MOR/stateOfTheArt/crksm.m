@@ -2,12 +2,14 @@ function [sysr,V,W,Z,data] = crksm(varargin)
 % CRKSM - Cumulative Rational Krylov Subspace Method for cumulative reduction and/or approximately solving Lyapunov equations 
 %
 % Syntax:
-%       [sysr,V,W,Z,data]             = CRKSM(sys, s0_inp)
-%       [sysr,V,W,Z,data]             = CRKSM(sys, s0_inp, Rt) 
-%       [sysr,V,W,Z,data]             = CRKSM(sys, [], s0_out) 
-%       [sysr,V,W,Z,data]             = CRKSM(sys, [], s0_out, [], Lt)
-%       [sysr,V,W,Z,data]             = CRKSM(sys, s0_inp, s0_out)  
-%       [sysr,V,W,Z,data]             = CRKSM(sys, s0_inp, s0_out, Rt, Lt)  
+%       [sysr,V,W,S,data]             = CRKSM(sys, s0_inp)
+%       [sysr,V,W,S,data]             = CRKSM(sys, s0_inp, Rt) 
+%       [sysr,V,W,R,data]             = CRKSM(sys, [], s0_out) 
+%       [sysr,V,W,R,data]             = CRKSM(sys, [], s0_out, [], Lt)
+%       [sysr,V,W,S,data]             = CRKSM(sys, s0_inp, s0_out)  
+%       [sysr,V,W,S,data]             = CRKSM(sys, s0_inp, s0_out, Rt, Lt)
+%       [sysr,V,W,R,data]             = CRKSM(sys.', s0_inp, s0_out)  
+%       [sysr,V,W,R,data]             = CRKSM(sys.', s0_inp, s0_out, Rt, Lt) 
 %       [sysr,...,data]               = CRKSM(sys,...,Opts_rksm)
 %
 % Description:
@@ -97,14 +99,12 @@ function [sysr,V,W,Z,data] = crksm(varargin)
 % Output Arguments:
 %       -sysr:                  reduced system
 %       -V,W:                   projection matrices spanning Krylov subspaces
-%       -S:                     Cholesky factor X=S*S' of Lyapunov equation A*X*E'+E*X*A'+B*B'=0
-%       -R:                     Cholesky factor Y=R*R' of Lyapunov equation A'*Y*E+E'*Y*A+C'*C=0
+%       -Z (S/R):               Cholesky factor X=S*S' of Lyapunov equation A*X*E'+E*X*A'+B*B'=0 or
+%                               Cholesky factor Y=R*R' of Lyapunov equation A'*Y*E+E'*Y*A+C'*C=0
 %       -data:                  struct containing the following data
-%           -norm_val:          norm values of the iterations
-%           -TODO:              additional shifts, 
-%           -rhs:               last rhs
-%           -res0:              reference residual norm
-%           -TODO:              last norm value
+%           -.Norm:             norm values of the iterations
+%           -.Shifts_Input:     used input shifts s0_inp during the whole programme
+%           -.Shifts_Output:    used output shifts s0_out during the whole programme
 %
 % Examples:
 %       MOR_purpose: This code computes ....
@@ -823,8 +823,8 @@ persistent S_last
             warning('Reduced system is unstable (iteration: %d), command "lyapchol" failed to solve for S',iter);
             fprintf('Programme continues solving the reduced Lyapunov equation with command "lyap" but an error may occur due to NaN or Inf entries in S \n');
             fprintf('For better stability behaviour try to perform crksm with one-sided projection only with V or W basis\n');
-            fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) / [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
-            fprintf('or [sysr,V,W,S,R,data] = CRKSM(sys, [], s0_out) / [sysr,V,W,S,R,data] = CRKSM(sys, [], s0_out, [], Lt)\n');
+            fprintf('Try the call: [sysr,V,W,S,data] = CRKSM(sys, s0_inp) / [sysr,V,W,S,data] = CRKSM(sys, s0_inp, Rt)\n');
+            fprintf('or [sysr,V,W,R,data] = CRKSM(sys, [], s0_out) / [sysr,V,W,R,data] = CRKSM(sys, [], s0_out, [], Lt)\n');
             Opts.didlyap = 1;
         end
         S = lyap(sysr.A,sysr.B*sysr.B',[],sysr.E);
@@ -876,8 +876,8 @@ persistent R_last
             warning('Reduced system is unstable (iteration: %d), command "lyapchol" failed to solve for R',iter);
             fprintf('Programme continues solving the reduced Lyapunov equation with command "lyap" but an error may occur due to NaN or Inf entries in R \n');
             fprintf('For better stability behaviour try to perform crksm with one-sided projection only with V or W basis\n');
-            fprintf('Try the call: [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp) / [sysr,V,W,S,R,data] = CRKSM(sys, s0_inp, Rt)\n');
-            fprintf('or [sysr,V,W,S,R,data] = CRKSM(sys, [], s0_out) / [sysr,V,W,S,R,data] = CRKSM(sys, [], s0_out, [], Lt)\n');
+            fprintf('Try the call: [sysr,V,W,S,data] = CRKSM(sys, s0_inp) / [sysr,V,W,S,data] = CRKSM(sys, s0_inp, Rt)\n');
+            fprintf('or [sysr,V,W,R,data] = CRKSM(sys, [], s0_out) / [sysr,V,W,R,data] = CRKSM(sys, [], s0_out, [], Lt)\n');
             Opts.didlyap = 1;
         end
          R = lyap(sysr.A',sysr.C'*sysr.C,[],sysr.E');
