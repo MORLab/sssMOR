@@ -69,6 +69,8 @@ function [sysr,V,W,Z,data] = crksm(varargin)
 %           -.orth:             orthogonalization of new projection direction (refer to arnoldi) 
 %                               [{'2mgs'} / 'dgks' / 'mgs' / false]
 %       *Option Settings for Lyapunov Equations Purposes*
+%           -.equation:         specify Lyapunov equation to be solved inthe two-sided case
+%                               [{'control'} / 'observe']
 %           -.stopCritLyap:     specify stopping criteria [{'residualLyap'} / 'normChol']
 %                -'residualLyap':   compute residual of Lyapunov equation
 %                -'normChol':       compare the norm of the last two Cholesky factors
@@ -159,6 +161,7 @@ Def.lse                  = 'sparse';          % [{'sparse'} / 'full' / 'hess' / 
 Def.orth                 = '2mgs';            % [{'2mgs'} / 'dgks' / 'mgs' / false]
 
 % default option settings for Lyapunov equation purposes
+Def.equation             = 'control';         % [{'control'} / 'observe']
 Def.stopCrit             = 'residualLyap';    % [{'residualLyap'} / 'normChol']
 Def.crksmNorm            = 2;                 % [{2} / 'fro']
 Def.lowrank              = 0;                 % [{0} / 1] 
@@ -331,15 +334,19 @@ end
 switch input
     case 1
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts); % basis1 is V 
+        Opts.equation = 'control';
     case 2
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 is V
+        Opts.equation = 'control';
     case 3
         [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 is W
+        Opts.equation = 'observe';
     case 4
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Opts); % basis1 is V 
         [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 is W
     case 5
         [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 is W
+        Opts.equation = 'observe';
     case 6
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 is V 
         [basis2] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Lt(:,1:2),Opts); % basis1 is W
@@ -364,11 +371,9 @@ if strcmp(Opts.purpose,'lyapunov')
     else
         Opts.tol = Opts.rctol;  
     end
-    %if strcmp(Opts.equation,'control')
-    if input == 1 || input == 2
+    if strcmp(Opts.equation,'control')
        pointerLyap = @lyapS; 
-    elseif input == 3 || input == 5
-    %else
+    else
        pointerLyap = @lyapR;   
     end
     clearFields = {'restolMOR'};
