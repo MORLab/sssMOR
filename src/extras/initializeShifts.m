@@ -162,9 +162,7 @@ switch Opts.initShiftsStrategy{1}
         idxUnstable = real(s0_inp)<0;   % mirror shifts if unstable
         s0_inp(idxUnstable) = -s0_inp(idxUnstable);
         try
-            %s0_inp = single(s0_inp);
             cplxpair(s0_inp);
-            %s0_inp = double(s0_inp);
         catch
             s0_inp(end)=real(s0_inp(end));
         end
@@ -174,7 +172,6 @@ switch Opts.initShiftsStrategy{1}
              Rt = full((Rev.'*sys.B)).';
              if nargout == 3
                 s0_out = s0_inp;
-%                 s0_out = double(s0_inp);
              elseif nargout > 3
                 % get s0_out and left tangential directions
                 s0_out = s0_inp;
@@ -263,10 +260,6 @@ switch Opts.initShiftsStrategy{1}
                 idx = find(imag(s0_inp)==0);
                 if isempty(idx)
                     s0_inp=sort(s0_inp);
-%                     s0(end) = [];
-%                     if imag(s0(end))~=0
-%                         s0(end) = real(s0(end));
-%                     end
                 else
                     [~,idx2] = sort(abs(s0_inp(idx))); %ascend
                     s0_inp(idx(idx2(end))) = [];
@@ -294,9 +287,7 @@ switch Opts.initShiftsStrategy{1}
         idxUnstable = real(s0_inp)<0;   % mirror shifts if unstable
         s0_inp(idxUnstable) = -s0_inp(idxUnstable);
         try
-            %s0_inp = single(s0_inp);
             cplxpair(s0_inp);
-            %s0_inp = double(s0_inp);
         catch
             s0_inp(end)=real(s0_inp(end));
         end
@@ -306,11 +297,9 @@ switch Opts.initShiftsStrategy{1}
          if nargout > 1 && sys.isSiso == 0 
              Rt = full((Rev'*sysr.B))';
              if nargout == 3
-%                  s0_out = double(s0_inp);
                  s0_out = s0_inp;
              elseif nargout > 3
                 % get s0_out and left tangential directions
-%                 s0_out = double(s0_inp);
                 s0_out = s0_inp;
                 if sys.issymmetric 
                     Lev = Rev;
@@ -320,7 +309,6 @@ switch Opts.initShiftsStrategy{1}
                 Lt = full(sysr.C*Lev);
              end
          elseif nargout > 1 && sys.isSiso == 1
-%             s0_out = double(s0_inp);
             s0_out = s0_inp;
          end
     
@@ -400,22 +388,9 @@ switch Opts.initShiftsStrategy{1}
         
         % define output
         if nargout > 2
-%             s0_out = double(s0_inp);
             s0_out = s0_inp;
         end
 end
-
-% sort & reshape shifts
-% s0_inp = reshape(s0_inp,nShifts,nSets)';
-% if nargout > 1
-%     Rt = reshape(Rt,nShifts,sys.m)';
-%     if nargout == 3
-%         s0_out = reshape(s0_out,nShifts,nSets)';
-%     elseif nargout > 3
-%         s0_out = reshape(s0_out,nShifts,nSets)';
-%         Lt = reshape(Lt,nShifts,sys.p)';
-%     end
-% end
 
 % plain real shifts at the end, when the number of shifts is odd
 if oddOrder
@@ -435,19 +410,15 @@ end
 % Change s0_inp/s0_out & Rt/Lt from matrix to cell if several sets were computed
 if nSets > 1
     s0_inp = reshape(s0_inp,1,nShifts*nSets);    s0_inp = mat2cell(s0_inp,1,nShifts*ones(1,nSets));
-%     s0_inp = reshape(s0_inp,nShifts,nSets)'; s0_inp = reshape(s0_inp.',1,nShifts*nSets); s0_inp = mat2cell(s0_inp,1,nShifts*ones(1,nSets));
     if nargout > 1   
         Rt = reshape(Rt,sys.m,nShifts*nSets);    Rt = mat2cell(Rt,sys.m,nShifts*ones(1,nSets));
-%         Rt = reshape(Rt,nShifts,nSets)';  Rt = reshape(Rt.',sys.m,nShifts*nSets);   Rt = mat2cell(Rt,sys.m,nShifts*ones(1,nSets));
     if nargout == 3
         s0_out = reshape(s0_out,1,nShifts*nSets);    s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
-%         s0_out = reshape(s0_out,nShifts,nSets)'; s0_out = reshape(s0_out.',1,nShifts*nSets); s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
     elseif nargout > 3
         s0_out = reshape(s0_out,1,nShifts*nSets);    s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
-%         s0_out = reshape(s0_out,nShifts,nSets)'; s0_out = reshape(s0_out.',1,nShifts*nSets); s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
+
 
         Lt = reshape(Lt,sys.p,nShifts*nSets);    Lt = mat2cell(Lt,sys.p,nShifts*ones(1,nSets));
-%         Lt = reshape(Lt,nShifts,nSets)';   Lt = reshape(Lt.',sys.p,nShifts*nSets);   Lt = mat2cell(Lt,sys.p,nShifts*ones(1,nSets));
     end
     end
 end
