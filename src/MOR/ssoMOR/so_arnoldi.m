@@ -260,7 +260,7 @@ function [V,s0,Rsylv] = updateV(jCol, V, sys, s0, Rt,Opts)
                 V(o,jCol) = U\(L\(S(:,a)\(sys.B*Rt(:,jCol))));     %LU x(o,:) = S(:,a)\b
                 Rsylv=eye(size(sys.B,2));
             case 1
-                V(o,jCol) = -U\(L\(S(:,a)\((2*s0(jCol)*sys.M+D)*V(:,jCol-1))));
+                V(o,jCol) = -U\(L\(S(:,a)\((2*s0(jCol)*sys.M+sys.D)*V(:,jCol-1))));
                 Rsylv=zeros(size(sys.B,2));
             case 2
                 V(o,jCol) = -U\(L\(S(:,a)\((2*s0(jCol)*sys.M+sys.D)*V(:,jCol-1)+sys.M*V(:,jCol-2))));
