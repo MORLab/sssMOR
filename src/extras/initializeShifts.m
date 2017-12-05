@@ -245,7 +245,6 @@ switch Opts.initShiftsStrategy{1}
         
         % define output
         if nargout > 2
-%             s0_out = double(s0_inp);
             s0_out = s0_inp;
         end
         
@@ -409,17 +408,15 @@ end
 
 % Change s0_inp/s0_out & Rt/Lt from matrix to cell if several sets were computed
 if nSets > 1
-    s0_inp = reshape(s0_inp,1,nShifts*nSets);    s0_inp = mat2cell(s0_inp,1,nShifts*ones(1,nSets));
+    s0_inp = reshape(s0_inp,1,nShifts*nSets);        s0_inp = mat2cell(s0_inp,1,nShifts*ones(1,nSets));
     if nargout > 1   
-        Rt = reshape(Rt,sys.m,nShifts*nSets);    Rt = mat2cell(Rt,sys.m,nShifts*ones(1,nSets));
-    if nargout == 3
-        s0_out = reshape(s0_out,1,nShifts*nSets);    s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
-    elseif nargout > 3
-        s0_out = reshape(s0_out,1,nShifts*nSets);    s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
-
-
-        Lt = reshape(Lt,sys.p,nShifts*nSets);    Lt = mat2cell(Lt,sys.p,nShifts*ones(1,nSets));
-    end
+        Rt = reshape(Rt,sys.m,nShifts*nSets);        Rt = mat2cell(Rt,sys.m,nShifts*ones(1,nSets));
+        if nargout == 3
+            s0_out = reshape(s0_out,1,nShifts*nSets);    s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
+        elseif nargout > 3
+            s0_out = reshape(s0_out,1,nShifts*nSets);    s0_out = mat2cell(s0_out,1,nShifts*ones(1,nSets));
+            Lt = reshape(Lt,sys.p,nShifts*nSets);        Lt = mat2cell(Lt,sys.p,nShifts*ones(1,nSets));
+        end
     end
 end
 
