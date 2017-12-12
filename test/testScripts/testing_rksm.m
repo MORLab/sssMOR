@@ -11,6 +11,58 @@ clearvars -global
 %               SpiralInductorPeec, fom
 
 %%
+sys = sss('fom');
+
+Opts.maxiter = 26;
+% Opts.shifts = 'fixedCyclic'; 
+%----CRKSM
+Opts.method = 'crksm';
+tic
+[Scrksm,Rcrksm,Outcrksm] = lyapchol(sys,Opts);
+toc
+
+Prcrksm = Scrksm'*Scrksm;
+Pcrksm = Outcrksm.Info_S.Basis_V*Prcrksm*Outcrksm.Info_S.Basis_V';
+resPcrksm = sys.A*Pcrksm*sys.E' + sys.E*Pcrksm*sys.A' + sys.B*sys.B';
+resPcrksm_norm = norm(resPcrksm)
+
+%----ADI
+Opts.method = 'adi';
+tic
+[Sadi,Radi,Outadi] = lyapchol(sys,Opts);
+toc
+
+Padi = Sadi*Sadi';
+resPadi = sys.A*Padi*sys.E' + sys.E*Padi*sys.A' + sys.B*sys.B';
+resPadi_norm = norm(resPadi)
+
+Qadi = Radi*Radi';
+resQadi = sys.A'*Qadi*sys.E + sys.E'*Qadi*sys.A + sys.C'*sys.C;
+resQadi_norm = norm(resQadi)
+
+% Post-processing with qr
+% [Sadi_Q,Sadi_R] = qr(Sadi);
+% SadiQR = Sadi_R'*Sadi_R;
+
+[Sadi_Q,Sadi_R] = qr(Sadi');
+SadiQR = Sadi_R*Sadi_R';
+ 
+% resS2test = sys.A*S2test*sys.E' + sys.E*S2test*sys.A' + sys.B*sys.B';
+% resS2test_norm = norm(resS2test);
+
+% LDT_T
+Opts.adi.LDL_T = true;
+tic
+[SadiLDL,RadiLDL,OutadiLDL] = lyapchol(sys,Opts);
+toc
+D = kron(diag(OutadiLDL.Info_S.D),speye(size(sys.B,2)));
+D = full(D);
+
+PadiLDL = SadiLDL*D*SadiLDL';
+resPadiLDL = sys.A*PadiLDL*sys.E' + sys.E*PadiLDL*sys.A' + sys.B*sys.B';
+resPadiLDL_norm = norm(resPadiLDL)
+
+%%
 sys = sss('fom')
 %sys = sss('rail_1357');
 % Opts.method = 'hammarling'
