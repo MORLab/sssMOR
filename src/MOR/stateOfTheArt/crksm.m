@@ -277,9 +277,11 @@ if (input == 1 && s0_inp(1,1) == 0 && s0_inp(1,2) == inf) || ...
 else
     % sort expansion points & tangential directions
     s0_inp = shiftVec(s0_inp);
+    s0_inp = single(s0_inp); % cast operation is important for roboustness of ismemeber command
     s0old = s0_inp;
     if Opts.real
-        s0_inp = cplxpair(s0_inp);  %make sure shifts can be paired 
+            s0_inp = cplxpair(single(s0_inp));  %make sure shifts can be paired 
+            s0_inp = double(s0_inp);
     else
         s0_inp = sort(s0_inp);
     end
@@ -295,10 +297,12 @@ else
             error('wrong input, right tangential directions (Rt) must be in complex conjugate pairs');
         end
     end
+    s0_inp = double(s0_inp); % re-cast operation
 
     if ~isempty(s0_out)
         % sort expansion points & tangential directions
         s0_out = shiftVec(s0_out);
+        s0_out = single(s0_out); % cast operation is important for roboustness of ismemeber command
         s0old = s0_out;
         if Opts.real 
             s0_out = cplxpair(s0_out); %make sure shifts can be paired 
@@ -317,6 +321,7 @@ else
             end
         end
     end
+    s0_out = double(s0_out); % re-cast operation
     if length(s0_inp) > size(sys.A,1) || length(s0_out) > size(sys.A,1)
         error('sssMOR:arnoldi:reducedOrderExceedsOriginal','The desired reduced order exceeds the original order');
     end
@@ -338,7 +343,7 @@ switch input
     case 2
         [basis1] = arnoldi(sys.E,sys.A,sys.B,s0_inp(1,1:2),Rt(:,1:2),Opts); % basis1 is V
         Opts.equation = 'control';
-    case 3
+    case 3 
         [basis1] = arnoldi(sys.E',sys.A',sys.C',s0_out(1,1:2),Opts); % basis1 is W
         Opts.equation = 'observe';
     case 4
