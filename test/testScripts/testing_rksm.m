@@ -41,11 +41,11 @@ resQadi = sys.A'*Qadi*sys.E + sys.E'*Qadi*sys.A + sys.C'*sys.C;
 resQadi_norm = norm(resQadi)
 
 % Post-processing with qr
-% [Sadi_Q,Sadi_R] = qr(Sadi);
-% SadiQR = Sadi_R'*Sadi_R;
+[Sadi_Q,Sadi_R] = qr(Sadi);
+SadiQR = Sadi_R'*Sadi_R;
 
-[Sadi_Q,Sadi_R] = qr(Sadi');
-SadiQR = Sadi_R*Sadi_R';
+% [Sadi_Q,Sadi_R] = qr(Sadi');
+% SadiQR = Sadi_R*Sadi_R';
  
 % resS2test = sys.A*S2test*sys.E' + sys.E*S2test*sys.A' + sys.B*sys.B';
 % resS2test_norm = norm(resS2test);
