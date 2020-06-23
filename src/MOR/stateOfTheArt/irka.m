@@ -189,8 +189,11 @@ while true
     %   Update of the reduction parameters
     s0_old=s0; if ~sys.isSiso, Rt_old = Rt; Lt_old = Lt; end
     if sys.isMimo
-        [X, D, Y] = eig(sysr);
-        Rt = full((Y.'*sysr.B).'); Lt = full(sysr.C*X);
+        [X, D] = eig(sysr);
+%         [X, D, Y] = eig(sysr);
+%         Rt = full((Y.'*sysr.B).'); 
+        EX = sysr.E*X; Rt = full((EX\sysr.B).'); %Rt = full((X\ ( sysr.E\ ( sysr.B))).'); 
+        Lt = full(sysr.C*X);
         s0 = full(-diag(D).');
         % make sure real shifts have real directions
         idx = find(imag(s0)==0);
