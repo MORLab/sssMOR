@@ -373,6 +373,7 @@ classdef ssRed < ss
         issymmetric
     end
     properties(Dependent, Hidden)
+        a,b,c,d,e
         n,p,m
         isSiso, isSimo, isMiso, isMimo, isBig
         isDae, isDescriptor
@@ -596,38 +597,20 @@ classdef ssRed < ss
                 end
             end
         end
+
+        %% Compatibility with small letters
+        function a = get.a(sys); a = sys.A; end
+        function b = get.b(sys); b = sys.B; end
+        function c = get.c(sys); c = sys.C; end
+        function d = get.d(sys); d = sys.D; end
+        function e = get.e(sys); e = sys.E; end
         
-        %% Overload subsref to cope with compatibility issues in MATLAB
-        function result = subsref(sys, arg)
-            %   Parts are taken from built-in subsref
-            %   Copyright 1986-2010 The MathWorks, Inc.
-            
-            ni = nargin;
-            if ni==1,
-               result = M;  return
-            end
-            switch arg(1).type
-              case '.'
-                  %COMPATIBILITY ISSUE BETWEEN 2015b and 2016a
-                  % make sure system matrices have the right (lower/upper)
-                  % case
-                  if any(strcmp(arg(1).subs,{'a','b','c','d','e','A','B','C','D','E'}))
-                        arg(1).subs = ltipack.matchProperty(arg(1).subs,...
-                            ltipack.allprops(sys),class(sys));
-                  end
-                 result = builtin('subsref',sys,arg(1));
-              case '()'
-                 result = subparen(sys,arg(1).subs);
-              case '{}'
-                 ctrlMsgUtils.error('Control:ltiobject:subsref3')
-            end
-           if length(arg)>1,
-              % SUBSREF for InputOutputModel objects can't be invoked again
-              % inside this method so jump out to make sure that downstream
-              % references to InputOutputModel properties are handled correctly,
-              result = ltipack.dotref(result,arg(2:end));
-           end
-    end
+        function sys = set.a(sys, a); sys.A = a; end
+        function sys = set.b(sys, b); sys.B = b; end
+        function sys = set.c(sys, c); sys.C = c; end
+        function sys = set.d(sys, d); sys.D = d; end
+        function sys = set.e(sys, e); sys.E = e; end
+        
         %% Override operators and build-in-functions
         
         function infostr = disp(sys)
