@@ -4,7 +4,7 @@ classdef testModal < sssTest
 % Description:
 %   The function modalMor.m is tested (3 tests) on:
 %    + comparing the eigenvalues of the reduced system to the solution of
-%      modreal (only 'SM' possible).
+%      freqsep.
 %    + test systems: diagonal, building, LF10 (with E-matrix)
 %
 % ------------------------------------------------------------------
@@ -34,7 +34,7 @@ classdef testModal < sssTest
             [sysr] = modalMor(sss(A,B,C,0), 6, Opts);
             actSolution={full(sort(eig(sysr)))};
             
-            [expsysr,~]=modreal(ss(full(A),full(B),full(C),0),6);
+            [expsysr,~]=freqsep(ss(full(A),full(B),full(C),0),50);
             expSolution={full(sort(eig(expsysr)))};
                      
             verification(testCase, actSolution, expSolution, sysr);
@@ -48,7 +48,7 @@ classdef testModal < sssTest
             actEig=sort(eig(sysr));
             actSolution={full(real(actEig)), full(abs(imag(actEig)))};
             
-            [expsysr,~]=modreal(ss(full(A),full(B),full(C),0),6);
+            [expsysr,~]=freqsep(ss(full(A),full(B),full(C),0),10);
             expEig=sort(eig(expsysr));
             expSolution={full(real(expEig)), full(abs(imag(expEig)))};
                  
