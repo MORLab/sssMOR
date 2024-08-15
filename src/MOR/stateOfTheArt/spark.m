@@ -127,6 +127,11 @@ if size(sys.B,2)>1 || size(sys.C,1)>1, error('System must be SISO.'), end
 %let all functions have access to the figure window created in ESPARK
 global fh
 
+% Initialize variables used in nested functions
+N   = size(sys.A,1);
+L1  = sparse(N,N); U1=L1; P1=L1; Q1=L1;
+L2  = sparse(N,N); U2=L2; P2=L2; Q2=L2;
+
 %% ---------------------------- CODE -------------------------------
 warning('off','MATLAB:nearlySingularMatrix')
     %
